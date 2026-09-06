@@ -4,6 +4,8 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Index from './pages/Index'
+import Auth from './pages/Auth'
+import AppPlaceholder from './pages/AppPlaceholder'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -20,6 +22,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           {/* ADD ALL CUSTOM ROUTES MUST BE ADDED HERE */}
         </Route>
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/app" element={<AppPlaceholder />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </TooltipProvider>
