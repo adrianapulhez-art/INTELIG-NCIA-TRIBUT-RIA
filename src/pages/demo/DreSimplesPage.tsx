@@ -901,10 +901,10 @@ export default function DreSimplesPage() {
 
           <Button
             type="button"
-            onClick={() => navigate('/demo/dre-presumido')}
+            onClick={() => navigate('/demo/comparacao')}
             className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
           >
-            <span>Comparar com Lucro Presumido</span>
+            <span>Comparar regimes</span>
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
