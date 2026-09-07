@@ -2,13 +2,19 @@ import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Menu, X, ArrowUpRight, ShieldCheck, Scale, Cpu } from 'lucide-react'
 
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
+
 interface HeaderProps {
   onRequestAccess: () => void
+  onLoginClick?: () => void
 }
 
-export function Header({ onRequestAccess }: HeaderProps) {
+export function Header({ onRequestAccess, onLoginClick }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const navigate = useNavigate()
+  const { isAuthenticated, user } = useAuth()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -93,6 +99,28 @@ export function Header({ onRequestAccess }: HeaderProps) {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               LC 214/2025 Ativa
             </div>
+
+            {/* Botão ENTRAR / Área logada imediatamente à esquerda de Solicitar Acesso */}
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => navigate('/app')}
+                className="px-3.5 py-2 text-xs font-medium tracking-wider text-slate-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
+                title={`Conectado como ${user?.name || user?.email}`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                ACESSAR APP
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onLoginClick}
+                className="px-3.5 py-2 text-xs font-semibold tracking-wider text-slate-300 hover:text-white transition-colors cursor-pointer uppercase font-sans"
+              >
+                ENTRAR
+              </button>
+            )}
+
             <Button
               onClick={onRequestAccess}
               className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm px-4 sm:px-5 h-9 sm:h-10 rounded-md shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
@@ -103,6 +131,24 @@ export function Header({ onRequestAccess }: HeaderProps) {
 
           {/* Mobile hamburger */}
           <div className="flex sm:hidden items-center gap-2">
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => navigate('/app')}
+                className="text-xs font-semibold tracking-wider text-emerald-400 px-2 py-1 uppercase"
+              >
+                App
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onLoginClick}
+                className="text-xs font-semibold tracking-wider text-slate-300 hover:text-white px-2 py-1 uppercase"
+              >
+                ENTRAR
+              </button>
+            )}
+
             <Button
               onClick={onRequestAccess}
               size="sm"
@@ -135,7 +181,22 @@ export function Header({ onRequestAccess }: HeaderProps) {
                 {link.label}
               </a>
             ))}
-            <div className="pt-3">
+            <div className="pt-3 space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  if (isAuthenticated) {
+                    navigate('/app')
+                  } else if (onLoginClick) {
+                    onLoginClick()
+                  }
+                }}
+                className="w-full border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800 font-semibold text-sm h-10 uppercase tracking-wider"
+              >
+                {isAuthenticated ? 'Acessar Plataforma' : 'ENTRAR'}
+              </Button>
               <Button
                 onClick={() => {
                   setMobileMenuOpen(false)

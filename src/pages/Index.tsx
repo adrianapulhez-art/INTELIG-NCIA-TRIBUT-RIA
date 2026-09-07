@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Header, Footer } from '@/components/Navigation'
 import { RequestAccessModal } from '@/components/RequestAccessModal'
+import { LoginModal } from '@/components/LoginModal'
 import { HeroSection } from '@/components/sections/HeroSection'
 import { ProblemSection } from '@/components/sections/ProblemSection'
 import { SolutionSection } from '@/components/sections/SolutionSection'
@@ -16,15 +17,20 @@ import { FaqSection } from '@/components/sections/FaqSection'
 
 export default function Index() {
   const [modalOpen, setModalOpen] = useState(false)
+  const [loginModalOpen, setLoginModalOpen] = useState(false)
 
   const handleOpenModal = () => {
     setModalOpen(true)
   }
 
+  const handleOpenLoginModal = () => {
+    setLoginModalOpen(true)
+  }
+
   return (
     <div className="min-h-screen bg-[#070b12] text-slate-100 selection:bg-emerald-500 selection:text-slate-950 font-sans">
       {/* Navigation Header */}
-      <Header onRequestAccess={handleOpenModal} />
+      <Header onRequestAccess={handleOpenModal} onLoginClick={handleOpenLoginModal} />
 
       {/* Main Landing Page Content */}
       <main>
@@ -70,6 +76,9 @@ export default function Index() {
 
       {/* Request Access Modal */}
       <RequestAccessModal open={modalOpen} onOpenChange={setModalOpen} />
+
+      {/* Login Modal */}
+      <LoginModal open={loginModalOpen} onOpenChange={setLoginModalOpen} />
     </div>
   )
 }
