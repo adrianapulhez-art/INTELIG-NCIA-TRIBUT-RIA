@@ -75,7 +75,7 @@ export default function ComparisonPage() {
   const initialQty =
     totalConsolidatedQuantity > 0
       ? totalConsolidatedQuantity
-      : presumidoQuantitySold || realQuantitySold || simplesQuantitySold || 100
+      : presumidoQuantitySold || realQuantitySold || simplesQuantitySold || 0
 
   // Estado local para a quantidade na página de comparação
   const [qty, setQty] = useState<number>(initialQty)

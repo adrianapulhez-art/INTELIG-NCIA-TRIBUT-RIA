@@ -272,7 +272,7 @@ export interface TaxContextType {
   resetAll: () => void
 }
 
-const LOCAL_STORAGE_KEY = 'it_tax_context_v1'
+const LOCAL_STORAGE_KEY = 'it_tax_context_v2'
 
 const TaxContext = createContext<TaxContextType | undefined>(undefined)
 
@@ -280,6 +280,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Carregar dados salvos ou inicializar zerado
   const savedState = (() => {
     try {
+      // Limpeza preventiva de rascunhos de versões legadas para evitar poluição
+      if (typeof window !== 'undefined' && localStorage.getItem('it_tax_context_v1')) {
+        localStorage.removeItem('it_tax_context_v1')
+      }
       const item = localStorage.getItem(LOCAL_STORAGE_KEY)
       return item ? JSON.parse(item) : null
     } catch {
@@ -311,20 +315,20 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ) {
       return savedState.markupProducts
     }
-    // Cria 1 produto padrão inicial para não quebrar fluxos legados
+    // Cria 1 produto padrão inicial estritamente zerado
     return [
       {
         id: 'prod-1',
         name: 'Produto 1',
         mode: savedState?.markupMode || 'liquid',
-        desiredNetRevenue: savedState?.desiredNetRevenue || 0,
-        cost: savedState?.markupMode === 'cost_margin' ? savedState?.desiredNetRevenue || 0 : 0,
-        margin: savedState?.additionalMargin || 0,
+        desiredNetRevenue: 0,
+        cost: 0,
+        margin: 0,
         quantity: 0,
-        salePrice: savedState?.simulatedSalePrice || 0,
-        taxFactor: savedState?.simulatedTaxFactorTotal || 0,
-        completeFactor: savedState?.simulatedCompleteFactor || 0,
-        totalRevenue: (savedState?.simulatedSalePrice || 0) * 0,
+        salePrice: 0,
+        taxFactor: 0,
+        completeFactor: 0,
+        totalRevenue: 0,
         totalCost: 0,
       },
     ]
@@ -1000,6 +1004,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       localStorage.removeItem(LOCAL_STORAGE_KEY)
+      localStorage.removeItem('it_tax_context_v1')
     } catch {
       // Ignora
     }
