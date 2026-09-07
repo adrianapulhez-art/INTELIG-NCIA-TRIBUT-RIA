@@ -45,7 +45,62 @@ export interface CustomTaxItem {
   rate: number // percentual, ex: 5 para 5%
 }
 
+export interface TaxStateSnapshot {
+  regime: TaxRegime
+  markupMode: MarkupMode
+  desiredNetRevenue: number
+  additionalMargin: number
+  icmsRateMarkup: number
+  customTaxesMarkup: CustomTaxItem[]
+  markupProducts: MarkupProductItem[]
+  simulatedSalePrice: number
+  simulatedTaxFactorTotal: number
+  simulatedCompleteFactor: number
+  isMarkupSimulated: boolean
+  totalConsolidatedRevenue: number
+  totalConsolidatedQuantity: number
+  totalConsolidatedCost: number
+  initialInventory: number
+  finalInventory: number
+  additionalCosts: AdditionalCostItem[]
+  nonRecoverableTaxBase: number
+  nonRecoverableTaxRate: number
+  deductionCosts: DeductionCostItem[]
+  icmsPurchasesBase: number
+  icmsPurchasesRate: number
+  icmsFreightPurchasesBase: number
+  icmsFreightPurchasesRate: number
+  pisPurchasesBase: number
+  pisExcludedIcmsManual: number | null
+  cofinsPurchasesBase: number
+  cofinsExcludedIcmsManual: number | null
+  pisFreightPurchasesBase: number
+  cofinsFreightPurchasesBase: number
+  presumidoActivity: ActivityType
+  presumidoIssRate: number
+  presumidoQuantitySold: number
+  presumidoExpenses: ExpenseItem[]
+  isPresumidoSimulated: boolean
+  realActivity: ActivityType
+  realIssRate: number
+  realAdditions: number
+  realExclusions: number
+  realQuantitySold: number
+  realExpenses: ExpenseItem[]
+  isRealSimulated: boolean
+  simplesAnexo: string
+  simplesRbt12: number
+  simplesPayroll12m: number
+  simplesQuantitySold: number
+  simplesExpenses: ExpenseItem[]
+  isSimplesSimulated: boolean
+}
+
 export interface TaxContextType {
+  // Snapshot export/load para sincronização com banco de dados
+  getSnapshot: () => TaxStateSnapshot
+  loadSnapshot: (snapshot: TaxStateSnapshot) => void
+
   // Regime compartilhado entre Markup, Compras e DREs
   regime: TaxRegime
   setRegime: (regime: TaxRegime) => void
@@ -950,6 +1005,183 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }
 
+  // Obter snapshot completo do estado atual para salvar no banco
+  const getSnapshot = (): TaxStateSnapshot => {
+    return {
+      regime,
+      markupMode,
+      desiredNetRevenue,
+      additionalMargin,
+      icmsRateMarkup,
+      customTaxesMarkup,
+      markupProducts,
+      simulatedSalePrice,
+      simulatedTaxFactorTotal,
+      simulatedCompleteFactor,
+      isMarkupSimulated,
+      totalConsolidatedRevenue,
+      totalConsolidatedQuantity,
+      totalConsolidatedCost,
+      initialInventory,
+      finalInventory,
+      additionalCosts,
+      nonRecoverableTaxBase,
+      nonRecoverableTaxRate,
+      deductionCosts,
+      icmsPurchasesBase,
+      icmsPurchasesRate,
+      icmsFreightPurchasesBase,
+      icmsFreightPurchasesRate,
+      pisPurchasesBase,
+      pisExcludedIcmsManual,
+      cofinsPurchasesBase,
+      cofinsExcludedIcmsManual,
+      pisFreightPurchasesBase,
+      cofinsFreightPurchasesBase,
+      presumidoActivity,
+      presumidoIssRate,
+      presumidoQuantitySold,
+      presumidoExpenses,
+      isPresumidoSimulated,
+      realActivity,
+      realIssRate,
+      realAdditions,
+      realExclusions,
+      realQuantitySold,
+      realExpenses,
+      isRealSimulated,
+      simplesAnexo,
+      simplesRbt12,
+      simplesPayroll12m,
+      simplesQuantitySold,
+      simplesExpenses,
+      isSimplesSimulated,
+    }
+  }
+
+  // Carregar snapshot vindo do banco e sobrescrever todos os campos
+  const loadSnapshot = (snapshot: TaxStateSnapshot) => {
+    if (!snapshot) return
+
+    if (snapshot.regime) setRegime(snapshot.regime)
+    if (snapshot.markupMode) setMarkupMode(snapshot.markupMode)
+    setDesiredNetRevenue(snapshot.desiredNetRevenue ?? 0)
+    setAdditionalMargin(snapshot.additionalMargin ?? 0)
+    setIcmsRateMarkup(snapshot.icmsRateMarkup ?? 0)
+    setCustomTaxesMarkup(
+      Array.isArray(snapshot.customTaxesMarkup) ? snapshot.customTaxesMarkup : [],
+    )
+
+    if (Array.isArray(snapshot.markupProducts) && snapshot.markupProducts.length > 0) {
+      setMarkupProducts(snapshot.markupProducts)
+    } else {
+      setMarkupProducts([
+        {
+          id: 'prod-1',
+          name: 'Produto 1',
+          mode: snapshot.markupMode || 'liquid',
+          desiredNetRevenue: snapshot.desiredNetRevenue || 0,
+          cost: snapshot.markupMode === 'cost_margin' ? snapshot.desiredNetRevenue || 0 : 0,
+          margin: snapshot.additionalMargin || 0,
+          quantity: 0,
+          salePrice: snapshot.simulatedSalePrice || 0,
+          taxFactor: snapshot.simulatedTaxFactorTotal || 0,
+          completeFactor: snapshot.simulatedCompleteFactor || 0,
+          totalRevenue: 0,
+          totalCost: 0,
+        },
+      ])
+    }
+
+    setSimulatedSalePrice(snapshot.simulatedSalePrice ?? 0)
+    setSimulatedTaxFactorTotal(snapshot.simulatedTaxFactorTotal ?? 0)
+    setSimulatedCompleteFactor(snapshot.simulatedCompleteFactor ?? 0)
+    setIsMarkupSimulated(Boolean(snapshot.isMarkupSimulated))
+    setTotalConsolidatedRevenue(snapshot.totalConsolidatedRevenue ?? 0)
+    setTotalConsolidatedQuantity(snapshot.totalConsolidatedQuantity ?? 0)
+    setTotalConsolidatedCost(snapshot.totalConsolidatedCost ?? 0)
+
+    setInitialInventory(snapshot.initialInventory ?? 0)
+    setFinalInventory(snapshot.finalInventory ?? 0)
+    setAdditionalCosts(
+      Array.isArray(snapshot.additionalCosts) && snapshot.additionalCosts.length > 0
+        ? snapshot.additionalCosts
+        : [
+            { id: '1', description: 'Compras brutas', value: 0 },
+            { id: '2', description: 'Frete e seguro s/ compras', value: 0 },
+          ],
+    )
+    setNonRecoverableTaxBase(snapshot.nonRecoverableTaxBase ?? 0)
+    setNonRecoverableTaxRate(snapshot.nonRecoverableTaxRate ?? 0)
+    setDeductionCosts(
+      Array.isArray(snapshot.deductionCosts) && snapshot.deductionCosts.length > 0
+        ? snapshot.deductionCosts
+        : [{ id: '1', description: 'Devoluções / abatimentos / descontos', value: 0 }],
+    )
+
+    setIcmsPurchasesBase(snapshot.icmsPurchasesBase ?? 0)
+    setIcmsPurchasesRate(snapshot.icmsPurchasesRate ?? 0)
+    setIcmsFreightPurchasesBase(snapshot.icmsFreightPurchasesBase ?? 0)
+    setIcmsFreightPurchasesRate(snapshot.icmsFreightPurchasesRate ?? 0)
+
+    setPisPurchasesBase(snapshot.pisPurchasesBase ?? 0)
+    setPisExcludedIcmsManual(
+      snapshot.pisExcludedIcmsManual !== undefined ? snapshot.pisExcludedIcmsManual : null,
+    )
+    setCofinsPurchasesBase(snapshot.cofinsPurchasesBase ?? 0)
+    setCofinsExcludedIcmsManual(
+      snapshot.cofinsExcludedIcmsManual !== undefined ? snapshot.cofinsExcludedIcmsManual : null,
+    )
+    setPisFreightPurchasesBase(snapshot.pisFreightPurchasesBase ?? 0)
+    setCofinsFreightPurchasesBase(snapshot.cofinsFreightPurchasesBase ?? 0)
+
+    if (snapshot.presumidoActivity) setPresumidoActivity(snapshot.presumidoActivity)
+    setPresumidoIssRate(snapshot.presumidoIssRate ?? 0)
+    setPresumidoQuantitySold(snapshot.presumidoQuantitySold ?? 0)
+    setPresumidoExpenses(
+      Array.isArray(snapshot.presumidoExpenses) && snapshot.presumidoExpenses.length > 0
+        ? snapshot.presumidoExpenses
+        : [
+            { id: '1', description: 'Despesas com pessoal', value: 0 },
+            { id: '2', description: 'Aluguel e utilidades', value: 0 },
+          ],
+    )
+    setIsPresumidoSimulated(Boolean(snapshot.isPresumidoSimulated))
+
+    if (snapshot.realActivity) setRealActivity(snapshot.realActivity)
+    setRealIssRate(snapshot.realIssRate ?? 0)
+    setRealAdditions(snapshot.realAdditions ?? 0)
+    setRealExclusions(snapshot.realExclusions ?? 0)
+    setRealQuantitySold(snapshot.realQuantitySold ?? 0)
+    setRealExpenses(
+      Array.isArray(snapshot.realExpenses) && snapshot.realExpenses.length > 0
+        ? snapshot.realExpenses
+        : [{ id: '1', description: 'Despesas operacionais e administrativas', value: 0 }],
+    )
+    setIsRealSimulated(Boolean(snapshot.isRealSimulated))
+
+    if (snapshot.simplesAnexo) setSimplesAnexo(snapshot.simplesAnexo)
+    setSimplesRbt12(snapshot.simplesRbt12 ?? 0)
+    setSimplesPayroll12m(snapshot.simplesPayroll12m ?? 0)
+    setSimplesQuantitySold(snapshot.simplesQuantitySold ?? 0)
+    setSimplesExpenses(
+      Array.isArray(snapshot.simplesExpenses) && snapshot.simplesExpenses.length > 0
+        ? snapshot.simplesExpenses
+        : [
+            { id: '1', description: 'Despesas com pessoal e encargos', value: 0 },
+            { id: '2', description: 'Aluguel e custos operacionais', value: 0 },
+          ],
+    )
+    setIsSimplesSimulated(Boolean(snapshot.isSimplesSimulated))
+
+    // Atualiza também imediatamente o localStorage
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot))
+    } catch {
+      // Ignora erro de cota
+    }
+  }
+
   return (
     <TaxContext.Provider
       value={{
@@ -1060,6 +1292,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         removeSimplesExpense,
         isSimplesSimulated,
         simulateSimples,
+
+        getSnapshot,
+        loadSnapshot,
 
         calculatedPurchases: {
           totalAdditionalCosts,
