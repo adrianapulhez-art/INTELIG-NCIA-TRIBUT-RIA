@@ -1,12 +1,22 @@
 import React from 'react'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { useTaxContext } from '@/contexts/TaxContext'
-import { Package, ArrowUpRight, ArrowDownRight, Plus, Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Package,
+  ArrowUpRight,
+  ArrowDownRight,
+  Plus,
+  Trash2,
+  ArrowLeft,
+  ArrowRight,
+} from 'lucide-react'
 import { formatBRL, formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 export default function PurchasesPage() {
+  const navigate = useNavigate()
   const {
     regime,
     setRegime,
@@ -724,6 +734,33 @@ export default function PurchasesPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Botões de Navegação no Final da Página */}
+        <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <Button
+            type="button"
+            onClick={() => navigate('/demo/markup')}
+            className="bg-[#0f172a]/90 text-slate-300 border border-slate-700/80 hover:border-emerald-500/40 hover:text-white hover:bg-slate-800/80 font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Voltar para a calculadora Markup</span>
+          </Button>
+
+          <Button
+            type="button"
+            onClick={() => {
+              if (regime === 'real') {
+                navigate('/demo/dre-real')
+              } else {
+                navigate('/demo/dre-presumido')
+              }
+            }}
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
+          >
+            <span>Ir para a DRE</span>
+            <ArrowRight className="w-4 h-4" />
+          </Button>
         </div>
       </div>
     </DemoLayout>
