@@ -1,12 +1,14 @@
 import React, { useState } from 'react'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { useTaxContext } from '@/contexts/TaxContext'
-import { Calculator, Plus, Trash2, CheckCircle2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Calculator, Plus, Trash2, CheckCircle2, ArrowRight } from 'lucide-react'
 import { formatBRL, formatFactorBR, formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 export default function MarkupPage() {
+  const navigate = useNavigate()
   const {
     regime,
     setRegime,
@@ -449,6 +451,18 @@ export default function MarkupPage() {
             </p>
           </div>
         )}
+
+        {/* Rodapé da Calculadora Markup: Botão para próxima página (Calculadora de Compras) */}
+        <div className="pt-2 flex justify-end">
+          <Button
+            type="button"
+            onClick={() => navigate('/demo/compras')}
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
+          >
+            <span>Ir para a calculadora de compras</span>
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
     </DemoLayout>
   )
