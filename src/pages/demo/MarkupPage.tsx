@@ -277,16 +277,69 @@ export default function MarkupPage() {
                 </p>
               </div>
             </div>
+          </div>
 
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => addMarkupProduct('', markupMode)}
-              className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold cursor-pointer text-xs h-8"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              Adicionar produto
-            </Button>
+          {/* Regime tributário da empresa (alíquotas automáticas) no topo */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-300">
+              Regime tributário da empresa (alíquotas automáticas)
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setRegime('presumido')}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  regime === 'presumido'
+                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm'
+                    : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono uppercase">Lucro Presumido</span>
+                  {regime === 'presumido' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  PIS 0,65% · COFINS 3,00% (cumulativo)
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRegime('real')}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  regime === 'real'
+                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm'
+                    : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono uppercase">Lucro Real</span>
+                  {regime === 'real' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  PIS 1,65% · COFINS 7,60% (não cumulativo)
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRegime('simples')}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  regime === 'simples'
+                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm'
+                    : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold font-mono uppercase">Simples Nacional</span>
+                  {regime === 'simples' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  Guia única DAS (PIS/COFINS sem destaque avulso)
+                </p>
+              </button>
+            </div>
           </div>
 
           {/* Modo padrão de partida para a calculadora */}
@@ -623,71 +676,6 @@ export default function MarkupPage() {
                 <div className="text-xs font-mono text-slate-400 min-w-[110px] text-right">
                   Fator: <span className="text-slate-200">{formatFactorBR(icmsFactor)}</span>
                 </div>
-              </div>
-            </div>
-
-            {/* PIS e COFINS: SOMENTE Seleção de Regime */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-300">
-                Regime tributário da empresa (alíquotas automáticas)
-              </label>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRegime('presumido')}
-                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
-                    regime === 'presumido'
-                      ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm'
-                      : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold font-mono uppercase">Lucro Presumido</span>
-                    {regime === 'presumido' && (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    )}
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1 font-mono">
-                    PIS 0,65% · COFINS 3,00% (cumulativo)
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setRegime('real')}
-                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
-                    regime === 'real'
-                      ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm'
-                      : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold font-mono uppercase">Lucro Real</span>
-                    {regime === 'real' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1 font-mono">
-                    PIS 1,65% · COFINS 7,60% (não cumulativo)
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setRegime('simples')}
-                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
-                    regime === 'simples'
-                      ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm'
-                      : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold font-mono uppercase">Simples Nacional</span>
-                    {regime === 'simples' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1 font-mono">
-                    Guia única DAS (PIS/COFINS sem destaque avulso)
-                  </p>
-                </button>
               </div>
             </div>
 
