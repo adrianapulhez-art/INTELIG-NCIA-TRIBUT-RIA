@@ -1,26 +1,40 @@
 import { useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import pb from '@/lib/pocketbase/client'
-import { LogOut, Calculator, Construction, ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import {
+  LogOut,
+  Calculator,
+  Construction,
+  ArrowLeft,
+  ShieldCheck,
+  Sparkles,
+  UserCheck,
+  Building2,
+} from 'lucide-react'
 
 export default function AppDashboardPlaceholder() {
   const navigate = useNavigate()
-  const user = pb.authStore.record
+  const { user, logout } = useAuth()
 
   useEffect(() => {
     document.title = 'Calculadora | IT — Inteligência Tributária'
-
-    // Proteger rota se não autenticado
-    if (!pb.authStore.isValid) {
-      navigate('/auth', { replace: true })
-    }
-  }, [navigate])
+  }, [])
 
   const handleLogout = () => {
-    pb.authStore.clear()
+    logout()
     navigate('/auth')
   }
+
+  // Nome de exibição amigável
+  const displayName = user?.name || user?.email?.split('@')[0] || 'Cliente IT'
+  const userInitials =
+    displayName
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || 'IT'
 
   return (
     <div className="min-h-screen bg-[#070b12] text-slate-100 flex flex-col justify-between relative selection:bg-emerald-500/30 selection:text-emerald-300 font-sans">
@@ -39,22 +53,32 @@ export default function AppDashboardPlaceholder() {
               IT — Inteligência Tributária
             </span>
             <span className="text-[9px] text-emerald-400 font-mono tracking-wider uppercase">
-              Ambiente de Demonstração
+              Área do Cliente • Demonstração
             </span>
           </div>
         </Link>
 
         <div className="flex items-center gap-3">
-          {user?.email && (
-            <span className="hidden sm:inline-block text-xs text-slate-400 font-mono bg-slate-900 border border-slate-800 px-2.5 py-1 rounded">
-              {user.email}
-            </span>
-          )}
+          {/* Perfil do cliente logado com nome e email */}
+          <div className="flex items-center gap-2.5 pl-2">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-mono text-xs font-semibold shadow-inner">
+              {userInitials}
+            </div>
+            <div className="hidden sm:flex flex-col text-left">
+              <span className="text-xs font-medium text-slate-200 leading-tight">
+                {displayName}
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono truncate max-w-[180px]">
+                {user?.email}
+              </span>
+            </div>
+          </div>
+
           <Button
             variant="ghost"
             size="sm"
             onClick={handleLogout}
-            className="text-xs text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 flex items-center gap-1.5 h-8 cursor-pointer"
+            className="text-xs text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 flex items-center gap-1.5 h-8 cursor-pointer ml-1"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Sair</span>
@@ -64,33 +88,47 @@ export default function AppDashboardPlaceholder() {
 
       {/* Main Content */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-12 text-center">
-        <div className="max-w-md w-full space-y-6 bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl p-8 rounded-2xl shadow-2xl shadow-black/40">
-          <div className="w-14 h-14 mx-auto rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+        <div className="max-w-lg w-full space-y-6 bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl p-8 rounded-2xl shadow-2xl shadow-black/40">
+          <div className="w-14 h-14 mx-auto rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shadow-md shadow-emerald-500/10">
             <Calculator className="w-7 h-7" />
           </div>
 
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono">
-              <Construction className="w-3.5 h-3.5" />
-              Calculadora — em construção
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+              <UserCheck className="w-3.5 h-3.5" />
+              Sessão de cliente ativa
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight pt-2">
-              Módulo de Cálculo da Demo
+              Olá, {displayName}
             </h1>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Você está autenticado no ambiente de testes. As telas internas detalhadas da
-              calculadora e comparador tributário serão ativadas na próxima etapa.
+              Você está autenticado na plataforma IT. Os módulos completos de simulação e cálculo da
+              Reforma Tributária (IBS / CBS / Imposto Seletivo) estão sendo preparados para sua
+              conta.
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 text-left space-y-2 text-xs text-slate-300">
-            <div className="flex items-center gap-2 text-emerald-400 font-medium">
-              <ShieldCheck className="w-4 h-4" />
-              Sessão de demonstração ativa
+          {/* Card com detalhes do usuário cliente */}
+          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 text-left space-y-2.5 text-xs">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
+              <span className="text-slate-400">Nome do cliente:</span>
+              <span className="font-semibold text-slate-200">{displayName}</span>
+            </div>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
+              <span className="text-slate-400">E-mail:</span>
+              <span className="font-mono text-emerald-400">{user?.email}</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-400 pt-1">
+              <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Ambiente seguro pronto para simulações e auditoria fiscal</span>
             </div>
             <div className="flex items-center gap-2 text-slate-400">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-              Regras e alíquotas EC 132 &amp; LC 214/2025 integradas
+              <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>Regras e alíquotas EC 132 &amp; LC 214/2025 integradas</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-400">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Sessão persistente ativa via PocketBase</span>
             </div>
           </div>
 

@@ -1,79 +1,133 @@
 import React, { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Check, AlertCircle } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function AuthPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { login, register, isAuthenticated, isLoading: authLoading } = useAuth()
+
   const [isSignUp, setIsSignUp] = useState(false)
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Redireciona para onde o usuário tentava ir ou /app caso já autenticado
   useEffect(() => {
-    document.title = 'Acesso à demo | IT — Inteligência Tributária'
+    document.title = isSignUp
+      ? 'Criar conta de teste | IT — Inteligência Tributária'
+      : 'Acesso à demo | IT — Inteligência Tributária'
 
-    // Se já estiver logado, redireciona para /app
-    if (pb.authStore.isValid) {
-      navigate('/app', { replace: true })
+    if (!authLoading && isAuthenticated) {
+      const from = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/app'
+      navigate(from, { replace: true })
     }
-  }, [navigate])
+  }, [authLoading, isAuthenticated, navigate, location.state, isSignUp])
+
+  // Validação simples de formato de e-mail
+  const isValidEmail = (val: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim())
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!email || !password) {
-      toast.error('Preencha e-mail e senha')
+    const cleanEmail = email.trim()
+    const cleanName = name.trim()
+
+    // 1. Validações gerais
+    if (!cleanEmail) {
+      toast.error('Informe o seu endereço de e-mail.')
       return
     }
 
-    if (password.length < 8) {
-      toast.error('A senha deve ter no mínimo 8 caracteres')
+    if (!isValidEmail(cleanEmail)) {
+      toast.error('Informe um endereço de e-mail válido (ex: nome@empresa.com.br).')
       return
+    }
+
+    if (!password) {
+      toast.error('Informe a senha de acesso.')
+      return
+    }
+
+    // 2. Validações específicas do cadastro de cliente
+    if (isSignUp) {
+      if (!cleanName || cleanName.length < 2) {
+        toast.error('Por favor, informe seu nome completo.')
+        return
+      }
+
+      if (password.length < 8) {
+        toast.error('A senha deve conter no mínimo 8 caracteres.')
+        return
+      }
+
+      if (password !== passwordConfirm) {
+        toast.error('As senhas digitadas não conferem. Verifique e tente novamente.')
+        return
+      }
     }
 
     setLoading(true)
 
     try {
       if (isSignUp) {
-        // Criar conta de teste
-        await pb.collection('users').create({
-          email,
-          password,
-          passwordConfirm: password,
-          name: email.split('@')[0],
-        })
-        // Realizar login automático após cadastro
-        await pb.collection('users').authWithPassword(email, password)
-        toast.success('Conta de teste criada com sucesso! Redirecionando...')
+        // Fluxo de Cadastro completo de cliente
+        await register(cleanName, cleanEmail, password)
+        toast.success(`Conta criada com sucesso! Bem-vindo(a), ${cleanName}.`)
       } else {
-        // Entrar na demo
-        await pb.collection('users').authWithPassword(email, password)
+        // Fluxo de Login
+        await login(cleanEmail, password)
         toast.success('Login realizado com sucesso!')
       }
 
-      navigate('/app')
+      const destination =
+        (location.state as { from?: { pathname?: string } })?.from?.pathname || '/app'
+      navigate(destination, { replace: true })
     } catch (err: unknown) {
       const error = err as {
+        status?: number
         message?: string
-        data?: { message?: string; data?: Record<string, { message?: string }> }
+        data?: {
+          message?: string
+          data?: Record<string, { code?: string; message?: string }>
+        }
       }
-      const fieldErrors = error?.data?.data
-      let message = 'Não foi possível autenticar. Verifique suas credenciais.'
 
-      if (fieldErrors?.email) {
-        message = `E-mail: ${fieldErrors.email.message}`
-      } else if (fieldErrors?.password) {
-        message = `Senha: ${fieldErrors.password.message}`
+      const fieldData = error?.data?.data
+
+      if (fieldData?.email) {
+        const emailMsg = fieldData.email.message || ''
+        if (
+          fieldData.email.code === 'validation_not_unique' ||
+          emailMsg.toLowerCase().includes('unique') ||
+          emailMsg.toLowerCase().includes('already')
+        ) {
+          toast.error(
+            'Este e-mail já está cadastrado. Tente entrar com sua senha existente ou use outro e-mail.',
+          )
+        } else {
+          toast.error(`E-mail inválido: ${emailMsg}`)
+        }
+      } else if (fieldData?.password) {
+        toast.error(`Senha: ${fieldData.password.message}`)
+      } else if (fieldData?.passwordConfirm) {
+        toast.error(`Confirmação de senha: ${fieldData.passwordConfirm.message}`)
+      } else if (error?.status === 400 && !isSignUp) {
+        toast.error('E-mail ou senha incorretos. Verifique suas credenciais e tente novamente.')
       } else if (error?.message) {
-        message = error.message
+        toast.error(error.message)
+      } else {
+        toast.error('Não foi possível completar a operação. Tente novamente mais tarde.')
       }
-
-      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -81,6 +135,13 @@ export default function AuthPage() {
 
   const handleGoogleClick = () => {
     toast.info('Login social com Google em breve disponível na versão final.')
+  }
+
+  const handleForgotPassword = (e: React.MouseEvent) => {
+    e.preventDefault()
+    toast.info(
+      'A recuperação automática de senha por e-mail será liberada em breve na versão final.',
+    )
   }
 
   return (
@@ -123,12 +184,35 @@ export default function AuthPage() {
                 {isSignUp ? 'Criar conta de teste' : 'Entrar na demo'}
               </h1>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                Ambiente de demonstração da IT — Inteligência Tributária.
+                {isSignUp
+                  ? 'Cadastre seu perfil de cliente para testar a calculadora tributária.'
+                  : 'Ambiente de demonstração da IT — Inteligência Tributária.'}
               </p>
             </div>
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Campo Nome Completo (exibido apenas no cadastro) */}
+              {isSignUp && (
+                <div className="space-y-1.5 text-left">
+                  <Label htmlFor="name" className="text-xs font-medium text-slate-300">
+                    Nome completo
+                  </Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    autoComplete="name"
+                    required={isSignUp}
+                    placeholder="Seu nome ou de sua empresa"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={loading}
+                    className="h-10 bg-slate-950/60 border-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 text-sm"
+                  />
+                </div>
+              )}
+
+              {/* Campo E-mail */}
               <div className="space-y-1.5 text-left">
                 <Label htmlFor="email" className="text-xs font-medium text-slate-300">
                   E-mail
@@ -146,22 +230,76 @@ export default function AuthPage() {
                 />
               </div>
 
+              {/* Campo Senha */}
               <div className="space-y-1.5 text-left">
-                <Label htmlFor="password" className="text-xs font-medium text-slate-300">
-                  Senha
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-xs font-medium text-slate-300">
+                    Senha
+                  </Label>
+                  {!isSignUp && (
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-[11px] text-slate-400 hover:text-emerald-400 transition-colors"
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  )}
+                </div>
                 <Input
                   id="password"
                   type="password"
                   autoComplete={isSignUp ? 'new-password' : 'current-password'}
                   required
-                  placeholder="••••••••"
+                  placeholder={isSignUp ? 'Mínimo de 8 caracteres' : '••••••••'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
                   className="h-10 bg-slate-950/60 border-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 text-sm"
                 />
               </div>
+
+              {/* Campo Confirmação de Senha (apenas no cadastro) */}
+              {isSignUp && (
+                <div className="space-y-1.5 text-left">
+                  <Label htmlFor="passwordConfirm" className="text-xs font-medium text-slate-300">
+                    Confirmar senha
+                  </Label>
+                  <Input
+                    id="passwordConfirm"
+                    type="password"
+                    autoComplete="new-password"
+                    required={isSignUp}
+                    placeholder="Repita a senha digitada"
+                    value={passwordConfirm}
+                    onChange={(e) => setPasswordConfirm(e.target.value)}
+                    disabled={loading}
+                    className="h-10 bg-slate-950/60 border-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-emerald-500 focus-visible:border-emerald-500 text-sm"
+                  />
+                  {password && passwordConfirm && (
+                    <div className="text-[11px] flex items-center gap-1.5 pt-0.5">
+                      {password === passwordConfirm ? (
+                        <span className="text-emerald-400 flex items-center gap-1">
+                          <Check className="w-3 h-3" /> As senhas conferem
+                        </span>
+                      ) : (
+                        <span className="text-rose-400 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" /> As senhas não conferem
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Dica para demonstração no login */}
+              {!isSignUp && (
+                <div className="p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/15 text-[11px] text-slate-400 leading-snug">
+                  <span className="text-emerald-400 font-medium">Conta demo padrão:</span>{' '}
+                  <span className="text-slate-300 font-mono">adrianapulhez@gmail.com</span> /{' '}
+                  <span className="text-slate-300 font-mono">Skip@Pass</span>
+                </div>
+              )}
 
               <Button
                 type="submit"
@@ -181,7 +319,7 @@ export default function AuthPage() {
               </Button>
             </form>
 
-            {/* Separador ou botão social */}
+            {/* Separador e botão social visual */}
             <div className="mt-4 space-y-4">
               <Button
                 type="button"
@@ -215,7 +353,10 @@ export default function AuthPage() {
                 {isSignUp ? (
                   <button
                     type="button"
-                    onClick={() => setIsSignUp(false)}
+                    onClick={() => {
+                      setIsSignUp(false)
+                      setPasswordConfirm('')
+                    }}
                     className="text-xs text-slate-400 hover:text-emerald-400 transition-colors"
                   >
                     Já tem uma conta?{' '}
