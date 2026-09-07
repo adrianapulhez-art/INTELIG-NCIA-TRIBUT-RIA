@@ -5,7 +5,7 @@ import { useTaxContext } from '@/contexts/TaxContext'
 import { Button } from '@/components/ui/button'
 import { LogOut, RotateCcw, Sparkles } from 'lucide-react'
 
-export type TabKey = 'markup' | 'compras' | 'dre-presumido' | 'dre-real'
+export type TabKey = 'markup' | 'compras' | 'simples' | 'dre-presumido' | 'dre-real'
 
 interface DemoLayoutProps {
   currentTab: TabKey
@@ -35,6 +35,7 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
   const tabs: { key: TabKey; label: string; path: string }[] = [
     { key: 'markup', label: 'Calculadora Markup', path: '/demo/markup' },
     { key: 'compras', label: 'Calculadora de Compras', path: '/demo/compras' },
+    { key: 'simples', label: 'DRE Simples Nacional', path: '/demo/simples' },
     { key: 'dre-presumido', label: 'DRE Lucro Presumido', path: '/demo/dre-presumido' },
     { key: 'dre-real', label: 'DRE Lucro Real', path: '/demo/dre-real' },
   ]

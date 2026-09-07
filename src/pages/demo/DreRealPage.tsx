@@ -1,12 +1,22 @@
 import React, { useState } from 'react'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { useTaxContext, ActivityType } from '@/contexts/TaxContext'
-import { Calculator, Link as LinkIcon, Plus, Trash2, CheckCircle2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Calculator,
+  Link as LinkIcon,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  ArrowLeft,
+  ArrowRight,
+} from 'lucide-react'
 import { formatBRL, formatNumberBR, formatPercentBR, parseBRNumber } from '@/lib/taxCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 export default function DreRealPage() {
+  const navigate = useNavigate()
   const {
     simulatedSalePrice,
     calculatedPurchases,
@@ -749,6 +759,27 @@ export default function DreRealPage() {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Rodapé: Botões de navegação sequencial */}
+        <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <Button
+            type="button"
+            onClick={() => navigate('/demo/dre-presumido')}
+            className="bg-[#0f172a]/90 text-slate-300 border border-slate-700/80 hover:border-emerald-500/40 hover:text-white hover:bg-slate-800/80 font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-sm"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Voltar para DRE Lucro Presumido</span>
+          </Button>
+
+          <Button
+            type="button"
+            onClick={() => navigate('/demo/simples')}
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
+          >
+            <span>Ver DRE Simples Nacional</span>
+            <ArrowRight className="w-4 h-4" />
+          </Button>
         </div>
       </div>
     </DemoLayout>

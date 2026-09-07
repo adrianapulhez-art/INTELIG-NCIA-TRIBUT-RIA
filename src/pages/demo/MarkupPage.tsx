@@ -78,11 +78,13 @@ export default function MarkupPage() {
   }
 
   // Alíquotas e fatores de PIS/COFINS conforme regime
-  const pisRate = regime === 'presumido' ? 0.65 : 1.65
-  const cofinsRate = regime === 'presumido' ? 3.0 : 7.6
+  // No Simples Nacional, PIS/COFINS não incidem em guias separadas (são unificados no DAS)
+  const isSimples = regime === 'simples'
+  const pisRate = isSimples ? 0 : regime === 'presumido' ? 0.65 : 1.65
+  const cofinsRate = isSimples ? 0 : regime === 'presumido' ? 3.0 : 7.6
   const icmsFactor = 1 - (icmsRateMarkup || 0) / 100
-  const pisFactor = 1 - pisRate / 100
-  const cofinsFactor = 1 - cofinsRate / 100
+  const pisFactor = isSimples ? 1 : 1 - pisRate / 100
+  const cofinsFactor = isSimples ? 1 : 1 - cofinsRate / 100
 
   return (
     <DemoLayout currentTab="markup">
@@ -297,10 +299,10 @@ export default function MarkupPage() {
             {/* PIS e COFINS: SOMENTE Seleção de Regime */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-300">
-                Regime para PIS e COFINS (alíquotas automáticas)
+                Regime tributário da empresa (alíquotas automáticas)
               </label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => setRegime('presumido')}
@@ -336,6 +338,24 @@ export default function MarkupPage() {
                   </div>
                   <p className="text-[11px] text-slate-400 mt-1 font-mono">
                     PIS 1,65% · COFINS 7,60% (não cumulativo)
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setRegime('simples')}
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    regime === 'simples'
+                      ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm'
+                      : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono uppercase">Simples Nacional</span>
+                    {regime === 'simples' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                    Guia única DAS (PIS/COFINS sem destaque avulso)
                   </p>
                 </button>
               </div>
@@ -446,8 +466,8 @@ export default function MarkupPage() {
 
             <p className="text-xs text-slate-400 font-mono">
               💡 Este preço de venda ({formatBRL(simulatedSalePrice)}) foi conectado automaticamente
-              como <strong>Receita bruta unitária</strong> nas páginas de DRE Lucro Presumido e
-              Lucro Real.
+              como <strong>Receita bruta unitária</strong> nas páginas de DRE Simples Nacional,
+              Lucro Presumido e Lucro Real.
             </p>
           </div>
         )}

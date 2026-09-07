@@ -90,8 +90,8 @@ export default function PurchasesPage() {
                 Regime tributário das compras
               </span>
 
-              {/* Botões Presumido / Real sincronizados */}
-              <div className="inline-flex rounded-lg bg-slate-950/80 p-1 border border-slate-800">
+              {/* Botões Presumido / Real / Simples Nacional sincronizados */}
+              <div className="inline-flex flex-wrap rounded-lg bg-slate-950/80 p-1 border border-slate-800 gap-1">
                 <button
                   type="button"
                   onClick={() => setRegime('presumido')}
@@ -114,11 +114,29 @@ export default function PurchasesPage() {
                 >
                   Lucro Real
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setRegime('simples')}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold font-mono transition-all cursor-pointer ${
+                    regime === 'simples'
+                      ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Simples Nacional
+                </button>
               </div>
             </div>
 
             <p className="text-xs text-slate-400 leading-relaxed font-mono">
-              {regime === 'presumido' ? (
+              {regime === 'simples' ? (
+                <span>
+                  💡 <strong>Simples Nacional:</strong> em regra geral, os tributos da compra{' '}
+                  <strong className="text-emerald-400">não são recuperáveis</strong> e integram
+                  integralmente o custo das mercadorias vendidas (CMV), recolhendo-se os tributos
+                  pela guia única do DAS sobre o faturamento.
+                </span>
+              ) : regime === 'presumido' ? (
                 <span>
                   💡 <strong>Lucro Presumido:</strong> apenas o ICMS é recuperável; PIS e COFINS
                   integram o custo das compras.
@@ -322,8 +340,17 @@ export default function PurchasesPage() {
             {/* Faixa verde mono indicando o regime */}
             <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-mono text-emerald-300">
               Regime aplicado:{' '}
-              <strong>{regime === 'real' ? 'Lucro Real' : 'Lucro Presumido'}</strong> — alíquotas
-              preenchidas automaticamente e tributos recuperáveis adequados.
+              <strong>
+                {regime === 'simples'
+                  ? 'Simples Nacional'
+                  : regime === 'real'
+                    ? 'Lucro Real'
+                    : 'Lucro Presumido'}
+              </strong>{' '}
+              —{' '}
+              {regime === 'simples'
+                ? 'no Simples Nacional, os tributos sobre compras integram o custo (não há recuperação no DAS).'
+                : 'alíquotas preenchidas automaticamente e tributos recuperáveis adequados.'}
             </div>
 
             {/* Linhas de Deduções (Devoluções/abatimentos/descontos) */}
@@ -750,7 +777,9 @@ export default function PurchasesPage() {
           <Button
             type="button"
             onClick={() => {
-              if (regime === 'real') {
+              if (regime === 'simples') {
+                navigate('/demo/simples')
+              } else if (regime === 'real') {
                 navigate('/demo/dre-real')
               } else {
                 navigate('/demo/dre-presumido')

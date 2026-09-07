@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { parseBRNumber } from '@/lib/taxCalculations'
 
-export type TaxRegime = 'presumido' | 'real'
+export type TaxRegime = 'presumido' | 'real' | 'simples'
 export type ActivityType = 'comercio' | 'industria' | 'servicos'
 export type MarkupMode = 'liquid' | 'cost_margin'
 
@@ -139,6 +139,22 @@ export interface TaxContextType {
   isRealSimulated: boolean
   simulateReal: () => void
 
+  // DRE SIMPLES NACIONAL STATE
+  simplesAnexo: string // 'anexo_1' | 'anexo_2' | 'anexo_3' | 'anexo_4' | 'anexo_5'
+  setSimplesAnexo: (anexo: string) => void
+  simplesRbt12: number // Receita bruta acumulada 12 meses
+  setSimplesRbt12: (val: number) => void
+  simplesPayroll12m: number // Folha de salários 12 meses (para Fator R)
+  setSimplesPayroll12m: (val: number) => void
+  simplesQuantitySold: number
+  setSimplesQuantitySold: (qty: number) => void
+  simplesExpenses: ExpenseItem[]
+  addSimplesExpense: (desc?: string, val?: number) => void
+  updateSimplesExpense: (id: string, field: 'description' | 'value', value: string | number) => void
+  removeSimplesExpense: (id: string) => void
+  isSimplesSimulated: boolean
+  simulateSimples: () => void
+
   // CÁLCULOS DERIVADOS DE COMPRAS
   calculatedPurchases: {
     totalAdditionalCosts: number
@@ -160,6 +176,9 @@ export interface TaxContextType {
     // CMV Real: EI + (Acréscimos - DeduçõesBase - ICMS - ICMSFrete - PIS - COFINS - PISFrete - COFINSFrete) - EF
     cmvRealNetPurchases: number
     cmvReal: number
+    // CMV Simples: No Simples Nacional, os tributos da compra não são recuperáveis (integram o custo)
+    cmvSimplesNetPurchases: number
+    cmvSimples: number
   }
 
   // Limpar/Resetar tudo para zerado
@@ -307,6 +326,25 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     savedState?.isRealSimulated || false,
   )
 
+  // DRE SIMPLES NACIONAL
+  const [simplesAnexo, setSimplesAnexo] = useState<string>(savedState?.simplesAnexo || 'anexo_1')
+  const [simplesRbt12, setSimplesRbt12] = useState<number>(savedState?.simplesRbt12 || 0)
+  const [simplesPayroll12m, setSimplesPayroll12m] = useState<number>(
+    savedState?.simplesPayroll12m || 0,
+  )
+  const [simplesQuantitySold, setSimplesQuantitySold] = useState<number>(
+    savedState?.simplesQuantitySold || 0,
+  )
+  const [simplesExpenses, setSimplesExpenses] = useState<ExpenseItem[]>(
+    savedState?.simplesExpenses || [
+      { id: '1', description: 'Despesas com pessoal e encargos', value: 0 },
+      { id: '2', description: 'Aluguel e custos operacionais', value: 0 },
+    ],
+  )
+  const [isSimplesSimulated, setIsSimplesSimulated] = useState<boolean>(
+    savedState?.isSimplesSimulated || false,
+  )
+
   // Persistir em localStorage
   useEffect(() => {
     try {
@@ -349,6 +387,12 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         realQuantitySold,
         realExpenses,
         isRealSimulated,
+        simplesAnexo,
+        simplesRbt12,
+        simplesPayroll12m,
+        simplesQuantitySold,
+        simplesExpenses,
+        isSimplesSimulated,
       }
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave))
     } catch {
@@ -393,6 +437,12 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     realQuantitySold,
     realExpenses,
     isRealSimulated,
+    simplesAnexo,
+    simplesRbt12,
+    simplesPayroll12m,
+    simplesQuantitySold,
+    simplesExpenses,
+    isSimplesSimulated,
   ])
 
   // Handlers para itens dinâmicos
@@ -500,6 +550,30 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRealExpenses((prev) => prev.filter((item) => item.id !== id))
   }
 
+  const addSimplesExpense = (description = 'Nova despesa operacional', value = 0) => {
+    setSimplesExpenses((prev) => [...prev, { id: String(Date.now()), description, value }])
+  }
+
+  const updateSimplesExpense = (
+    id: string,
+    field: 'description' | 'value',
+    value: string | number,
+  ) => {
+    setSimplesExpenses((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item
+        return {
+          ...item,
+          [field]: field === 'value' ? parseBRNumber(value) : value,
+        }
+      }),
+    )
+  }
+
+  const removeSimplesExpense = (id: string) => {
+    setSimplesExpenses((prev) => prev.filter((item) => item.id !== id))
+  }
+
   // CÁLCULO DE COMPRAS DERIVADO
   const totalAdditionalCosts = additionalCosts.reduce((acc, c) => acc + (c.value || 0), 0)
   const nonRecoverableTaxResult = (nonRecoverableTaxBase * nonRecoverableTaxRate) / 100
@@ -548,14 +622,21 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     cofinsFreightResult
   const cmvReal = Math.max(0, initialInventory + cmvRealNetPurchases - finalInventory)
 
+  // CMV Simples Nacional: Tributos sobre compras NÃO são recuperáveis (integram integralmente o custo)
+  // CL = totalAdditions - totalDeductionsBase (sem deduzir ICMS, PIS ou COFINS)
+  const cmvSimplesNetPurchases = totalAdditions - totalDeductionsBase
+  const cmvSimples = Math.max(0, initialInventory + cmvSimplesNetPurchases - finalInventory)
+
   // SIMULAÇÃO DO MARKUP
   const simulateMarkup = () => {
     // Alíquotas conforme regime
-    const pisRate = regime === 'presumido' ? 0.0065 : 0.0165
-    const cofinsRate = regime === 'presumido' ? 0.03 : 0.076
+    // No Simples Nacional, não há incidência de PIS/COFINS em separado (o recolhimento é unificado no DAS).
+    // Fator de PIS e COFINS = 1.0 (0% separados). O ICMS pode ser destacado ou mantido livre.
+    const pisRate = regime === 'simples' ? 0 : regime === 'presumido' ? 0.0065 : 0.0165
+    const cofinsRate = regime === 'simples' ? 0 : regime === 'presumido' ? 0.03 : 0.076
     const icmsFactor = 1 - (icmsRateMarkup || 0) / 100
-    const pisFactor = 1 - pisRate
-    const cofinsFactor = 1 - cofinsRate
+    const pisFactor = regime === 'simples' ? 1 : 1 - pisRate
+    const cofinsFactor = regime === 'simples' ? 1 : 1 - cofinsRate
 
     let taxFactor = icmsFactor * pisFactor * cofinsFactor
 
@@ -590,6 +671,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const simulateReal = () => {
     setIsRealSimulated(true)
+  }
+
+  const simulateSimples = () => {
+    setIsSimplesSimulated(true)
   }
 
   const resetAll = () => {
@@ -640,6 +725,16 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRealQuantitySold(0)
     setRealExpenses([{ id: '1', description: 'Despesas operacionais e administrativas', value: 0 }])
     setIsRealSimulated(false)
+
+    setSimplesAnexo('anexo_1')
+    setSimplesRbt12(0)
+    setSimplesPayroll12m(0)
+    setSimplesQuantitySold(0)
+    setSimplesExpenses([
+      { id: '1', description: 'Despesas com pessoal e encargos', value: 0 },
+      { id: '2', description: 'Aluguel e custos operacionais', value: 0 },
+    ])
+    setIsSimplesSimulated(false)
 
     try {
       localStorage.removeItem(LOCAL_STORAGE_KEY)
@@ -737,6 +832,21 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isRealSimulated,
         simulateReal,
 
+        simplesAnexo,
+        setSimplesAnexo,
+        simplesRbt12,
+        setSimplesRbt12,
+        simplesPayroll12m,
+        setSimplesPayroll12m,
+        simplesQuantitySold,
+        setSimplesQuantitySold,
+        simplesExpenses,
+        addSimplesExpense,
+        updateSimplesExpense,
+        removeSimplesExpense,
+        isSimplesSimulated,
+        simulateSimples,
+
         calculatedPurchases: {
           totalAdditionalCosts,
           nonRecoverableTaxResult,
@@ -755,6 +865,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           cmvPresumido,
           cmvRealNetPurchases,
           cmvReal,
+          cmvSimplesNetPurchases,
+          cmvSimples,
         },
 
         resetAll,

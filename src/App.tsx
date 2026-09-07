@@ -14,6 +14,7 @@ import MarkupPage from './pages/demo/MarkupPage'
 import PurchasesPage from './pages/demo/PurchasesPage'
 import DrePresumidoPage from './pages/demo/DrePresumidoPage'
 import DreRealPage from './pages/demo/DreRealPage'
+import DreSimplesPage from './pages/demo/DreSimplesPage'
 import { Navigate } from 'react-router-dom'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
@@ -54,6 +55,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <PurchasesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/demo/simples"
+              element={
+                <ProtectedRoute>
+                  <DreSimplesPage />
                 </ProtectedRoute>
               }
             />
