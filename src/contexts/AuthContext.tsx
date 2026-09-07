@@ -7,6 +7,7 @@ export interface UserProfile {
   email: string
   name?: string
   avatar?: string
+  avatarUrl?: string
   created?: string
   updated?: string
   verified?: boolean
@@ -19,6 +20,7 @@ interface AuthContextType {
   isLoading: boolean
   login: (email: string, password: string) => Promise<UserProfile>
   register: (name: string, email: string, password: string) => Promise<UserProfile>
+  loginWithGoogle: () => Promise<UserProfile>
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -27,11 +29,26 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 function formatUserRecord(record: RecordModel | null): UserProfile | null {
   if (!record) return null
+
+  // Resolve URL do avatar se for arquivo no PocketBase ou URL externa (ex: Google)
+  let avatarUrl = ''
+  if (record.avatar) {
+    if (
+      typeof record.avatar === 'string' &&
+      (record.avatar.startsWith('http://') || record.avatar.startsWith('https://'))
+    ) {
+      avatarUrl = record.avatar
+    } else {
+      avatarUrl = pb.files.getURL(record, record.avatar)
+    }
+  }
+
   return {
     id: record.id,
     email: record.email || '',
     name: record.name || '',
     avatar: record.avatar || '',
+    avatarUrl,
     created: record.created,
     updated: record.updated,
     verified: record.verified,
@@ -111,6 +128,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return profile!
   }
 
+  const loginWithGoogle = async (): Promise<UserProfile> => {
+    // PocketBase authWithOAuth2({ provider: 'google' }) abre o popup OAuth,
+    // aguarda o redirect via /api/oauth2-redirect e cria/linka o usuário automaticamente.
+    const authData = await pb.collection('users').authWithOAuth2({
+      provider: 'google',
+    })
+
+    let record = authData.record
+
+    // Sincroniza nome e avatar do Google se o usuário ainda não tiver configurado
+    const meta = authData.meta
+    const googleName = meta?.name || meta?.rawUser?.name
+    const googleAvatarUrl = meta?.avatarUrl || meta?.rawUser?.picture
+
+    const updates: Record<string, unknown> = {}
+    if (!record.name && googleName) {
+      updates.name = googleName
+    }
+
+    if (Object.keys(updates).length > 0) {
+      try {
+        record = await pb.collection('users').update(record.id, updates)
+      } catch (err) {
+        console.warn('Não foi possível sincronizar metadados do Google:', err)
+      }
+    }
+
+    const profile = formatUserRecord(record)
+    if (profile && !profile.avatarUrl && googleAvatarUrl) {
+      profile.avatarUrl = googleAvatarUrl
+    }
+
+    setUser(profile)
+    setToken(authData.token)
+    return profile!
+  }
+
   const logout = () => {
     pb.authStore.clear()
     setUser(null)
@@ -142,6 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        loginWithGoogle,
         logout,
         refreshUser,
       }}

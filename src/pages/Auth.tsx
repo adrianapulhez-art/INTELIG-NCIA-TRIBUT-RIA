@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext'
 export default function AuthPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, register, isAuthenticated, isLoading: authLoading } = useAuth()
+  const { login, register, loginWithGoogle, isAuthenticated, isLoading: authLoading } = useAuth()
 
   const [isSignUp, setIsSignUp] = useState(false)
   const [name, setName] = useState('')
@@ -18,6 +18,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   // Redireciona para onde o usuário tentava ir ou /app caso já autenticado
   useEffect(() => {
@@ -133,8 +134,58 @@ export default function AuthPage() {
     }
   }
 
-  const handleGoogleClick = () => {
-    toast.info('Login social com Google em breve disponível na versão final.')
+  const handleGoogleClick = async () => {
+    setGoogleLoading(true)
+
+    try {
+      const profile = await loginWithGoogle()
+      const welcomeName = profile.name ? `, ${profile.name}` : ''
+      toast.success(`Login com Google realizado com sucesso! Bem-vindo(a)${welcomeName}.`)
+
+      const destination =
+        (location.state as { from?: { pathname?: string } })?.from?.pathname || '/app'
+      navigate(destination, { replace: true })
+    } catch (err: unknown) {
+      console.error('Erro no login com Google:', err)
+      const error = err as {
+        status?: number
+        message?: string
+        isAbort?: boolean
+      }
+
+      // Usuário fechou o popup do Google ou cancelou a janela
+      if (
+        error?.isAbort ||
+        error?.message?.toLowerCase().includes('abort') ||
+        error?.message?.toLowerCase().includes('cancel') ||
+        error?.message?.toLowerCase().includes('closed')
+      ) {
+        toast.info('Autenticação com Google cancelada.')
+        return
+      }
+
+      // Erro quando o provider ainda não está configurado com Client ID e Secret no PocketBase
+      // PocketBase retorna status 400 ou mensagem de provider disabled/missing credentials
+      const msg = (error?.message || '').toLowerCase()
+      if (
+        error?.status === 400 ||
+        error?.status === 404 ||
+        msg.includes('disabled') ||
+        msg.includes('missing') ||
+        msg.includes('invalid client') ||
+        msg.includes('not configured') ||
+        msg.includes('failed to authenticate')
+      ) {
+        toast.error(
+          'Login com Google indisponível no momento. O provedor está sendo configurado no painel. Utilize o login por e-mail e senha abaixo.',
+          { duration: 5000 },
+        )
+      } else {
+        toast.error('Não foi possível autenticar com o Google. Tente novamente ou use seu e-mail.')
+      }
+    } finally {
+      setGoogleLoading(false)
+    }
   }
 
   const handleForgotPassword = (e: React.MouseEvent) => {
@@ -325,27 +376,37 @@ export default function AuthPage() {
                 type="button"
                 variant="outline"
                 onClick={handleGoogleClick}
-                className="w-full h-10 bg-slate-950/40 hover:bg-slate-800/80 border-slate-800 text-slate-200 text-sm font-medium transition-colors flex items-center justify-center gap-2.5 cursor-pointer"
+                disabled={googleLoading || loading}
+                className="w-full h-10 bg-slate-950/40 hover:bg-slate-800/80 border-slate-800 text-slate-200 text-sm font-medium transition-colors flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path
-                    fill="#EA4335"
-                    d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.4l3.7 2.9C6.5 7.4 9 5 12 5z"
-                  />
-                  <path
-                    fill="#4285F4"
-                    d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.9z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.6 14.7c-.2-.7-.4-1.5-.4-2.7s.1-2 .4-2.7L1.9 6.4C.7 8.8 0 10.4 0 12s.7 3.2 1.9 5.6l3.7-2.9z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.4C3.7 20.2 7.5 23 12 23z"
-                  />
-                </svg>
-                Continuar com Google
+                {googleLoading ? (
+                  <span className="flex items-center gap-2 text-slate-300">
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
+                    Conectando ao Google...
+                  </span>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                      <path
+                        fill="#EA4335"
+                        d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.4l3.7 2.9C6.5 7.4 9 5 12 5z"
+                      />
+                      <path
+                        fill="#4285F4"
+                        d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.9z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.6 14.7c-.2-.7-.4-1.5-.4-2.7s.1-2 .4-2.7L1.9 6.4C.7 8.8 0 10.4 0 12s.7 3.2 1.9 5.6l3.7-2.9z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.4C3.7 20.2 7.5 23 12 23z"
+                      />
+                    </svg>
+                    Continuar com Google
+                  </>
+                )}
               </Button>
 
               {/* Alternar entre Login e Criar conta */}

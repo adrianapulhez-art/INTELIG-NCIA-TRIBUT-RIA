@@ -61,9 +61,17 @@ export default function AppDashboardPlaceholder() {
         <div className="flex items-center gap-3">
           {/* Perfil do cliente logado com nome e email */}
           <div className="flex items-center gap-2.5 pl-2">
-            <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-mono text-xs font-semibold shadow-inner">
-              {userInitials}
-            </div>
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={displayName}
+                className="w-8 h-8 rounded-full object-cover border border-emerald-500/40 shadow-inner"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-mono text-xs font-semibold shadow-inner">
+                {userInitials}
+              </div>
+            )}
             <div className="hidden sm:flex flex-col text-left">
               <span className="text-xs font-medium text-slate-200 leading-tight">
                 {displayName}
