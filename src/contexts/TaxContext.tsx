@@ -106,6 +106,8 @@ export interface TaxContextType {
   // DRE PRESUMIDO STATE
   presumidoActivity: ActivityType
   setPresumidoActivity: (act: ActivityType) => void
+  presumidoIssRate: number
+  setPresumidoIssRate: (rate: number) => void
   presumidoQuantitySold: number
   setPresumidoQuantitySold: (qty: number) => void
   presumidoExpenses: ExpenseItem[]
@@ -120,6 +122,10 @@ export interface TaxContextType {
   simulatePresumido: () => void
 
   // DRE REAL STATE
+  realActivity: ActivityType
+  setRealActivity: (act: ActivityType) => void
+  realIssRate: number
+  setRealIssRate: (rate: number) => void
   realAdditions: number
   setRealAdditions: (val: number) => void
   realExclusions: number
@@ -266,6 +272,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [presumidoActivity, setPresumidoActivity] = useState<ActivityType>(
     savedState?.presumidoActivity || 'comercio',
   )
+  const [presumidoIssRate, setPresumidoIssRate] = useState<number>(
+    savedState?.presumidoIssRate || 0,
+  )
   const [presumidoQuantitySold, setPresumidoQuantitySold] = useState<number>(
     savedState?.presumidoQuantitySold || 0,
   )
@@ -280,6 +289,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   )
 
   // DRE REAL
+  const [realActivity, setRealActivity] = useState<ActivityType>(
+    savedState?.realActivity || 'comercio',
+  )
+  const [realIssRate, setRealIssRate] = useState<number>(savedState?.realIssRate || 0)
   const [realAdditions, setRealAdditions] = useState<number>(savedState?.realAdditions || 0)
   const [realExclusions, setRealExclusions] = useState<number>(savedState?.realExclusions || 0)
   const [realQuantitySold, setRealQuantitySold] = useState<number>(
@@ -325,9 +338,12 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         pisFreightPurchasesBase,
         cofinsFreightPurchasesBase,
         presumidoActivity,
+        presumidoIssRate,
         presumidoQuantitySold,
         presumidoExpenses,
         isPresumidoSimulated,
+        realActivity,
+        realIssRate,
         realAdditions,
         realExclusions,
         realQuantitySold,
@@ -366,9 +382,12 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     pisFreightPurchasesBase,
     cofinsFreightPurchasesBase,
     presumidoActivity,
+    presumidoIssRate,
     presumidoQuantitySold,
     presumidoExpenses,
     isPresumidoSimulated,
+    realActivity,
+    realIssRate,
     realAdditions,
     realExclusions,
     realQuantitySold,
@@ -606,6 +625,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCofinsFreightPurchasesBase(0)
 
     setPresumidoActivity('comercio')
+    setPresumidoIssRate(0)
     setPresumidoQuantitySold(0)
     setPresumidoExpenses([
       { id: '1', description: 'Despesas com pessoal', value: 0 },
@@ -613,6 +633,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ])
     setIsPresumidoSimulated(false)
 
+    setRealActivity('comercio')
+    setRealIssRate(0)
     setRealAdditions(0)
     setRealExclusions(0)
     setRealQuantitySold(0)
@@ -687,6 +709,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         presumidoActivity,
         setPresumidoActivity,
+        presumidoIssRate,
+        setPresumidoIssRate,
         presumidoQuantitySold,
         setPresumidoQuantitySold,
         presumidoExpenses,
@@ -696,6 +720,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isPresumidoSimulated,
         simulatePresumido,
 
+        realActivity,
+        setRealActivity,
+        realIssRate,
+        setRealIssRate,
         realAdditions,
         setRealAdditions,
         realExclusions,

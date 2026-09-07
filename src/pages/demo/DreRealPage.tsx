@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { DemoLayout } from '@/components/demo/DemoLayout'
-import { useTaxContext } from '@/contexts/TaxContext'
-import { Calculator, Link as LinkIcon, Plus, Trash2 } from 'lucide-react'
+import { useTaxContext, ActivityType } from '@/contexts/TaxContext'
+import { Calculator, Link as LinkIcon, Plus, Trash2, CheckCircle2 } from 'lucide-react'
 import { formatBRL, formatNumberBR, formatPercentBR, parseBRNumber } from '@/lib/taxCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +13,10 @@ export default function DreRealPage() {
     initialInventory,
     finalInventory,
     icmsRateMarkup,
+    realActivity,
+    setRealActivity,
+    realIssRate,
+    setRealIssRate,
     realAdditions,
     setRealAdditions,
     realExclusions,
@@ -30,6 +34,9 @@ export default function DreRealPage() {
   const [qtyInput, setQtyInput] = useState<string>(
     realQuantitySold > 0 ? String(realQuantitySold) : '0',
   )
+  const [issInput, setIssInput] = useState<string>(
+    realIssRate > 0 ? formatNumberBR(realIssRate) : '',
+  )
 
   const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -38,6 +45,8 @@ export default function DreRealPage() {
     setRealQuantitySold(isNaN(parsed) || parsed < 0 ? 0 : parsed)
   }
 
+  const isServices = realActivity === 'servicos'
+
   // Preço de venda unitário via Markup
   const unitGrossRevenue = simulatedSalePrice || 0
   // CMV unitário via Compras (Lucro Real com deduções completas de créditos)
@@ -45,6 +54,7 @@ export default function DreRealPage() {
 
   // Alíquotas fixas do Lucro Real
   const icmsRate = icmsRateMarkup || 0
+  const issRate = isServices ? realIssRate : 0
   const pisRate = 1.65
   const cofinsRate = 7.6
   const irpjRate = 15.0
@@ -58,16 +68,22 @@ export default function DreRealPage() {
   // CÁLCULOS UNITÁRIOS
   // 1. Receita bruta
   const unitGross = unitGrossRevenue
-  // 2. ICMS unitário
-  const unitIcms = (unitGross * icmsRate) / 100
-  // 3. Base PIS/COFINS (tese do século: exclui o ICMS)
-  const unitPisCofinsBase = Math.max(0, unitGross - unitIcms)
+  // 2. Tributo municipal/estadual (ICMS para comércio/indústria, ISSQN para serviços)
+  const unitMunicipalStateTax = isServices
+    ? (unitGross * issRate) / 100
+    : (unitGross * icmsRate) / 100
+
+  // 3. Base PIS/COFINS:
+  // Se Comércio/Indústria: Tese do século (exclui o ICMS)
+  // Se Serviços: Tese do século NÃO se aplica ao ISS — base é a receita bruta
+  const unitPisCofinsBase = isServices ? unitGross : Math.max(0, unitGross - unitMunicipalStateTax)
+
   // 4. PIS não cumulativo unitário
   const unitPis = (unitPisCofinsBase * pisRate) / 100
   // 5. COFINS não cumulativo unitário
   const unitCofins = (unitPisCofinsBase * cofinsRate) / 100
   // 6. Receita líquida
-  const unitNetRevenue = unitGross - unitIcms - unitPis - unitCofins
+  const unitNetRevenue = unitGross - unitMunicipalStateTax - unitPis - unitCofins
   // 7. CMV (líquido de créditos)
   const unitCmvVal = unitCMV
   // 8. Lucro bruto
@@ -80,7 +96,7 @@ export default function DreRealPage() {
   // CÁLCULOS TOTAIS
   const qty = realQuantitySold || 0
   const totalGross = unitGross * qty
-  const totalIcms = unitIcms * qty
+  const totalMunicipalStateTax = unitMunicipalStateTax * qty
   const totalPisCofinsBase = unitPisCofinsBase * qty
   const totalPis = unitPis * qty
   const totalCofins = unitCofins * qty
@@ -111,7 +127,7 @@ export default function DreRealPage() {
 
   // Cards de resumo
   const totalTaxBurden =
-    totalIcms + totalPis + totalCofins + totalIrpj + totalIrpjAdditional + totalCsll
+    totalMunicipalStateTax + totalPis + totalCofins + totalIrpj + totalIrpjAdditional + totalCsll
   const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
 
   return (
@@ -128,8 +144,9 @@ export default function DreRealPage() {
                 DRE — Lucro Real
               </h2>
               <p className="text-xs sm:text-sm text-slate-400">
-                PIS e COFINS não cumulativos com a tese do século (ICMS fora da base). IRPJ e CSLL
-                sobre o lucro real ajustado. Valores por unidade e conforme a quantidade informada.
+                {isServices
+                  ? 'Receita de serviços com ISSQN. PIS e COFINS não cumulativos sobre receita bruta, IRPJ e CSLL sobre o lucro real ajustado.'
+                  : 'PIS e COFINS não cumulativos com a tese do século (ICMS fora da base). IRPJ e CSLL sobre o lucro real ajustado.'}
               </p>
             </div>
           </div>
@@ -150,6 +167,90 @@ export default function DreRealPage() {
                 <strong className="text-emerald-400">{formatBRL(unitCMV)}</strong>
               </div>
             </div>
+          </div>
+
+          {/* Seletor de Atividade */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-300">
+              Selecione o setor de atividade
+            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {(
+                [
+                  {
+                    key: 'comercio',
+                    title: 'Comércio',
+                    subtitle: 'ICMS sobre a receita',
+                  },
+                  {
+                    key: 'industria',
+                    title: 'Indústria',
+                    subtitle: 'ICMS sobre a receita',
+                  },
+                  {
+                    key: 'servicos',
+                    title: 'Serviços',
+                    subtitle: 'ISSQN sobre a receita',
+                  },
+                ] as const
+              ).map((act) => {
+                const isSelected = realActivity === act.key
+                return (
+                  <button
+                    key={act.key}
+                    type="button"
+                    onClick={() => setRealActivity(act.key as ActivityType)}
+                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm'
+                        : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold font-mono uppercase text-white">
+                        {act.title}
+                      </span>
+                      {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1 font-mono">{act.subtitle}</p>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Campo aberto para Alíquota do ISSQN se atividade for Serviços */}
+            {isServices && (
+              <div className="p-3.5 rounded-xl bg-slate-950/60 border border-emerald-500/30 space-y-2 mt-3 animate-in fade-in duration-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="text-xs font-semibold text-emerald-300 block">
+                      Alíquota do ISSQN (%)
+                    </label>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      Informe o percentual municipal do ISS (ex.: 2,00% a 5,00%) incidente sobre a
+                      receita de serviços.
+                    </span>
+                  </div>
+                  <div className="relative w-36 sm:w-40">
+                    <Input
+                      type="text"
+                      placeholder="0,00"
+                      value={issInput}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setIssInput(val)
+                        setRealIssRate(parseBRNumber(val))
+                      }}
+                      className="pr-7 text-right bg-slate-900 border-emerald-500/50 text-slate-100 font-mono text-xs focus:border-emerald-400 focus:ring-emerald-500/20"
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400">
+                      %
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Quadro: CMV pelo Lucro Real */}
@@ -253,10 +354,17 @@ export default function DreRealPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 font-mono text-xs">
-              <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block">ICMS</span>
-                <span className="text-slate-200 font-semibold">{formatNumberBR(icmsRate)}%</span>
-              </div>
+              {isServices ? (
+                <div className="p-2.5 rounded-lg bg-slate-900/60 border border-emerald-500/40">
+                  <span className="text-[10px] text-emerald-400 block">ISSQN</span>
+                  <span className="text-emerald-300 font-semibold">{formatNumberBR(issRate)}%</span>
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block">ICMS</span>
+                  <span className="text-slate-200 font-semibold">{formatNumberBR(icmsRate)}%</span>
+                </div>
+              )}
               <div className="p-2.5 rounded-lg bg-slate-900/60 border border-emerald-500/20">
                 <span className="text-[10px] text-emerald-400 block">PIS não cumulativo</span>
                 <span className="text-emerald-300 font-semibold">{formatNumberBR(pisRate)}%</span>
@@ -430,7 +538,9 @@ export default function DreRealPage() {
             <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
               Demonstração do Resultado
             </h3>
-            <span className="text-xs font-mono text-emerald-400">Lucro Real (Não cumulativo)</span>
+            <span className="text-xs font-mono text-emerald-400">
+              Lucro Real ({realActivity.toUpperCase()} · Não cumulativo)
+            </span>
           </div>
 
           {/* Tabela da DRE com colunas Unitário e Total */}
@@ -448,25 +558,35 @@ export default function DreRealPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {/* 1. Receita bruta de vendas */}
+                {/* 1. Receita bruta */}
                 <tr>
                   <td className="py-2 text-left font-medium text-slate-200">
-                    Receita bruta de vendas
+                    {isServices ? 'Receita bruta de serviços' : 'Receita bruta de vendas'}
                   </td>
                   <td className="py-2 px-3 text-right text-slate-200">{formatBRL(unitGross)}</td>
                   <td className="py-2 px-3 text-right text-slate-200">{formatBRL(totalGross)}</td>
                 </tr>
 
-                {/* 2. (-) ICMS */}
+                {/* 2. (-) ICMS ou (-) ISSQN */}
                 <tr>
-                  <td className="py-2 text-left text-slate-400">(−) ICMS</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(unitIcms)}</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalIcms)}</td>
+                  <td className="py-2 text-left text-slate-400">
+                    {isServices ? '(−) ISSQN' : '(−) ICMS'}
+                  </td>
+                  <td className="py-2 px-3 text-right text-slate-400">
+                    -{formatBRL(unitMunicipalStateTax)}
+                  </td>
+                  <td className="py-2 px-3 text-right text-slate-400">
+                    -{formatBRL(totalMunicipalStateTax)}
+                  </td>
                 </tr>
 
-                {/* 3. Base PIS/COFINS (tese do século) [cinza informativa] */}
+                {/* 3. Base PIS/COFINS [cinza informativa] */}
                 <tr className="bg-slate-900/30 text-slate-500">
-                  <td className="py-2 text-left italic">Base PIS/COFINS (tese do século)</td>
+                  <td className="py-2 text-left italic">
+                    {isServices
+                      ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
+                      : 'Base PIS/COFINS (tese do século · exclui ICMS)'}
+                  </td>
                   <td className="py-2 px-3 text-right">{formatBRL(unitPisCofinsBase)}</td>
                   <td className="py-2 px-3 text-right">{formatBRL(totalPisCofinsBase)}</td>
                 </tr>

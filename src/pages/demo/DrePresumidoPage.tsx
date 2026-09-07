@@ -15,6 +15,8 @@ export default function DrePresumidoPage() {
     icmsRateMarkup,
     presumidoActivity,
     setPresumidoActivity,
+    presumidoIssRate,
+    setPresumidoIssRate,
     presumidoQuantitySold,
     setPresumidoQuantitySold,
     presumidoExpenses,
@@ -28,6 +30,9 @@ export default function DrePresumidoPage() {
   const [qtyInput, setQtyInput] = useState<string>(
     presumidoQuantitySold > 0 ? String(presumidoQuantitySold) : '0',
   )
+  const [issInput, setIssInput] = useState<string>(
+    presumidoIssRate > 0 ? formatNumberBR(presumidoIssRate) : '',
+  )
 
   const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -36,21 +41,23 @@ export default function DrePresumidoPage() {
     setPresumidoQuantitySold(isNaN(parsed) || parsed < 0 ? 0 : parsed)
   }
 
+  const isServices = presumidoActivity === 'servicos'
+
   // Preço de venda unitário via Markup
   const unitGrossRevenue = simulatedSalePrice || 0
   // CMV unitário via Compras (Presumido)
   const unitCMV = calculatedPurchases.cmvPresumido || 0
 
-  // Atividade e alíquotas de presunção
-  // Comércio: IRPJ presunção 8%, CSLL presunção 12%
-  // Indústria: IRPJ presunção 8%, CSLL presunção 12%
-  // Serviços: IRPJ presunção 32%, CSLL presunção 32% (padrão legal), mas o card do print define:
-  // No print do usuário: Presunção IRPJ 8,00, Presunção CSLL 12,00 para comércio/indústria
-  const irpjPresumptionRate = presumidoActivity === 'servicos' ? 32.0 : 8.0
-  const csllPresumptionRate = presumidoActivity === 'servicos' ? 32.0 : 12.0
+  // Atividade e alíquotas de presunção (Lei 9.249/95 art. 15 e 20)
+  // Comércio: IRPJ 8%, CSLL 12%
+  // Indústria: IRPJ 8%, CSLL 12%
+  // Serviços: IRPJ 32%, CSLL 32%
+  const irpjPresumptionRate = isServices ? 32.0 : 8.0
+  const csllPresumptionRate = isServices ? 32.0 : 12.0
 
   // Alíquotas fixas da legislação
   const icmsRate = icmsRateMarkup || 0 // Vem da alíquota livre da calculadora
+  const issRate = isServices ? presumidoIssRate : 0
   const pisRate = 0.65
   const cofinsRate = 3.0
   const irpjRate = 15.0
@@ -64,16 +71,22 @@ export default function DrePresumidoPage() {
   // CÁLCULOS UNITÁRIOS
   // 1. Receita bruta
   const unitGross = unitGrossRevenue
-  // 2. ICMS unitário
-  const unitIcms = (unitGross * icmsRate) / 100
-  // 3. Base PIS/COFINS (tese do século: exclui o ICMS)
-  const unitPisCofinsBase = Math.max(0, unitGross - unitIcms)
+  // 2. Tributo municipal/estadual unitário (ICMS para comércio/indústria, ISSQN para serviços)
+  const unitMunicipalStateTax = isServices
+    ? (unitGross * issRate) / 100
+    : (unitGross * icmsRate) / 100
+
+  // 3. Base PIS/COFINS:
+  // Se Comércio/Indústria: Tese do século (exclui o ICMS)
+  // Se Serviços: Tese do século NÃO se aplica ao ISS — base é a receita bruta
+  const unitPisCofinsBase = isServices ? unitGross : Math.max(0, unitGross - unitMunicipalStateTax)
+
   // 4. PIS unitário
   const unitPis = (unitPisCofinsBase * pisRate) / 100
   // 5. COFINS unitário
   const unitCofins = (unitPisCofinsBase * cofinsRate) / 100
   // 6. Receita líquida
-  const unitNetRevenue = unitGross - unitIcms - unitPis - unitCofins
+  const unitNetRevenue = unitGross - unitMunicipalStateTax - unitPis - unitCofins
   // 7. CMV unitário
   const unitCmvVal = unitCMV
   // 8. Lucro bruto unitário
@@ -82,13 +95,11 @@ export default function DrePresumidoPage() {
   const unitExpenses = presumidoQuantitySold > 0 ? totalExpenses / presumidoQuantitySold : 0
   // 10. Resultado antes IRPJ/CSLL unitário
   const unitResultBeforeTax = unitGrossProfit - unitExpenses
-  // IRPJ / CSLL unitários (informativo proporcional se houver quantidade)
-  const unitIrpj = presumidoQuantitySold > 0 ? 0 : 0 // Bases presumidas usam traço na coluna unitária conforme especificação
 
   // CÁLCULOS TOTAIS (multiplicados pela quantidade vendida)
   const qty = presumidoQuantitySold || 0
   const totalGross = unitGross * qty
-  const totalIcms = unitIcms * qty
+  const totalMunicipalStateTax = unitMunicipalStateTax * qty
   const totalPisCofinsBase = unitPisCofinsBase * qty
   const totalPis = unitPis * qty
   const totalCofins = unitCofins * qty
@@ -117,9 +128,9 @@ export default function DrePresumidoPage() {
   const unitNetProfit = qty > 0 ? totalNetProfit / qty : unitResultBeforeTax
 
   // Cards de resumo
-  // Carga tributária total = ICMS + PIS + COFINS + IRPJ + Adicional IRPJ + CSLL
+  // Carga tributária total = Tributo Municipal/Estadual + PIS + COFINS + IRPJ + Adicional IRPJ + CSLL
   const totalTaxBurden =
-    totalIcms + totalPis + totalCofins + totalIrpj + totalIrpjAdditional + totalCsll
+    totalMunicipalStateTax + totalPis + totalCofins + totalIrpj + totalIrpjAdditional + totalCsll
   const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
 
   return (
@@ -136,8 +147,9 @@ export default function DrePresumidoPage() {
                 DRE — Lucro Presumido
               </h2>
               <p className="text-xs sm:text-sm text-slate-400">
-                PIS e COFINS calculados com a tese do século (ICMS excluído da base). Valores por
-                unidade e conforme a quantidade informada.
+                {isServices
+                  ? 'Receita de serviços com ISSQN e presunções específicas (32%). Valores por unidade e conforme a quantidade informada.'
+                  : 'PIS e COFINS calculados com a tese do século (ICMS excluído da base). Valores por unidade e conforme a quantidade informada.'}
               </p>
             </div>
           </div>
@@ -238,7 +250,7 @@ export default function DrePresumidoPage() {
                   {
                     key: 'servicos',
                     title: 'Serviços',
-                    subtitle: 'ISS sobre a receita',
+                    subtitle: 'ISSQN sobre a receita',
                   },
                 ] as const
               ).map((act) => {
@@ -265,6 +277,39 @@ export default function DrePresumidoPage() {
                 )
               })}
             </div>
+
+            {/* Campo aberto para Alíquota do ISSQN se atividade for Serviços */}
+            {isServices && (
+              <div className="p-3.5 rounded-xl bg-slate-950/60 border border-emerald-500/30 space-y-2 mt-3 animate-in fade-in duration-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="text-xs font-semibold text-emerald-300 block">
+                      Alíquota do ISSQN (%)
+                    </label>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      Informe o percentual municipal do ISS (ex.: 2,00% a 5,00%) incidente sobre a
+                      receita de serviços.
+                    </span>
+                  </div>
+                  <div className="relative w-36 sm:w-40">
+                    <Input
+                      type="text"
+                      placeholder="0,00"
+                      value={issInput}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setIssInput(val)
+                        setPresumidoIssRate(parseBRNumber(val))
+                      }}
+                      className="pr-7 text-right bg-slate-900 border-emerald-500/50 text-slate-100 font-mono text-xs focus:border-emerald-400 focus:ring-emerald-500/20"
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400">
+                      %
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Campos Automáticos Bloqueados */}
@@ -312,10 +357,17 @@ export default function DrePresumidoPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 font-mono text-xs">
-              <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block">ICMS</span>
-                <span className="text-slate-200 font-semibold">{formatNumberBR(icmsRate)}%</span>
-              </div>
+              {isServices ? (
+                <div className="p-2.5 rounded-lg bg-slate-900/60 border border-emerald-500/40">
+                  <span className="text-[10px] text-emerald-400 block">ISSQN</span>
+                  <span className="text-emerald-300 font-semibold">{formatNumberBR(issRate)}%</span>
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block">ICMS</span>
+                  <span className="text-slate-200 font-semibold">{formatNumberBR(icmsRate)}%</span>
+                </div>
+              )}
               <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
                 <span className="text-[10px] text-slate-400 block">PIS</span>
                 <span className="text-slate-200 font-semibold">{formatNumberBR(pisRate)}%</span>
@@ -478,25 +530,35 @@ export default function DrePresumidoPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {/* 1. Receita bruta de vendas */}
+                {/* 1. Receita bruta */}
                 <tr>
                   <td className="py-2 text-left font-medium text-slate-200">
-                    Receita bruta de vendas
+                    {isServices ? 'Receita bruta de serviços' : 'Receita bruta de vendas'}
                   </td>
                   <td className="py-2 px-3 text-right text-slate-200">{formatBRL(unitGross)}</td>
                   <td className="py-2 px-3 text-right text-slate-200">{formatBRL(totalGross)}</td>
                 </tr>
 
-                {/* 2. (-) ICMS */}
+                {/* 2. (-) ICMS ou (-) ISSQN */}
                 <tr>
-                  <td className="py-2 text-left text-slate-400">(−) ICMS</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(unitIcms)}</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalIcms)}</td>
+                  <td className="py-2 text-left text-slate-400">
+                    {isServices ? '(−) ISSQN' : '(−) ICMS'}
+                  </td>
+                  <td className="py-2 px-3 text-right text-slate-400">
+                    -{formatBRL(unitMunicipalStateTax)}
+                  </td>
+                  <td className="py-2 px-3 text-right text-slate-400">
+                    -{formatBRL(totalMunicipalStateTax)}
+                  </td>
                 </tr>
 
-                {/* 3. Base PIS/COFINS (tese do século) [cinza informativa] */}
+                {/* 3. Base PIS/COFINS [cinza informativa] */}
                 <tr className="bg-slate-900/30 text-slate-500">
-                  <td className="py-2 text-left italic">Base PIS/COFINS (tese do século)</td>
+                  <td className="py-2 text-left italic">
+                    {isServices
+                      ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
+                      : 'Base PIS/COFINS (tese do século · exclui ICMS)'}
+                  </td>
                   <td className="py-2 px-3 text-right">{formatBRL(unitPisCofinsBase)}</td>
                   <td className="py-2 px-3 text-right">{formatBRL(totalPisCofinsBase)}</td>
                 </tr>
