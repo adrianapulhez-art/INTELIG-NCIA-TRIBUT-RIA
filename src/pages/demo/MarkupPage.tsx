@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { DemoLayout } from '@/components/demo/DemoLayout'
+import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 import { useTaxContext } from '@/contexts/TaxContext'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -1063,7 +1064,12 @@ export default function MarkupPage() {
           </div>
         )}
 
-        {/* Rodapé da Calculadora Markup: Botão para próxima página (Calculadora de Compras) */}
+        {/* Barra de Gerenciamento de Cenários movida para o final da página do Markup */}
+        <div className="pt-2">
+          <ScenarioManagerBar />
+        </div>
+
+        {/* Rodapé da Calculadora Markup: Botão para próxima página (Calculadora de Compras) por último */}
         <div className="pt-2 flex justify-end">
           <Button
             type="button"

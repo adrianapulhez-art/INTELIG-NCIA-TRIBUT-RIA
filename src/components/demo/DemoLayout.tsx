@@ -154,8 +154,8 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
 
       {/* Main Container onde a página ativa é renderizada */}
       <main className="relative z-10 flex-1 px-4 sm:px-8 pb-16 max-w-6xl mx-auto w-full">
-        {/* Painel de Cenários Tributários persistidos por cliente no banco */}
-        <ScenarioManagerBar />
+        {/* Painel de Cenários Tributários persistidos por cliente no banco (nas demais páginas permanece no topo; no Markup é renderizado ao final) */}
+        {currentTab !== 'markup' && <ScenarioManagerBar />}
         {children}
       </main>
 
