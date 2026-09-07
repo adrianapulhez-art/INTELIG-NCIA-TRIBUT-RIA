@@ -29,6 +29,9 @@ export default function DreSimplesPage() {
   const navigate = useNavigate()
   const {
     simulatedSalePrice,
+    totalConsolidatedRevenue,
+    totalConsolidatedQuantity,
+    markupProducts,
     calculatedPurchases,
     initialInventory,
     finalInventory,
@@ -47,10 +50,11 @@ export default function DreSimplesPage() {
     simulateSimples,
   } = useTaxContext()
 
+  const defaultQty =
+    totalConsolidatedQuantity > 0 ? totalConsolidatedQuantity : simplesQuantitySold || 0
+
   // Estados locais para inputs
-  const [qtyInput, setQtyInput] = useState<string>(
-    simplesQuantitySold > 0 ? String(simplesQuantitySold) : '0',
-  )
+  const [qtyInput, setQtyInput] = useState<string>(defaultQty > 0 ? String(defaultQty) : '0')
   const [rbt12Input, setRbt12Input] = useState<string>(
     simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : '',
   )
@@ -58,8 +62,10 @@ export default function DreSimplesPage() {
     simplesPayroll12m > 0 ? formatNumberBR(simplesPayroll12m) : '',
   )
 
-  // Preço de venda unitário via Markup
-  const unitGrossRevenue = simulatedSalePrice || 0
+  // RECEITA BRUTA:
+  // Se houver múltiplos produtos consolidados (> 0), usa totalConsolidatedRevenue.
+  const hasConsolidated = totalConsolidatedRevenue > 0
+  const activeGrossRevenue = hasConsolidated ? totalConsolidatedRevenue : simulatedSalePrice || 0
   // CMV unitário via Compras (Simples Nacional: sem recuperação de tributos)
   const unitCMV = calculatedPurchases.cmvSimples || 0
 
@@ -80,11 +86,17 @@ export default function DreSimplesPage() {
   )
 
   // Quantidade vendida
-  const qty = simplesQuantitySold || 0
+  const effectiveQuantity =
+    simplesQuantitySold > 0
+      ? simplesQuantitySold
+      : totalConsolidatedQuantity > 0
+        ? totalConsolidatedQuantity
+        : 0
+  const qty = effectiveQuantity
 
   // CÁLCULOS UNITÁRIOS DA DRE
-  // 1. Receita Bruta Unitária (vinda do Markup)
-  const unitGross = unitGrossRevenue
+  // 1. Receita Bruta Unitária (vinda do Markup ou consolidada)
+  const unitGross = activeGrossRevenue
 
   // Alíquota Efetiva do PGDAS (%)
   const effectiveRate = pgdas.aliquotaEfetiva
@@ -120,19 +132,23 @@ export default function DreSimplesPage() {
   const unitNetProfit = unitGrossProfit - unitExpenses
 
   // CÁLCULOS TOTAIS DA DRE
-  const totalGross = unitGross * qty
-  const totalDasTotal = unitDasTotal * qty
-  const totalIrpj = unitIrpj * qty
-  const totalCsll = unitCsll * qty
-  const totalCofins = unitCofins * qty
-  const totalPis = unitPis * qty
-  const totalCpp = unitCpp * qty
-  const totalIcms = unitIcms * qty
-  const totalIpi = unitIpi * qty
-  const totalIss = unitIss * qty
-  const totalNetRevenue = unitNetRevenue * qty
+  const totalGross =
+    hasConsolidated && (qty === totalConsolidatedQuantity || qty === 1)
+      ? totalConsolidatedRevenue
+      : unitGross * (qty > 0 ? qty : 0)
+
+  const totalDasTotal = totalGross * effectiveRateDec
+  const totalIrpj = (totalGross * pgdas.reparticao.irpjRate) / 100
+  const totalCsll = (totalGross * pgdas.reparticao.csllRate) / 100
+  const totalCofins = (totalGross * pgdas.reparticao.cofinsRate) / 100
+  const totalPis = (totalGross * pgdas.reparticao.pisRate) / 100
+  const totalCpp = (totalGross * pgdas.reparticao.cppRate) / 100
+  const totalIcms = (totalGross * pgdas.reparticao.icmsRate) / 100
+  const totalIpi = (totalGross * pgdas.reparticao.ipiRate) / 100
+  const totalIss = (totalGross * pgdas.reparticao.issRate) / 100
+  const totalNetRevenue = totalGross - totalDasTotal
   const totalCmv = unitCmvVal * qty
-  const totalGrossProfit = unitGrossProfit * qty
+  const totalGrossProfit = totalNetRevenue - totalCmv
   const totalNetProfit = totalGrossProfit - totalExpenses
 
   // Cards de Resumo
@@ -197,8 +213,8 @@ export default function DreSimplesPage() {
             </div>
             <div className="flex flex-wrap items-center gap-4 text-slate-300">
               <div>
-                Preço de venda (Markup):{' '}
-                <strong className="text-emerald-400">{formatBRL(unitGrossRevenue)}</strong>
+                Receita Markup {hasConsolidated ? '(consolidada)' : ''}:{' '}
+                <strong className="text-emerald-400">{formatBRL(activeGrossRevenue)}</strong>
               </div>
               <div>
                 CMV (Compras · Simples):{' '}
@@ -548,16 +564,19 @@ export default function DreSimplesPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-slate-300">
-                  Receita bruta unitária (R$)
+                  {hasConsolidated
+                    ? 'Receita bruta — via Markup (total dos produtos)'
+                    : 'Receita bruta unitária (R$)'}
                 </label>
                 <span className="text-[11px] text-emerald-400 font-mono font-semibold">
-                  · automático (via Markup)
+                  · automático{' '}
+                  {hasConsolidated ? `(${markupProducts.length} produtos)` : '(via Markup)'}
                 </span>
               </div>
               <div className="h-10 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
                 <span className="text-slate-500 text-xs">R$</span>
                 <span className="font-bold text-emerald-400">
-                  {formatNumberBR(unitGrossRevenue)}
+                  {formatNumberBR(activeGrossRevenue)}
                 </span>
               </div>
             </div>

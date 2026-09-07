@@ -31,6 +31,9 @@ export default function ComparisonPage() {
   const navigate = useNavigate()
   const {
     simulatedSalePrice,
+    totalConsolidatedRevenue,
+    totalConsolidatedQuantity,
+    markupProducts,
     calculatedPurchases,
     icmsRateMarkup,
     // Presumido
@@ -68,8 +71,11 @@ export default function ComparisonPage() {
     simplesExpenses,
   } = useTaxContext()
 
-  // Quantidade vendida inicial compartilhada (pega o maior valor definido ou Presumido)
-  const initialQty = presumidoQuantitySold || realQuantitySold || simplesQuantitySold || 100
+  // Se houver quantidade consolidada multi-produtos, prioriza ela
+  const initialQty =
+    totalConsolidatedQuantity > 0
+      ? totalConsolidatedQuantity
+      : presumidoQuantitySold || realQuantitySold || simplesQuantitySold || 100
 
   // Estado local para a quantidade na página de comparação
   const [qty, setQty] = useState<number>(initialQty)
@@ -92,8 +98,10 @@ export default function ComparisonPage() {
     return presumidoExpenses.reduce((acc, exp) => acc + (exp.value || 0), 0)
   }, [presumidoExpenses])
 
-  // Preço de venda unitário (Markup)
-  const unitGrossRevenue = simulatedSalePrice || 0
+  // Preço de venda ou receita consolidada (Markup)
+  const hasConsolidated = totalConsolidatedRevenue > 0
+  const activeGrossRevenue = hasConsolidated ? totalConsolidatedRevenue : simulatedSalePrice || 0
+  const unitGrossRevenue = activeGrossRevenue
 
   // -------------------------------------------------------------
   // 1. CÁLCULO LUCRO PRESUMIDO
@@ -446,8 +454,8 @@ export default function ComparisonPage() {
             </div>
             <div className="flex flex-wrap items-center gap-4 text-slate-300">
               <div>
-                Preço Markup:{' '}
-                <strong className="text-emerald-400">{formatBRL(unitGrossRevenue)}</strong>
+                Receita Markup {hasConsolidated ? '(consolidada)' : ''}:{' '}
+                <strong className="text-emerald-400">{formatBRL(activeGrossRevenue)}</strong>
               </div>
               <div>
                 CMV Presumido:{' '}
@@ -806,7 +814,9 @@ export default function ComparisonPage() {
                 Demonstração Comparativa Completa
               </h3>
               <p className="text-xs text-slate-400">
-                Base calculada para {qty} unidades vendidas a {formatBRL(unitGrossRevenue)}/un.
+                {hasConsolidated
+                  ? `Base calculada para ${qty} unidades consolidadas (${markupProducts.length} produtos — receita total: ${formatBRL(totalConsolidatedRevenue)})`
+                  : `Base calculada para ${qty} unidades vendidas a ${formatBRL(unitGrossRevenue)}/un.`}
               </p>
             </div>
             {economyDifference > 0 && (

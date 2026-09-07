@@ -19,6 +19,9 @@ export default function DreRealPage() {
   const navigate = useNavigate()
   const {
     simulatedSalePrice,
+    totalConsolidatedRevenue,
+    totalConsolidatedQuantity,
+    markupProducts,
     calculatedPurchases,
     initialInventory,
     finalInventory,
@@ -41,9 +44,10 @@ export default function DreRealPage() {
     simulateReal,
   } = useTaxContext()
 
-  const [qtyInput, setQtyInput] = useState<string>(
-    realQuantitySold > 0 ? String(realQuantitySold) : '0',
-  )
+  const defaultQty =
+    totalConsolidatedQuantity > 0 ? totalConsolidatedQuantity : realQuantitySold || 0
+
+  const [qtyInput, setQtyInput] = useState<string>(defaultQty > 0 ? String(defaultQty) : '0')
   const [issInput, setIssInput] = useState<string>(
     realIssRate > 0 ? formatNumberBR(realIssRate) : '',
   )
@@ -57,8 +61,10 @@ export default function DreRealPage() {
 
   const isServices = realActivity === 'servicos'
 
-  // Preço de venda unitário via Markup
-  const unitGrossRevenue = simulatedSalePrice || 0
+  // RECEITA BRUTA:
+  // Se houver múltiplos produtos consolidados (> 0), usa totalConsolidatedRevenue.
+  const hasConsolidated = totalConsolidatedRevenue > 0
+  const activeGrossRevenue = hasConsolidated ? totalConsolidatedRevenue : simulatedSalePrice || 0
   // CMV unitário via Compras (Lucro Real com deduções completas de créditos)
   const unitCMV = calculatedPurchases.cmvReal || 0
 
@@ -77,7 +83,7 @@ export default function DreRealPage() {
 
   // CÁLCULOS UNITÁRIOS
   // 1. Receita bruta
-  const unitGross = unitGrossRevenue
+  const unitGross = activeGrossRevenue
   // 2. Tributo municipal/estadual (ICMS para comércio/indústria, ISSQN para serviços)
   const unitMunicipalStateTax = isServices
     ? (unitGross * issRate) / 100
@@ -98,21 +104,39 @@ export default function DreRealPage() {
   const unitCmvVal = unitCMV
   // 8. Lucro bruto
   const unitGrossProfit = unitNetRevenue - unitCmvVal
+
+  // Quantidade efetiva
+  const effectiveQuantity =
+    realQuantitySold > 0
+      ? realQuantitySold
+      : totalConsolidatedQuantity > 0
+        ? totalConsolidatedQuantity
+        : 0
+
   // 9. Despesas operacionais unitárias
-  const unitExpenses = realQuantitySold > 0 ? totalExpenses / realQuantitySold : 0
+  const unitExpenses = effectiveQuantity > 0 ? totalExpenses / effectiveQuantity : 0
   // 10. Resultado antes IRPJ/CSLL
   const unitResultBeforeTax = unitGrossProfit - unitExpenses
 
   // CÁLCULOS TOTAIS
-  const qty = realQuantitySold || 0
-  const totalGross = unitGross * qty
-  const totalMunicipalStateTax = unitMunicipalStateTax * qty
-  const totalPisCofinsBase = unitPisCofinsBase * qty
-  const totalPis = unitPis * qty
-  const totalCofins = unitCofins * qty
-  const totalNetRevenue = unitNetRevenue * qty
+  const qty = effectiveQuantity
+  const totalGross =
+    hasConsolidated && (qty === totalConsolidatedQuantity || qty === 1)
+      ? totalConsolidatedRevenue
+      : unitGross * (qty > 0 ? qty : 0)
+
+  const totalMunicipalStateTax = isServices
+    ? (totalGross * issRate) / 100
+    : (totalGross * icmsRate) / 100
+
+  const totalPisCofinsBase = isServices
+    ? totalGross
+    : Math.max(0, totalGross - totalMunicipalStateTax)
+  const totalPis = (totalPisCofinsBase * pisRate) / 100
+  const totalCofins = (totalPisCofinsBase * cofinsRate) / 100
+  const totalNetRevenue = totalGross - totalMunicipalStateTax - totalPis - totalCofins
   const totalCmv = unitCmvVal * qty
-  const totalGrossProfit = unitGrossProfit * qty
+  const totalGrossProfit = totalNetRevenue - totalCmv
   const totalResultBeforeTax = totalGrossProfit - totalExpenses
 
   // Lucro Real (Base IRPJ / CSLL): Resultado antes dos tributos + Adições - Exclusões
@@ -169,8 +193,8 @@ export default function DreRealPage() {
             </div>
             <div className="flex flex-wrap items-center gap-4 text-slate-300">
               <div>
-                Preço de venda (Markup):{' '}
-                <strong className="text-emerald-400">{formatBRL(unitGrossRevenue)}</strong>
+                Receita Markup {hasConsolidated ? '(consolidada)' : ''}:{' '}
+                <strong className="text-emerald-400">{formatBRL(activeGrossRevenue)}</strong>
               </div>
               <div>
                 CMV (Compras · Lucro Real):{' '}
@@ -324,16 +348,19 @@ export default function DreRealPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-slate-300">
-                  Receita bruta unitária (R$)
+                  {hasConsolidated
+                    ? 'Receita bruta — via Markup (total dos produtos)'
+                    : 'Receita bruta unitária (R$)'}
                 </label>
                 <span className="text-[11px] text-emerald-400 font-mono font-semibold">
-                  · automático (via Markup)
+                  · automático{' '}
+                  {hasConsolidated ? `(${markupProducts.length} produtos)` : '(via Markup)'}
                 </span>
               </div>
               <div className="h-10 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
                 <span className="text-slate-500 text-xs">R$</span>
                 <span className="font-bold text-emerald-400">
-                  {formatNumberBR(unitGrossRevenue)}
+                  {formatNumberBR(activeGrossRevenue)}
                 </span>
               </div>
             </div>

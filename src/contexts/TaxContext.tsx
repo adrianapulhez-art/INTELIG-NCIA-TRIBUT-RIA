@@ -5,6 +5,22 @@ export type TaxRegime = 'presumido' | 'real' | 'simples'
 export type ActivityType = 'comercio' | 'industria' | 'servicos'
 export type MarkupMode = 'liquid' | 'cost_margin'
 
+export interface MarkupProductItem {
+  id: string
+  name: string
+  mode: MarkupMode // 'liquid' ou 'cost_margin'
+  desiredNetRevenue: number // Receita líquida desejada (quando mode === 'liquid')
+  cost: number // Custo base (quando mode === 'cost_margin')
+  margin: number // Margem de lucro % (quando mode === 'cost_margin' ou margem adicional)
+  quantity: number // Quantidade vendida
+  // Resultados calculados individualmente ao clicar em Simular:
+  salePrice: number // Preço de venda calculado
+  taxFactor: number
+  completeFactor: number
+  totalRevenue: number // salePrice * quantity
+  totalCost: number // cost * quantity (no modo cost_margin)
+}
+
 export interface AdditionalCostItem {
   id: string
   description: string
@@ -46,12 +62,28 @@ export interface TaxContextType {
   customTaxesMarkup: CustomTaxItem[]
   addCustomTaxMarkup: (name: string, rate: number) => void
   removeCustomTaxMarkup: (id: string) => void
+  // Múltiplos Produtos no Markup
+  markupProducts: MarkupProductItem[]
+  addMarkupProduct: (name?: string, mode?: MarkupMode) => void
+  updateMarkupProduct: (
+    id: string,
+    field: keyof Omit<
+      MarkupProductItem,
+      'id' | 'salePrice' | 'taxFactor' | 'completeFactor' | 'totalRevenue' | 'totalCost'
+    >,
+    value: string | number | MarkupMode,
+  ) => void
+  removeMarkupProduct: (id: string) => void
   // Markup calculado (atualizado apenas ao clicar em "Simular")
-  simulatedSalePrice: number
+  simulatedSalePrice: number // mantido para compatibilidade (preço do 1º produto ou consolidado)
   simulatedTaxFactorTotal: number
   simulatedCompleteFactor: number
   isMarkupSimulated: boolean
   simulateMarkup: () => void
+  // Consolidado dos produtos (calculado no simulateMarkup)
+  totalConsolidatedRevenue: number // Σ (preço * quantidade)
+  totalConsolidatedQuantity: number // Σ quantidade
+  totalConsolidatedCost: number // Σ (custo * quantidade)
 
   // COMPRAS STATE (atualiza dinamicamente)
   initialInventory: number // EI
@@ -215,6 +247,35 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [customTaxesMarkup, setCustomTaxesMarkup] = useState<CustomTaxItem[]>(
     savedState?.customTaxesMarkup || [],
   )
+  // Inicialização dos produtos com suporte a estado anterior
+  const initialProducts: MarkupProductItem[] = (() => {
+    if (
+      savedState?.markupProducts &&
+      Array.isArray(savedState.markupProducts) &&
+      savedState.markupProducts.length > 0
+    ) {
+      return savedState.markupProducts
+    }
+    // Cria 1 produto padrão inicial para não quebrar fluxos legados
+    return [
+      {
+        id: 'prod-1',
+        name: 'Produto 1',
+        mode: savedState?.markupMode || 'liquid',
+        desiredNetRevenue: savedState?.desiredNetRevenue || 0,
+        cost: savedState?.markupMode === 'cost_margin' ? savedState?.desiredNetRevenue || 0 : 0,
+        margin: savedState?.additionalMargin || 0,
+        quantity: 0,
+        salePrice: savedState?.simulatedSalePrice || 0,
+        taxFactor: savedState?.simulatedTaxFactorTotal || 0,
+        completeFactor: savedState?.simulatedCompleteFactor || 0,
+        totalRevenue: (savedState?.simulatedSalePrice || 0) * 0,
+        totalCost: 0,
+      },
+    ]
+  })()
+  const [markupProducts, setMarkupProducts] = useState<MarkupProductItem[]>(initialProducts)
+
   const [simulatedSalePrice, setSimulatedSalePrice] = useState<number>(
     savedState?.simulatedSalePrice || 0,
   )
@@ -226,6 +287,15 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   )
   const [isMarkupSimulated, setIsMarkupSimulated] = useState<boolean>(
     savedState?.isMarkupSimulated || false,
+  )
+  const [totalConsolidatedRevenue, setTotalConsolidatedRevenue] = useState<number>(
+    savedState?.totalConsolidatedRevenue || 0,
+  )
+  const [totalConsolidatedQuantity, setTotalConsolidatedQuantity] = useState<number>(
+    savedState?.totalConsolidatedQuantity || 0,
+  )
+  const [totalConsolidatedCost, setTotalConsolidatedCost] = useState<number>(
+    savedState?.totalConsolidatedCost || 0,
   )
 
   // COMPRAS
@@ -355,10 +425,14 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         additionalMargin,
         icmsRateMarkup,
         customTaxesMarkup,
+        markupProducts,
         simulatedSalePrice,
         simulatedTaxFactorTotal,
         simulatedCompleteFactor,
         isMarkupSimulated,
+        totalConsolidatedRevenue,
+        totalConsolidatedQuantity,
+        totalConsolidatedCost,
         initialInventory,
         finalInventory,
         additionalCosts,
@@ -405,10 +479,14 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     additionalMargin,
     icmsRateMarkup,
     customTaxesMarkup,
+    markupProducts,
     simulatedSalePrice,
     simulatedTaxFactorTotal,
     simulatedCompleteFactor,
     isMarkupSimulated,
+    totalConsolidatedRevenue,
+    totalConsolidatedQuantity,
+    totalConsolidatedCost,
     initialInventory,
     finalInventory,
     additionalCosts,
@@ -452,6 +530,83 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const removeCustomTaxMarkup = (id: string) => {
     setCustomTaxesMarkup((prev) => prev.filter((t) => t.id !== id))
+  }
+
+  const addMarkupProduct = (name?: string, mode?: MarkupMode) => {
+    setMarkupProducts((prev) => {
+      const nextNum = prev.length + 1
+      const newProduct: MarkupProductItem = {
+        id: `prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        name: name || `Produto ${nextNum}`,
+        mode: mode || markupMode || 'liquid',
+        desiredNetRevenue: 0,
+        cost: 0,
+        margin: 0,
+        quantity: 0,
+        salePrice: 0,
+        taxFactor: 0,
+        completeFactor: 0,
+        totalRevenue: 0,
+        totalCost: 0,
+      }
+      return [...prev, newProduct]
+    })
+  }
+
+  const updateMarkupProduct = (
+    id: string,
+    field: keyof Omit<
+      MarkupProductItem,
+      'id' | 'salePrice' | 'taxFactor' | 'completeFactor' | 'totalRevenue' | 'totalCost'
+    >,
+    value: string | number | MarkupMode,
+  ) => {
+    setMarkupProducts((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item
+        if (field === 'mode') {
+          return { ...item, mode: value as MarkupMode }
+        }
+        if (field === 'name') {
+          return { ...item, name: String(value) }
+        }
+        if (field === 'quantity') {
+          const parsed = typeof value === 'number' ? value : parseInt(String(value), 10)
+          return { ...item, quantity: isNaN(parsed) || parsed < 0 ? 0 : parsed }
+        }
+        // Campos numéricos (desiredNetRevenue, cost, margin)
+        const numVal = typeof value === 'number' ? value : parseBRNumber(String(value))
+        return {
+          ...item,
+          [field]: numVal,
+        }
+      }),
+    )
+  }
+
+  const removeMarkupProduct = (id: string) => {
+    setMarkupProducts((prev) => {
+      // Garantir que sempre haja pelo menos um produto
+      if (prev.length <= 1) {
+        return [
+          {
+            id: `prod-${Date.now()}`,
+            name: 'Produto 1',
+            mode: 'liquid',
+            desiredNetRevenue: 0,
+            cost: 0,
+            margin: 0,
+            quantity: 0,
+            salePrice: 0,
+            taxFactor: 0,
+            completeFactor: 0,
+            totalRevenue: 0,
+            totalCost: 0,
+          },
+        ]
+      }
+      return prev.filter((p) => p.id !== id)
+    })
   }
 
   const addAdditionalCost = (description = 'Novo acréscimo', value = 0) => {
@@ -638,30 +793,63 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const pisFactor = regime === 'simples' ? 1 : 1 - pisRate
     const cofinsFactor = regime === 'simples' ? 1 : 1 - cofinsRate
 
-    let taxFactor = icmsFactor * pisFactor * cofinsFactor
+    let baseTaxFactor = icmsFactor * pisFactor * cofinsFactor
 
     // Tributos customizados
     for (const tax of customTaxesMarkup) {
-      taxFactor *= 1 - (tax.rate || 0) / 100
+      baseTaxFactor *= 1 - (tax.rate || 0) / 100
     }
 
-    // Fator de margem (se houver margem adicional)
-    const marginFactor = 1 - (additionalMargin || 0) / 100
-    const completeFactor = taxFactor * marginFactor
+    // Calcular cada produto individualmente
+    const updatedProducts = markupProducts.map((p) => {
+      const margin = p.margin || 0
+      const marginFactor = 1 - margin / 100
+      const completeFactor = baseTaxFactor * marginFactor
 
-    let salePrice = 0
-    if (markupMode === 'liquid') {
-      salePrice = completeFactor > 0 ? desiredNetRevenue / completeFactor : 0
-    } else {
-      // A partir do custo + margem:
-      // se desiredNetRevenue for interpretado como custo base
-      // preço = custo / (1 - margem - tributos) ou custo / completeFactor
-      salePrice = completeFactor > 0 ? desiredNetRevenue / completeFactor : 0
-    }
+      let baseValue = 0
+      if (p.mode === 'liquid') {
+        baseValue = p.desiredNetRevenue || 0
+      } else {
+        baseValue = p.cost || 0
+      }
 
-    setSimulatedTaxFactorTotal(taxFactor)
-    setSimulatedCompleteFactor(completeFactor)
-    setSimulatedSalePrice(Math.round(salePrice * 100) / 100)
+      const salePrice = completeFactor > 0 ? baseValue / completeFactor : 0
+      const roundedPrice = Math.round(salePrice * 100) / 100
+      const qty = p.quantity || 0
+      const totalRev = roundedPrice * qty
+      const totalCost = (p.cost || 0) * qty
+
+      return {
+        ...p,
+        salePrice: roundedPrice,
+        taxFactor: baseTaxFactor,
+        completeFactor,
+        totalRevenue: Math.round(totalRev * 100) / 100,
+        totalCost: Math.round(totalCost * 100) / 100,
+      }
+    })
+
+    setMarkupProducts(updatedProducts)
+
+    // Totais consolidados
+    const consolidatedRevenue = updatedProducts.reduce((acc, p) => acc + (p.totalRevenue || 0), 0)
+    const consolidatedQty = updatedProducts.reduce((acc, p) => acc + (p.quantity || 0), 0)
+    const consolidatedCost = updatedProducts.reduce((acc, p) => acc + (p.totalCost || 0), 0)
+
+    setTotalConsolidatedRevenue(Math.round(consolidatedRevenue * 100) / 100)
+    setTotalConsolidatedQuantity(consolidatedQty)
+    setTotalConsolidatedCost(Math.round(consolidatedCost * 100) / 100)
+
+    // Se houver pelo menos 1 produto, sincronizar também com os campos legados para retrocompatibilidade
+    const firstProduct = updatedProducts[0]
+    const legacyCompleteFactor = firstProduct
+      ? firstProduct.completeFactor
+      : baseTaxFactor * (1 - (additionalMargin || 0) / 100)
+    const legacySalePrice = firstProduct ? firstProduct.salePrice : 0
+
+    setSimulatedTaxFactorTotal(baseTaxFactor)
+    setSimulatedCompleteFactor(legacyCompleteFactor)
+    setSimulatedSalePrice(legacySalePrice)
     setIsMarkupSimulated(true)
   }
 
@@ -684,10 +872,29 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAdditionalMargin(0)
     setIcmsRateMarkup(0)
     setCustomTaxesMarkup([])
+    setMarkupProducts([
+      {
+        id: 'prod-1',
+        name: 'Produto 1',
+        mode: 'liquid',
+        desiredNetRevenue: 0,
+        cost: 0,
+        margin: 0,
+        quantity: 0,
+        salePrice: 0,
+        taxFactor: 0,
+        completeFactor: 0,
+        totalRevenue: 0,
+        totalCost: 0,
+      },
+    ])
     setSimulatedSalePrice(0)
     setSimulatedTaxFactorTotal(0)
     setSimulatedCompleteFactor(0)
     setIsMarkupSimulated(false)
+    setTotalConsolidatedRevenue(0)
+    setTotalConsolidatedQuantity(0)
+    setTotalConsolidatedCost(0)
 
     setInitialInventory(0)
     setFinalInventory(0)
@@ -759,11 +966,18 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         customTaxesMarkup,
         addCustomTaxMarkup,
         removeCustomTaxMarkup,
+        markupProducts,
+        addMarkupProduct,
+        updateMarkupProduct,
+        removeMarkupProduct,
         simulatedSalePrice,
         simulatedTaxFactorTotal,
         simulatedCompleteFactor,
         isMarkupSimulated,
         simulateMarkup,
+        totalConsolidatedRevenue,
+        totalConsolidatedQuantity,
+        totalConsolidatedCost,
 
         initialInventory,
         setInitialInventory,

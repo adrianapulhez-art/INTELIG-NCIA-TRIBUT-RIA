@@ -19,6 +19,9 @@ export default function DrePresumidoPage() {
   const navigate = useNavigate()
   const {
     simulatedSalePrice,
+    totalConsolidatedRevenue,
+    totalConsolidatedQuantity,
+    markupProducts,
     calculatedPurchases,
     initialInventory,
     finalInventory,
@@ -37,9 +40,11 @@ export default function DrePresumidoPage() {
     simulatePresumido,
   } = useTaxContext()
 
-  const [qtyInput, setQtyInput] = useState<string>(
-    presumidoQuantitySold > 0 ? String(presumidoQuantitySold) : '0',
-  )
+  // Se houver múltiplos produtos com quantidade preenchida no Markup, inicializa com o consolidado
+  const defaultQty =
+    totalConsolidatedQuantity > 0 ? totalConsolidatedQuantity : presumidoQuantitySold || 0
+
+  const [qtyInput, setQtyInput] = useState<string>(defaultQty > 0 ? String(defaultQty) : '0')
   const [issInput, setIssInput] = useState<string>(
     presumidoIssRate > 0 ? formatNumberBR(presumidoIssRate) : '',
   )
@@ -53,8 +58,11 @@ export default function DrePresumidoPage() {
 
   const isServices = presumidoActivity === 'servicos'
 
-  // Preço de venda unitário via Markup
-  const unitGrossRevenue = simulatedSalePrice || 0
+  // RECEITA BRUTA:
+  // Se houver múltiplos produtos com receita consolidada simulada (> 0), usa a receita consolidada.
+  // Caso contrário, usa o simulatedSalePrice unitário.
+  const hasConsolidated = totalConsolidatedRevenue > 0
+  const activeGrossRevenue = hasConsolidated ? totalConsolidatedRevenue : simulatedSalePrice || 0
   // CMV unitário via Compras (Presumido)
   const unitCMV = calculatedPurchases.cmvPresumido || 0
 
@@ -80,7 +88,7 @@ export default function DrePresumidoPage() {
 
   // CÁLCULOS UNITÁRIOS
   // 1. Receita bruta
-  const unitGross = unitGrossRevenue
+  const unitGross = activeGrossRevenue
   // 2. Tributo municipal/estadual unitário (ICMS para comércio/indústria, ISSQN para serviços)
   const unitMunicipalStateTax = isServices
     ? (unitGross * issRate) / 100
@@ -101,21 +109,44 @@ export default function DrePresumidoPage() {
   const unitCmvVal = unitCMV
   // 8. Lucro bruto unitário
   const unitGrossProfit = unitNetRevenue - unitCmvVal
+
+  // Quantidade efetiva
+  const effectiveQuantity =
+    presumidoQuantitySold > 0
+      ? presumidoQuantitySold
+      : totalConsolidatedQuantity > 0
+        ? totalConsolidatedQuantity
+        : 0
+
   // 9. Despesas operacionais unitárias (despesas totais divididas pela quantidade, se qtd > 0)
-  const unitExpenses = presumidoQuantitySold > 0 ? totalExpenses / presumidoQuantitySold : 0
+  const unitExpenses = effectiveQuantity > 0 ? totalExpenses / effectiveQuantity : 0
   // 10. Resultado antes IRPJ/CSLL unitário
   const unitResultBeforeTax = unitGrossProfit - unitExpenses
 
-  // CÁLCULOS TOTAIS (multiplicados pela quantidade vendida)
-  const qty = presumidoQuantitySold || 0
-  const totalGross = unitGross * qty
-  const totalMunicipalStateTax = unitMunicipalStateTax * qty
-  const totalPisCofinsBase = unitPisCofinsBase * qty
-  const totalPis = unitPis * qty
-  const totalCofins = unitCofins * qty
-  const totalNetRevenue = unitNetRevenue * qty
+  // CÁLCULOS TOTAIS:
+  // Se a receita veio de consolidado multi-produtos e o usuário não digitou multiplicador diferente (qty <= 1 ou igual à soma dos produtos):
+  // O valor total é a receita consolidada integral.
+  // Quando qty > 1, multiplica conforme o padrão do sistema (ou se o usuário ajustou a quantidade na DRE).
+  const qty = effectiveQuantity
+  // Multiplicador da coluna Total: se qty === 0, Total = 0. Se qty > 0:
+  // Quando há consolidado e a quantidade informada coincide com a quantidade consolidada, o totalGross já é o totalConsolidatedRevenue.
+  const totalGross =
+    hasConsolidated && (qty === totalConsolidatedQuantity || qty === 1)
+      ? totalConsolidatedRevenue
+      : unitGross * (qty > 0 ? qty : 0)
+
+  const totalMunicipalStateTax = isServices
+    ? (totalGross * issRate) / 100
+    : (totalGross * icmsRate) / 100
+
+  const totalPisCofinsBase = isServices
+    ? totalGross
+    : Math.max(0, totalGross - totalMunicipalStateTax)
+  const totalPis = (totalPisCofinsBase * pisRate) / 100
+  const totalCofins = (totalPisCofinsBase * cofinsRate) / 100
+  const totalNetRevenue = totalGross - totalMunicipalStateTax - totalPis - totalCofins
   const totalCmv = unitCmvVal * qty
-  const totalGrossProfit = unitGrossProfit * qty
+  const totalGrossProfit = totalNetRevenue - totalCmv
   const totalResultBeforeTax = totalGrossProfit - totalExpenses
 
   // Base presumida IRPJ e CSLL (calculada sobre a Receita Bruta Total)
@@ -172,8 +203,8 @@ export default function DrePresumidoPage() {
             </div>
             <div className="flex flex-wrap items-center gap-4 text-slate-300">
               <div>
-                Preço de venda (Markup):{' '}
-                <strong className="text-emerald-400">{formatBRL(unitGrossRevenue)}</strong>
+                Receita Markup {hasConsolidated ? '(consolidada)' : ''}:{' '}
+                <strong className="text-emerald-400">{formatBRL(activeGrossRevenue)}</strong>
               </div>
               <div>
                 CMV (Compras): <strong className="text-emerald-400">{formatBRL(unitCMV)}</strong>
@@ -327,16 +358,19 @@ export default function DrePresumidoPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-slate-300">
-                  Receita bruta unitária (R$)
+                  {hasConsolidated
+                    ? 'Receita bruta — via Markup (total dos produtos)'
+                    : 'Receita bruta unitária (R$)'}
                 </label>
                 <span className="text-[11px] text-emerald-400 font-mono font-semibold">
-                  · automático (via Markup)
+                  · automático{' '}
+                  {hasConsolidated ? `(${markupProducts.length} produtos)` : '(via Markup)'}
                 </span>
               </div>
               <div className="h-10 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
                 <span className="text-slate-500 text-xs">R$</span>
                 <span className="font-bold text-emerald-400">
-                  {formatNumberBR(unitGrossRevenue)}
+                  {formatNumberBR(activeGrossRevenue)}
                 </span>
               </div>
             </div>

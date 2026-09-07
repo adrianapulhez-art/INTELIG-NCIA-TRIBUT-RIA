@@ -2,10 +2,11 @@ import React, { useState } from 'react'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { useTaxContext } from '@/contexts/TaxContext'
 import { useNavigate } from 'react-router-dom'
-import { Calculator, Plus, Trash2, CheckCircle2, ArrowRight } from 'lucide-react'
+import { Calculator, Plus, Trash2, CheckCircle2, ArrowRight, Package } from 'lucide-react'
 import { formatBRL, formatFactorBR, formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 
 export default function MarkupPage() {
   const navigate = useNavigate()
@@ -14,58 +15,40 @@ export default function MarkupPage() {
     setRegime,
     markupMode,
     setMarkupMode,
-    desiredNetRevenue,
-    setDesiredNetRevenue,
-    additionalMargin,
-    setAdditionalMargin,
     icmsRateMarkup,
     setIcmsRateMarkup,
     customTaxesMarkup,
     addCustomTaxMarkup,
     removeCustomTaxMarkup,
+    markupProducts,
+    addMarkupProduct,
+    updateMarkupProduct,
+    removeMarkupProduct,
     simulatedSalePrice,
     simulatedTaxFactorTotal,
     simulatedCompleteFactor,
     isMarkupSimulated,
     simulateMarkup,
+    totalConsolidatedRevenue,
+    totalConsolidatedQuantity,
+    totalConsolidatedCost,
   } = useTaxContext()
 
-  // Estado local para input de texto formatado
-  const [netRevenueInput, setNetRevenueInput] = useState<string>(
-    desiredNetRevenue > 0 ? formatNumberBR(desiredNetRevenue) : '',
-  )
+  // Sincronização do ICMS
   const [icmsInput, setIcmsInput] = useState<string>(
     icmsRateMarkup > 0 ? formatNumberBR(icmsRateMarkup) : '',
   )
-  const [marginInput, setMarginInput] = useState<string>(
-    additionalMargin > 0 ? formatNumberBR(additionalMargin) : '',
-  )
-  const [showMarginInput, setShowMarginInput] = useState<boolean>(additionalMargin > 0)
 
   // Estado para novo tributo customizado
   const [showAddCustomTax, setShowAddCustomTax] = useState(false)
   const [newTaxName, setNewTaxName] = useState('')
   const [newTaxRate, setNewTaxRate] = useState('')
 
-  // Sincronizar input de receita líquida
-  const handleNetRevenueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setNetRevenueInput(val)
-    setDesiredNetRevenue(parseBRNumber(val))
-  }
-
   // Sincronizar ICMS
   const handleIcmsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
     setIcmsInput(val)
     setIcmsRateMarkup(parseBRNumber(val))
-  }
-
-  // Sincronizar margem
-  const handleMarginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setMarginInput(val)
-    setAdditionalMargin(parseBRNumber(val))
   }
 
   const handleAddCustomTax = () => {
@@ -86,131 +69,315 @@ export default function MarkupPage() {
   const pisFactor = isSimples ? 1 : 1 - pisRate / 100
   const cofinsFactor = isSimples ? 1 : 1 - cofinsRate / 100
 
+  // Fator tributário base
+  let baseTaxFactor = icmsFactor * pisFactor * cofinsFactor
+  for (const tax of customTaxesMarkup) {
+    baseTaxFactor *= 1 - (tax.rate || 0) / 100
+  }
+
+  // Aplica modo padrão para novos produtos ou quando o usuário clica nos botões do topo
+  const handleSelectDefaultMode = (mode: 'liquid' | 'cost_margin') => {
+    setMarkupMode(mode)
+    // Se houver apenas 1 produto e estiver zerado, também atualiza seu modo para facilitar a experiência
+    if (
+      markupProducts.length === 1 &&
+      markupProducts[0].desiredNetRevenue === 0 &&
+      markupProducts[0].cost === 0
+    ) {
+      updateMarkupProduct(markupProducts[0].id, 'mode', mode)
+    }
+  }
+
   return (
     <DemoLayout currentTab="markup">
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="space-y-6 max-w-5xl mx-auto">
         {/* Card Principal */}
         <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-xl space-y-6">
           {/* Header com Ícone de Calculadora */}
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
-              <Calculator className="w-5 h-5" />
+          <div className="flex items-start justify-between flex-wrap gap-3">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
+                <Calculator className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                    Calculadora de MARKUP Multi-Produtos
+                  </h2>
+                  <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono">
+                    {markupProducts.length} {markupProducts.length === 1 ? 'produto' : 'produtos'}
+                  </Badge>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-400">
+                  Cadastre produtos e serviços, defina a receita líquida ou custo + margem por item
+                  e obtenha os preços fracionados com consolidação automática para as DREs.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                Calculadora de MARKUP
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-400">
-                Informe as alíquotas e o valor-base para obter o preço de venda com fator
-                fracionado.
-              </p>
-            </div>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => addMarkupProduct('', markupMode)}
+              className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold cursor-pointer text-xs h-8"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Adicionar produto
+            </Button>
           </div>
 
-          {/* Botões de Modo no Topo */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setMarkupMode('liquid')}
-              className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                markupMode === 'liquid'
-                  ? 'bg-emerald-500/10 border-emerald-500 text-white shadow-sm'
-                  : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-white">
-                  A partir da receita líquida
-                </span>
-                {markupMode === 'liquid' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-              </div>
-              <p className="text-xs text-slate-400 mt-1">
-                Eu sei quanto quero auferir de receita líquida.
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setMarkupMode('cost_margin')}
-              className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                markupMode === 'cost_margin'
-                  ? 'bg-emerald-500/10 border-emerald-500 text-white shadow-sm'
-                  : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-white">A partir do custo + margem</span>
-                {markupMode === 'cost_margin' && (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                )}
-              </div>
-              <p className="text-xs text-slate-400 mt-1">
-                Eu parto do custo e defino a margem de lucro.
-              </p>
-            </button>
-          </div>
-
-          {/* Campos: Receita Líquida Desejada e Margem de Lucro */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">
-                {markupMode === 'liquid' ? 'Receita líquida desejada' : 'Custo base desejado'}
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
-                  R$
-                </span>
-                <Input
-                  type="text"
-                  placeholder="0,00"
-                  value={netRevenueInput}
-                  onChange={handleNetRevenueChange}
-                  className="pl-9 bg-slate-950/60 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-300">
-                  Margem de lucro adicional
-                </label>
-                {!showMarginInput && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowMarginInput(true)}
-                    className="h-6 text-[11px] text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 px-2 cursor-pointer"
-                  >
-                    + Adicionar margem
-                  </Button>
-                )}
-              </div>
-
-              {showMarginInput ? (
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    value={marginInput}
-                    onChange={handleMarginChange}
-                    className="pr-8 bg-slate-950/60 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
-                    %
+          {/* Modo padrão de partida para a calculadora */}
+          <div className="space-y-2">
+            <span className="text-xs font-semibold text-slate-300 block">
+              Modo de cálculo predominante (ou personalize por produto abaixo):
+            </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => handleSelectDefaultMode('liquid')}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  markupMode === 'liquid'
+                    ? 'bg-emerald-500/10 border-emerald-500 text-white shadow-sm'
+                    : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-white">
+                    A partir da receita líquida
                   </span>
+                  {markupMode === 'liquid' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                 </div>
-              ) : (
-                <div className="h-9 rounded-md border border-dashed border-slate-800 bg-slate-950/30 flex items-center px-3 text-xs text-slate-500 font-mono">
-                  Nenhuma margem aplicada
+                <p className="text-xs text-slate-400 mt-1">
+                  Partir do valor líquido desejado e aplicar os fatores fracionados.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectDefaultMode('cost_margin')}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  markupMode === 'cost_margin'
+                    ? 'bg-emerald-500/10 border-emerald-500 text-white shadow-sm'
+                    : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-white">
+                    A partir do custo + margem
+                  </span>
+                  {markupMode === 'cost_margin' && (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  )}
                 </div>
-              )}
+                <p className="text-xs text-slate-400 mt-1">
+                  Partir do custo base e embutir a margem de lucro e tributos.
+                </p>
+              </button>
+            </div>
+          </div>
+
+          {/* ÁREA DE LISTA / TABELA DE PRODUTOS */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Package className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+                  Produtos / Serviços Cadastrados
+                </h3>
+              </div>
+              <span className="text-[11px] font-mono text-slate-400">
+                Preencha os valores; clique em <strong>Simular</strong> ao final
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {markupProducts.map((prod, index) => {
+                const isProdLiquid = prod.mode === 'liquid'
+                return (
+                  <div
+                    key={prod.id}
+                    className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3 transition-colors hover:border-slate-700/80"
+                  >
+                    {/* Linha superior: Nome do produto, seletor de modo e lixeira */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-800/80">
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-xs font-mono text-slate-500 font-bold shrink-0">
+                          #{index + 1}
+                        </span>
+                        <Input
+                          type="text"
+                          value={prod.name}
+                          onChange={(e) => updateMarkupProduct(prod.id, 'name', e.target.value)}
+                          placeholder="Nome ou descrição do produto/serviço (ex.: Produto A)"
+                          className="bg-slate-900 border-slate-800 text-slate-100 font-semibold text-xs h-8 flex-1"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        {/* Seletor do modo específico para este produto */}
+                        <div className="inline-flex rounded-lg bg-slate-900 p-0.5 border border-slate-800 text-[11px] font-mono">
+                          <button
+                            type="button"
+                            onClick={() => updateMarkupProduct(prod.id, 'mode', 'liquid')}
+                            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                              isProdLiquid
+                                ? 'bg-emerald-500 text-slate-950 font-bold'
+                                : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            Receita Líquida
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateMarkupProduct(prod.id, 'mode', 'cost_margin')}
+                            className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                              !isProdLiquid
+                                ? 'bg-emerald-500 text-slate-950 font-bold'
+                                : 'text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            Custo + Margem
+                          </button>
+                        </div>
+
+                        {/* Botão de Remover (lixeira) */}
+                        <button
+                          type="button"
+                          onClick={() => removeMarkupProduct(prod.id)}
+                          className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors rounded-lg hover:bg-rose-500/10 cursor-pointer"
+                          title="Remover produto"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Linha de Campos: Base de cálculo, Margem (se aplicável), Quantidade e Preço Resultante */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
+                      {/* Campo 1: Valor Base (Receita Líquida ou Custo) */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-slate-300 font-semibold">
+                          {isProdLiquid ? 'Receita líquida desejada' : 'Custo base'}
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">
+                            R$
+                          </span>
+                          <Input
+                            type="text"
+                            placeholder="0,00"
+                            defaultValue={
+                              isProdLiquid
+                                ? prod.desiredNetRevenue > 0
+                                  ? formatNumberBR(prod.desiredNetRevenue)
+                                  : ''
+                                : prod.cost > 0
+                                  ? formatNumberBR(prod.cost)
+                                  : ''
+                            }
+                            key={`${prod.id}-${prod.mode}-${isProdLiquid ? prod.desiredNetRevenue : prod.cost}`}
+                            onBlur={(e) => {
+                              const val = parseBRNumber(e.target.value)
+                              if (isProdLiquid) {
+                                updateMarkupProduct(prod.id, 'desiredNetRevenue', val)
+                              } else {
+                                updateMarkupProduct(prod.id, 'cost', val)
+                              }
+                            }}
+                            className="pl-8 text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Campo 2: Margem de Lucro (%) */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-slate-300 font-semibold">
+                          {isProdLiquid ? 'Margem adicional (%)' : 'Margem de lucro (%)'}
+                        </label>
+                        <div className="relative">
+                          <Input
+                            type="text"
+                            placeholder="0,00"
+                            defaultValue={prod.margin > 0 ? formatNumberBR(prod.margin) : ''}
+                            key={`${prod.id}-margin-${prod.margin}`}
+                            onBlur={(e) => {
+                              updateMarkupProduct(prod.id, 'margin', parseBRNumber(e.target.value))
+                            }}
+                            className="pr-6 text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8"
+                          />
+                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">
+                            %
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Campo 3: Quantidade Vendida */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-slate-300 font-semibold">
+                          Quantidade vendida
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          defaultValue={prod.quantity > 0 ? String(prod.quantity) : ''}
+                          key={`${prod.id}-qty-${prod.quantity}`}
+                          onBlur={(e) => {
+                            const val = parseInt(e.target.value, 10)
+                            updateMarkupProduct(
+                              prod.id,
+                              'quantity',
+                              isNaN(val) || val < 0 ? 0 : val,
+                            )
+                          }}
+                          className="text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8"
+                        />
+                      </div>
+
+                      {/* Campo 4: Preço Resultante e Total (atualizado após Simular) */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-emerald-400 font-semibold">
+                          Preço de venda simulado
+                        </label>
+                        <div className="h-8 px-2.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs font-bold text-emerald-400">
+                          <span className="text-[10px] text-emerald-400/70 font-mono">Un.:</span>
+                          <span>{isMarkupSimulated ? formatBRL(prod.salePrice) : '—'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sub-resultado do produto quando simulado */}
+                    {isMarkupSimulated && prod.quantity > 0 && (
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-800/50 text-[11px] font-mono text-slate-400">
+                        <span>
+                          Subtotal do produto ({prod.quantity} un. × {formatBRL(prod.salePrice)}):
+                        </span>
+                        <span className="font-bold text-emerald-300">
+                          {formatBRL(prod.totalRevenue)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Botão para adicionar mais produtos */}
+            <div className="flex justify-start">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addMarkupProduct('', markupMode)}
+                className="h-8 text-xs bg-slate-950/40 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" />+ Adicionar outro produto
+              </Button>
             </div>
           </div>
 
           {/* Seção % Tributos */}
-          <div className="space-y-4 pt-2">
+          <div className="space-y-4 pt-2 border-t border-slate-800/80">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
                 % Tributos
@@ -428,46 +595,115 @@ export default function MarkupPage() {
         {/* Quadro de Resultados (atualiza SOMENTE ao simular) */}
         {isMarkupSimulated && (
           <div className="bg-[#0b101b]/90 border border-emerald-500/40 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
-                Resultado do Markup
-              </span>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+                  Resultado Consolidado do Markup
+                </span>
+                <Badge className="bg-emerald-500/20 text-emerald-400 border-0 text-[10px] font-mono">
+                  {markupProducts.length} {markupProducts.length === 1 ? 'item' : 'itens'}
+                </Badge>
+              </div>
               <span className="text-xs font-mono text-slate-400">
-                Regime: <strong className="text-emerald-400 uppercase">{regime}</strong>
+                Regime aplicado: <strong className="text-emerald-400 uppercase">{regime}</strong>
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
+            {/* Totais Consolidados */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 font-mono">
               <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-                <span className="text-[11px] text-slate-400 block mb-1">
-                  Fator tributário total
-                </span>
+                <span className="text-[11px] text-slate-400 block mb-1">Fator tributário base</span>
                 <span className="text-lg font-bold text-slate-200">
                   {formatFactorBR(simulatedTaxFactorTotal, 5)}
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-1">ICMS + PIS/COFINS</span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
+                <span className="text-[11px] text-slate-400 block mb-1">
+                  Quantidade total de itens
+                </span>
+                <span className="text-lg font-bold text-slate-200">
+                  {totalConsolidatedQuantity} un.
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-1">
+                  Soma de todos os produtos
                 </span>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-                <span className="text-[11px] text-slate-400 block mb-1">Fator completo</span>
+                <span className="text-[11px] text-slate-400 block mb-1">Preço unitário médio</span>
                 <span className="text-lg font-bold text-slate-200">
-                  {formatFactorBR(simulatedCompleteFactor, 5)}
+                  {totalConsolidatedQuantity > 0
+                    ? formatBRL(totalConsolidatedRevenue / totalConsolidatedQuantity)
+                    : formatBRL(simulatedSalePrice)}
                 </span>
+                <span className="text-[10px] text-slate-500 block mt-1">Receita ÷ Quantidade</span>
               </div>
 
               <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
                 <span className="text-[11px] text-emerald-400 block mb-1 font-semibold">
-                  Preço de venda resultante
+                  Receita bruta consolidada
                 </span>
                 <span className="text-xl sm:text-2xl font-black text-emerald-400">
-                  {formatBRL(simulatedSalePrice)}
+                  {formatBRL(totalConsolidatedRevenue)}
                 </span>
+                <span className="text-[10px] text-emerald-400/80 block mt-1">Alimenta as DREs</span>
               </div>
             </div>
 
+            {/* Tabela de Produtos Simulados */}
+            <div className="overflow-x-auto pt-2">
+              <table className="w-full text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 text-right">
+                    <th className="py-2 text-left font-semibold text-slate-300">Produto</th>
+                    <th className="py-2 px-2 font-semibold text-slate-300">Modo</th>
+                    <th className="py-2 px-2 font-semibold text-slate-300">Fator Comp.</th>
+                    <th className="py-2 px-2 font-semibold text-slate-300">Preço Venda</th>
+                    <th className="py-2 px-2 font-semibold text-slate-300">Qtd.</th>
+                    <th className="py-2 px-2 font-semibold text-slate-300">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {markupProducts.map((p) => (
+                    <tr key={p.id}>
+                      <td className="py-2 text-left font-medium text-slate-200">{p.name}</td>
+                      <td className="py-2 px-2 text-right text-slate-400">
+                        {p.mode === 'liquid' ? 'Líquida' : 'Custo+Margem'}
+                      </td>
+                      <td className="py-2 px-2 text-right text-slate-400">
+                        {formatFactorBR(p.completeFactor, 4)}
+                      </td>
+                      <td className="py-2 px-2 text-right font-bold text-emerald-400">
+                        {formatBRL(p.salePrice)}
+                      </td>
+                      <td className="py-2 px-2 text-right text-slate-200">{p.quantity} un.</td>
+                      <td className="py-2 px-2 text-right font-bold text-slate-100">
+                        {formatBRL(p.totalRevenue)}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-950/60 font-bold border-t border-slate-700">
+                    <td colSpan={4} className="py-2.5 text-left text-slate-300 uppercase">
+                      Total Consolidado
+                    </td>
+                    <td className="py-2.5 px-2 text-right text-slate-200">
+                      {totalConsolidatedQuantity} un.
+                    </td>
+                    <td className="py-2.5 px-2 text-right text-emerald-400">
+                      {formatBRL(totalConsolidatedRevenue)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
             <p className="text-xs text-slate-400 font-mono">
-              💡 Este preço de venda ({formatBRL(simulatedSalePrice)}) foi conectado automaticamente
-              como <strong>Receita bruta unitária</strong> nas páginas de DRE Simples Nacional,
-              Lucro Presumido e Lucro Real.
+              💡 A receita consolidada ({formatBRL(totalConsolidatedRevenue)}) alimenta
+              automaticamente as páginas de <strong>DRE Simples Nacional</strong>,{' '}
+              <strong>Lucro Presumido</strong>, <strong>Lucro Real</strong> e{' '}
+              <strong>Comparação de Regimes</strong>.
             </p>
           </div>
         )}
