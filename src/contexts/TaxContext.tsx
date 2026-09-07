@@ -272,315 +272,123 @@ export interface TaxContextType {
   resetAll: () => void
 }
 
-const LOCAL_STORAGE_KEY = 'it_tax_context_v2'
-
 const TaxContext = createContext<TaxContextType | undefined>(undefined)
 
 export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Carregar dados salvos ou inicializar zerado
-  const savedState = (() => {
-    try {
-      // Limpeza preventiva de rascunhos de versões legadas para evitar poluição
-      if (typeof window !== 'undefined' && localStorage.getItem('it_tax_context_v1')) {
-        localStorage.removeItem('it_tax_context_v1')
-      }
-      const item = localStorage.getItem(LOCAL_STORAGE_KEY)
-      return item ? JSON.parse(item) : null
-    } catch {
-      return null
-    }
-  })()
+  // A aplicação SEMPRE inicia com todos os campos zerados e sem simulações ativas.
+  // Nenhum rascunho persistido restaura valores automáticos ao carregar a página.
+  // O carregamento de dados ocorre EXCLUSIVAMENTE quando o usuário clica em "Carregar"
+  // em um cenário salvo no PocketBase (ScenarioManagerBar) ou digita manualmente.
 
   // REGIME
-  const [regime, setRegime] = useState<TaxRegime>(savedState?.regime || 'presumido')
+  const [regime, setRegime] = useState<TaxRegime>('presumido')
 
   // MARKUP
-  const [markupMode, setMarkupMode] = useState<MarkupMode>(savedState?.markupMode || 'liquid')
-  const [desiredNetRevenue, setDesiredNetRevenue] = useState<number>(
-    savedState?.desiredNetRevenue || 0,
-  )
-  const [additionalMargin, setAdditionalMargin] = useState<number>(
-    savedState?.additionalMargin || 0,
-  )
-  const [icmsRateMarkup, setIcmsRateMarkup] = useState<number>(savedState?.icmsRateMarkup || 0)
-  const [customTaxesMarkup, setCustomTaxesMarkup] = useState<CustomTaxItem[]>(
-    savedState?.customTaxesMarkup || [],
-  )
-  // Inicialização dos produtos com suporte a estado anterior
-  const initialProducts: MarkupProductItem[] = (() => {
-    if (
-      savedState?.markupProducts &&
-      Array.isArray(savedState.markupProducts) &&
-      savedState.markupProducts.length > 0
-    ) {
-      return savedState.markupProducts
-    }
-    // Cria 1 produto padrão inicial estritamente zerado
-    return [
-      {
-        id: 'prod-1',
-        name: 'Produto 1',
-        mode: savedState?.markupMode || 'liquid',
-        desiredNetRevenue: 0,
-        cost: 0,
-        margin: 0,
-        quantity: 0,
-        salePrice: 0,
-        taxFactor: 0,
-        completeFactor: 0,
-        totalRevenue: 0,
-        totalCost: 0,
-      },
-    ]
-  })()
-  const [markupProducts, setMarkupProducts] = useState<MarkupProductItem[]>(initialProducts)
+  const [markupMode, setMarkupMode] = useState<MarkupMode>('liquid')
+  const [desiredNetRevenue, setDesiredNetRevenue] = useState<number>(0)
+  const [additionalMargin, setAdditionalMargin] = useState<number>(0)
+  const [icmsRateMarkup, setIcmsRateMarkup] = useState<number>(0)
+  const [customTaxesMarkup, setCustomTaxesMarkup] = useState<CustomTaxItem[]>([])
 
-  const [simulatedSalePrice, setSimulatedSalePrice] = useState<number>(
-    savedState?.simulatedSalePrice || 0,
-  )
-  const [simulatedTaxFactorTotal, setSimulatedTaxFactorTotal] = useState<number>(
-    savedState?.simulatedTaxFactorTotal || 0,
-  )
-  const [simulatedCompleteFactor, setSimulatedCompleteFactor] = useState<number>(
-    savedState?.simulatedCompleteFactor || 0,
-  )
-  const [isMarkupSimulated, setIsMarkupSimulated] = useState<boolean>(
-    savedState?.isMarkupSimulated || false,
-  )
-  const [totalConsolidatedRevenue, setTotalConsolidatedRevenue] = useState<number>(
-    savedState?.totalConsolidatedRevenue || 0,
-  )
-  const [totalConsolidatedQuantity, setTotalConsolidatedQuantity] = useState<number>(
-    savedState?.totalConsolidatedQuantity || 0,
-  )
-  const [totalConsolidatedCost, setTotalConsolidatedCost] = useState<number>(
-    savedState?.totalConsolidatedCost || 0,
-  )
+  // Cria 1 produto padrão inicial estritamente zerado
+  const [markupProducts, setMarkupProducts] = useState<MarkupProductItem[]>([
+    {
+      id: 'prod-1',
+      name: 'Produto 1',
+      mode: 'liquid',
+      desiredNetRevenue: 0,
+      cost: 0,
+      margin: 0,
+      quantity: 0,
+      salePrice: 0,
+      taxFactor: 0,
+      completeFactor: 0,
+      totalRevenue: 0,
+      totalCost: 0,
+    },
+  ])
+
+  const [simulatedSalePrice, setSimulatedSalePrice] = useState<number>(0)
+  const [simulatedTaxFactorTotal, setSimulatedTaxFactorTotal] = useState<number>(0)
+  const [simulatedCompleteFactor, setSimulatedCompleteFactor] = useState<number>(0)
+  const [isMarkupSimulated, setIsMarkupSimulated] = useState<boolean>(false)
+  const [totalConsolidatedRevenue, setTotalConsolidatedRevenue] = useState<number>(0)
+  const [totalConsolidatedQuantity, setTotalConsolidatedQuantity] = useState<number>(0)
+  const [totalConsolidatedCost, setTotalConsolidatedCost] = useState<number>(0)
 
   // COMPRAS
-  const [initialInventory, setInitialInventory] = useState<number>(
-    savedState?.initialInventory || 0,
-  )
-  const [finalInventory, setFinalInventory] = useState<number>(savedState?.finalInventory || 0)
-  const [additionalCosts, setAdditionalCosts] = useState<AdditionalCostItem[]>(
-    savedState?.additionalCosts || [
-      { id: '1', description: 'Compras brutas', value: 0 },
-      { id: '2', description: 'Frete e seguro s/ compras', value: 0 },
-    ],
-  )
-  const [nonRecoverableTaxBase, setNonRecoverableTaxBase] = useState<number>(
-    savedState?.nonRecoverableTaxBase || 0,
-  )
-  const [nonRecoverableTaxRate, setNonRecoverableTaxRate] = useState<number>(
-    savedState?.nonRecoverableTaxRate || 0,
-  )
+  const [initialInventory, setInitialInventory] = useState<number>(0)
+  const [finalInventory, setFinalInventory] = useState<number>(0)
+  const [additionalCosts, setAdditionalCosts] = useState<AdditionalCostItem[]>([
+    { id: '1', description: 'Compras brutas', value: 0 },
+    { id: '2', description: 'Frete e seguro s/ compras', value: 0 },
+  ])
+  const [nonRecoverableTaxBase, setNonRecoverableTaxBase] = useState<number>(0)
+  const [nonRecoverableTaxRate, setNonRecoverableTaxRate] = useState<number>(0)
 
-  const [deductionCosts, setDeductionCosts] = useState<DeductionCostItem[]>(
-    savedState?.deductionCosts || [
-      { id: '1', description: 'Devoluções / abatimentos / descontos', value: 0 },
-    ],
-  )
+  const [deductionCosts, setDeductionCosts] = useState<DeductionCostItem[]>([
+    { id: '1', description: 'Devoluções / abatimentos / descontos', value: 0 },
+  ])
 
-  const [icmsPurchasesBase, setIcmsPurchasesBase] = useState<number>(
-    savedState?.icmsPurchasesBase || 0,
-  )
-  const [icmsPurchasesRate, setIcmsPurchasesRate] = useState<number>(
-    savedState?.icmsPurchasesRate || 0,
-  )
+  const [icmsPurchasesBase, setIcmsPurchasesBase] = useState<number>(0)
+  const [icmsPurchasesRate, setIcmsPurchasesRate] = useState<number>(0)
 
-  const [icmsFreightPurchasesBase, setIcmsFreightPurchasesBase] = useState<number>(
-    savedState?.icmsFreightPurchasesBase || 0,
-  )
-  const [icmsFreightPurchasesRate, setIcmsFreightPurchasesRate] = useState<number>(
-    savedState?.icmsFreightPurchasesRate || 0,
-  )
+  const [icmsFreightPurchasesBase, setIcmsFreightPurchasesBase] = useState<number>(0)
+  const [icmsFreightPurchasesRate, setIcmsFreightPurchasesRate] = useState<number>(0)
 
-  const [pisPurchasesBase, setPisPurchasesBase] = useState<number>(
-    savedState?.pisPurchasesBase || 0,
-  )
-  const [pisExcludedIcmsManual, setPisExcludedIcmsManual] = useState<number | null>(
-    savedState?.pisExcludedIcmsManual !== undefined ? savedState.pisExcludedIcmsManual : null,
-  )
+  const [pisPurchasesBase, setPisPurchasesBase] = useState<number>(0)
+  const [pisExcludedIcmsManual, setPisExcludedIcmsManual] = useState<number | null>(null)
 
-  const [cofinsPurchasesBase, setCofinsPurchasesBase] = useState<number>(
-    savedState?.cofinsPurchasesBase || 0,
-  )
-  const [cofinsExcludedIcmsManual, setCofinsExcludedIcmsManual] = useState<number | null>(
-    savedState?.cofinsExcludedIcmsManual !== undefined ? savedState.cofinsExcludedIcmsManual : null,
-  )
+  const [cofinsPurchasesBase, setCofinsPurchasesBase] = useState<number>(0)
+  const [cofinsExcludedIcmsManual, setCofinsExcludedIcmsManual] = useState<number | null>(null)
 
-  const [pisFreightPurchasesBase, setPisFreightPurchasesBase] = useState<number>(
-    savedState?.pisFreightPurchasesBase || 0,
-  )
-  const [cofinsFreightPurchasesBase, setCofinsFreightPurchasesBase] = useState<number>(
-    savedState?.cofinsFreightPurchasesBase || 0,
-  )
+  const [pisFreightPurchasesBase, setPisFreightPurchasesBase] = useState<number>(0)
+  const [cofinsFreightPurchasesBase, setCofinsFreightPurchasesBase] = useState<number>(0)
 
   // DRE PRESUMIDO
-  const [presumidoActivity, setPresumidoActivity] = useState<ActivityType>(
-    savedState?.presumidoActivity || 'comercio',
-  )
-  const [presumidoIssRate, setPresumidoIssRate] = useState<number>(
-    savedState?.presumidoIssRate || 0,
-  )
-  const [presumidoQuantitySold, setPresumidoQuantitySold] = useState<number>(
-    savedState?.presumidoQuantitySold || 0,
-  )
-  const [presumidoExpenses, setPresumidoExpenses] = useState<ExpenseItem[]>(
-    savedState?.presumidoExpenses || [
-      { id: '1', description: 'Despesas com pessoal', value: 0 },
-      { id: '2', description: 'Aluguel e utilidades', value: 0 },
-    ],
-  )
-  const [isPresumidoSimulated, setIsPresumidoSimulated] = useState<boolean>(
-    savedState?.isPresumidoSimulated || false,
-  )
+  const [presumidoActivity, setPresumidoActivity] = useState<ActivityType>('comercio')
+  const [presumidoIssRate, setPresumidoIssRate] = useState<number>(0)
+  const [presumidoQuantitySold, setPresumidoQuantitySold] = useState<number>(0)
+  const [presumidoExpenses, setPresumidoExpenses] = useState<ExpenseItem[]>([
+    { id: '1', description: 'Despesas com pessoal', value: 0 },
+    { id: '2', description: 'Aluguel e utilidades', value: 0 },
+  ])
+  const [isPresumidoSimulated, setIsPresumidoSimulated] = useState<boolean>(false)
 
   // DRE REAL
-  const [realActivity, setRealActivity] = useState<ActivityType>(
-    savedState?.realActivity || 'comercio',
-  )
-  const [realIssRate, setRealIssRate] = useState<number>(savedState?.realIssRate || 0)
-  const [realAdditions, setRealAdditions] = useState<number>(savedState?.realAdditions || 0)
-  const [realExclusions, setRealExclusions] = useState<number>(savedState?.realExclusions || 0)
-  const [realQuantitySold, setRealQuantitySold] = useState<number>(
-    savedState?.realQuantitySold || 0,
-  )
-  const [realExpenses, setRealExpenses] = useState<ExpenseItem[]>(
-    savedState?.realExpenses || [
-      { id: '1', description: 'Despesas operacionais e administrativas', value: 0 },
-    ],
-  )
-  const [isRealSimulated, setIsRealSimulated] = useState<boolean>(
-    savedState?.isRealSimulated || false,
-  )
+  const [realActivity, setRealActivity] = useState<ActivityType>('comercio')
+  const [realIssRate, setRealIssRate] = useState<number>(0)
+  const [realAdditions, setRealAdditions] = useState<number>(0)
+  const [realExclusions, setRealExclusions] = useState<number>(0)
+  const [realQuantitySold, setRealQuantitySold] = useState<number>(0)
+  const [realExpenses, setRealExpenses] = useState<ExpenseItem[]>([
+    { id: '1', description: 'Despesas operacionais e administrativas', value: 0 },
+  ])
+  const [isRealSimulated, setIsRealSimulated] = useState<boolean>(false)
 
   // DRE SIMPLES NACIONAL
-  const [simplesAnexo, setSimplesAnexo] = useState<string>(savedState?.simplesAnexo || 'anexo_1')
-  const [simplesRbt12, setSimplesRbt12] = useState<number>(savedState?.simplesRbt12 || 0)
-  const [simplesPayroll12m, setSimplesPayroll12m] = useState<number>(
-    savedState?.simplesPayroll12m || 0,
-  )
-  const [simplesQuantitySold, setSimplesQuantitySold] = useState<number>(
-    savedState?.simplesQuantitySold || 0,
-  )
-  const [simplesExpenses, setSimplesExpenses] = useState<ExpenseItem[]>(
-    savedState?.simplesExpenses || [
-      { id: '1', description: 'Despesas com pessoal e encargos', value: 0 },
-      { id: '2', description: 'Aluguel e custos operacionais', value: 0 },
-    ],
-  )
-  const [isSimplesSimulated, setIsSimplesSimulated] = useState<boolean>(
-    savedState?.isSimplesSimulated || false,
-  )
+  const [simplesAnexo, setSimplesAnexo] = useState<string>('anexo_1')
+  const [simplesRbt12, setSimplesRbt12] = useState<number>(0)
+  const [simplesPayroll12m, setSimplesPayroll12m] = useState<number>(0)
+  const [simplesQuantitySold, setSimplesQuantitySold] = useState<number>(0)
+  const [simplesExpenses, setSimplesExpenses] = useState<ExpenseItem[]>([
+    { id: '1', description: 'Despesas com pessoal e encargos', value: 0 },
+    { id: '2', description: 'Aluguel e custos operacionais', value: 0 },
+  ])
+  const [isSimplesSimulated, setIsSimplesSimulated] = useState<boolean>(false)
 
-  // Persistir em localStorage
+  // Limpeza preventiva de rascunhos de versões legadas / antigas no localStorage
   useEffect(() => {
     try {
-      const stateToSave = {
-        regime,
-        markupMode,
-        desiredNetRevenue,
-        additionalMargin,
-        icmsRateMarkup,
-        customTaxesMarkup,
-        markupProducts,
-        simulatedSalePrice,
-        simulatedTaxFactorTotal,
-        simulatedCompleteFactor,
-        isMarkupSimulated,
-        totalConsolidatedRevenue,
-        totalConsolidatedQuantity,
-        totalConsolidatedCost,
-        initialInventory,
-        finalInventory,
-        additionalCosts,
-        nonRecoverableTaxBase,
-        nonRecoverableTaxRate,
-        deductionCosts,
-        icmsPurchasesBase,
-        icmsPurchasesRate,
-        icmsFreightPurchasesBase,
-        icmsFreightPurchasesRate,
-        pisPurchasesBase,
-        pisExcludedIcmsManual,
-        cofinsPurchasesBase,
-        cofinsExcludedIcmsManual,
-        pisFreightPurchasesBase,
-        cofinsFreightPurchasesBase,
-        presumidoActivity,
-        presumidoIssRate,
-        presumidoQuantitySold,
-        presumidoExpenses,
-        isPresumidoSimulated,
-        realActivity,
-        realIssRate,
-        realAdditions,
-        realExclusions,
-        realQuantitySold,
-        realExpenses,
-        isRealSimulated,
-        simplesAnexo,
-        simplesRbt12,
-        simplesPayroll12m,
-        simplesQuantitySold,
-        simplesExpenses,
-        isSimplesSimulated,
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('it_tax_context_v1')
+        localStorage.removeItem('it_tax_context_v2')
+        localStorage.removeItem('it_tax_context_v3')
       }
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave))
     } catch {
-      // Ignora erro se localStorage indisponível
+      // Ignora erro de acesso ao localStorage
     }
-  }, [
-    regime,
-    markupMode,
-    desiredNetRevenue,
-    additionalMargin,
-    icmsRateMarkup,
-    customTaxesMarkup,
-    markupProducts,
-    simulatedSalePrice,
-    simulatedTaxFactorTotal,
-    simulatedCompleteFactor,
-    isMarkupSimulated,
-    totalConsolidatedRevenue,
-    totalConsolidatedQuantity,
-    totalConsolidatedCost,
-    initialInventory,
-    finalInventory,
-    additionalCosts,
-    nonRecoverableTaxBase,
-    nonRecoverableTaxRate,
-    deductionCosts,
-    icmsPurchasesBase,
-    icmsPurchasesRate,
-    icmsFreightPurchasesBase,
-    icmsFreightPurchasesRate,
-    pisPurchasesBase,
-    pisExcludedIcmsManual,
-    cofinsPurchasesBase,
-    cofinsExcludedIcmsManual,
-    pisFreightPurchasesBase,
-    cofinsFreightPurchasesBase,
-    presumidoActivity,
-    presumidoIssRate,
-    presumidoQuantitySold,
-    presumidoExpenses,
-    isPresumidoSimulated,
-    realActivity,
-    realIssRate,
-    realAdditions,
-    realExclusions,
-    realQuantitySold,
-    realExpenses,
-    isRealSimulated,
-    simplesAnexo,
-    simplesRbt12,
-    simplesPayroll12m,
-    simplesQuantitySold,
-    simplesExpenses,
-    isSimplesSimulated,
-  ])
+  }, [])
 
   // Handlers para itens dinâmicos
   const addCustomTaxMarkup = (name: string, rate: number) => {
@@ -1003,8 +811,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsSimplesSimulated(false)
 
     try {
-      localStorage.removeItem(LOCAL_STORAGE_KEY)
-      localStorage.removeItem('it_tax_context_v1')
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('it_tax_context_v1')
+        localStorage.removeItem('it_tax_context_v2')
+        localStorage.removeItem('it_tax_context_v3')
+      }
     } catch {
       // Ignora
     }
@@ -1179,12 +990,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     )
     setIsSimplesSimulated(Boolean(snapshot.isSimplesSimulated))
 
-    // Atualiza também imediatamente o localStorage
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot))
-    } catch {
-      // Ignora erro de cota
-    }
+    // Nota: O carregamento de cenários do banco atualiza o estado em memória
+    // mantendo a aplicação consistente sem poluir o rascunho de inicialização
   }
 
   return (
