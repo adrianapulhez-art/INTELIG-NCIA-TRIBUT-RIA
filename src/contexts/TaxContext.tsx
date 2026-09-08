@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { parseBRNumber } from '@/lib/taxCalculations'
+import {
+  StSubsystemState,
+  INITIAL_ST_SUBSYSTEM,
+  InterstateSubsystemState,
+  INITIAL_INTERSTATE_SUBSYSTEM,
+} from '@/lib/specialOperationsCalculations'
 
 export type TaxRegime = 'presumido' | 'real' | 'simples'
 export type ActivityType = 'comercio' | 'industria' | 'servicos'
@@ -117,6 +123,9 @@ export interface TaxStateSnapshot {
   payrollInssRate: number
   payrollRatRate: number
   payrollTerceirosRate: number
+  // Subsistemas Especializados (Opt-in)
+  stSubsystem?: StSubsystemState
+  interstateSubsystem?: InterstateSubsystemState
 }
 
 export interface TaxContextType {
@@ -336,6 +345,19 @@ export interface TaxContextType {
   payrollTerceirosRate: number
   setPayrollTerceirosRate: (val: number) => void
 
+  // SUBSISTEMA 1: SUBSTITUIÇÃO TRIBUTÁRIA (ICMS-ST)
+  stSubsystem: StSubsystemState
+  setStSubsystem: React.Dispatch<React.SetStateAction<StSubsystemState>>
+  updateStSubsystem: <K extends keyof StSubsystemState>(key: K, value: StSubsystemState[K]) => void
+
+  // SUBSISTEMA 2: OPERAÇÕES INTERESTADUAIS (DIFAL)
+  interstateSubsystem: InterstateSubsystemState
+  setInterstateSubsystem: React.Dispatch<React.SetStateAction<InterstateSubsystemState>>
+  updateInterstateSubsystem: <K extends keyof InterstateSubsystemState>(
+    key: K,
+    value: InterstateSubsystemState[K],
+  ) => void
+
   // Limpar/Resetar tudo para zerado
   resetAll: () => void
 }
@@ -493,6 +515,26 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [payrollInssRate, setPayrollInssRate] = useState<number>(20.0)
   const [payrollRatRate, setPayrollRatRate] = useState<number>(3.0)
   const [payrollTerceirosRate, setPayrollTerceirosRate] = useState<number>(5.8)
+
+  // SUBSISTEMA 1: SUBSTITUIÇÃO TRIBUTÁRIA (ICMS-ST)
+  const [stSubsystem, setStSubsystem] = useState<StSubsystemState>(INITIAL_ST_SUBSYSTEM)
+  const updateStSubsystem = <K extends keyof StSubsystemState>(
+    key: K,
+    value: StSubsystemState[K],
+  ) => {
+    setStSubsystem((prev) => ({ ...prev, [key]: value }))
+  }
+
+  // SUBSISTEMA 2: OPERAÇÕES INTERESTADUAIS (DIFAL)
+  const [interstateSubsystem, setInterstateSubsystem] = useState<InterstateSubsystemState>(
+    INITIAL_INTERSTATE_SUBSYSTEM,
+  )
+  const updateInterstateSubsystem = <K extends keyof InterstateSubsystemState>(
+    key: K,
+    value: InterstateSubsystemState[K],
+  ) => {
+    setInterstateSubsystem((prev) => ({ ...prev, [key]: value }))
+  }
 
   // Limpeza preventiva de rascunhos de versões legadas / antigas no localStorage e sessionStorage
   useEffect(() => {
@@ -957,14 +999,18 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const pisFreightResult = (pisFreightPurchasesBase * pisRatePurchases) / 100
   const cofinsFreightResult = (cofinsFreightPurchasesBase * cofinsRatePurchases) / 100
 
-  // CMV Presumido: Apenas ICMS e ICMS s/ frete são recuperáveis
+  // Impacto do ICMS-ST na Compra: O ST pago na entrada não gera crédito e INTEGRA o custo de aquisição
+  const stPurchaseAddition = stSubsystem.enabled ? Math.max(0, stSubsystem.purchasesStPaid || 0) : 0
+
+  // CMV Presumido: Apenas ICMS e ICMS s/ frete são recuperáveis + ST pago integra o custo
   const cmvPresumidoNetPurchases =
-    totalAdditions - totalDeductionsBase - icmsResult - icmsFreightResult
+    totalAdditions + stPurchaseAddition - totalDeductionsBase - icmsResult - icmsFreightResult
   const cmvPresumido = Math.max(0, initialInventory + cmvPresumidoNetPurchases - finalInventory)
 
-  // CMV Real: ICMS, ICMS frete, PIS, COFINS, PIS frete, COFINS frete deduzem
+  // CMV Real: ICMS, ICMS frete, PIS, COFINS, PIS frete, COFINS frete deduzem + ST pago integra o custo
   const cmvRealNetPurchases =
-    totalAdditions -
+    totalAdditions +
+    stPurchaseAddition -
     totalDeductionsBase -
     icmsResult -
     icmsFreightResult -
@@ -974,9 +1020,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     cofinsFreightResult
   const cmvReal = Math.max(0, initialInventory + cmvRealNetPurchases - finalInventory)
 
-  // CMV Simples Nacional: Tributos sobre compras NÃO são recuperáveis (integram integralmente o custo)
-  // CL = totalAdditions - totalDeductionsBase (sem deduzir ICMS, PIS ou COFINS)
-  const cmvSimplesNetPurchases = totalAdditions - totalDeductionsBase
+  // CMV Simples Nacional: Tributos sobre compras NÃO são recuperáveis (integram integralmente o custo) + ST pago
+  // CL = totalAdditions + stPurchaseAddition - totalDeductionsBase (sem deduzir ICMS, PIS ou COFINS)
+  const cmvSimplesNetPurchases = totalAdditions + stPurchaseAddition - totalDeductionsBase
   const cmvSimples = Math.max(0, initialInventory + cmvSimplesNetPurchases - finalInventory)
 
   // CÁLCULO REATIVO AUTOMÁTICO DO MARKUP (executado sempre que os produtos, taxas ou regime mudam)
@@ -1298,6 +1344,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPayrollRatRate(3.0)
     setPayrollTerceirosRate(5.8)
 
+    setStSubsystem(INITIAL_ST_SUBSYSTEM)
+    setInterstateSubsystem(INITIAL_INTERSTATE_SUBSYSTEM)
+
     try {
       if (typeof window !== 'undefined') {
         const legacyKeys = [
@@ -1384,6 +1433,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       payrollInssRate,
       payrollRatRate,
       payrollTerceirosRate,
+      stSubsystem,
+      interstateSubsystem,
     }
   }
 
@@ -1531,6 +1582,21 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPayrollRatRate(snapshot.payrollRatRate ?? 3.0)
     setPayrollTerceirosRate(snapshot.payrollTerceirosRate ?? 5.8)
 
+    if (snapshot.stSubsystem) {
+      setStSubsystem({ ...INITIAL_ST_SUBSYSTEM, ...snapshot.stSubsystem })
+    } else {
+      setStSubsystem(INITIAL_ST_SUBSYSTEM)
+    }
+
+    if (snapshot.interstateSubsystem) {
+      setInterstateSubsystem({
+        ...INITIAL_INTERSTATE_SUBSYSTEM,
+        ...snapshot.interstateSubsystem,
+      })
+    } else {
+      setInterstateSubsystem(INITIAL_INTERSTATE_SUBSYSTEM)
+    }
+
     // Nota: O carregamento de cenários do banco atualiza o estado em memória
     // mantendo a aplicação consistente sem poluir o rascunho de inicialização
   }
@@ -1670,6 +1736,14 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setPayrollRatRate,
         payrollTerceirosRate,
         setPayrollTerceirosRate,
+
+        stSubsystem,
+        setStSubsystem,
+        updateStSubsystem,
+
+        interstateSubsystem,
+        setInterstateSubsystem,
+        updateInterstateSubsystem,
 
         getSnapshot,
         loadSnapshot,

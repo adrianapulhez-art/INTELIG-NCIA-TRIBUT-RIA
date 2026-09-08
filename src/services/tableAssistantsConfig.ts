@@ -20,12 +20,12 @@ export const TABLE_ASSISTANTS: Record<string, TableAssistantConfig> = {
       'Auxilia no cálculo do markup divisor/multiplicador, detalhamento de custos unitários e análise de viabilidade por regime.',
     quickQuestions: [
       'Como funciona o método "Receita Líquida Desejada"?',
+      'Como simular a retenção do ICMS-ST (MVA) na venda de produtos?',
+      'Como calcular o DIFAL na venda interestadual para consumidor final?',
       'Como lançar custos variáveis de comissão e taxas de cartão?',
-      'Qual a diferença entre Markup e Margem de Lucro?',
-      'Como analisar o comparativo de preço sugerido por regime?',
     ],
     contextSummary:
-      'Tabela ativa: Calculadora de Markup. Métodos: Receita Líquida Desejada e Custo + Margem. Fatores fracionados e custos unitários.',
+      'Tabela ativa: Calculadora de Markup. Métodos: Receita Líquida Desejada e Custo + Margem. Subsistemas integrados: Substituição Tributária (MVA) e Operações Interestaduais (DIFAL).',
   },
   compras: {
     slug: 'it-compras-assistant',
@@ -36,13 +36,13 @@ export const TABLE_ASSISTANTS: Record<string, TableAssistantConfig> = {
     description:
       'Orienta sobre apropriação de créditos de ICMS, PIS/COFINS, impacto do IPI, fretes, ST e DIFAL no custo de estoque.',
     quickQuestions: [
+      'Como o ICMS-ST recolhido na compra integra o custo (CMV)?',
+      'Como apurar o DIFAL na compra para uso/consumo ou ativo imobilizado?',
       'Como o Lucro Real aproveita créditos de PIS/COFINS na compra?',
       'O IPI entra como custo de aquisição na revenda?',
-      'Como o frete e seguro impactam o custo unitário?',
-      'Qual o benefício fiscal ao comprar de optantes pelo Simples vs Normal?',
     ],
     contextSummary:
-      'Tabela ativa: Calculadora de Compras. Foco em créditos tributários de entrada, IPI, frete, ST e custo efetivo de estoque.',
+      'Tabela ativa: Calculadora de Compras. Foco em créditos de entrada, subsistema de ICMS-ST na entrada e compras interestaduais com DIFAL.',
   },
   simples: {
     slug: 'it-simples-assistant',

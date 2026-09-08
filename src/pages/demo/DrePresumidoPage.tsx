@@ -54,6 +54,8 @@ export default function DrePresumidoPage() {
     setPayrollRatRate,
     payrollTerceirosRate,
     setPayrollTerceirosRate,
+    stSubsystem,
+    interstateSubsystem,
   } = useTaxContext()
 
   // Se houver múltiplos produtos com quantidade preenchida no Markup, inicializa com o consolidado
@@ -313,6 +315,12 @@ export default function DrePresumidoPage() {
                   {formatBRL(calculatedPurchases.cmvPresumidoNetPurchases)}
                 </span>
               </div>
+              {stSubsystem.enabled && stSubsystem.purchasesStPaid > 0 && (
+                <div className="py-1.5 flex justify-between text-amber-500/90">
+                  <span>(+) ICMS-ST pago na compra integrado ao custo</span>
+                  <span className="font-semibold">{formatBRL(stSubsystem.purchasesStPaid)}</span>
+                </div>
+              )}
               <div className="py-1.5 flex justify-between">
                 <span className="text-slate-400">(−) Estoque final (EF)</span>
                 <span className="text-slate-400">-{formatBRL(finalInventory)}</span>
@@ -663,7 +671,12 @@ export default function DrePresumidoPage() {
                   {/* 2. (-) ICMS ou (-) ISSQN */}
                   <tr>
                     <td className="py-2 text-left text-slate-400">
-                      {isServices ? '(−) ISSQN' : '(−) ICMS'}
+                      {isServices
+                        ? '(−) ISSQN'
+                        : interstateSubsystem.enabled &&
+                            interstateSubsystem.originUf !== interstateSubsystem.destinationUf
+                          ? `(−) ICMS (${interstateSubsystem.originUf} → ${interstateSubsystem.destinationUf})`
+                          : '(−) ICMS'}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
                       -{formatBRL(unitMunicipalStateTax)}
@@ -672,6 +685,81 @@ export default function DrePresumidoPage() {
                       -{formatBRL(totalMunicipalStateTax)}
                     </td>
                   </tr>
+
+                  {/* Linhas de Subsistemas Especiais quando ativos */}
+                  {interstateSubsystem.enabled &&
+                    interstateSubsystem.originUf !== interstateSubsystem.destinationUf &&
+                    interstateSubsystem.isEndConsumer &&
+                    !interstateSubsystem.isTaxpayer && (
+                      <tr className="text-blue-400/90 bg-blue-500/[0.04]">
+                        <td className="py-2 text-left">
+                          (−) DIFAL destino (EC 87/15 · {interstateSubsystem.destinationUf})
+                        </td>
+                        <td className="py-2 px-3 text-right">
+                          -
+                          {formatBRL(
+                            qty > 0
+                              ? (totalGross *
+                                  Math.max(
+                                    0,
+                                    18 -
+                                      (interstateSubsystem.originUf === 'SP' &&
+                                      ['RJ', 'MG', 'RS', 'SC', 'PR'].includes(
+                                        interstateSubsystem.destinationUf,
+                                      )
+                                        ? 12
+                                        : 7),
+                                  )) /
+                                  100 /
+                                  qty
+                              : 0,
+                          )}
+                        </td>
+                        <td className="py-2 px-3 text-right">
+                          -
+                          {formatBRL(
+                            (totalGross *
+                              Math.max(
+                                0,
+                                18 -
+                                  (interstateSubsystem.originUf === 'SP' &&
+                                  ['RJ', 'MG', 'RS', 'SC', 'PR'].includes(
+                                    interstateSubsystem.destinationUf,
+                                  )
+                                    ? 12
+                                    : 7),
+                              )) /
+                              100,
+                          )}
+                        </td>
+                      </tr>
+                    )}
+
+                  {stSubsystem.enabled && stSubsystem.isSaleSubstituto && (
+                    <tr className="text-amber-400/90 bg-amber-500/[0.04]">
+                      <td className="py-2 text-left">
+                        (+) ICMS-ST retido na venda (recolhido em favor do destino)
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        {formatBRL(
+                          qty > 0
+                            ? (totalGross * (1 + (stSubsystem.mvaPercent || 0) / 100) * 0.18 -
+                                totalGross * 0.12) /
+                                qty
+                            : 0,
+                        )}
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        {formatBRL(
+                          Math.max(
+                            0,
+                            totalGross * (1 + (stSubsystem.mvaPercent || 0) / 100) * 0.18 -
+                              totalGross * 0.12,
+                          ),
+                        )}
+                      </td>
+                    </tr>
+                  )}
 
                   {/* 3. Base PIS/COFINS [cinza informativa] */}
                   <tr className="bg-slate-900/30 text-slate-500">
@@ -891,6 +979,17 @@ export default function DrePresumidoPage() {
                     { label: 'Quantidade', value: `${qty} un.` },
                     { label: 'Presunção IRPJ', value: `${formatNumberBR(irpjPresumptionRate)}%` },
                     { label: 'Presunção CSLL', value: `${formatNumberBR(csllPresumptionRate)}%` },
+                    ...(stSubsystem.enabled
+                      ? [{ label: 'Substituição Tributária', value: 'ATIVO' }]
+                      : []),
+                    ...(interstateSubsystem.enabled
+                      ? [
+                          {
+                            label: 'Operação Interestadual',
+                            value: `${interstateSubsystem.originUf} -> ${interstateSubsystem.destinationUf}`,
+                          },
+                        ]
+                      : []),
                   ],
                   rows: [
                     {
@@ -1042,6 +1141,17 @@ export default function DrePresumidoPage() {
                     { label: 'Quantidade', value: `${qty} un.` },
                     { label: 'Presunção IRPJ', value: `${formatNumberBR(irpjPresumptionRate)}%` },
                     { label: 'Presunção CSLL', value: `${formatNumberBR(csllPresumptionRate)}%` },
+                    ...(stSubsystem.enabled
+                      ? [{ label: 'Substituição Tributária', value: 'ATIVO' }]
+                      : []),
+                    ...(interstateSubsystem.enabled
+                      ? [
+                          {
+                            label: 'Operação Interestadual',
+                            value: `${interstateSubsystem.originUf} -> ${interstateSubsystem.destinationUf}`,
+                          },
+                        ]
+                      : []),
                   ],
                   rows: [
                     {

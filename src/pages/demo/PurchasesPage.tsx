@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 import { PageHero } from '@/components/demo/PageHero'
+import { SubstituicaoTributariaSection } from '@/components/demo/SubstituicaoTributariaSection'
+import { OperacoesInterestaduaisSection } from '@/components/demo/OperacoesInterestaduaisSection'
 
 export default function PurchasesPage() {
   const navigate = useNavigate()
@@ -316,6 +318,29 @@ export default function PurchasesPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* SUBSISTEMAS INTEGRADOS DE COMPRAS: ST & OPERAÇÕES INTERESTADUAIS (OPT-IN) */}
+          <div className="space-y-4 pt-2 border-t border-slate-800/80">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+                  Situações Especiais de Compras (Subsistemas Integrados)
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Acione apenas se a compra envolver Substituição Tributária (ICMS-ST na entrada) ou
+                  fornecedor de outro estado (DIFAL uso/consumo).
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <SubstituicaoTributariaSection viewMode="compras" saleOperationValue={0} />
+              <OperacoesInterestaduaisSection
+                viewMode="compras"
+                purchasesOperationValue={additionalCosts.reduce((a, b) => a + (b.value || 0), 0)}
+              />
             </div>
           </div>
 

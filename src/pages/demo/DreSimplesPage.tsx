@@ -62,6 +62,8 @@ export default function DreSimplesPage() {
     effectiveSimplesRbt12,
     isSimplesSimulated,
     simulateSimples,
+    stSubsystem,
+    interstateSubsystem,
   } = useTaxContext()
 
   const defaultQty =
@@ -313,6 +315,12 @@ export default function DreSimplesPage() {
                   {formatBRL(calculatedPurchases.cmvSimplesNetPurchases)}
                 </span>
               </div>
+              {stSubsystem.enabled && stSubsystem.purchasesStPaid > 0 && (
+                <div className="py-1.5 flex justify-between text-amber-500/90">
+                  <span>(+) ICMS-ST pago na compra integrado ao custo</span>
+                  <span className="font-semibold">{formatBRL(stSubsystem.purchasesStPaid)}</span>
+                </div>
+              )}
               <div className="py-1.5 flex justify-between">
                 <span className="text-slate-400">(−) Estoque final (EF)</span>
                 <span className="text-slate-400">-{formatBRL(finalInventory)}</span>
@@ -963,14 +971,25 @@ export default function DreSimplesPage() {
                   {/* 2. (-) Guia Única DAS (Alíquota efetiva PGDAS) */}
                   <tr className="bg-slate-950/30">
                     <td className="py-2 text-left font-semibold text-emerald-400">
-                      (−) Simples Nacional — Guia Única DAS (
-                      {formatNumberBR(pgdas.aliquotaEfetiva, 2)}% efetivo)
+                      {stSubsystem.enabled && stSubsystem.simplesStExclusive
+                        ? `(−) Simples Nacional — Guia DAS (Segregação ST / LC 123 art. 18)`
+                        : `(−) Simples Nacional — Guia Única DAS (${formatNumberBR(pgdas.aliquotaEfetiva, 2)}% efetivo)`}
                     </td>
                     <td className="py-2 px-3 text-right font-semibold text-emerald-400">
-                      -{formatBRL(unitDasTotal)}
+                      -
+                      {formatBRL(
+                        stSubsystem.enabled && stSubsystem.simplesStExclusive
+                          ? Math.max(0, unitDasTotal - unitIcms)
+                          : unitDasTotal,
+                      )}
                     </td>
                     <td className="py-2 px-3 text-right font-semibold text-emerald-400">
-                      -{formatBRL(totalDasTotal)}
+                      -
+                      {formatBRL(
+                        stSubsystem.enabled && stSubsystem.simplesStExclusive
+                          ? Math.max(0, totalDasTotal - totalIcms)
+                          : totalDasTotal,
+                      )}
                     </td>
                   </tr>
 
@@ -1184,6 +1203,17 @@ export default function DreSimplesPage() {
                     ...(currentAnexoConfig.sujeitoFatorR
                       ? [{ label: 'Fator R', value: `${fatorRResult.fatorRPercent.toFixed(2)}%` }]
                       : []),
+                    ...(stSubsystem.enabled
+                      ? [{ label: 'Substituição Tributária', value: 'ATIVO (Segregação ST)' }]
+                      : []),
+                    ...(interstateSubsystem.enabled
+                      ? [
+                          {
+                            label: 'Operação Interestadual',
+                            value: `${interstateSubsystem.originUf} -> ${interstateSubsystem.destinationUf}`,
+                          },
+                        ]
+                      : []),
                   ],
                   rows: [
                     {
@@ -1336,6 +1366,17 @@ export default function DreSimplesPage() {
                     },
                     ...(currentAnexoConfig.sujeitoFatorR
                       ? [{ label: 'Fator R', value: `${fatorRResult.fatorRPercent.toFixed(2)}%` }]
+                      : []),
+                    ...(stSubsystem.enabled
+                      ? [{ label: 'Substituição Tributária', value: 'ATIVO (Segregação ST)' }]
+                      : []),
+                    ...(interstateSubsystem.enabled
+                      ? [
+                          {
+                            label: 'Operação Interestadual',
+                            value: `${interstateSubsystem.originUf} -> ${interstateSubsystem.destinationUf}`,
+                          },
+                        ]
                       : []),
                   ],
                   rows: [

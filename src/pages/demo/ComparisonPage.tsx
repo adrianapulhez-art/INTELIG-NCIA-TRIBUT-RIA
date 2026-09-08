@@ -88,6 +88,8 @@ export default function ComparisonPage() {
     setPayrollRatRate,
     payrollTerceirosRate,
     setPayrollTerceirosRate,
+    stSubsystem,
+    interstateSubsystem,
   } = useTaxContext()
 
   // Se houver quantidade consolidada multi-produtos, prioriza ela
@@ -1604,6 +1606,55 @@ export default function ComparisonPage() {
                     <span className="text-slate-500 italic">No DAS</span>
                   </td>
                 </tr>
+
+                {/* Linhas de Subsistemas Especiais se ativos */}
+                {stSubsystem.enabled && (
+                  <tr className="bg-amber-500/[0.06] text-amber-500">
+                    <td className="py-2.5 px-3 text-left font-medium">
+                      (Subsistema ST) ICMS-ST Compra integrado ao custo
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      {stSubsystem.purchasesStPaid > 0
+                        ? `+${formatBRL(stSubsystem.purchasesStPaid)}`
+                        : '—'}
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      {stSubsystem.purchasesStPaid > 0
+                        ? `+${formatBRL(stSubsystem.purchasesStPaid)}`
+                        : '—'}
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      {stSubsystem.purchasesStPaid > 0
+                        ? `+${formatBRL(stSubsystem.purchasesStPaid)}`
+                        : '—'}
+                    </td>
+                  </tr>
+                )}
+
+                {interstateSubsystem.enabled &&
+                  interstateSubsystem.originUf !== interstateSubsystem.destinationUf && (
+                    <tr className="bg-blue-500/[0.06] text-blue-400">
+                      <td className="py-2.5 px-3 text-left font-medium">
+                        (Subsistema Interestadual) Rota: {interstateSubsystem.originUf} →{' '}
+                        {interstateSubsystem.destinationUf}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-medium">
+                        {interstateSubsystem.isEndConsumer && !interstateSubsystem.isTaxpayer
+                          ? 'DIFAL Destino'
+                          : 'Alíquota interestadual'}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-medium">
+                        {interstateSubsystem.isEndConsumer && !interstateSubsystem.isTaxpayer
+                          ? 'DIFAL Destino'
+                          : 'Alíquota interestadual'}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-medium">
+                        {interstateSubsystem.isEndConsumer && !interstateSubsystem.isTaxpayer
+                          ? 'DIFAL Destino'
+                          : 'Alíquota interestadual'}
+                      </td>
+                    </tr>
+                  )}
 
                 {/* 13. Carga Tributária Total */}
                 <tr className="bg-slate-900/50 font-bold border-t border-slate-700/80">
