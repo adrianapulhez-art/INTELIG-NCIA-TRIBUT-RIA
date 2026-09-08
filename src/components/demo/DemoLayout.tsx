@@ -3,7 +3,10 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTaxContext } from '@/contexts/TaxContext'
 import { Button } from '@/components/ui/button'
-import { LogOut, RotateCcw, Sparkles } from 'lucide-react'
+import { LogOut, RotateCcw, Sparkles, Bot } from 'lucide-react'
+import { AssistantChatDrawer } from './AssistantChatDrawer'
+import { AssistantFloatingButton } from './AssistantFloatingButton'
+import { getAssistantForTab } from '@/services/tableAssistantsConfig'
 export type TabKey =
   | 'home'
   | 'markup'
@@ -24,6 +27,9 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
   const location = useLocation()
   const { user, logout } = useAuth()
   const { resetAll } = useTaxContext()
+  const [isAssistantOpen, setIsAssistantOpen] = React.useState(false)
+
+  const currentAssistant = React.useMemo(() => getAssistantForTab(currentTab), [currentTab])
 
   const displayName = user?.name || user?.email?.split('@')[0] || 'Cliente IT'
   const userInitials =
@@ -78,6 +84,18 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
         </Link>
 
         <div className="flex items-center gap-3">
+          {/* Botão de Atalho para o Assistente da Tabela no Header */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsAssistantOpen(true)}
+            title={`Abrir assistente da tabela (${currentAssistant.pageName})`}
+            className="text-xs border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-200 flex items-center gap-1.5 h-8 cursor-pointer shadow-sm shadow-emerald-950/40"
+          >
+            <Bot className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden lg:inline">Assistente IA</span>
+          </Button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -162,6 +180,19 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
       <footer className="relative z-10 py-5 border-t border-emerald-500/15 bg-[#050e0b]/90 text-center text-xs text-slate-500 font-mono">
         IT — Inteligência Tributária • Demonstração Interativa integrada
       </footer>
+
+      {/* Assistente de IA Nativo da Skip Cloud - Botão Flutuante e Drawer Lateral */}
+      <AssistantFloatingButton
+        isOpen={isAssistantOpen}
+        onClick={() => setIsAssistantOpen(true)}
+        currentTab={currentTab}
+      />
+
+      <AssistantChatDrawer
+        isOpen={isAssistantOpen}
+        onClose={() => setIsAssistantOpen(false)}
+        currentTab={currentTab}
+      />
     </div>
   )
 }
