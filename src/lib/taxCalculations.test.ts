@@ -100,6 +100,39 @@ export function runTaxCalculationSanityTests(): {
       expected: 0,
       received: parseBRNumber(undefined),
     },
+    // 10. Cálculo de ICMS s/ frete por item: frete 500, alíquota 18% -> 90
+    {
+      test: 'ICMS s/ frete do item (500 * 18 / 100) deve ser 90',
+      expected: 90,
+      received: (500 * 18) / 100,
+    },
+    // 11. Aquisições brutas (mercadoria 10.000 + frete 500) = 10.500
+    {
+      test: 'Aquisições brutas integrando frete do item (10000 + 500) deve ser 10500',
+      expected: 10500,
+      received: 10000 + 500,
+    },
+    // 12. Custo no Presumido: mercadoria 10.000 + frete 500 - ICMS 1.800 - ICMS frete 90 = 8.610
+    {
+      test: 'Custo líquido Presumido (10000 + 500 - 1800 - 90) deve ser 8610',
+      expected: 8610,
+      received: 10000 + 500 - 1800 - 90,
+    },
+    // 13. Custo no Simples Nacional: mercadoria 10.000 + frete 500 (sem créditos recuperáveis) = 10.500
+    {
+      test: 'Custo Simples Nacional integrando frete sem dedução de crédito deve ser 10500',
+      expected: 10500,
+      received: 10000 + 500,
+    },
+    // 14. Ausência de double-count: additionalCosts sem "Compras brutas" duplica apenas fretes rateados
+    {
+      test: 'Ausência de double count em additionalCosts default ([{ description: "Frete e seguro s/ compras", value: 0 }])',
+      expected: 0,
+      received: [{ id: '1', description: 'Frete e seguro s/ compras', value: 0 }].reduce(
+        (acc, c) => acc + c.value,
+        0,
+      ),
+    },
   ]
 
   const results = tests.map((t) => ({

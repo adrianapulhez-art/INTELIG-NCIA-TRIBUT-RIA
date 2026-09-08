@@ -85,9 +85,14 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
     item.icmsRate > 0 ? formatNumberBR(item.icmsRate) : '',
   )
 
-  const [freightFocused, setFreightFocused] = useState(false)
-  const [freightVal, setFreightVal] = useState<string>(
-    item.icmsFreightValue > 0 ? formatNumberBR(item.icmsFreightValue) : '',
+  const [freightValFocused, setFreightValFocused] = useState(false)
+  const [freightValInput, setFreightValInput] = useState<string>(
+    (item.freightValue ?? 0) > 0 ? formatNumberBR(item.freightValue ?? 0) : '',
+  )
+
+  const [icmsFreightRateFocused, setIcmsFreightRateFocused] = useState(false)
+  const [icmsFreightRateInput, setIcmsFreightRateInput] = useState<string>(
+    (item.icmsFreightRate ?? 0) > 0 ? formatNumberBR(item.icmsFreightRate ?? 0) : '',
   )
 
   const [stValFocused, setStValFocused] = useState(false)
@@ -118,9 +123,18 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
   }, [item.icmsRate, icmsFocused])
 
   React.useEffect(() => {
-    if (!freightFocused)
-      setFreightVal(item.icmsFreightValue > 0 ? formatNumberBR(item.icmsFreightValue) : '')
-  }, [item.icmsFreightValue, freightFocused])
+    if (!freightValFocused) {
+      const v = item.freightValue ?? 0
+      setFreightValInput(v > 0 ? formatNumberBR(v) : '')
+    }
+  }, [item.freightValue, freightValFocused])
+
+  React.useEffect(() => {
+    if (!icmsFreightRateFocused) {
+      const r = item.icmsFreightRate ?? 0
+      setIcmsFreightRateInput(r > 0 ? formatNumberBR(r) : '')
+    }
+  }, [item.icmsFreightRate, icmsFreightRateFocused])
 
   React.useEffect(() => {
     if (!stValFocused) setStValInput(item.stValue > 0 ? formatNumberBR(item.stValue) : '')
@@ -281,13 +295,13 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
             </div>
           </div>
 
-          {/* Linha 2: Tributos do Item (IPI, ICMS, ICMS Frete, ST) */}
+          {/* Linha 2: Tributos do Item (IPI, ICMS, Frete do item, ICMS s/ frete, ST) */}
           <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-800/80 space-y-3">
             <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
               Tributação individual do item
             </span>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
               {/* IPI % */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
@@ -354,10 +368,10 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                 </div>
               </div>
 
-              {/* ICMS s/ Frete R$ */}
+              {/* Frete do item (R$) */}
               <div className="space-y-1">
                 <span className="text-[10px] text-slate-400 font-mono block">
-                  ICMS s/ Frete (R$)
+                  Frete do item (R$)
                 </span>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
@@ -366,21 +380,57 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                   <Input
                     type="text"
                     placeholder="0,00"
-                    value={freightVal}
-                    onFocus={() => setFreightFocused(true)}
+                    value={freightValInput}
+                    onFocus={() => setFreightValFocused(true)}
                     onChange={(e) => {
-                      setFreightVal(e.target.value)
+                      setFreightValInput(e.target.value)
                       const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'icmsFreightValue', parsed)
+                      onUpdate(item.id, 'freightValue', parsed)
                     }}
                     onBlur={(e) => {
-                      setFreightFocused(false)
+                      setFreightValFocused(false)
                       const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'icmsFreightValue', parsed)
-                      setFreightVal(parsed > 0 ? formatNumberBR(parsed) : '')
+                      onUpdate(item.id, 'freightValue', parsed)
+                      setFreightValInput(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
                     className="pl-8 text-right bg-slate-950 border-slate-800 text-xs font-mono text-slate-200 focus:border-emerald-500"
                   />
+                </div>
+              </div>
+
+              {/* ICMS s/ frete (%) */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 font-mono">ICMS s/ frete (%)</span>
+                  <span
+                    className="text-[10px] text-emerald-400 font-mono"
+                    title="Crédito de ICMS s/ frete calculado"
+                  >
+                    {formatBRL(item.icmsFreightValue)}
+                  </span>
+                </div>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="0,00"
+                    value={icmsFreightRateInput}
+                    onFocus={() => setIcmsFreightRateFocused(true)}
+                    onChange={(e) => {
+                      setIcmsFreightRateInput(e.target.value)
+                      const parsed = parseBRNumber(e.target.value)
+                      onUpdate(item.id, 'icmsFreightRate', parsed)
+                    }}
+                    onBlur={(e) => {
+                      setIcmsFreightRateFocused(false)
+                      const parsed = parseBRNumber(e.target.value)
+                      onUpdate(item.id, 'icmsFreightRate', parsed)
+                      setIcmsFreightRateInput(parsed > 0 ? formatNumberBR(parsed) : '')
+                    }}
+                    className="pr-6 text-right bg-slate-950 border-slate-800 text-xs font-mono text-slate-200 focus:border-emerald-500"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                    %
+                  </span>
                 </div>
               </div>
 
@@ -429,7 +479,11 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
             {regime === 'real' && (
               <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono flex flex-wrap items-center justify-between gap-2 text-slate-400">
                 <span>
-                  Créditos Lucro Real: PIS (1,65% s/ base s/ ICMS):{' '}
+                  Créditos Lucro Real: ICMS mercadoria:{' '}
+                  <strong className="text-emerald-400">{formatBRL(item.calculatedIcms)}</strong> |
+                  ICMS s/ frete:{' '}
+                  <strong className="text-emerald-400">{formatBRL(item.icmsFreightValue)}</strong> |
+                  PIS (1,65% s/ base s/ ICMS):{' '}
                   <strong className="text-emerald-400">{formatBRL(item.calculatedPis)}</strong> |
                   COFINS (7,60% s/ base s/ ICMS):{' '}
                   <strong className="text-emerald-400">{formatBRL(item.calculatedCofins)}</strong>

@@ -54,10 +54,13 @@ export interface PurchaseItem {
   quantity: number // Quantidade comprada do item
   unitPrice: number // Valor unitário da mercadoria (opcional / informativo)
   merchandiseValue: number // Valor total da mercadoria do item (base de cálculo)
+  // Frete do item e ICMS s/ frete
+  freightValue?: number // Valor do frete atribuível ao item (R$)
+  icmsFreightRate?: number // Alíquota % do ICMS sobre o frete do item
   // Alíquotas e tributos por item
   ipiRate: number // Alíquota % IPI / Tributos não recuperáveis
   icmsRate: number // Alíquota % ICMS próprio
-  icmsFreightValue: number // ICMS sobre frete atribuível ao item (ou frete rateado)
+  icmsFreightValue: number // ICMS sobre frete calculado (freightValue * icmsFreightRate / 100) ou valor legado
   hasSt: boolean // Se o item possui incidência de ICMS-ST
   stValue: number // ICMS-ST recolhido na entrada do item (integra custo)
   // Resultados calculados por item
@@ -66,9 +69,9 @@ export interface PurchaseItem {
   calculatedPis: number
   calculatedCofins: number
   // Custo unitário e total por regime para este item:
-  costPresumido: number // mercadoria + ipi + st - icms
-  costReal: number // mercadoria + ipi + st - icms - pis - cofins
-  costSimples: number // mercadoria + ipi + st (sem créditos)
+  costPresumido: number // mercadoria + frete + ipi + st - icms - icmsFreightValue
+  costReal: number // mercadoria + frete + ipi + st - icms - icmsFreightValue - pis - cofins
+  costSimples: number // mercadoria + frete + ipi + st (sem créditos)
   unitCostPresumido: number
   unitCostReal: number
   unitCostSimples: number
@@ -477,6 +480,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       quantity: 0,
       unitPrice: 0,
       merchandiseValue: 0,
+      freightValue: 0,
+      icmsFreightRate: 0,
       ipiRate: 0,
       icmsRate: 0,
       icmsFreightValue: 0,
@@ -498,8 +503,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [initialInventory, setInitialInventory] = useState<number>(0)
   const [finalInventory, setFinalInventory] = useState<number>(0)
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCostItem[]>([
-    { id: '1', description: 'Compras brutas', value: 0 },
-    { id: '2', description: 'Frete e seguro s/ compras', value: 0 },
+    { id: '1', description: 'Frete e seguro s/ compras', value: 0 },
   ])
   const [nonRecoverableTaxBase, setNonRecoverableTaxBase] = useState<number>(0)
   const [nonRecoverableTaxRate, setNonRecoverableTaxRate] = useState<number>(0)
@@ -983,6 +987,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         quantity: 0,
         unitPrice: 0,
         merchandiseValue: 0,
+        freightValue: 0,
+        icmsFreightRate: 0,
         ipiRate: 0,
         icmsRate: 0,
         icmsFreightValue: 0,
@@ -1061,6 +1067,28 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const unit = item.quantity > 0 ? cleanMerch / item.quantity : item.unitPrice
           return { ...item, merchandiseValue: cleanMerch, unitPrice: unit }
         }
+        if (field === 'freightValue') {
+          const num = typeof value === 'number' ? value : parseBRNumber(String(value))
+          const cleanFreight = Number.isFinite(num) && num >= 0 ? num : 0
+          const rate = item.icmsFreightRate ?? 0
+          const calcIcmsFreight = (cleanFreight * rate) / 100
+          return {
+            ...item,
+            freightValue: cleanFreight,
+            icmsFreightValue: calcIcmsFreight,
+          }
+        }
+        if (field === 'icmsFreightRate') {
+          const num = typeof value === 'number' ? value : parseBRNumber(String(value))
+          const cleanRate = Number.isFinite(num) && num >= 0 ? num : 0
+          const freight = item.freightValue ?? 0
+          const calcIcmsFreight = (freight * cleanRate) / 100
+          return {
+            ...item,
+            icmsFreightRate: cleanRate,
+            icmsFreightValue: calcIcmsFreight,
+          }
+        }
         // Campos numéricos gerais
         const numVal = typeof value === 'number' ? value : parseBRNumber(String(value))
         const cleanNum = Number.isFinite(numVal) && numVal >= 0 ? numVal : 0
@@ -1083,6 +1111,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             quantity: 0,
             unitPrice: 0,
             merchandiseValue: 0,
+            freightValue: 0,
+            icmsFreightRate: 0,
             ipiRate: 0,
             icmsRate: 0,
             icmsFreightValue: 0,
@@ -1205,7 +1235,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Verifica se há itens de compras preenchidos (> 0)
   const hasPurchasesItemsData = purchasesItems.some(
     (item) =>
-      (item.merchandiseValue || 0) > 0 || (item.quantity || 0) > 0 || (item.stValue || 0) > 0,
+      (item.merchandiseValue || 0) > 0 ||
+      (item.quantity || 0) > 0 ||
+      (item.freightValue || 0) > 0 ||
+      (item.stValue || 0) > 0,
   )
 
   // Cálculo individualizado por item
@@ -1213,6 +1246,14 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return purchasesItems.map((item) => {
       const merch = Math.max(0, Number.isFinite(item.merchandiseValue) ? item.merchandiseValue : 0)
       const qty = Math.max(0, Number.isFinite(item.quantity) ? item.quantity : 0)
+      const freightVal = Math.max(
+        0,
+        Number.isFinite(item.freightValue) ? (item.freightValue ?? 0) : 0,
+      )
+      const freightRate = Math.max(
+        0,
+        Number.isFinite(item.icmsFreightRate) ? (item.icmsFreightRate ?? 0) : 0,
+      )
       const ipiR = Math.max(0, Number.isFinite(item.ipiRate) ? item.ipiRate : 0)
       const icmsR = Math.max(0, Number.isFinite(item.icmsRate) ? item.icmsRate : 0)
       const freightIcms = Math.max(
@@ -1232,15 +1273,17 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const calculatedCofins = (cofinsBase * cofinsRatePurchases) / 100
 
       // Custos totais apropriados do item conforme regime:
-      // Presumido: mercadoria + IPI + ST - ICMS - ICMS_frete
+      // Frete integra o custo de aquisição em todos os regimes.
+      // Presumido: mercadoria + frete + IPI + ST - ICMS - ICMS_frete
       const costPresumido = Math.max(
         0,
-        merch + calculatedIpi + itemSt - calculatedIcms - freightIcms,
+        merch + freightVal + calculatedIpi + itemSt - calculatedIcms - freightIcms,
       )
-      // Real: mercadoria + IPI + ST - ICMS - ICMS_frete - PIS - COFINS
+      // Real: mercadoria + frete + IPI + ST - ICMS - ICMS_frete - PIS - COFINS
       const costReal = Math.max(
         0,
         merch +
+          freightVal +
           calculatedIpi +
           itemSt -
           calculatedIcms -
@@ -1249,7 +1292,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           calculatedCofins,
       )
       // Simples: não recupera ICMS/PIS/COFINS (tudo integra custo)
-      const costSimples = Math.max(0, merch + calculatedIpi + itemSt)
+      const costSimples = Math.max(0, merch + freightVal + calculatedIpi + itemSt)
 
       const unitCostPresumido = qty > 0 ? costPresumido / qty : 0
       const unitCostReal = qty > 0 ? costReal / qty : 0
@@ -1260,6 +1303,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         merchandiseValue: merch,
         quantity: qty,
         unitPrice: item.unitPrice || (qty > 0 ? merch / qty : 0),
+        freightValue: freightVal,
+        icmsFreightRate: freightRate,
         ipiRate: ipiR,
         icmsRate: icmsR,
         icmsFreightValue: freightIcms,
@@ -1285,6 +1330,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   )
   const totalPurchasesMerchandise = computedPurchasesItems.reduce(
     (acc, it) => acc + (it.merchandiseValue || 0),
+    0,
+  )
+  const totalItemsFreight = computedPurchasesItems.reduce(
+    (acc, it) => acc + (it.freightValue || 0),
     0,
   )
   const totalItemsIpi = computedPurchasesItems.reduce((acc, it) => acc + (it.calculatedIpi || 0), 0)
@@ -1350,9 +1399,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ? totalItemsCofins + globalCofinsFreight
     : globalCofinsPurchases + globalCofinsFreight
 
-  // Base de aquisições brutas (mercadorias dos itens ou compras brutas globais)
+  // Base de aquisições brutas: mercadorias dos itens + fretes dos itens + encargos globais rateados
   const baseGrossPurchases = hasPurchasesItemsData
-    ? totalPurchasesMerchandise + totalAdditionalCosts
+    ? totalPurchasesMerchandise + totalItemsFreight + totalAdditionalCosts
     : totalAdditionalCosts
 
   const totalAdditions = baseGrossPurchases + effectiveIpiAddition
@@ -1661,6 +1710,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         quantity: 0,
         unitPrice: 0,
         merchandiseValue: 0,
+        freightValue: 0,
+        icmsFreightRate: 0,
         ipiRate: 0,
         icmsRate: 0,
         icmsFreightValue: 0,
@@ -1680,10 +1731,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ])
     setInitialInventory(0)
     setFinalInventory(0)
-    setAdditionalCosts([
-      { id: '1', description: 'Compras brutas', value: 0 },
-      { id: '2', description: 'Frete e seguro s/ compras', value: 0 },
-    ])
+    setAdditionalCosts([{ id: '1', description: 'Frete e seguro s/ compras', value: 0 }])
     setNonRecoverableTaxBase(0)
     setNonRecoverableTaxRate(0)
     setDeductionCosts([{ id: '1', description: 'Devoluções / abatimentos / descontos', value: 0 }])
@@ -1889,13 +1937,25 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Restauração de compras: compatibilidade com snapshots que possuem purchasesItems
     // ou snapshots legados que tinham apenas compra única em additionalCosts / icmsPurchasesBase
+    let loadedHasItems = false
     if (Array.isArray(snapshot.purchasesItems) && snapshot.purchasesItems.length > 0) {
-      setPurchasesItems(snapshot.purchasesItems)
+      loadedHasItems = true
+      setPurchasesItems(
+        snapshot.purchasesItems.map((item) => ({
+          ...item,
+          freightValue: item.freightValue ?? 0,
+          icmsFreightRate: item.icmsFreightRate ?? 0,
+          icmsFreightValue: item.icmsFreightValue ?? 0,
+        })),
+      )
     } else {
       // Migração de compra legada:
       // Se additionalCosts[0] tiver valor de compra bruta > 0, cria 1 item com esse valor
       const legacyFirstCost = Array.isArray(snapshot.additionalCosts) && snapshot.additionalCosts[0]
       const legacyMerch = legacyFirstCost && legacyFirstCost.value ? legacyFirstCost.value : 0
+      if (legacyMerch > 0) {
+        loadedHasItems = true
+      }
       setPurchasesItems([
         {
           id: 'purch-1',
@@ -1903,6 +1963,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           quantity: snapshot.totalPurchasesQuantity || 0,
           unitPrice: 0,
           merchandiseValue: legacyMerch,
+          freightValue: 0,
+          icmsFreightRate: 0,
           ipiRate: snapshot.nonRecoverableTaxRate ?? 0,
           icmsRate: snapshot.icmsPurchasesRate ?? 0,
           icmsFreightValue: 0,
@@ -1924,11 +1986,26 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setInitialInventory(snapshot.initialInventory ?? 0)
     setFinalInventory(snapshot.finalInventory ?? 0)
-    setAdditionalCosts(
+
+    // Blindagem de additionalCosts:
+    // Se o snapshot tiver linhas com descrição "Compras brutas" cujo valor já esteja absorvido
+    // em itens de compra, zeramos o valor dessa linha para evitar double-counting silencioso.
+    const rawCosts =
       Array.isArray(snapshot.additionalCosts) && snapshot.additionalCosts.length > 0
         ? snapshot.additionalCosts
-        : [{ id: '1', description: 'Frete e seguro s/ compras', value: 0 }],
-    )
+        : [{ id: '1', description: 'Frete e seguro s/ compras', value: 0 }]
+
+    const sanitizedCosts = rawCosts.map((cost) => {
+      if (
+        cost.description &&
+        cost.description.trim().toLowerCase() === 'compras brutas' &&
+        loadedHasItems
+      ) {
+        return { ...cost, value: 0 }
+      }
+      return cost
+    })
+    setAdditionalCosts(sanitizedCosts)
     setNonRecoverableTaxBase(snapshot.nonRecoverableTaxBase ?? 0)
     setNonRecoverableTaxRate(snapshot.nonRecoverableTaxRate ?? 0)
     setDeductionCosts(
