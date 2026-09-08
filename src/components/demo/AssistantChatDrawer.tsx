@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { AssistantAvatar } from './AssistantAvatar'
+import { ChatMarkdown } from './ChatMarkdown'
 import {
   TABLE_ASSISTANTS,
   getAssistantForTab,
@@ -466,10 +467,14 @@ export const AssistantChatDrawer: React.FC<AssistantChatDrawerProps> = ({
                   </div>
 
                   {/* Conteúdo textual */}
-                  <div className="whitespace-pre-wrap break-words prose prose-invert prose-sm max-w-none">
-                    {message.content ? (
-                      message.content
-                    ) : isLoading && !isUser ? (
+                  <div className="break-words max-w-none">
+                    {isUser ? (
+                      <p className="whitespace-pre-wrap text-xs sm:text-sm font-medium leading-relaxed">
+                        {message.content}
+                      </p>
+                    ) : message.content ? (
+                      <ChatMarkdown content={message.content} />
+                    ) : isLoading ? (
                       <span className="inline-flex items-center gap-1.5 text-emerald-400 animate-pulse font-mono text-xs">
                         <RefreshCw className="w-3 h-3 animate-spin" />
                         Analisando dados da tabela...
