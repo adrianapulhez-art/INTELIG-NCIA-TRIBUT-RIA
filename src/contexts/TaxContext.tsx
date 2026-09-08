@@ -5,6 +5,18 @@ export type TaxRegime = 'presumido' | 'real' | 'simples'
 export type ActivityType = 'comercio' | 'industria' | 'servicos'
 export type MarkupMode = 'liquid' | 'cost_margin'
 
+export interface CostCompositionItem {
+  id: string
+  description: string
+  value: number
+}
+
+export interface CostComposition {
+  directCosts: CostCompositionItem[] // Custos diretos (ex: matéria-prima, mercadoria, embalagem, frete de aquisição)
+  indirectCosts: CostCompositionItem[] // Custos indiretos (ex: aluguel rateado, energia, telefone, software)
+  fixedCosts: CostCompositionItem[] // Custos fixos (ex: folha, contador, pró-labore, encargos)
+}
+
 export interface MarkupProductItem {
   id: string
   name: string
@@ -13,6 +25,8 @@ export interface MarkupProductItem {
   cost: number // Custo base (quando mode === 'cost_margin')
   margin: number // Margem de lucro % (quando mode === 'cost_margin' ou margem adicional)
   quantity: number // Quantidade vendida
+  // Subsistema de Composição do Custo (modo cost_margin)
+  costComposition?: CostComposition
   // Resultados calculados individualmente ao clicar em Simular:
   salePrice: number // Preço de venda calculado
   taxFactor: number
@@ -135,9 +149,29 @@ export interface TaxContextType {
       MarkupProductItem,
       'id' | 'salePrice' | 'taxFactor' | 'completeFactor' | 'totalRevenue' | 'totalCost'
     >,
-    value: string | number | MarkupMode,
+    value: string | number | MarkupMode | CostComposition,
   ) => void
   removeMarkupProduct: (id: string) => void
+  // Composição de custos no produto
+  addCostCompositionItem: (
+    productId: string,
+    category: 'directCosts' | 'indirectCosts' | 'fixedCosts',
+    description?: string,
+    value?: number,
+  ) => void
+  updateCostCompositionItem: (
+    productId: string,
+    category: 'directCosts' | 'indirectCosts' | 'fixedCosts',
+    itemId: string,
+    field: 'description' | 'value',
+    val: string | number,
+  ) => void
+  removeCostCompositionItem: (
+    productId: string,
+    category: 'directCosts' | 'indirectCosts' | 'fixedCosts',
+    itemId: string,
+  ) => void
+  clearCostComposition: (productId: string) => void
   // Markup calculado (atualizado apenas ao clicar em "Simular")
   simulatedSalePrice: number // mantido para compatibilidade (preço do 1º produto ou consolidado)
   simulatedTaxFactorTotal: number
@@ -538,6 +572,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         cost: 0,
         margin: 0,
         quantity: 0,
+        costComposition: {
+          directCosts: [],
+          indirectCosts: [],
+          fixedCosts: [],
+        },
         salePrice: 0,
         taxFactor: 0,
         completeFactor: 0,
@@ -554,7 +593,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       MarkupProductItem,
       'id' | 'salePrice' | 'taxFactor' | 'completeFactor' | 'totalRevenue' | 'totalCost'
     >,
-    value: string | number | MarkupMode,
+    value: string | number | MarkupMode | CostComposition,
   ) => {
     setMarkupProducts((prev) =>
       prev.map((item) => {
@@ -569,11 +608,153 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const parsed = typeof value === 'number' ? value : parseInt(String(value), 10)
           return { ...item, quantity: isNaN(parsed) || parsed < 0 ? 0 : parsed }
         }
+        if (field === 'costComposition') {
+          return { ...item, costComposition: value as CostComposition }
+        }
         // Campos numéricos (desiredNetRevenue, cost, margin)
         const numVal = typeof value === 'number' ? value : parseBRNumber(String(value))
         return {
           ...item,
           [field]: numVal,
+        }
+      }),
+    )
+  }
+
+  // Helper para recalcular o custo base automaticamente a partir da composição se houver itens com valor
+  const calculateTotalComposition = (composition?: CostComposition): number => {
+    if (!composition) return 0
+    const sumDirect = (composition.directCosts || []).reduce((acc, c) => acc + (c.value || 0), 0)
+    const sumIndirect = (composition.indirectCosts || []).reduce(
+      (acc, c) => acc + (c.value || 0),
+      0,
+    )
+    const sumFixed = (composition.fixedCosts || []).reduce((acc, c) => acc + (c.value || 0), 0)
+    return Math.round((sumDirect + sumIndirect + sumFixed) * 100) / 100
+  }
+
+  const addCostCompositionItem = (
+    productId: string,
+    category: 'directCosts' | 'indirectCosts' | 'fixedCosts',
+    description = '',
+    value = 0,
+  ) => {
+    setMarkupProducts((prev) =>
+      prev.map((prod) => {
+        if (prod.id !== productId) return prod
+        const currentComp = prod.costComposition || {
+          directCosts: [],
+          indirectCosts: [],
+          fixedCosts: [],
+        }
+        const updatedCat = [
+          ...(currentComp[category] || []),
+          {
+            id: `cost-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            description,
+            value: Math.max(0, value),
+          },
+        ]
+        const updatedComp: CostComposition = {
+          ...currentComp,
+          [category]: updatedCat,
+        }
+        const compTotal = calculateTotalComposition(updatedComp)
+        return {
+          ...prod,
+          costComposition: updatedComp,
+          // Se houver valor na composição, atualiza custo base automaticamente
+          cost: compTotal > 0 ? compTotal : prod.cost,
+        }
+      }),
+    )
+  }
+
+  const updateCostCompositionItem = (
+    productId: string,
+    category: 'directCosts' | 'indirectCosts' | 'fixedCosts',
+    itemId: string,
+    field: 'description' | 'value',
+    val: string | number,
+  ) => {
+    setMarkupProducts((prev) =>
+      prev.map((prod) => {
+        if (prod.id !== productId) return prod
+        const currentComp = prod.costComposition || {
+          directCosts: [],
+          indirectCosts: [],
+          fixedCosts: [],
+        }
+        const updatedCat = (currentComp[category] || []).map((item) => {
+          if (item.id !== itemId) return item
+          return {
+            ...item,
+            [field]: field === 'value' ? (typeof val === 'number' ? val : parseBRNumber(val)) : val,
+          }
+        })
+        const updatedComp: CostComposition = {
+          ...currentComp,
+          [category]: updatedCat,
+        }
+        const compTotal = calculateTotalComposition(updatedComp)
+        const hasAnyCompositionItem =
+          (updatedComp.directCosts?.length || 0) > 0 ||
+          (updatedComp.indirectCosts?.length || 0) > 0 ||
+          (updatedComp.fixedCosts?.length || 0) > 0
+        return {
+          ...prod,
+          costComposition: updatedComp,
+          // Se a composição tem itens e total calculado, sincroniza o custo
+          cost: hasAnyCompositionItem ? compTotal : prod.cost,
+        }
+      }),
+    )
+  }
+
+  const removeCostCompositionItem = (
+    productId: string,
+    category: 'directCosts' | 'indirectCosts' | 'fixedCosts',
+    itemId: string,
+  ) => {
+    setMarkupProducts((prev) =>
+      prev.map((prod) => {
+        if (prod.id !== productId) return prod
+        const currentComp = prod.costComposition || {
+          directCosts: [],
+          indirectCosts: [],
+          fixedCosts: [],
+        }
+        const updatedCat = (currentComp[category] || []).filter((item) => item.id !== itemId)
+        const updatedComp: CostComposition = {
+          ...currentComp,
+          [category]: updatedCat,
+        }
+        const compTotal = calculateTotalComposition(updatedComp)
+        const hasAnyCompositionItem =
+          (updatedComp.directCosts?.length || 0) > 0 ||
+          (updatedComp.indirectCosts?.length || 0) > 0 ||
+          (updatedComp.fixedCosts?.length || 0) > 0
+        return {
+          ...prod,
+          costComposition: updatedComp,
+          cost: hasAnyCompositionItem ? compTotal : prod.cost,
+        }
+      }),
+    )
+  }
+
+  const clearCostComposition = (productId: string) => {
+    setMarkupProducts((prev) =>
+      prev.map((prod) => {
+        if (prod.id !== productId) return prod
+        return {
+          ...prod,
+          costComposition: {
+            directCosts: [],
+            indirectCosts: [],
+            fixedCosts: [],
+          },
+          cost: 0,
         }
       }),
     )
@@ -592,6 +773,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             cost: 0,
             margin: 0,
             quantity: 0,
+            costComposition: {
+              directCosts: [],
+              indirectCosts: [],
+              fixedCosts: [],
+            },
             salePrice: 0,
             taxFactor: 0,
             completeFactor: 0,
@@ -981,6 +1167,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         cost: 0,
         margin: 0,
         quantity: 0,
+        costComposition: {
+          directCosts: [],
+          indirectCosts: [],
+          fixedCosts: [],
+        },
         salePrice: 0,
         taxFactor: 0,
         completeFactor: 0,
@@ -1154,7 +1345,16 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     )
 
     if (Array.isArray(snapshot.markupProducts) && snapshot.markupProducts.length > 0) {
-      setMarkupProducts(snapshot.markupProducts)
+      setMarkupProducts(
+        snapshot.markupProducts.map((p) => ({
+          ...p,
+          costComposition: p.costComposition || {
+            directCosts: [],
+            indirectCosts: [],
+            fixedCosts: [],
+          },
+        })),
+      )
     } else {
       setMarkupProducts([
         {
@@ -1165,6 +1365,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           cost: snapshot.markupMode === 'cost_margin' ? snapshot.desiredNetRevenue || 0 : 0,
           margin: snapshot.additionalMargin || 0,
           quantity: 0,
+          costComposition: {
+            directCosts: [],
+            indirectCosts: [],
+            fixedCosts: [],
+          },
           salePrice: snapshot.simulatedSalePrice || 0,
           taxFactor: snapshot.simulatedTaxFactorTotal || 0,
           completeFactor: snapshot.simulatedCompleteFactor || 0,
@@ -1294,6 +1499,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addMarkupProduct,
         updateMarkupProduct,
         removeMarkupProduct,
+        addCostCompositionItem,
+        updateCostCompositionItem,
+        removeCostCompositionItem,
+        clearCostComposition,
         simulatedSalePrice,
         simulatedTaxFactorTotal,
         simulatedCompleteFactor,

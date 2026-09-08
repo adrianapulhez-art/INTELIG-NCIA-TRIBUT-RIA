@@ -25,11 +25,13 @@ import { calculatePgdas, SimplesAnexoId } from '@/lib/simplesCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { CostCompositionSection } from '@/components/demo/CostCompositionSection'
 
 interface ProductBaseValueInputProps {
   productId: string
   isLiquid: boolean
   value: number
+  hasCompositionValues?: boolean
   onUpdate: (id: string, field: 'desiredNetRevenue' | 'cost', val: number) => void
 }
 
@@ -37,6 +39,7 @@ function ProductBaseValueInput({
   productId,
   isLiquid,
   value,
+  hasCompositionValues = false,
   onUpdate,
 }: ProductBaseValueInputProps) {
   const [text, setText] = useState<string>(value > 0 ? formatNumberBR(value) : '')
@@ -47,9 +50,16 @@ function ProductBaseValueInput({
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] text-slate-300 font-semibold">
-        {isLiquid ? 'Receita líquida desejada' : 'Custo base'}
-      </label>
+      <div className="flex items-center justify-between">
+        <label className="text-[11px] text-slate-300 font-semibold">
+          {isLiquid ? 'Receita líquida desejada' : 'Custo do produto'}
+        </label>
+        {!isLiquid && hasCompositionValues && (
+          <span className="text-[10px] font-mono text-emerald-400 font-medium">
+            · via composição de custo
+          </span>
+        )}
+      </div>
       <div className="relative">
         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">
           R$
@@ -69,7 +79,11 @@ function ProductBaseValueInput({
             setText(num > 0 ? formatNumberBR(num) : '')
             onUpdate(productId, isLiquid ? 'desiredNetRevenue' : 'cost', num)
           }}
-          className="pl-8 text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8"
+          className={`pl-8 text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8 ${
+            !isLiquid && hasCompositionValues
+              ? 'border-emerald-500/40 focus:border-emerald-400'
+              : ''
+          }`}
         />
       </div>
     </div>
@@ -589,14 +603,34 @@ export default function MarkupPage() {
                     {/* Linha de Campos: Base de cálculo, Margem (se aplicável), Quantidade e Preço Resultante */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
                       {/* Campo 1: Valor Base (Receita Líquida ou Custo) */}
-                      <ProductBaseValueInput
-                        key={`base-${prod.id}-${prod.mode}`}
-                        productId={prod.id}
-                        isLiquid={isProdLiquid}
-                        value={isProdLiquid ? prod.desiredNetRevenue : prod.cost}
-                        onUpdate={(id, field, val) => updateMarkupProduct(id, field, val)}
-                      />
+                      {(() => {
+                        const comp = prod.costComposition
+                        const directSum = (comp?.directCosts || []).reduce(
+                          (a, b) => a + (b.value || 0),
+                          0,
+                        )
+                        const indirectSum = (comp?.indirectCosts || []).reduce(
+                          (a, b) => a + (b.value || 0),
+                          0,
+                        )
+                        const fixedSum = (comp?.fixedCosts || []).reduce(
+                          (a, b) => a + (b.value || 0),
+                          0,
+                        )
+                        const totalComp = directSum + indirectSum + fixedSum
+                        const hasCompValues = totalComp > 0
 
+                        return (
+                          <ProductBaseValueInput
+                            key={`base-${prod.id}-${prod.mode}`}
+                            productId={prod.id}
+                            isLiquid={isProdLiquid}
+                            value={isProdLiquid ? prod.desiredNetRevenue : prod.cost}
+                            hasCompositionValues={hasCompValues}
+                            onUpdate={(id, field, val) => updateMarkupProduct(id, field, val)}
+                          />
+                        )
+                      })()}
                       {/* Campo 2: Margem de Lucro (%) */}
                       <ProductMarginInput
                         key={`margin-${prod.id}`}
@@ -651,9 +685,19 @@ export default function MarkupPage() {
                         </span>
                       </div>
                     )}
+
+                    {/* Subsistema de Composição do Custo: Condicional ao modo Custo + Margem */}
+                    {!isProdLiquid && (
+                      <CostCompositionSection
+                        productId={prod.id}
+                        productName={prod.name}
+                        composition={prod.costComposition}
+                        onApplyTotal={(tot) => updateMarkupProduct(prod.id, 'cost', tot)}
+                      />
+                    )}
                   </div>
                 )
-              })}
+              })}{' '}
             </div>
 
             {/* Botão para adicionar mais produtos */}
