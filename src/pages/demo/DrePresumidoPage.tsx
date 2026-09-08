@@ -17,6 +17,8 @@ import { PayrollSection } from '@/components/demo/PayrollSection'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
+import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
+import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
 
 export default function DrePresumidoPage() {
   const navigate = useNavigate()
@@ -860,6 +862,306 @@ export default function DrePresumidoPage() {
                 </span>
               </div>
             </div>
+
+            {/* Botões de Exportação (PDF e Excel) */}
+            <ExportReportButtons
+              disabled={!isPresumidoSimulated}
+              onExportPdf={() => {
+                exportDreToPdf({
+                  title: 'DRE — Lucro Presumido',
+                  regimeName: `Lucro Presumido (${presumidoActivity.toUpperCase()})`,
+                  quantity: qty,
+                  unitGrossRevenue: unitGross,
+                  totalGrossRevenue: totalGross,
+                  metadata: [
+                    { label: 'Atividade', value: presumidoActivity.toUpperCase() },
+                    { label: 'Quantidade', value: `${qty} un.` },
+                    { label: 'Presunção IRPJ', value: `${formatNumberBR(irpjPresumptionRate)}%` },
+                    { label: 'Presunção CSLL', value: `${formatNumberBR(csllPresumptionRate)}%` },
+                  ],
+                  rows: [
+                    {
+                      description: isServices
+                        ? 'Receita bruta de serviços'
+                        : 'Receita bruta de vendas',
+                      unitValue: unitGross,
+                      totalValue: totalGross,
+                    },
+                    {
+                      description: isServices ? '(−) ISSQN' : '(−) ICMS',
+                      unitValue: -unitMunicipalStateTax,
+                      totalValue: -totalMunicipalStateTax,
+                    },
+                    {
+                      description: isServices
+                        ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
+                        : 'Base PIS/COFINS (tese do século · exclui ICMS)',
+                      unitValue: unitPisCofinsBase,
+                      totalValue: totalPisCofinsBase,
+                      isInformative: true,
+                    },
+                    {
+                      description: '(−) PIS (0,65%)',
+                      unitValue: -unitPis,
+                      totalValue: -totalPis,
+                    },
+                    {
+                      description: '(−) COFINS (3,00%)',
+                      unitValue: -unitCofins,
+                      totalValue: -totalCofins,
+                    },
+                    {
+                      description: '(=) Receita líquida',
+                      unitValue: unitNetRevenue,
+                      totalValue: totalNetRevenue,
+                      isSubtotal: true,
+                    },
+                    {
+                      description: '(−) CMV',
+                      unitValue: -unitCmvVal,
+                      totalValue: -totalCmv,
+                    },
+                    {
+                      description: '(=) Lucro bruto',
+                      unitValue: unitGrossProfit,
+                      totalValue: totalGrossProfit,
+                      isSubtotal: true,
+                    },
+                    {
+                      description: '(−) Folha de salários',
+                      unitValue: qty > 0 ? -(payrollSalaries / qty) : 0,
+                      totalValue: -payrollSalaries,
+                    },
+                    {
+                      description: '(−) Pró-labore dos sócios',
+                      unitValue: qty > 0 ? -(payrollProLabore / qty) : 0,
+                      totalValue: -payrollProLabore,
+                    },
+                    {
+                      description: `(−) Encargos patronais (INSS ${formatNumberBR(payrollInssRate)}% + RAT + Terceiros)`,
+                      unitValue: qty > 0 ? -(payrollResult.patronalChargesTotal / qty) : 0,
+                      totalValue: -payrollResult.patronalChargesTotal,
+                    },
+                    {
+                      description: '(−) Outras despesas operacionais',
+                      unitValue: qty > 0 ? -(totalOtherExpenses / qty) : 0,
+                      totalValue: -totalOtherExpenses,
+                    },
+                    {
+                      description: '(=) Resultado antes do IRPJ/CSLL',
+                      unitValue: unitResultBeforeTax,
+                      totalValue: totalResultBeforeTax,
+                      isSubtotal: true,
+                    },
+                    {
+                      description: `Base presumida IRPJ (${formatNumberBR(irpjPresumptionRate)}%)`,
+                      unitValue: '—',
+                      totalValue: totalIrpjBase,
+                      isInformative: true,
+                    },
+                    {
+                      description: '(−) IRPJ (15%)',
+                      unitValue: '—',
+                      totalValue: -totalIrpj,
+                    },
+                    {
+                      description: '(−) Adicional de IRPJ (10%)',
+                      unitValue: '—',
+                      totalValue: -totalIrpjAdditional,
+                    },
+                    {
+                      description: `Base presumida CSLL (${formatNumberBR(csllPresumptionRate)}%)`,
+                      unitValue: '—',
+                      totalValue: totalCsllBase,
+                      isInformative: true,
+                    },
+                    {
+                      description: '(−) CSLL (9%)',
+                      unitValue: '—',
+                      totalValue: -totalCsll,
+                    },
+                    {
+                      description: '(=) Lucro líquido',
+                      unitValue: unitNetProfit,
+                      totalValue: totalNetProfit,
+                      isTotal: true,
+                    },
+                  ],
+                  summaryCards: [
+                    {
+                      title: 'Carga tributária total',
+                      value: formatBRL(totalTaxBurden),
+                      numericValue: totalTaxBurden,
+                      subtitle: `${formatPercentBR((totalTaxBurden / (totalGross || 1)) * 100)} da receita bruta`,
+                    },
+                    {
+                      title: 'Lucro líquido',
+                      value: formatBRL(totalNetProfit),
+                      numericValue: totalNetProfit,
+                      subtitle: 'Resultado final do período',
+                    },
+                    {
+                      title: 'Margem líquida',
+                      value: formatPercentBR(netMargin),
+                      numericValue: netMargin,
+                      subtitle: 'Lucro líquido ÷ Receita bruta',
+                    },
+                  ],
+                  notes: [
+                    'PIS e COFINS cumulativos calculados às alíquotas de 0,65% e 3,00%.',
+                    isServices
+                      ? 'Em serviços, a exclusão do ICMS da base do PIS/COFINS (Tema 69/STF) não se aplica ao ISSQN.'
+                      : 'Exclusão do ICMS destacado da base de cálculo do PIS e da COFINS conforme jurisprudência pacificada pelo STF (Tema 69).',
+                    'Adicional de IRPJ de 10% aplicado sobre a parcela da base de cálculo presumida trimestral que exceder R$ 60.000,00.',
+                    'Encargos patronais previdenciários e de terceiros apurados de acordo com as alíquotas configuradas no módulo de Folha e Pró-labore.',
+                  ],
+                })
+              }}
+              onExportExcel={() => {
+                exportDreToExcel({
+                  title: 'DRE — Lucro Presumido',
+                  regimeName: `Lucro Presumido (${presumidoActivity.toUpperCase()})`,
+                  quantity: qty,
+                  unitGrossRevenue: unitGross,
+                  totalGrossRevenue: totalGross,
+                  metadata: [
+                    { label: 'Atividade', value: presumidoActivity.toUpperCase() },
+                    { label: 'Quantidade', value: `${qty} un.` },
+                    { label: 'Presunção IRPJ', value: `${formatNumberBR(irpjPresumptionRate)}%` },
+                    { label: 'Presunção CSLL', value: `${formatNumberBR(csllPresumptionRate)}%` },
+                  ],
+                  rows: [
+                    {
+                      description: isServices
+                        ? 'Receita bruta de serviços'
+                        : 'Receita bruta de vendas',
+                      unitValue: unitGross,
+                      totalValue: totalGross,
+                    },
+                    {
+                      description: isServices ? '(−) ISSQN' : '(−) ICMS',
+                      unitValue: -unitMunicipalStateTax,
+                      totalValue: -totalMunicipalStateTax,
+                    },
+                    {
+                      description: isServices
+                        ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
+                        : 'Base PIS/COFINS (tese do século · exclui ICMS)',
+                      unitValue: unitPisCofinsBase,
+                      totalValue: totalPisCofinsBase,
+                    },
+                    {
+                      description: '(−) PIS (0,65%)',
+                      unitValue: -unitPis,
+                      totalValue: -totalPis,
+                    },
+                    {
+                      description: '(−) COFINS (3,00%)',
+                      unitValue: -unitCofins,
+                      totalValue: -totalCofins,
+                    },
+                    {
+                      description: '(=) Receita líquida',
+                      unitValue: unitNetRevenue,
+                      totalValue: totalNetRevenue,
+                    },
+                    {
+                      description: '(−) CMV',
+                      unitValue: -unitCmvVal,
+                      totalValue: -totalCmv,
+                    },
+                    {
+                      description: '(=) Lucro bruto',
+                      unitValue: unitGrossProfit,
+                      totalValue: totalGrossProfit,
+                    },
+                    {
+                      description: '(−) Folha de salários',
+                      unitValue: qty > 0 ? -(payrollSalaries / qty) : 0,
+                      totalValue: -payrollSalaries,
+                    },
+                    {
+                      description: '(−) Pró-labore dos sócios',
+                      unitValue: qty > 0 ? -(payrollProLabore / qty) : 0,
+                      totalValue: -payrollProLabore,
+                    },
+                    {
+                      description: `(−) Encargos patronais (INSS ${formatNumberBR(payrollInssRate)}% + RAT + Terceiros)`,
+                      unitValue: qty > 0 ? -(payrollResult.patronalChargesTotal / qty) : 0,
+                      totalValue: -payrollResult.patronalChargesTotal,
+                    },
+                    {
+                      description: '(−) Outras despesas operacionais',
+                      unitValue: qty > 0 ? -(totalOtherExpenses / qty) : 0,
+                      totalValue: -totalOtherExpenses,
+                    },
+                    {
+                      description: '(=) Resultado antes do IRPJ/CSLL',
+                      unitValue: unitResultBeforeTax,
+                      totalValue: totalResultBeforeTax,
+                    },
+                    {
+                      description: `Base presumida IRPJ (${formatNumberBR(irpjPresumptionRate)}%)`,
+                      unitValue: null,
+                      totalValue: totalIrpjBase,
+                    },
+                    {
+                      description: '(−) IRPJ (15%)',
+                      unitValue: null,
+                      totalValue: -totalIrpj,
+                    },
+                    {
+                      description: '(−) Adicional de IRPJ (10%)',
+                      unitValue: null,
+                      totalValue: -totalIrpjAdditional,
+                    },
+                    {
+                      description: `Base presumida CSLL (${formatNumberBR(csllPresumptionRate)}%)`,
+                      unitValue: null,
+                      totalValue: totalCsllBase,
+                    },
+                    {
+                      description: '(−) CSLL (9%)',
+                      unitValue: null,
+                      totalValue: -totalCsll,
+                    },
+                    {
+                      description: '(=) Lucro líquido',
+                      unitValue: unitNetProfit,
+                      totalValue: totalNetProfit,
+                    },
+                  ],
+                  summaryCards: [
+                    {
+                      title: 'Carga tributária total',
+                      value: formatBRL(totalTaxBurden),
+                      numericValue: totalTaxBurden,
+                      subtitle: `${formatPercentBR((totalTaxBurden / (totalGross || 1)) * 100)} da receita bruta`,
+                    },
+                    {
+                      title: 'Lucro líquido',
+                      value: formatBRL(totalNetProfit),
+                      numericValue: totalNetProfit,
+                      subtitle: 'Resultado final do período',
+                    },
+                    {
+                      title: 'Margem líquida (%)',
+                      value: formatPercentBR(netMargin),
+                      numericValue: netMargin,
+                      subtitle: 'Lucro líquido ÷ Receita bruta',
+                    },
+                  ],
+                  notes: [
+                    'PIS e COFINS cumulativos calculados às alíquotas de 0,65% e 3,00%.',
+                    isServices
+                      ? 'Em serviços, a exclusão do ICMS da base do PIS/COFINS (Tema 69/STF) não se aplica ao ISSQN.'
+                      : 'Exclusão do ICMS destacado da base de cálculo do PIS e da COFINS conforme jurisprudência pacificada pelo STF (Tema 69).',
+                    'Adicional de IRPJ de 10% aplicado sobre a parcela da base de cálculo presumida trimestral que exceder R$ 60.000,00.',
+                    'Encargos patronais previdenciários e de terceiros apurados de acordo com as alíquotas configuradas no módulo de Folha e Pró-labore.',
+                  ],
+                })
+              }}
+            />
           </div>
         ) : (
           <div className="bg-[#0b101b]/60 border border-dashed border-slate-800 rounded-2xl p-8 text-center space-y-3">

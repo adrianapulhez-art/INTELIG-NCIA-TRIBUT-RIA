@@ -28,6 +28,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
+import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
+import { exportComparisonToPdf, exportComparisonToExcel } from '@/lib/exportReports'
 
 export default function ComparisonPage() {
   const navigate = useNavigate()
@@ -1627,6 +1629,325 @@ export default function ComparisonPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Botões de Exportação (PDF e Excel) */}
+          <ExportReportButtons
+            disabled={activeGrossRevenue <= 0 && qty <= 0}
+            onExportPdf={() => {
+              exportComparisonToPdf({
+                quantity: qty,
+                unitGrossRevenue: unitGrossRevenue,
+                totalGrossRevenue: activeGrossRevenue * (qty > 0 ? qty : 1),
+                bestRegime: {
+                  key: bestRegimeKey,
+                  name: bestRegime.name,
+                },
+                economyDifference,
+                worstRegimeName: worstRegime.name,
+                summaryRegimes: [
+                  {
+                    name: 'Lucro Presumido',
+                    taxBurden: presumidoData.totalTaxBurden,
+                    effectiveTaxRate: presumidoData.effectiveTaxRate,
+                    netProfit: presumidoData.totalNetProfit,
+                    netMargin: presumidoData.netMargin,
+                    isBest: bestRegimeKey === 'presumido',
+                  },
+                  {
+                    name: 'Lucro Real',
+                    taxBurden: realData.totalTaxBurden,
+                    effectiveTaxRate: realData.effectiveTaxRate,
+                    netProfit: realData.totalNetProfit,
+                    netMargin: realData.netMargin,
+                    isBest: bestRegimeKey === 'real',
+                  },
+                  {
+                    name: 'Simples Nacional',
+                    taxBurden: simplesData.totalTaxBurden,
+                    effectiveTaxRate: simplesData.effectiveTaxRate,
+                    netProfit: simplesData.totalNetProfit,
+                    netMargin: simplesData.netMargin,
+                    isBest: bestRegimeKey === 'simples',
+                  },
+                ],
+                comparisonRows: [
+                  {
+                    line: 'Receita Bruta Total',
+                    presumido: presumidoData.totalGross,
+                    real: realData.totalGross,
+                    simples: simplesData.totalGross,
+                  },
+                  {
+                    line: '(−) ICMS ou ISS Municipal',
+                    presumido: -presumidoData.totalMunicipalStateTax,
+                    real: -realData.totalMunicipalStateTax,
+                    simples: 'No DAS (segregado)',
+                  },
+                  {
+                    line: '(−) PIS',
+                    presumido: -presumidoData.totalPis,
+                    real: -realData.totalPis,
+                    simples: 'No DAS (segregado)',
+                  },
+                  {
+                    line: '(−) COFINS',
+                    presumido: -presumidoData.totalCofins,
+                    real: -realData.totalCofins,
+                    simples: 'No DAS (segregado)',
+                  },
+                  {
+                    line: `(−) Encargos Patronais (INSS ${formatNumberBR(payrollInssRate)}% + RAT + Terceiros)`,
+                    presumido: -patronalCharges,
+                    real: -patronalCharges,
+                    simples: 'Incluso no DAS (CPP)',
+                  },
+                  {
+                    line: '(−) Guia Única DAS (Simples)',
+                    presumido: '—',
+                    real: '—',
+                    simples: -simplesData.totalDasTotal,
+                    isHighlight: true,
+                  },
+                  {
+                    line: '(=) Receita Líquida',
+                    presumido: presumidoData.totalNetRevenue,
+                    real: realData.totalNetRevenue,
+                    simples: simplesData.totalNetRevenue,
+                    isHighlight: true,
+                  },
+                  {
+                    line: '(−) CMV (Custo das Mercadorias)',
+                    presumido: -presumidoData.totalCmv,
+                    real: -realData.totalCmv,
+                    simples: -simplesData.totalCmv,
+                  },
+                  {
+                    line: '(=) Lucro Bruto',
+                    presumido: presumidoData.totalGrossProfit,
+                    real: realData.totalGrossProfit,
+                    simples: simplesData.totalGrossProfit,
+                    isHighlight: true,
+                  },
+                  {
+                    line: '(−) Folha de Salários e Pró-labore',
+                    presumido: -directPayrollExpenses,
+                    real: -directPayrollExpenses,
+                    simples: -directPayrollExpenses,
+                  },
+                  {
+                    line: '(−) Outras Despesas Operacionais',
+                    presumido: -totalOtherExpenses,
+                    real: -totalOtherExpenses,
+                    simples: -totalOtherExpenses,
+                  },
+                  {
+                    line: '(=) Resultado antes de IRPJ / CSLL',
+                    presumido: presumidoData.totalResultBeforeTax,
+                    real: realData.totalResultBeforeTax,
+                    simples: simplesData.totalResultBeforeTax,
+                    isHighlight: true,
+                  },
+                  {
+                    line: '(−) IRPJ (+ Adicional de 10%)',
+                    presumido: -(presumidoData.totalIrpj + presumidoData.totalIrpjAdditional),
+                    real: -(realData.totalIrpj + realData.totalIrpjAdditional),
+                    simples: 'No DAS',
+                  },
+                  {
+                    line: '(−) CSLL',
+                    presumido: -presumidoData.totalCsll,
+                    real: -realData.totalCsll,
+                    simples: 'No DAS',
+                  },
+                  {
+                    line: 'Carga Tributária Total',
+                    presumido: presumidoData.totalTaxBurden,
+                    real: realData.totalTaxBurden,
+                    simples: simplesData.totalTaxBurden,
+                    isHighlight: true,
+                  },
+                  {
+                    line: '(=) Lucro Líquido Final',
+                    presumido: presumidoData.totalNetProfit,
+                    real: realData.totalNetProfit,
+                    simples: simplesData.totalNetProfit,
+                    isTotal: true,
+                  },
+                  {
+                    line: 'Margem Líquida (%)',
+                    presumido: formatPercentBR(presumidoData.netMargin),
+                    real: formatPercentBR(realData.netMargin),
+                    simples: formatPercentBR(simplesData.netMargin),
+                    isHighlight: true,
+                  },
+                ],
+                notes: [
+                  `Regime recomendado: ${bestRegime.name} com lucro líquido estimado em ${formatBRL(
+                    bestRegime.netProfit,
+                  )} e margem líquida de ${formatPercentBR(bestRegime.netMargin)}.`,
+                  economyDifference > 0
+                    ? `Economia tributária e operacional máxima de ${formatBRL(
+                        economyDifference,
+                      )} em comparação ao regime ${worstRegime.name}.`
+                    : 'Não há diferença significativa apurada entre os regimes para os parâmetros preenchidos.',
+                  `Simples Nacional enquadrado no ${currentAnexoConfig.nome} (${pgdas.faixaNome}) com alíquota efetiva PGDAS de ${formatNumberBR(
+                    pgdas.aliquotaEfetiva,
+                    2,
+                  )}%.`,
+                  'Encargos patronais sobre folha e pró-labore incidem de forma direta no Lucro Presumido e Lucro Real, enquanto no Simples Nacional a CPP integra a alíquota única da guia DAS.',
+                ],
+              })
+            }}
+            onExportExcel={() => {
+              exportComparisonToExcel({
+                quantity: qty,
+                unitGrossRevenue: unitGrossRevenue,
+                totalGrossRevenue: activeGrossRevenue * (qty > 0 ? qty : 1),
+                bestRegime: {
+                  key: bestRegimeKey,
+                  name: bestRegime.name,
+                },
+                economyDifference,
+                worstRegimeName: worstRegime.name,
+                summaryRegimes: [
+                  {
+                    name: 'Lucro Presumido',
+                    taxBurden: presumidoData.totalTaxBurden,
+                    effectiveTaxRate: presumidoData.effectiveTaxRate,
+                    netProfit: presumidoData.totalNetProfit,
+                    netMargin: presumidoData.netMargin,
+                    isBest: bestRegimeKey === 'presumido',
+                  },
+                  {
+                    name: 'Lucro Real',
+                    taxBurden: realData.totalTaxBurden,
+                    effectiveTaxRate: realData.effectiveTaxRate,
+                    netProfit: realData.totalNetProfit,
+                    netMargin: realData.netMargin,
+                    isBest: bestRegimeKey === 'real',
+                  },
+                  {
+                    name: 'Simples Nacional',
+                    taxBurden: simplesData.totalTaxBurden,
+                    effectiveTaxRate: simplesData.effectiveTaxRate,
+                    netProfit: simplesData.totalNetProfit,
+                    netMargin: simplesData.netMargin,
+                    isBest: bestRegimeKey === 'simples',
+                  },
+                ],
+                comparisonRows: [
+                  {
+                    line: 'Receita Bruta Total',
+                    presumido: presumidoData.totalGross,
+                    real: realData.totalGross,
+                    simples: simplesData.totalGross,
+                  },
+                  {
+                    line: '(−) ICMS ou ISS Municipal',
+                    presumido: -presumidoData.totalMunicipalStateTax,
+                    real: -realData.totalMunicipalStateTax,
+                    simples: 'No DAS (segregado)',
+                  },
+                  {
+                    line: '(−) PIS',
+                    presumido: -presumidoData.totalPis,
+                    real: -realData.totalPis,
+                    simples: 'No DAS (segregado)',
+                  },
+                  {
+                    line: '(−) COFINS',
+                    presumido: -presumidoData.totalCofins,
+                    real: -realData.totalCofins,
+                    simples: 'No DAS (segregado)',
+                  },
+                  {
+                    line: `(−) Encargos Patronais (INSS ${formatNumberBR(payrollInssRate)}% + RAT + Terceiros)`,
+                    presumido: -patronalCharges,
+                    real: -patronalCharges,
+                    simples: 'Incluso no DAS (CPP)',
+                  },
+                  {
+                    line: '(−) Guia Única DAS (Simples)',
+                    presumido: '—',
+                    real: '—',
+                    simples: -simplesData.totalDasTotal,
+                  },
+                  {
+                    line: '(=) Receita Líquida',
+                    presumido: presumidoData.totalNetRevenue,
+                    real: realData.totalNetRevenue,
+                    simples: simplesData.totalNetRevenue,
+                  },
+                  {
+                    line: '(−) CMV (Custo das Mercadorias)',
+                    presumido: -presumidoData.totalCmv,
+                    real: -realData.totalCmv,
+                    simples: -simplesData.totalCmv,
+                  },
+                  {
+                    line: '(=) Lucro Bruto',
+                    presumido: presumidoData.totalGrossProfit,
+                    real: realData.totalGrossProfit,
+                    simples: simplesData.totalGrossProfit,
+                  },
+                  {
+                    line: '(−) Folha de Salários e Pró-labore',
+                    presumido: -directPayrollExpenses,
+                    real: -directPayrollExpenses,
+                    simples: -directPayrollExpenses,
+                  },
+                  {
+                    line: '(−) Outras Despesas Operacionais',
+                    presumido: -totalOtherExpenses,
+                    real: -totalOtherExpenses,
+                    simples: -totalOtherExpenses,
+                  },
+                  {
+                    line: '(=) Resultado antes de IRPJ / CSLL',
+                    presumido: presumidoData.totalResultBeforeTax,
+                    real: realData.totalResultBeforeTax,
+                    simples: simplesData.totalResultBeforeTax,
+                  },
+                  {
+                    line: '(−) IRPJ (+ Adicional de 10%)',
+                    presumido: -(presumidoData.totalIrpj + presumidoData.totalIrpjAdditional),
+                    real: -(realData.totalIrpj + realData.totalIrpjAdditional),
+                    simples: 'No DAS',
+                  },
+                  {
+                    line: '(−) CSLL',
+                    presumido: -presumidoData.totalCsll,
+                    real: -realData.totalCsll,
+                    simples: 'No DAS',
+                  },
+                  {
+                    line: 'Carga Tributária Total',
+                    presumido: presumidoData.totalTaxBurden,
+                    real: realData.totalTaxBurden,
+                    simples: simplesData.totalTaxBurden,
+                  },
+                  {
+                    line: '(=) Lucro Líquido Final',
+                    presumido: presumidoData.totalNetProfit,
+                    real: realData.totalNetProfit,
+                    simples: simplesData.totalNetProfit,
+                  },
+                  {
+                    line: 'Margem Líquida (%)',
+                    presumido: presumidoData.netMargin,
+                    real: realData.netMargin,
+                    simples: simplesData.netMargin,
+                  },
+                ],
+                notes: [
+                  `Regime recomendado: ${bestRegime.name}.`,
+                  economyDifference > 0
+                    ? `Economia estimada em relação ao regime ${worstRegime.name}: R$ ${economyDifference.toFixed(2)}.`
+                    : '',
+                ],
+              })
+            }}
+          />
         </div>
 
         {/* CONDIÇÕES, PARTICULARIDADES E AVISOS POR REGIME */}

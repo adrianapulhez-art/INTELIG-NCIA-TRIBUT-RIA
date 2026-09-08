@@ -17,6 +17,8 @@ import { PayrollSection } from '@/components/demo/PayrollSection'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
+import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
+import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
 
 export default function DreRealPage() {
   const navigate = useNavigate()
@@ -893,6 +895,302 @@ export default function DreRealPage() {
                 </span>
               </div>
             </div>
+
+            {/* Botões de Exportação (PDF e Excel) */}
+            <ExportReportButtons
+              disabled={!isRealSimulated}
+              onExportPdf={() => {
+                exportDreToPdf({
+                  title: 'DRE — Lucro Real',
+                  regimeName: `Lucro Real (${realActivity.toUpperCase()})`,
+                  quantity: qty,
+                  unitGrossRevenue: unitGross,
+                  totalGrossRevenue: totalGross,
+                  metadata: [
+                    { label: 'Atividade', value: realActivity.toUpperCase() },
+                    { label: 'Quantidade', value: `${qty} un.` },
+                    { label: 'Lucro Real Tributável', value: formatBRL(taxableRealProfit) },
+                    { label: 'Adições LALUR', value: formatBRL(totalAdditions) },
+                    { label: 'Exclusões LALUR', value: formatBRL(totalExclusions) },
+                  ],
+                  rows: [
+                    {
+                      description: isServices
+                        ? 'Receita bruta de serviços'
+                        : 'Receita bruta de vendas',
+                      unitValue: unitGross,
+                      totalValue: totalGross,
+                    },
+                    {
+                      description: isServices ? '(−) ISSQN' : '(−) ICMS',
+                      unitValue: -unitMunicipalStateTax,
+                      totalValue: -totalMunicipalStateTax,
+                    },
+                    {
+                      description: isServices
+                        ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
+                        : 'Base PIS/COFINS (tese do século · exclui ICMS)',
+                      unitValue: unitPisCofinsBase,
+                      totalValue: totalPisCofinsBase,
+                      isInformative: true,
+                    },
+                    {
+                      description: '(−) PIS não cumulativo (1,65%)',
+                      unitValue: -unitPis,
+                      totalValue: -totalPis,
+                    },
+                    {
+                      description: '(−) COFINS não cumulativa (7,60%)',
+                      unitValue: -unitCofins,
+                      totalValue: -totalCofins,
+                    },
+                    {
+                      description: '(=) Receita líquida',
+                      unitValue: unitNetRevenue,
+                      totalValue: totalNetRevenue,
+                      isSubtotal: true,
+                    },
+                    {
+                      description: '(−) CMV (líquido de créditos)',
+                      unitValue: -unitCmvVal,
+                      totalValue: -totalCmv,
+                    },
+                    {
+                      description: '(=) Lucro bruto',
+                      unitValue: unitGrossProfit,
+                      totalValue: totalGrossProfit,
+                      isSubtotal: true,
+                    },
+                    {
+                      description: '(−) Folha de salários',
+                      unitValue: qty > 0 ? -(payrollSalaries / qty) : 0,
+                      totalValue: -payrollSalaries,
+                    },
+                    {
+                      description: '(−) Pró-labore dos sócios',
+                      unitValue: qty > 0 ? -(payrollProLabore / qty) : 0,
+                      totalValue: -payrollProLabore,
+                    },
+                    {
+                      description: `(−) Encargos patronais (INSS ${formatNumberBR(payrollInssRate)}% + RAT + Terceiros)`,
+                      unitValue: qty > 0 ? -(payrollResult.patronalChargesTotal / qty) : 0,
+                      totalValue: -payrollResult.patronalChargesTotal,
+                    },
+                    {
+                      description: '(−) Outras despesas operacionais',
+                      unitValue: qty > 0 ? -(totalOtherExpenses / qty) : 0,
+                      totalValue: -totalOtherExpenses,
+                    },
+                    {
+                      description: '(=) Resultado antes do IRPJ/CSLL',
+                      unitValue: unitResultBeforeTax,
+                      totalValue: totalResultBeforeTax,
+                      isSubtotal: true,
+                    },
+                    {
+                      description: `(+) Adições fiscais (LALUR) / (−) Exclusões`,
+                      unitValue: '—',
+                      totalValue: totalAdditions - totalExclusions,
+                      isInformative: true,
+                    },
+                    {
+                      description: `Base Lucro Real Tributável`,
+                      unitValue: '—',
+                      totalValue: taxableRealProfit,
+                      isInformative: true,
+                    },
+                    {
+                      description: '(−) IRPJ (15%)',
+                      unitValue: '—',
+                      totalValue: -totalIrpj,
+                    },
+                    {
+                      description: '(−) Adicional de IRPJ (10%)',
+                      unitValue: '—',
+                      totalValue: -totalIrpjAdditional,
+                    },
+                    {
+                      description: '(−) CSLL (9%)',
+                      unitValue: '—',
+                      totalValue: -totalCsll,
+                    },
+                    {
+                      description: '(=) Lucro líquido',
+                      unitValue: unitNetProfit,
+                      totalValue: totalNetProfit,
+                      isTotal: true,
+                    },
+                  ],
+                  summaryCards: [
+                    {
+                      title: 'Carga tributária total',
+                      value: formatBRL(totalTaxBurden),
+                      numericValue: totalTaxBurden,
+                      subtitle: `${formatPercentBR((totalTaxBurden / (totalGross || 1)) * 100)} da receita bruta`,
+                    },
+                    {
+                      title: 'Lucro líquido',
+                      value: formatBRL(totalNetProfit),
+                      numericValue: totalNetProfit,
+                      subtitle: 'Resultado final do período',
+                    },
+                    {
+                      title: 'Margem líquida',
+                      value: formatPercentBR(netMargin),
+                      numericValue: netMargin,
+                      subtitle: 'Lucro líquido ÷ Receita bruta',
+                    },
+                  ],
+                  notes: [
+                    'PIS e COFINS não cumulativos apurados às alíquotas de 1,65% e 7,60% com direito a tomada de créditos sobre aquisições.',
+                    'IRPJ (15% + adicional de 10% sobre o excedente a R$ 60.000,00 trimestral) e CSLL (9%) incidentes sobre o Lucro Real contábil ajustado no LALUR.',
+                    'Despesas de salários, pró-labore e encargos patronais previdenciários dedutíveis integralmente da apuração do Lucro Real.',
+                  ],
+                })
+              }}
+              onExportExcel={() => {
+                exportDreToExcel({
+                  title: 'DRE — Lucro Real',
+                  regimeName: `Lucro Real (${realActivity.toUpperCase()})`,
+                  quantity: qty,
+                  unitGrossRevenue: unitGross,
+                  totalGrossRevenue: totalGross,
+                  metadata: [
+                    { label: 'Atividade', value: realActivity.toUpperCase() },
+                    { label: 'Quantidade', value: `${qty} un.` },
+                    { label: 'Lucro Real Tributável', value: formatBRL(taxableRealProfit) },
+                    { label: 'Adições LALUR', value: formatBRL(totalAdditions) },
+                    { label: 'Exclusões LALUR', value: formatBRL(totalExclusions) },
+                  ],
+                  rows: [
+                    {
+                      description: isServices
+                        ? 'Receita bruta de serviços'
+                        : 'Receita bruta de vendas',
+                      unitValue: unitGross,
+                      totalValue: totalGross,
+                    },
+                    {
+                      description: isServices ? '(−) ISSQN' : '(−) ICMS',
+                      unitValue: -unitMunicipalStateTax,
+                      totalValue: -totalMunicipalStateTax,
+                    },
+                    {
+                      description: isServices
+                        ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
+                        : 'Base PIS/COFINS (tese do século · exclui ICMS)',
+                      unitValue: unitPisCofinsBase,
+                      totalValue: totalPisCofinsBase,
+                    },
+                    {
+                      description: '(−) PIS não cumulativo (1,65%)',
+                      unitValue: -unitPis,
+                      totalValue: -totalPis,
+                    },
+                    {
+                      description: '(−) COFINS não cumulativa (7,60%)',
+                      unitValue: -unitCofins,
+                      totalValue: -totalCofins,
+                    },
+                    {
+                      description: '(=) Receita líquida',
+                      unitValue: unitNetRevenue,
+                      totalValue: totalNetRevenue,
+                    },
+                    {
+                      description: '(−) CMV (líquido de créditos)',
+                      unitValue: -unitCmvVal,
+                      totalValue: -totalCmv,
+                    },
+                    {
+                      description: '(=) Lucro bruto',
+                      unitValue: unitGrossProfit,
+                      totalValue: totalGrossProfit,
+                    },
+                    {
+                      description: '(−) Folha de salários',
+                      unitValue: qty > 0 ? -(payrollSalaries / qty) : 0,
+                      totalValue: -payrollSalaries,
+                    },
+                    {
+                      description: '(−) Pró-labore dos sócios',
+                      unitValue: qty > 0 ? -(payrollProLabore / qty) : 0,
+                      totalValue: -payrollProLabore,
+                    },
+                    {
+                      description: `(−) Encargos patronais (INSS ${formatNumberBR(payrollInssRate)}% + RAT + Terceiros)`,
+                      unitValue: qty > 0 ? -(payrollResult.patronalChargesTotal / qty) : 0,
+                      totalValue: -payrollResult.patronalChargesTotal,
+                    },
+                    {
+                      description: '(−) Outras despesas operacionais',
+                      unitValue: qty > 0 ? -(totalOtherExpenses / qty) : 0,
+                      totalValue: -totalOtherExpenses,
+                    },
+                    {
+                      description: '(=) Resultado antes do IRPJ/CSLL',
+                      unitValue: unitResultBeforeTax,
+                      totalValue: totalResultBeforeTax,
+                    },
+                    {
+                      description: `(+) Adições fiscais (LALUR) / (−) Exclusões`,
+                      unitValue: null,
+                      totalValue: totalAdditions - totalExclusions,
+                    },
+                    {
+                      description: `Base Lucro Real Tributável`,
+                      unitValue: null,
+                      totalValue: taxableRealProfit,
+                    },
+                    {
+                      description: '(−) IRPJ (15%)',
+                      unitValue: null,
+                      totalValue: -totalIrpj,
+                    },
+                    {
+                      description: '(−) Adicional de IRPJ (10%)',
+                      unitValue: null,
+                      totalValue: -totalIrpjAdditional,
+                    },
+                    {
+                      description: '(−) CSLL (9%)',
+                      unitValue: null,
+                      totalValue: -totalCsll,
+                    },
+                    {
+                      description: '(=) Lucro líquido',
+                      unitValue: unitNetProfit,
+                      totalValue: totalNetProfit,
+                    },
+                  ],
+                  summaryCards: [
+                    {
+                      title: 'Carga tributária total',
+                      value: formatBRL(totalTaxBurden),
+                      numericValue: totalTaxBurden,
+                      subtitle: `${formatPercentBR((totalTaxBurden / (totalGross || 1)) * 100)} da receita bruta`,
+                    },
+                    {
+                      title: 'Lucro líquido',
+                      value: formatBRL(totalNetProfit),
+                      numericValue: totalNetProfit,
+                      subtitle: 'Resultado final do período',
+                    },
+                    {
+                      title: 'Margem líquida (%)',
+                      value: formatPercentBR(netMargin),
+                      numericValue: netMargin,
+                      subtitle: 'Lucro líquido ÷ Receita bruta',
+                    },
+                  ],
+                  notes: [
+                    'PIS e COFINS não cumulativos apurados às alíquotas de 1,65% e 7,60% com direito a tomada de créditos sobre aquisições.',
+                    'IRPJ (15% + adicional de 10% sobre o excedente a R$ 60.000,00 trimestral) e CSLL (9%) incidentes sobre o Lucro Real contábil ajustado no LALUR.',
+                    'Despesas de salários, pró-labore e encargos patronais previdenciários dedutíveis integralmente da apuração do Lucro Real.',
+                  ],
+                })
+              }}
+            />
           </div>
         ) : (
           <div className="bg-[#0b101b]/60 border border-dashed border-slate-800 rounded-2xl p-8 text-center space-y-3">

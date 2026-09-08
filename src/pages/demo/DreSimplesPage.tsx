@@ -25,6 +25,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
+import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
+import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
 
 export default function DreSimplesPage() {
   const navigate = useNavigate()
@@ -931,6 +933,298 @@ export default function DreSimplesPage() {
                 </span>
               </div>
             </div>
+
+            {/* Botões de Exportação (PDF e Excel) */}
+            <ExportReportButtons
+              disabled={!isSimplesSimulated}
+              onExportPdf={() => {
+                exportDreToPdf({
+                  title: 'DRE — Simples Nacional (PGDAS)',
+                  regimeName: `Simples Nacional (${currentAnexoConfig.nome})`,
+                  quantity: qty,
+                  unitGrossRevenue: unitGross,
+                  totalGrossRevenue: totalGross,
+                  metadata: [
+                    { label: 'Anexo', value: currentAnexoConfig.nome },
+                    { label: 'Faixa PGDAS', value: pgdas.faixaNome },
+                    { label: 'RBT12', value: formatBRL(simplesRbt12) },
+                    {
+                      label: 'Alíquota Efetiva',
+                      value: `${formatNumberBR(pgdas.aliquotaEfetiva, 2)}%`,
+                    },
+                    ...(currentAnexoConfig.sujeitoFatorR
+                      ? [{ label: 'Fator R', value: `${fatorRResult.fatorRPercent.toFixed(2)}%` }]
+                      : []),
+                  ],
+                  rows: [
+                    {
+                      description: 'Receita bruta total',
+                      unitValue: unitGross,
+                      totalValue: totalGross,
+                    },
+                    {
+                      description: `(−) Guia única DAS (${formatNumberBR(pgdas.aliquotaEfetiva, 2)}% efetivo)`,
+                      unitValue: -unitDasTotal,
+                      totalValue: -totalDasTotal,
+                    },
+                    {
+                      description: `  · IRPJ segregado (${formatNumberBR(pgdas.reparticao.irpjRate, 2)}% da receita)`,
+                      unitValue: -unitIrpj,
+                      totalValue: -totalIrpj,
+                      isInformative: true,
+                    },
+                    {
+                      description: `  · CSLL segregada (${formatNumberBR(pgdas.reparticao.csllRate, 2)}% da receita)`,
+                      unitValue: -unitCsll,
+                      totalValue: -totalCsll,
+                      isInformative: true,
+                    },
+                    {
+                      description: `  · COFINS segregada (${formatNumberBR(pgdas.reparticao.cofinsRate, 2)}% da receita)`,
+                      unitValue: -unitCofins,
+                      totalValue: -totalCofins,
+                      isInformative: true,
+                    },
+                    {
+                      description: `  · PIS segregado (${formatNumberBR(pgdas.reparticao.pisRate, 2)}% da receita)`,
+                      unitValue: -unitPis,
+                      totalValue: -totalPis,
+                      isInformative: true,
+                    },
+                    ...(pgdas.reparticao.cppRate > 0
+                      ? [
+                          {
+                            description: `  · CPP patronal no DAS (${formatNumberBR(pgdas.reparticao.cppRate, 2)}% da receita)`,
+                            unitValue: -unitCpp,
+                            totalValue: -totalCpp,
+                            isInformative: true,
+                          },
+                        ]
+                      : []),
+                    ...(pgdas.reparticao.ipiRate > 0
+                      ? [
+                          {
+                            description: `  · IPI no DAS (${formatNumberBR(pgdas.reparticao.ipiRate, 2)}% da receita)`,
+                            unitValue: -unitIpi,
+                            totalValue: -totalIpi,
+                            isInformative: true,
+                          },
+                        ]
+                      : []),
+                    {
+                      description:
+                        currentAnexoConfig.tributoEstadualMunicipal === 'iss'
+                          ? `  · ISS Municipal (${formatNumberBR(pgdas.reparticao.issRate, 2)}% da receita)`
+                          : `  · ICMS Estadual (${formatNumberBR(pgdas.reparticao.icmsRate, 2)}% da receita)`,
+                      unitValue: -(currentAnexoConfig.tributoEstadualMunicipal === 'iss'
+                        ? unitIss
+                        : unitIcms),
+                      totalValue: -(currentAnexoConfig.tributoEstadualMunicipal === 'iss'
+                        ? totalIss
+                        : totalIcms),
+                      isInformative: true,
+                    },
+                    {
+                      description: '(=) Receita líquida',
+                      unitValue: unitNetRevenue,
+                      totalValue: totalNetRevenue,
+                      isSubtotal: true,
+                    },
+                    {
+                      description: '(−) CMV (custo não creditável)',
+                      unitValue: -unitCmvVal,
+                      totalValue: -totalCmv,
+                    },
+                    {
+                      description: '(=) Lucro bruto',
+                      unitValue: unitGrossProfit,
+                      totalValue: totalGrossProfit,
+                      isSubtotal: true,
+                    },
+                    {
+                      description: '(−) Despesas operacionais do período',
+                      unitValue: -unitExpenses,
+                      totalValue: -totalExpenses,
+                    },
+                    {
+                      description: '(=) Lucro líquido',
+                      unitValue: unitNetProfit,
+                      totalValue: totalNetProfit,
+                      isTotal: true,
+                    },
+                  ],
+                  summaryCards: [
+                    {
+                      title: 'Carga tributária total (DAS)',
+                      value: formatBRL(totalTaxBurden),
+                      numericValue: totalTaxBurden,
+                      subtitle: `${formatNumberBR(pgdas.aliquotaEfetiva, 2)}% da receita bruta`,
+                    },
+                    {
+                      title: 'Lucro líquido',
+                      value: formatBRL(totalNetProfit),
+                      numericValue: totalNetProfit,
+                      subtitle: 'Resultado final do período',
+                    },
+                    {
+                      title: 'Margem líquida',
+                      value: formatPercentBR(netMargin),
+                      numericValue: netMargin,
+                      subtitle: 'Lucro líquido ÷ Receita bruta',
+                    },
+                  ],
+                  notes: [
+                    'Guia única DAS calculada com base na fórmula legal PGDAS: [(RBT12 × Alíquota Nominal) − Parcela a Deduzir] ÷ RBT12.',
+                    'Partilha percentual dos tributos federais, estaduais e municipais em conformidade com as tabelas anexas da LC 123/2006.',
+                    currentAnexoConfig.sujeitoFatorR
+                      ? `Atividade sujeita ao Fator R (${fatorRResult.fatorRPercent.toFixed(2)}%). Enquadramento: ${
+                          fatorRResult.isElegibleAnexo3 ? 'Anexo III (≥ 28%)' : 'Anexo V (< 28%)'
+                        }.`
+                      : 'CPP (Contribuição Previdenciária Patronal) unificada na guia DAS para os Anexos I, II, III e V.',
+                    pgdas.isSublimiteExceeded
+                      ? 'Atenção: Sublimite de R$ 3.600.000,00 excedido. O recolhimento de ICMS/ISS deve ocorrer fora da guia DAS.'
+                      : 'Faturamento acumulado compatível com o sublimite estadual/municipal do Simples Nacional.',
+                  ],
+                })
+              }}
+              onExportExcel={() => {
+                exportDreToExcel({
+                  title: 'DRE — Simples Nacional (PGDAS)',
+                  regimeName: `Simples Nacional (${currentAnexoConfig.nome})`,
+                  quantity: qty,
+                  unitGrossRevenue: unitGross,
+                  totalGrossRevenue: totalGross,
+                  metadata: [
+                    { label: 'Anexo', value: currentAnexoConfig.nome },
+                    { label: 'Faixa PGDAS', value: pgdas.faixaNome },
+                    { label: 'RBT12', value: formatBRL(simplesRbt12) },
+                    {
+                      label: 'Alíquota Efetiva',
+                      value: `${formatNumberBR(pgdas.aliquotaEfetiva, 2)}%`,
+                    },
+                    ...(currentAnexoConfig.sujeitoFatorR
+                      ? [{ label: 'Fator R', value: `${fatorRResult.fatorRPercent.toFixed(2)}%` }]
+                      : []),
+                  ],
+                  rows: [
+                    {
+                      description: 'Receita bruta total',
+                      unitValue: unitGross,
+                      totalValue: totalGross,
+                    },
+                    {
+                      description: `(−) Guia única DAS (${formatNumberBR(pgdas.aliquotaEfetiva, 2)}% efetivo)`,
+                      unitValue: -unitDasTotal,
+                      totalValue: -totalDasTotal,
+                    },
+                    {
+                      description: `  · IRPJ segregado (${formatNumberBR(pgdas.reparticao.irpjRate, 2)}% da receita)`,
+                      unitValue: -unitIrpj,
+                      totalValue: -totalIrpj,
+                    },
+                    {
+                      description: `  · CSLL segregada (${formatNumberBR(pgdas.reparticao.csllRate, 2)}% da receita)`,
+                      unitValue: -unitCsll,
+                      totalValue: -totalCsll,
+                    },
+                    {
+                      description: `  · COFINS segregada (${formatNumberBR(pgdas.reparticao.cofinsRate, 2)}% da receita)`,
+                      unitValue: -unitCofins,
+                      totalValue: -totalCofins,
+                    },
+                    {
+                      description: `  · PIS segregado (${formatNumberBR(pgdas.reparticao.pisRate, 2)}% da receita)`,
+                      unitValue: -unitPis,
+                      totalValue: -totalPis,
+                    },
+                    ...(pgdas.reparticao.cppRate > 0
+                      ? [
+                          {
+                            description: `  · CPP patronal no DAS (${formatNumberBR(pgdas.reparticao.cppRate, 2)}% da receita)`,
+                            unitValue: -unitCpp,
+                            totalValue: -totalCpp,
+                          },
+                        ]
+                      : []),
+                    ...(pgdas.reparticao.ipiRate > 0
+                      ? [
+                          {
+                            description: `  · IPI no DAS (${formatNumberBR(pgdas.reparticao.ipiRate, 2)}% da receita)`,
+                            unitValue: -unitIpi,
+                            totalValue: -totalIpi,
+                          },
+                        ]
+                      : []),
+                    {
+                      description:
+                        currentAnexoConfig.tributoEstadualMunicipal === 'iss'
+                          ? `  · ISS Municipal (${formatNumberBR(pgdas.reparticao.issRate, 2)}% da receita)`
+                          : `  · ICMS Estadual (${formatNumberBR(pgdas.reparticao.icmsRate, 2)}% da receita)`,
+                      unitValue: -(currentAnexoConfig.tributoEstadualMunicipal === 'iss'
+                        ? unitIss
+                        : unitIcms),
+                      totalValue: -(currentAnexoConfig.tributoEstadualMunicipal === 'iss'
+                        ? totalIss
+                        : totalIcms),
+                    },
+                    {
+                      description: '(=) Receita líquida',
+                      unitValue: unitNetRevenue,
+                      totalValue: totalNetRevenue,
+                    },
+                    {
+                      description: '(−) CMV (custo não creditável)',
+                      unitValue: -unitCmvVal,
+                      totalValue: -totalCmv,
+                    },
+                    {
+                      description: '(=) Lucro bruto',
+                      unitValue: unitGrossProfit,
+                      totalValue: totalGrossProfit,
+                    },
+                    {
+                      description: '(−) Despesas operacionais do período',
+                      unitValue: -unitExpenses,
+                      totalValue: -totalExpenses,
+                    },
+                    {
+                      description: '(=) Lucro líquido',
+                      unitValue: unitNetProfit,
+                      totalValue: totalNetProfit,
+                    },
+                  ],
+                  summaryCards: [
+                    {
+                      title: 'Carga tributária total (DAS)',
+                      value: formatBRL(totalTaxBurden),
+                      numericValue: totalTaxBurden,
+                      subtitle: `${formatNumberBR(pgdas.aliquotaEfetiva, 2)}% da receita bruta`,
+                    },
+                    {
+                      title: 'Lucro líquido',
+                      value: formatBRL(totalNetProfit),
+                      numericValue: totalNetProfit,
+                      subtitle: 'Resultado final do período',
+                    },
+                    {
+                      title: 'Margem líquida (%)',
+                      value: formatPercentBR(netMargin),
+                      numericValue: netMargin,
+                      subtitle: 'Lucro líquido ÷ Receita bruta',
+                    },
+                  ],
+                  notes: [
+                    'Guia única DAS calculada com base na fórmula legal PGDAS: [(RBT12 × Alíquota Nominal) − Parcela a Deduzir] ÷ RBT12.',
+                    'Partilha percentual dos tributos federais, estaduais e municipais em conformidade com as tabelas anexas da LC 123/2006.',
+                    currentAnexoConfig.sujeitoFatorR
+                      ? `Atividade sujeita ao Fator R (${fatorRResult.fatorRPercent.toFixed(2)}%). Enquadramento: ${
+                          fatorRResult.isElegibleAnexo3 ? 'Anexo III (≥ 28%)' : 'Anexo V (< 28%)'
+                        }.`
+                      : 'CPP (Contribuição Previdenciária Patronal) unificada na guia DAS para os Anexos I, II, III e V.',
+                  ],
+                })
+              }}
+            />
           </div>
         ) : (
           <div className="bg-[#0b101b]/60 border border-dashed border-slate-800 rounded-2xl p-8 text-center space-y-3">
