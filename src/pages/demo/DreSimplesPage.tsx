@@ -433,7 +433,7 @@ export default function DreSimplesPage() {
                   )}
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -481,7 +481,7 @@ export default function DreSimplesPage() {
                   Folha de Salários 12 meses (FS12)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -588,7 +588,7 @@ export default function DreSimplesPage() {
                           Mês {index + 1}:
                         </span>
                         <div className="relative flex-1">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                             R$
                           </span>
                           <Input
@@ -905,7 +905,7 @@ export default function DreSimplesPage() {
                     className="flex-1 bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-200"
                   />
                   <div className="relative w-36 sm:w-44">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                       R$
                     </span>
                     <Input

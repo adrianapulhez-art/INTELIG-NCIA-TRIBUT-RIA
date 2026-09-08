@@ -777,7 +777,7 @@ export default function ComparisonPage() {
                       }}
                       className="pr-6 text-right bg-slate-900 border-emerald-500/40 text-xs font-mono text-slate-100"
                     />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400">
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
                       %
                     </span>
                   </div>
@@ -799,7 +799,7 @@ export default function ComparisonPage() {
                       }}
                       className="pr-6 text-right bg-slate-900 border-emerald-500/40 text-xs font-mono text-slate-100"
                     />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400">
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
                       %
                     </span>
                   </div>
@@ -821,7 +821,7 @@ export default function ComparisonPage() {
                       }}
                       className="pr-6 text-right bg-slate-900 border-emerald-500/40 text-xs font-mono text-slate-100"
                     />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400">
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
                       %
                     </span>
                   </div>
@@ -869,7 +869,7 @@ export default function ComparisonPage() {
                         className="flex-1 bg-slate-950/80 border-slate-800 text-xs font-mono text-slate-200 h-8"
                       />
                       <div className="relative w-32">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 pointer-events-none">
                           R$
                         </span>
                         <Input

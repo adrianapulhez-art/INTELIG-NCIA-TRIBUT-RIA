@@ -69,7 +69,7 @@ function ProductBaseValueInput({
         )}
       </div>
       <div className="relative">
-        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">
+        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
           R$
         </span>
         <Input
@@ -147,7 +147,7 @@ function ProductMarginInput({ productId, isLiquid, margin, onUpdate }: ProductMa
           }}
           className="pr-6 text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8"
         />
-        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
           %
         </span>
       </div>
@@ -603,7 +603,7 @@ export default function MarkupPage() {
                     onBlur={handleIcmsBlur}
                     className="pr-7 text-right bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs focus:border-emerald-500"
                   />
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     %
                   </span>
                 </div>

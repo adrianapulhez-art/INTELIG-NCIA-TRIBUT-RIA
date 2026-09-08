@@ -375,7 +375,7 @@ export default function DreRealPage() {
                       }}
                       className="pr-7 text-right bg-slate-900 border-emerald-500/50 text-slate-100 font-mono text-xs focus:border-emerald-400 focus:ring-emerald-500/20"
                     />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400">
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                       %
                     </span>
                   </div>
@@ -539,7 +539,7 @@ export default function DreRealPage() {
                 Adições ao lucro real (R$)
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                   R$
                 </span>
                 <Input
@@ -561,7 +561,7 @@ export default function DreRealPage() {
                 Exclusões do lucro real (R$)
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                   R$
                 </span>
                 <Input
@@ -633,7 +633,7 @@ export default function DreRealPage() {
                     className="flex-1 bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-200"
                   />
                   <div className="relative w-36 sm:w-44">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                       R$
                     </span>
                     <Input

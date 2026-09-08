@@ -227,7 +227,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                 Valor unitário da mercadoria (R$)
               </label>
               <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                   R$
                 </span>
                 <Input
@@ -256,7 +256,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                 Valor total da mercadoria (R$)
               </label>
               <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                   R$
                 </span>
                 <Input
@@ -315,7 +315,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                     }}
                     className="pr-6 text-right bg-slate-950 border-slate-800 text-xs font-mono text-slate-200 focus:border-emerald-500"
                   />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     %
                   </span>
                 </div>
@@ -348,7 +348,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                     }}
                     className="pr-6 text-right bg-slate-950 border-slate-800 text-xs font-mono text-slate-200 focus:border-emerald-500"
                   />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     %
                   </span>
                 </div>
@@ -360,7 +360,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                   ICMS s/ Frete (R$)
                 </span>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -399,7 +399,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                   </label>
                 </div>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -721,7 +721,7 @@ export default function PurchasesPage() {
                   Estoque inicial (EI) — período anterior
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -744,7 +744,7 @@ export default function PurchasesPage() {
                   Estoque final (EF) — inventário apurado
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -795,7 +795,7 @@ export default function PurchasesPage() {
                       className="flex-1 bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-200"
                     />
                     <div className="relative w-36 sm:w-44">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                         R$
                       </span>
                       <Input
@@ -856,7 +856,7 @@ export default function PurchasesPage() {
                       className="flex-1 bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-200"
                     />
                     <div className="relative w-36 sm:w-44">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                         R$
                       </span>
                       <Input
@@ -897,7 +897,7 @@ export default function PurchasesPage() {
                       Base PIS s/ frete global (R$)
                     </span>
                     <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                         R$
                       </span>
                       <Input
@@ -922,7 +922,7 @@ export default function PurchasesPage() {
                       Base COFINS s/ frete global (R$)
                     </span>
                     <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                         R$
                       </span>
                       <Input
