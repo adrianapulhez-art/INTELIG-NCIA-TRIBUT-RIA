@@ -95,7 +95,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
     item.stValue > 0 ? formatNumberBR(item.stValue) : '',
   )
 
-  // Sincroniza inputs quando não focados (ex.: resetAll ou loadSnapshot)
+  // Sincroniza inputs quando não focados (ex.: resetAll, loadSnapshot ou cálculo derivado)
   React.useEffect(() => {
     if (!qtyFocused) setQtyVal(item.quantity > 0 ? String(item.quantity) : '')
   }, [item.quantity, qtyFocused])

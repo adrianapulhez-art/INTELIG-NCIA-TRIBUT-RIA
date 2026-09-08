@@ -1033,21 +1033,33 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (field === 'quantity') {
           const parsed = typeof value === 'number' ? value : parseInt(String(value), 10)
           const cleanQty = isNaN(parsed) || parsed < 0 ? 0 : parsed
-          // Se tiver unitPrice > 0 e merchandiseValue estiver 0, calcula
+          // Se o usuário já tiver unitPrice informado (> 0), recalcula merchandiseValue = quantity * unitPrice
+          // Se merchandiseValue foi digitado diretamente e unitPrice não, deriva unitPrice se cleanQty > 0
           let merch = item.merchandiseValue
-          if (cleanQty > 0 && item.unitPrice > 0 && merch === 0) {
-            merch = cleanQty * item.unitPrice
+          let unit = item.unitPrice
+          if (unit > 0) {
+            merch = cleanQty * unit
+          } else if (cleanQty > 0 && merch > 0) {
+            unit = merch / cleanQty
           }
-          return { ...item, quantity: cleanQty, merchandiseValue: merch }
+          return { ...item, quantity: cleanQty, unitPrice: unit, merchandiseValue: merch }
         }
         if (field === 'unitPrice') {
           const num = typeof value === 'number' ? value : parseBRNumber(String(value))
           const cleanUnit = Number.isFinite(num) && num >= 0 ? num : 0
+          // Se tiver quantidade, calcula merchandiseValue = cleanUnit * quantity
           let merch = item.merchandiseValue
-          if (cleanUnit > 0 && item.quantity > 0 && merch === 0) {
+          if (item.quantity > 0) {
             merch = cleanUnit * item.quantity
           }
           return { ...item, unitPrice: cleanUnit, merchandiseValue: merch }
+        }
+        if (field === 'merchandiseValue') {
+          const num = typeof value === 'number' ? value : parseBRNumber(String(value))
+          const cleanMerch = Number.isFinite(num) && num >= 0 ? num : 0
+          // Se tiver quantidade > 0 e merchandiseValue foi alterado diretamente, deriva unitPrice
+          const unit = item.quantity > 0 ? cleanMerch / item.quantity : item.unitPrice
+          return { ...item, merchandiseValue: cleanMerch, unitPrice: unit }
         }
         // Campos numéricos gerais
         const numVal = typeof value === 'number' ? value : parseBRNumber(String(value))
