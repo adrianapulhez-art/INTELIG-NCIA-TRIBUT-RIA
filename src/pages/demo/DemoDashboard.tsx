@@ -12,6 +12,7 @@ import {
   TrendingUp,
   FileSpreadsheet,
   PieChart,
+  Layers,
 } from 'lucide-react'
 
 interface ToolCard {
@@ -108,6 +109,19 @@ export default function DemoDashboard() {
       borderAccent: 'border-emerald-400/35 hover:border-emerald-300/70',
       accentColor: 'text-emerald-300',
       icon: Scale,
+    },
+    {
+      id: 'reforma',
+      tag: 'NOVA LEGISLAÇÃO · EC 132/23',
+      title: 'Reforma Tributária (IBS/CBS)',
+      subtitle: 'Transição 2026–2033 & Plano de Voo',
+      description:
+        'Simulação da transição completa (LC 214/2025), alíquotas vigentes por ano, ponto de virada, precificação por fora e créditos amplos.',
+      path: '/demo/reforma',
+      gradient: 'from-[#0b2f28]/90 via-[#07241e]/85 to-[#041511]/95',
+      borderAccent: 'border-emerald-400/40 hover:border-emerald-300/80',
+      accentColor: 'text-emerald-300',
+      icon: Layers,
     },
     {
       id: 'clientes',

@@ -112,6 +112,23 @@ export const TABLE_ASSISTANTS: Record<string, TableAssistantConfig> = {
     contextSummary:
       'Tabela ativa: Comparação de Regimes. Confronto Simples x Presumido x Real, Análise de Sensibilidade e Ponto de Virada.',
   },
+  reforma: {
+    slug: 'it-reforma-assistant',
+    name: 'Assistente da Reforma Tributária',
+    title: 'IA — Especialista em Reforma Tributária (IBS/CBS)',
+    pageName: 'Reforma Tributária — IBS/CBS',
+    tagline: 'EC 132/23, LC 214/25, Cronograma 2026–2033 e Créditos Amplos',
+    description:
+      'Guia completo na transição 2026–2033: alíquotas vigentes por ano, cálculo por fora, plano de voo, ponto de virada, compensação CBS × PIS/COFINS e Simples Nacional.',
+    quickQuestions: [
+      'Qual é o cronograma de transição de 2026 a 2033?',
+      'Como funciona a compensação de créditos de CBS em 2026?',
+      'O que muda na precificação "por fora" em relação ao cálculo atual?',
+      'O Simples Nacional acaba ou ganha novas opções com a Reforma?',
+    ],
+    contextSummary:
+      'Tabela ativa: Reforma Tributária — IBS/CBS (EC 132/2023). Linha do tempo 2026–2033, alíquotas editáveis, plano de voo e confronto com o sistema atual.',
+  },
   clientes: {
     slug: 'it-clientes-assistant',
     name: 'Assistente de Gestão de Clientes',

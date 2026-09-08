@@ -67,6 +67,34 @@ export interface ComparisonExportOptions {
 }
 
 /**
+ * Interface para opções de exportação do Plano de Voo da Reforma Tributária
+ */
+export interface ReformaExportOptions {
+  selectedYear: number
+  quantity: number
+  totalGrossRevenue: number
+  currentRegimeName: string
+  currentTaxBurden: number
+  reformaTaxBurden: number
+  taxDifference: number
+  isReformaBetter: boolean
+  turningPointYear: number | null
+  totalTransitionSavings: number
+  yearlyFlightPlan: {
+    year: number
+    phaseTitle: string
+    cbsRate: number
+    ibsRate: number
+    isRate: number
+    taxBurden: number
+    effectiveTaxRate: number
+    netProfit: number
+    differenceVsCurrent: number
+  }[]
+  notes?: string[]
+}
+
+/**
  * Gera carimbo de data e hora em PT-BR
  */
 function getTimestampBR(): string {
@@ -644,5 +672,242 @@ export function exportComparisonToExcel(options: ComparisonExportOptions, filena
   XLSX.utils.book_append_sheet(wb, ws, 'Comparativo de Regimes')
 
   const finalName = filename || 'comparativo_regimes_tributarios.xlsx'
+  XLSX.writeFile(wb, finalName)
+}
+
+/**
+ * EXPORTAR PLANO DE VOO DA REFORMA TRIBUTÁRIA PARA PDF
+ */
+export function exportReformaToPdf(options: ReformaExportOptions, filename?: string): void {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  let currentY = drawPdfHeader(
+    doc,
+    'Plano de Voo — Reforma Tributária (EC 132/23 & LC 214/25)',
+    `Transição 2026–2033 | Comparativo vs ${options.currentRegimeName}`,
+  )
+
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const contentWidth = pageWidth - 28
+
+  // Banner executivo do Ponto de Virada / Status
+  doc.setFillColor(236, 253, 245) // emerald-50
+  doc.setDrawColor(16, 185, 129) // emerald-500
+  doc.setLineWidth(0.8)
+  doc.roundedRect(14, currentY, contentWidth, 13, 1.5, 1.5, 'FD')
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(6, 95, 70) // emerald-800
+  const turningPointText = options.turningPointYear
+    ? `PONTO DE VIRADA: ANO ${options.turningPointYear} (A partir deste ano, o sistema novo supera o regime atual)`
+    : 'SISTEMA ATUAL SEGUE MAIS ECONÔMICO DURANTE TODA A TRANSIÇÃO'
+  doc.text(turningPointText, 17, currentY + 5)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(7.5)
+  const savingsText =
+    options.totalTransitionSavings > 0
+      ? `Economia acumulada estimada (2026–2033): ${formatBRL(options.totalTransitionSavings)}`
+      : 'Carga tributária no novo sistema estimada sob não-cumulatividade plena'
+  const subMeta = `Ano em análise: ${options.selectedYear} | Receita Bruta: ${formatBRL(options.totalGrossRevenue)}`
+  doc.text(`${savingsText}   —   ${subMeta}`, 17, currentY + 9.5)
+
+  currentY += 17
+
+  // Tabela do Plano de Voo Ano a Ano
+  const tableHeaders = [
+    [
+      'Ano',
+      'Fase Legal',
+      'CBS (%)',
+      'IBS (%)',
+      'Carga Anual (R$)',
+      'Alíq. Efetiva',
+      'Dif. vs Atual',
+    ],
+  ]
+  const tableData = options.yearlyFlightPlan.map((row) => {
+    const isSelected = row.year === options.selectedYear
+    const yearLabel = isSelected ? `${row.year} ★` : String(row.year)
+    const diffText =
+      row.differenceVsCurrent < 0
+        ? `-${formatBRL(Math.abs(row.differenceVsCurrent))}`
+        : `+${formatBRL(row.differenceVsCurrent)}`
+    return [
+      yearLabel,
+      row.phaseTitle,
+      `${formatPercentBR(row.cbsRate)}`,
+      `${formatPercentBR(row.ibsRate)}`,
+      formatBRL(row.taxBurden),
+      formatPercentBR(row.effectiveTaxRate),
+      diffText,
+    ]
+  })
+
+  autoTable(doc, {
+    startY: currentY,
+    head: tableHeaders,
+    body: tableData,
+    theme: 'plain',
+    margin: { left: 14, right: 14 },
+    styles: {
+      font: 'helvetica',
+      fontSize: 7.5,
+      cellPadding: 2,
+      textColor: [30, 41, 59],
+      lineColor: [226, 232, 240],
+      lineWidth: 0.1,
+    },
+    headStyles: {
+      fillColor: [15, 23, 42],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      halign: 'left',
+    },
+    columnStyles: {
+      0: { cellWidth: 16, halign: 'center' },
+      1: { cellWidth: 'auto', halign: 'left' },
+      2: { cellWidth: 18, halign: 'right' },
+      3: { cellWidth: 18, halign: 'right' },
+      4: { cellWidth: 28, halign: 'right' },
+      5: { cellWidth: 22, halign: 'right' },
+      6: { cellWidth: 28, halign: 'right' },
+    },
+    didParseCell: (data) => {
+      if (data.section === 'head' && data.column.index >= 2) {
+        data.cell.styles.halign = 'right'
+      }
+      if (data.section === 'body') {
+        const item = options.yearlyFlightPlan[data.row.index]
+        if (item && item.year === options.selectedYear) {
+          data.cell.styles.fontStyle = 'bold'
+          data.cell.styles.fillColor = [236, 253, 245]
+          data.cell.styles.textColor = [6, 95, 70]
+        }
+        if (data.column.index === 6 && item) {
+          if (item.differenceVsCurrent < 0) {
+            data.cell.styles.textColor = [5, 150, 105] // verde economia
+            data.cell.styles.fontStyle = 'bold'
+          } else if (item.differenceVsCurrent > 0) {
+            data.cell.styles.textColor = [225, 29, 72] // rose aumento
+          }
+        }
+      }
+    },
+  })
+
+  const finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6
+
+  // Notas e Observações Legais
+  if (options.notes && options.notes.length > 0) {
+    let noteY = finalY
+    if (noteY + 25 > doc.internal.pageSize.getHeight() - 15) {
+      doc.addPage()
+      noteY = 20
+    }
+
+    doc.setFontSize(7.5)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(71, 85, 105)
+    doc.text('FUNDAMENTAÇÃO LEGAL E DIRETRIZES DA REFORMA:', 14, noteY)
+    noteY += 4
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7)
+    doc.setTextColor(100, 116, 139)
+
+    options.notes.forEach((note) => {
+      const splitNote = doc.splitTextToSize(`• ${note}`, contentWidth)
+      doc.text(splitNote, 14, noteY)
+      noteY += splitNote.length * 3.5
+    })
+  }
+
+  drawPdfFooter(doc)
+
+  const finalName = filename || `plano_de_voo_reforma_tributaria_${options.selectedYear}.pdf`
+  doc.save(finalName)
+}
+
+/**
+ * EXPORTAR PLANO DE VOO DA REFORMA TRIBUTÁRIA PARA EXCEL
+ */
+export function exportReformaToExcel(options: ReformaExportOptions, filename?: string): void {
+  const wb = XLSX.utils.book_new()
+  const sheetData: (string | number | null | undefined)[][] = []
+
+  sheetData.push(['IT — Inteligência Tributária'])
+  sheetData.push(['Plano de Voo da Reforma Tributária — IBS/CBS (EC 132/23 & LC 214/25)'])
+  sheetData.push([`Regime atual de confronto: ${options.currentRegimeName}`])
+  sheetData.push([`Ano selecionado em análise: ${options.selectedYear}`])
+  if (options.turningPointYear) {
+    sheetData.push([`Ponto de Virada estimado: Ano ${options.turningPointYear}`])
+  }
+  if (options.totalTransitionSavings > 0) {
+    sheetData.push([
+      `Economia acumulada estimada (2026–2033): R$ ${options.totalTransitionSavings.toFixed(2)}`,
+    ])
+  }
+  sheetData.push([`Data de emissão: ${getTimestampBR()}`])
+  sheetData.push([
+    `Base operacional: ${options.quantity} unidades | Faturamento Bruto: R$ ${options.totalGrossRevenue.toFixed(2)}`,
+  ])
+  sheetData.push([])
+
+  // Cabeçalho da Planilha
+  sheetData.push([
+    'Ano',
+    'Fase de Transição Legal',
+    'Alíquota CBS (%)',
+    'Alíquota IBS (%)',
+    'Alíquota IS (%)',
+    'Carga Tributária Total no Ano (R$)',
+    'Alíquota Efetiva (%)',
+    'Lucro Líquido Projetado (R$)',
+    'Carga Atual de Confronto (R$)',
+    'Diferença vs Atual (R$)',
+    'Veredito',
+  ])
+
+  options.yearlyFlightPlan.forEach((r) => {
+    sheetData.push([
+      r.year,
+      r.phaseTitle,
+      r.cbsRate,
+      r.ibsRate,
+      r.isRate,
+      r.taxBurden,
+      r.effectiveTaxRate,
+      r.netProfit,
+      options.currentTaxBurden,
+      r.differenceVsCurrent,
+      r.differenceVsCurrent < 0 ? 'Economia no Novo Sistema' : 'Regime Atual Mais Econômico',
+    ])
+  })
+
+  if (options.notes && options.notes.length > 0) {
+    sheetData.push([])
+    sheetData.push(['Notas Técnicas e Premissas Legais (LC 214/2025 e EC 132/2023)'])
+    options.notes.forEach((n) => sheetData.push([n]))
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(sheetData)
+  ws['!cols'] = [
+    { wch: 10 },
+    { wch: 38 },
+    { wch: 16 },
+    { wch: 16 },
+    { wch: 16 },
+    { wch: 28 },
+    { wch: 18 },
+    { wch: 24 },
+    { wch: 24 },
+    { wch: 22 },
+    { wch: 26 },
+  ]
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Plano de Voo 2026-2033')
+
+  const finalName = filename || `plano_de_voo_reforma_tributaria_${options.selectedYear}.xlsx`
   XLSX.writeFile(wb, finalName)
 }

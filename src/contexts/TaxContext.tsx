@@ -6,6 +6,7 @@ import {
   InterstateSubsystemState,
   INITIAL_INTERSTATE_SUBSYSTEM,
 } from '@/lib/specialOperationsCalculations'
+import { ReformaState, ReformaYear, INITIAL_REFORMA_STATE } from '@/lib/reformaCalculations'
 
 export type TaxRegime = 'presumido' | 'real' | 'simples'
 export type ActivityType = 'comercio' | 'industria' | 'servicos'
@@ -126,6 +127,8 @@ export interface TaxStateSnapshot {
   // Subsistemas Especializados (Opt-in)
   stSubsystem?: StSubsystemState
   interstateSubsystem?: InterstateSubsystemState
+  // Subsistema Reforma Tributária — IBS/CBS (EC 132/23 e LC 214/25)
+  reformaState?: ReformaState
 }
 
 export interface TaxContextType {
@@ -358,6 +361,12 @@ export interface TaxContextType {
     value: InterstateSubsystemState[K],
   ) => void
 
+  // SUBSISTEMA 3: REFORMA TRIBUTÁRIA — IBS/CBS (EC 132/23)
+  reformaState: ReformaState
+  setReformaState: React.Dispatch<React.SetStateAction<ReformaState>>
+  updateReformaState: <K extends keyof ReformaState>(key: K, value: ReformaState[K]) => void
+  setSelectedReformaYear: (year: ReformaYear) => void
+
   // Limpar/Resetar tudo para zerado
   resetAll: () => void
 }
@@ -534,6 +543,15 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     value: InterstateSubsystemState[K],
   ) => {
     setInterstateSubsystem((prev) => ({ ...prev, [key]: value }))
+  }
+
+  // SUBSISTEMA 3: REFORMA TRIBUTÁRIA — IBS/CBS (EC 132/23 e LC 214/25)
+  const [reformaState, setReformaState] = useState<ReformaState>(INITIAL_REFORMA_STATE)
+  const updateReformaState = <K extends keyof ReformaState>(key: K, value: ReformaState[K]) => {
+    setReformaState((prev) => ({ ...prev, [key]: value }))
+  }
+  const setSelectedReformaYear = (year: ReformaYear) => {
+    setReformaState((prev) => ({ ...prev, selectedYear: year }))
   }
 
   // Limpeza preventiva de rascunhos de versões legadas / antigas no localStorage e sessionStorage
@@ -1346,6 +1364,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setStSubsystem(INITIAL_ST_SUBSYSTEM)
     setInterstateSubsystem(INITIAL_INTERSTATE_SUBSYSTEM)
+    setReformaState(INITIAL_REFORMA_STATE)
 
     try {
       if (typeof window !== 'undefined') {
@@ -1435,6 +1454,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       payrollTerceirosRate,
       stSubsystem,
       interstateSubsystem,
+      reformaState,
     }
   }
 
@@ -1597,6 +1617,15 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setInterstateSubsystem(INITIAL_INTERSTATE_SUBSYSTEM)
     }
 
+    if (snapshot.reformaState) {
+      setReformaState({
+        ...INITIAL_REFORMA_STATE,
+        ...snapshot.reformaState,
+      })
+    } else {
+      setReformaState(INITIAL_REFORMA_STATE)
+    }
+
     // Nota: O carregamento de cenários do banco atualiza o estado em memória
     // mantendo a aplicação consistente sem poluir o rascunho de inicialização
   }
@@ -1744,6 +1773,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         interstateSubsystem,
         setInterstateSubsystem,
         updateInterstateSubsystem,
+
+        reformaState,
+        setReformaState,
+        updateReformaState,
+        setSelectedReformaYear,
 
         getSnapshot,
         loadSnapshot,

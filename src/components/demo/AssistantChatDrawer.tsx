@@ -83,6 +83,14 @@ export const AssistantChatDrawer: React.FC<AssistantChatDrawerProps> = ({
       } else if (currentTab === 'comparacao') {
         parts.push(`Folha salários: ${formatBRL(taxContext.payrollSalaries)}`)
         parts.push(`Pró-labore: ${formatBRL(taxContext.payrollProLabore)}`)
+      } else if (currentTab === 'reforma') {
+        parts.push(`Ano selecionado da Reforma: ${taxContext.reformaState.selectedYear}`)
+        parts.push(
+          `Imposto Seletivo ativo: ${taxContext.reformaState.enableImpostoSeletivo ? 'Sim' : 'Não'}`,
+        )
+        parts.push(`CBS Ref: ${taxContext.reformaState.referenceCbsRate}%`)
+        parts.push(`IBS Ref: ${taxContext.reformaState.referenceIbsRate}%`)
+        parts.push(`Faturamento Base: ${formatBRL(taxContext.totalConsolidatedRevenue)}`)
       }
       return parts.join(' | ')
     } catch {

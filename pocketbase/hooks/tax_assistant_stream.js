@@ -25,6 +25,7 @@ routerAdd(
         'it-real-assistant',
         'it-comparacao-assistant',
         'it-clientes-assistant',
+        'it-reforma-assistant',
       ]
 
       let agentSlug = (body.agent_slug || 'it-tax-assistant').trim()
