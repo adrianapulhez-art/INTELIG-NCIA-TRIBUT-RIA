@@ -155,7 +155,8 @@ export default function DreSimplesPage() {
 
   // CÁLCULOS TOTAIS DA DRE
   const totalGross =
-    hasConsolidated && (qty === totalConsolidatedQuantity || qty === 1)
+    hasConsolidated &&
+    (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
       ? totalConsolidatedRevenue
       : unitGross * (qty > 0 ? qty : 0)
 
@@ -174,7 +175,7 @@ export default function DreSimplesPage() {
   const totalNetProfit = totalGrossProfit - totalExpenses
 
   // Cards de Resumo
-  const totalTaxBurden = totalDasTotal
+  const totalTaxBurden = totalGross > 0 ? totalDasTotal : 0
   const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
 
   // Handlers
@@ -366,8 +367,12 @@ export default function DreSimplesPage() {
                   <Input
                     type="text"
                     placeholder="0,00"
-                    defaultValue={rbt12Input}
-                    key={`rbt-${simplesRbt12}`}
+                    value={rbt12Input}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setRbt12Input(val)
+                      setSimplesRbt12(parseBRNumber(val))
+                    }}
                     onBlur={handleRbt12Blur}
                     className="pl-9 bg-slate-900 border-slate-800 text-slate-100 font-mono text-xs focus:border-emerald-500"
                   />
@@ -389,8 +394,12 @@ export default function DreSimplesPage() {
                   <Input
                     type="text"
                     placeholder="0,00"
-                    defaultValue={payrollInput}
-                    key={`pay-${simplesPayroll12m}`}
+                    value={payrollInput}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setPayrollInput(val)
+                      setSimplesPayroll12m(parseBRNumber(val))
+                    }}
                     onBlur={handlePayrollBlur}
                     className="pl-9 bg-slate-900 border-slate-800 text-slate-100 font-mono text-xs focus:border-emerald-500"
                   />

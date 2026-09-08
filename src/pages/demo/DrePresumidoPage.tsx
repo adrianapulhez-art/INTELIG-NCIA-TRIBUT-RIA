@@ -165,14 +165,10 @@ export default function DrePresumidoPage() {
   const unitResultBeforeTax = unitGrossProfit - unitExpenses
 
   // CÁLCULOS TOTAIS:
-  // Se a receita veio de consolidado multi-produtos e o usuário não digitou multiplicador diferente (qty <= 1 ou igual à soma dos produtos):
-  // O valor total é a receita consolidada integral.
-  // Quando qty > 1, multiplica conforme o padrão do sistema (ou se o usuário ajustou a quantidade na DRE).
   const qty = effectiveQuantity
-  // Multiplicador da coluna Total: se qty === 0, Total = 0. Se qty > 0:
-  // Quando há consolidado e a quantidade informada coincide com a quantidade consolidada, o totalGross já é o totalConsolidatedRevenue.
   const totalGross =
-    hasConsolidated && (qty === totalConsolidatedQuantity || qty === 1)
+    hasConsolidated &&
+    (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
       ? totalConsolidatedRevenue
       : unitGross * (qty > 0 ? qty : 0)
 
@@ -212,15 +208,16 @@ export default function DrePresumidoPage() {
   // Cards de resumo
   // Carga tributária total = Tributo Municipal/Estadual + PIS + COFINS + IRPJ + Adicional IRPJ + CSLL + Encargos Patronais (INSS/RAT/Terceiros)
   const totalTaxBurden =
-    totalMunicipalStateTax +
-    totalPis +
-    totalCofins +
-    totalIrpj +
-    totalIrpjAdditional +
-    totalCsll +
-    payrollResult.patronalChargesTotal
+    totalGross > 0
+      ? totalMunicipalStateTax +
+        totalPis +
+        totalCofins +
+        totalIrpj +
+        totalIrpjAdditional +
+        totalCsll +
+        payrollResult.patronalChargesTotal
+      : 0
   const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
-
   return (
     <DemoLayout currentTab="dre-presumido">
       <div className="space-y-6 max-w-5xl mx-auto">
@@ -388,6 +385,11 @@ export default function DrePresumidoPage() {
                         const val = e.target.value
                         setIssInput(val)
                         setPresumidoIssRate(parseBRNumber(val))
+                      }}
+                      onBlur={(e) => {
+                        const val = parseBRNumber(e.target.value)
+                        setPresumidoIssRate(val)
+                        setIssInput(val > 0 ? formatNumberBR(val) : '')
                       }}
                       className="pr-7 text-right bg-slate-900 border-emerald-500/50 text-slate-100 font-mono text-xs focus:border-emerald-400 focus:ring-emerald-500/20"
                     />

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 import { useTaxContext } from '@/contexts/TaxContext'
@@ -25,6 +25,101 @@ import { calculatePgdas, SimplesAnexoId } from '@/lib/simplesCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+
+interface ProductBaseValueInputProps {
+  productId: string
+  isLiquid: boolean
+  value: number
+  onUpdate: (id: string, field: 'desiredNetRevenue' | 'cost', val: number) => void
+}
+
+function ProductBaseValueInput({
+  productId,
+  isLiquid,
+  value,
+  onUpdate,
+}: ProductBaseValueInputProps) {
+  const [text, setText] = useState<string>(value > 0 ? formatNumberBR(value) : '')
+
+  useEffect(() => {
+    setText(value > 0 ? formatNumberBR(value) : '')
+  }, [value])
+
+  return (
+    <div className="space-y-1">
+      <label className="text-[11px] text-slate-300 font-semibold">
+        {isLiquid ? 'Receita líquida desejada' : 'Custo base'}
+      </label>
+      <div className="relative">
+        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">
+          R$
+        </span>
+        <Input
+          type="text"
+          placeholder="0,00"
+          value={text}
+          onChange={(e) => {
+            const raw = e.target.value
+            setText(raw)
+            const num = parseBRNumber(raw)
+            onUpdate(productId, isLiquid ? 'desiredNetRevenue' : 'cost', num)
+          }}
+          onBlur={(e) => {
+            const num = parseBRNumber(e.target.value)
+            setText(num > 0 ? formatNumberBR(num) : '')
+            onUpdate(productId, isLiquid ? 'desiredNetRevenue' : 'cost', num)
+          }}
+          className="pl-8 text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8"
+        />
+      </div>
+    </div>
+  )
+}
+
+interface ProductMarginInputProps {
+  productId: string
+  isLiquid: boolean
+  margin: number
+  onUpdate: (id: string, margin: number) => void
+}
+
+function ProductMarginInput({ productId, isLiquid, margin, onUpdate }: ProductMarginInputProps) {
+  const [text, setText] = useState<string>(margin > 0 ? formatNumberBR(margin) : '')
+
+  useEffect(() => {
+    setText(margin > 0 ? formatNumberBR(margin) : '')
+  }, [margin])
+
+  return (
+    <div className="space-y-1">
+      <label className="text-[11px] text-slate-300 font-semibold">
+        {isLiquid ? 'Margem adicional (%)' : 'Margem de lucro (%)'}
+      </label>
+      <div className="relative">
+        <Input
+          type="text"
+          placeholder="0,00"
+          value={text}
+          onChange={(e) => {
+            const raw = e.target.value
+            setText(raw)
+            const num = parseBRNumber(raw)
+            onUpdate(productId, num)
+          }}
+          onBlur={(e) => {
+            const num = parseBRNumber(e.target.value)
+            setText(num > 0 ? formatNumberBR(num) : '')
+            onUpdate(productId, num)
+          }}
+          className="pr-6 text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8"
+        />
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">
+          %
+        </span>
+      </div>
+    </div>
+  )
+}
 
 export default function MarkupPage() {
   const navigate = useNavigate()
@@ -58,6 +153,10 @@ export default function MarkupPage() {
   const [icmsInput, setIcmsInput] = useState<string>(
     icmsRateMarkup > 0 ? formatNumberBR(icmsRateMarkup) : '',
   )
+
+  useEffect(() => {
+    setIcmsInput(icmsRateMarkup > 0 ? formatNumberBR(icmsRateMarkup) : '')
+  }, [icmsRateMarkup])
 
   // Estado para novo tributo customizado
   const [showAddCustomTax, setShowAddCustomTax] = useState(false)
@@ -402,8 +501,8 @@ export default function MarkupPage() {
                   Produtos / Serviços Cadastrados
                 </h3>
               </div>
-              <span className="text-[11px] font-mono text-slate-400">
-                Preencha os valores; clique em <strong>Simular</strong> ao final
+              <span className="text-[11px] font-mono text-emerald-400">
+                Atualização em tempo real · clique em <strong>Simular</strong> ou navegue livremente
               </span>
             </div>
 
@@ -472,61 +571,22 @@ export default function MarkupPage() {
                     {/* Linha de Campos: Base de cálculo, Margem (se aplicável), Quantidade e Preço Resultante */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
                       {/* Campo 1: Valor Base (Receita Líquida ou Custo) */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] text-slate-300 font-semibold">
-                          {isProdLiquid ? 'Receita líquida desejada' : 'Custo base'}
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">
-                            R$
-                          </span>
-                          <Input
-                            type="text"
-                            placeholder="0,00"
-                            defaultValue={
-                              isProdLiquid
-                                ? prod.desiredNetRevenue > 0
-                                  ? formatNumberBR(prod.desiredNetRevenue)
-                                  : ''
-                                : prod.cost > 0
-                                  ? formatNumberBR(prod.cost)
-                                  : ''
-                            }
-                            key={`${prod.id}-${prod.mode}-${isProdLiquid ? prod.desiredNetRevenue : prod.cost}`}
-                            onBlur={(e) => {
-                              const val = parseBRNumber(e.target.value)
-                              if (isProdLiquid) {
-                                updateMarkupProduct(prod.id, 'desiredNetRevenue', val)
-                              } else {
-                                updateMarkupProduct(prod.id, 'cost', val)
-                              }
-                            }}
-                            className="pl-8 text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8"
-                          />
-                        </div>
-                      </div>
+                      <ProductBaseValueInput
+                        key={`base-${prod.id}-${prod.mode}`}
+                        productId={prod.id}
+                        isLiquid={isProdLiquid}
+                        value={isProdLiquid ? prod.desiredNetRevenue : prod.cost}
+                        onUpdate={(id, field, val) => updateMarkupProduct(id, field, val)}
+                      />
 
                       {/* Campo 2: Margem de Lucro (%) */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] text-slate-300 font-semibold">
-                          {isProdLiquid ? 'Margem adicional (%)' : 'Margem de lucro (%)'}
-                        </label>
-                        <div className="relative">
-                          <Input
-                            type="text"
-                            placeholder="0,00"
-                            defaultValue={prod.margin > 0 ? formatNumberBR(prod.margin) : ''}
-                            key={`${prod.id}-margin-${prod.margin}`}
-                            onBlur={(e) => {
-                              updateMarkupProduct(prod.id, 'margin', parseBRNumber(e.target.value))
-                            }}
-                            className="pr-6 text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8"
-                          />
-                          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">
-                            %
-                          </span>
-                        </div>
-                      </div>
+                      <ProductMarginInput
+                        key={`margin-${prod.id}`}
+                        productId={prod.id}
+                        isLiquid={isProdLiquid}
+                        margin={prod.margin}
+                        onUpdate={(id, val) => updateMarkupProduct(id, 'margin', val)}
+                      />
 
                       {/* Campo 3: Quantidade Vendida */}
                       <div className="space-y-1">
@@ -537,9 +597,8 @@ export default function MarkupPage() {
                           type="number"
                           min="0"
                           placeholder="0"
-                          defaultValue={prod.quantity > 0 ? String(prod.quantity) : ''}
-                          key={`${prod.id}-qty-${prod.quantity}`}
-                          onBlur={(e) => {
+                          value={prod.quantity > 0 ? String(prod.quantity) : ''}
+                          onChange={(e) => {
                             const val = parseInt(e.target.value, 10)
                             updateMarkupProduct(
                               prod.id,

@@ -162,7 +162,8 @@ export default function DreRealPage() {
   // CÁLCULOS TOTAIS
   const qty = effectiveQuantity
   const totalGross =
-    hasConsolidated && (qty === totalConsolidatedQuantity || qty === 1)
+    hasConsolidated &&
+    (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
       ? totalConsolidatedRevenue
       : unitGross * (qty > 0 ? qty : 0)
 
@@ -203,15 +204,16 @@ export default function DreRealPage() {
   // Cards de resumo
   // Carga tributária total = Tributo Municipal/Estadual + PIS + COFINS + IRPJ + Adicional IRPJ + CSLL + Encargos Patronais
   const totalTaxBurden =
-    totalMunicipalStateTax +
-    totalPis +
-    totalCofins +
-    totalIrpj +
-    totalIrpjAdditional +
-    totalCsll +
-    payrollResult.patronalChargesTotal
+    totalGross > 0
+      ? totalMunicipalStateTax +
+        totalPis +
+        totalCofins +
+        totalIrpj +
+        totalIrpjAdditional +
+        totalCsll +
+        payrollResult.patronalChargesTotal
+      : 0
   const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
-
   return (
     <DemoLayout currentTab="dre-real">
       <div className="space-y-6 max-w-5xl mx-auto">
@@ -323,6 +325,11 @@ export default function DreRealPage() {
                         const val = e.target.value
                         setIssInput(val)
                         setRealIssRate(parseBRNumber(val))
+                      }}
+                      onBlur={(e) => {
+                        const val = parseBRNumber(e.target.value)
+                        setRealIssRate(val)
+                        setIssInput(val > 0 ? formatNumberBR(val) : '')
                       }}
                       className="pr-7 text-right bg-slate-900 border-emerald-500/50 text-slate-100 font-mono text-xs focus:border-emerald-400 focus:ring-emerald-500/20"
                     />

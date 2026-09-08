@@ -199,13 +199,15 @@ export default function ComparisonPage() {
 
     const totalNetProfit = totalResultBeforeTax - totalIrpj - totalIrpjAdditional - totalCsll
     const totalTaxBurden =
-      totalMunicipalStateTax +
-      totalPis +
-      totalCofins +
-      totalIrpj +
-      totalIrpjAdditional +
-      totalCsll +
-      patronalCharges
+      totalGross > 0
+        ? totalMunicipalStateTax +
+          totalPis +
+          totalCofins +
+          totalIrpj +
+          totalIrpjAdditional +
+          totalCsll +
+          patronalCharges
+        : 0
     const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
     const effectiveTaxRate = totalGross > 0 ? (totalTaxBurden / totalGross) * 100 : 0
 
@@ -297,13 +299,15 @@ export default function ComparisonPage() {
 
     const totalNetProfit = totalResultBeforeTax - totalIrpj - totalIrpjAdditional - totalCsll
     const totalTaxBurden =
-      totalMunicipalStateTax +
-      totalPis +
-      totalCofins +
-      totalIrpj +
-      totalIrpjAdditional +
-      totalCsll +
-      patronalCharges
+      totalGross > 0
+        ? totalMunicipalStateTax +
+          totalPis +
+          totalCofins +
+          totalIrpj +
+          totalIrpjAdditional +
+          totalCsll +
+          patronalCharges
+        : 0
     const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
     const effectiveTaxRate = totalGross > 0 ? (totalTaxBurden / totalGross) * 100 : 0
 
@@ -395,7 +399,7 @@ export default function ComparisonPage() {
     const totalExpenses = totalOtherExpenses + directPayrollExpenses
     const totalResultBeforeTax = totalGrossProfit - totalExpenses
     const totalNetProfit = totalGrossProfit - totalExpenses
-    const totalTaxBurden = totalDasTotal
+    const totalTaxBurden = totalGross > 0 ? totalDasTotal : 0
     const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
     const effectiveTaxRate = pgdas.aliquotaEfetiva
 

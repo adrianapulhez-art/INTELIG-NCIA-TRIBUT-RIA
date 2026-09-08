@@ -719,11 +719,20 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const cmvSimplesNetPurchases = totalAdditions - totalDeductionsBase
   const cmvSimples = Math.max(0, initialInventory + cmvSimplesNetPurchases - finalInventory)
 
-  // SIMULAÇÃO DO MARKUP
-  const simulateMarkup = () => {
+  // CÁLCULO REATIVO AUTOMÁTICO DO MARKUP (executado sempre que os produtos, taxas ou regime mudam)
+  // Mantém a regra de ouro: se tudo estiver zerado (nenhum produto com receita/custo preenchido),
+  // os resultados permanecem zerados e isMarkupSimulated = false.
+  // Assim que o usuário digita qualquer valor, o cálculo ocorre instantaneamente e alimenta todas as conexões.
+  useEffect(() => {
+    // Verifica se há pelo menos um produto com valor base preenchido (> 0)
+    const hasAnyFilledProduct = markupProducts.some(
+      (p) =>
+        (p.mode === 'liquid' ? (p.desiredNetRevenue || 0) > 0 : (p.cost || 0) > 0) ||
+        (p.quantity || 0) > 0 ||
+        (p.margin || 0) > 0,
+    )
+
     // Alíquotas conforme regime
-    // No Simples Nacional, não há incidência de PIS/COFINS em separado (o recolhimento é unificado no DAS).
-    // Fator de PIS e COFINS = 1.0 (0% separados). O ICMS pode ser destacado ou mantido livre.
     const pisRate = regime === 'simples' ? 0 : regime === 'presumido' ? 0.0065 : 0.0165
     const cofinsRate = regime === 'simples' ? 0 : regime === 'presumido' ? 0.03 : 0.076
     const icmsFactor = 1 - (icmsRateMarkup || 0) / 100
@@ -737,7 +746,103 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       baseTaxFactor *= 1 - (tax.rate || 0) / 100
     }
 
-    // Calcular cada produto individualmente
+    // Se não há dados preenchidos, não ativa a simulação automaticamente
+    if (!hasAnyFilledProduct) {
+      // Se já estava desligado e tudo está zerado, apenas mantém zerado
+      setIsMarkupSimulated((prev) => (prev ? false : prev))
+      setSimulatedTaxFactorTotal(0)
+      setSimulatedCompleteFactor(0)
+      setSimulatedSalePrice(0)
+      setTotalConsolidatedRevenue(0)
+      setTotalConsolidatedQuantity(0)
+      setTotalConsolidatedCost(0)
+      return
+    }
+
+    // Calcular valores de cada produto
+    let totalRev = 0
+    let totalQty = 0
+    let totalCostVal = 0
+
+    const updated = markupProducts.map((p) => {
+      const margin = p.margin || 0
+      const marginFactor = 1 - margin / 100
+      const completeFactor = baseTaxFactor * marginFactor
+
+      let baseValue = 0
+      if (p.mode === 'liquid') {
+        baseValue = p.desiredNetRevenue || 0
+      } else {
+        baseValue = p.cost || 0
+      }
+
+      const salePrice = completeFactor > 0 && baseValue > 0 ? baseValue / completeFactor : 0
+      const roundedPrice = Math.round(salePrice * 100) / 100
+      const qty = p.quantity || 0
+      const rev = roundedPrice * qty
+      const costItem = (p.cost || 0) * qty
+
+      totalRev += rev
+      totalQty += qty
+      totalCostVal += costItem
+
+      return {
+        ...p,
+        salePrice: roundedPrice,
+        taxFactor: baseTaxFactor,
+        completeFactor,
+        totalRevenue: Math.round(rev * 100) / 100,
+        totalCost: Math.round(costItem * 100) / 100,
+      }
+    })
+
+    // Sincroniza produtos internamente sem loop infinito
+    const hasDiff = updated.some(
+      (p, i) =>
+        p.salePrice !== markupProducts[i]?.salePrice ||
+        p.completeFactor !== markupProducts[i]?.completeFactor ||
+        p.totalRevenue !== markupProducts[i]?.totalRevenue,
+    )
+    if (hasDiff) {
+      setMarkupProducts(updated)
+    }
+
+    const firstProduct = updated[0]
+    const legacyCompleteFactor = firstProduct
+      ? firstProduct.completeFactor
+      : baseTaxFactor * (1 - (additionalMargin || 0) / 100)
+    const legacySalePrice = firstProduct ? firstProduct.salePrice : 0
+
+    setSimulatedTaxFactorTotal(baseTaxFactor)
+    setSimulatedCompleteFactor(legacyCompleteFactor)
+    setSimulatedSalePrice(legacySalePrice)
+    setTotalConsolidatedRevenue(Math.round(totalRev * 100) / 100)
+    setTotalConsolidatedQuantity(totalQty)
+    setTotalConsolidatedCost(Math.round(totalCostVal * 100) / 100)
+
+    // Ativa exibição automática dos resultados apenas quando há preço ou receita calculada
+    if (legacySalePrice > 0 || totalRev > 0) {
+      setIsMarkupSimulated(true)
+    }
+  }, [regime, icmsRateMarkup, customTaxesMarkup, additionalMargin, markupProducts])
+
+  // SIMULAÇÃO DO MARKUP MANUAL (mantido para atender cliques no botão "Simular", garantindo reciprocidade)
+  const simulateMarkup = () => {
+    const pisRate = regime === 'simples' ? 0 : regime === 'presumido' ? 0.0065 : 0.0165
+    const cofinsRate = regime === 'simples' ? 0 : regime === 'presumido' ? 0.03 : 0.076
+    const icmsFactor = 1 - (icmsRateMarkup || 0) / 100
+    const pisFactor = regime === 'simples' ? 1 : 1 - pisRate
+    const cofinsFactor = regime === 'simples' ? 1 : 1 - cofinsRate
+
+    let baseTaxFactor = icmsFactor * pisFactor * cofinsFactor
+    for (const tax of customTaxesMarkup) {
+      baseTaxFactor *= 1 - (tax.rate || 0) / 100
+    }
+
+    let consolidatedRevenue = 0
+    let consolidatedQty = 0
+    let consolidatedCost = 0
+
     const updatedProducts = markupProducts.map((p) => {
       const margin = p.margin || 0
       const marginFactor = 1 - margin / 100
@@ -756,6 +861,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const totalRev = roundedPrice * qty
       const totalCost = (p.cost || 0) * qty
 
+      consolidatedRevenue += totalRev
+      consolidatedQty += qty
+      consolidatedCost += totalCost
+
       return {
         ...p,
         salePrice: roundedPrice,
@@ -767,17 +876,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     })
 
     setMarkupProducts(updatedProducts)
-
-    // Totais consolidados
-    const consolidatedRevenue = updatedProducts.reduce((acc, p) => acc + (p.totalRevenue || 0), 0)
-    const consolidatedQty = updatedProducts.reduce((acc, p) => acc + (p.quantity || 0), 0)
-    const consolidatedCost = updatedProducts.reduce((acc, p) => acc + (p.totalCost || 0), 0)
-
     setTotalConsolidatedRevenue(Math.round(consolidatedRevenue * 100) / 100)
     setTotalConsolidatedQuantity(consolidatedQty)
     setTotalConsolidatedCost(Math.round(consolidatedCost * 100) / 100)
 
-    // Se houver pelo menos 1 produto, sincronizar também com os campos legados para retrocompatibilidade
     const firstProduct = updatedProducts[0]
     const legacyCompleteFactor = firstProduct
       ? firstProduct.completeFactor
@@ -787,7 +889,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSimulatedTaxFactorTotal(baseTaxFactor)
     setSimulatedCompleteFactor(legacyCompleteFactor)
     setSimulatedSalePrice(legacySalePrice)
-    setIsMarkupSimulated(true)
+
+    if (legacySalePrice > 0 || consolidatedRevenue > 0) {
+      setIsMarkupSimulated(true)
+    }
   }
 
   const simulatePresumido = () => {
