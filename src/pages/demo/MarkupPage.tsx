@@ -178,6 +178,7 @@ export default function MarkupPage() {
     totalConsolidatedCost,
     simplesAnexo,
     effectiveSimplesRbt12: simplesRbt12,
+    simplesIsInicioAtividade,
   } = useTaxContext()
 
   // Sincronização do ICMS (com foco protegido)
@@ -1176,12 +1177,25 @@ export default function MarkupPage() {
                             )}
                         </>
                       ) : (
-                        <div className="flex items-start gap-1.5 text-amber-300/90 pt-0.5">
-                          <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
-                          <span className="leading-tight">
-                            Informe o RBT12 na DRE Simples Nacional para obter a alíquota efetiva do
-                            PGDAS.
-                          </span>
+                        <div className="space-y-1.5 pt-0.5">
+                          <div className="flex items-start gap-1.5 text-amber-300/90">
+                            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                            <span className="leading-tight">
+                              {simplesIsInicioAtividade
+                                ? 'Empresa em início de atividade: informe as receitas mensais na DRE Simples Nacional para o sistema calcular a RBT12 proporcional'
+                                : 'Informe o RBT12 na DRE Simples Nacional para obter a alíquota efetiva do PGDAS.'}
+                            </span>
+                          </div>
+                          {simplesIsInicioAtividade && (
+                            <button
+                              type="button"
+                              onClick={() => navigate('/demo/simples')}
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 underline underline-offset-2 transition-colors cursor-pointer pl-5"
+                            >
+                              <span>Ir para DRE Simples Nacional</span>
+                              <ArrowRight className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
