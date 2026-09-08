@@ -58,13 +58,16 @@ interface CostItemRowProps {
 }
 
 function CostItemRow({ item, placeholder, onUpdateDesc, onUpdateVal, onRemove }: CostItemRowProps) {
+  const [isFocused, setIsFocused] = React.useState(false)
   const [valText, setValText] = React.useState<string>(
     item.value > 0 ? formatNumberBR(item.value) : '',
   )
 
   React.useEffect(() => {
-    setValText(item.value > 0 ? formatNumberBR(item.value) : '')
-  }, [item.value])
+    if (!isFocused) {
+      setValText(item.value > 0 ? formatNumberBR(item.value) : '')
+    }
+  }, [item.value, isFocused])
 
   return (
     <div className="flex items-center gap-2 bg-slate-900/60 p-2 rounded-lg border border-slate-800/80 transition-colors hover:border-slate-700/80">
@@ -83,12 +86,14 @@ function CostItemRow({ item, placeholder, onUpdateDesc, onUpdateVal, onRemove }:
           type="text"
           value={valText}
           placeholder="0,00"
+          onFocus={() => setIsFocused(true)}
           onChange={(e) => {
             const raw = e.target.value
             setValText(raw)
             onUpdateVal(parseBRNumber(raw))
           }}
           onBlur={(e) => {
+            setIsFocused(false)
             const num = parseBRNumber(e.target.value)
             setValText(num > 0 ? formatNumberBR(num) : '')
             onUpdateVal(num)

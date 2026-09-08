@@ -42,11 +42,16 @@ function ProductBaseValueInput({
   hasCompositionValues = false,
   onUpdate,
 }: ProductBaseValueInputProps) {
+  const [isFocused, setIsFocused] = useState(false)
   const [text, setText] = useState<string>(value > 0 ? formatNumberBR(value) : '')
 
   useEffect(() => {
-    setText(value > 0 ? formatNumberBR(value) : '')
-  }, [value])
+    if (!isFocused) {
+      setText(value > 0 ? formatNumberBR(value) : '')
+    }
+  }, [value, isFocused])
+
+  const isReadOnlyCost = !isLiquid && hasCompositionValues
 
   return (
     <div className="space-y-1">
@@ -54,7 +59,7 @@ function ProductBaseValueInput({
         <label className="text-[11px] text-slate-300 font-semibold">
           {isLiquid ? 'Receita líquida desejada' : 'Custo do produto'}
         </label>
-        {!isLiquid && hasCompositionValues && (
+        {isReadOnlyCost && (
           <span className="text-[10px] font-mono text-emerald-400 font-medium">
             · via composição de custo
           </span>
@@ -68,20 +73,27 @@ function ProductBaseValueInput({
           type="text"
           placeholder="0,00"
           value={text}
+          readOnly={isReadOnlyCost}
+          onFocus={() => {
+            if (!isReadOnlyCost) setIsFocused(true)
+          }}
           onChange={(e) => {
+            if (isReadOnlyCost) return
             const raw = e.target.value
             setText(raw)
             const num = parseBRNumber(raw)
             onUpdate(productId, isLiquid ? 'desiredNetRevenue' : 'cost', num)
           }}
           onBlur={(e) => {
+            setIsFocused(false)
+            if (isReadOnlyCost) return
             const num = parseBRNumber(e.target.value)
             setText(num > 0 ? formatNumberBR(num) : '')
             onUpdate(productId, isLiquid ? 'desiredNetRevenue' : 'cost', num)
           }}
           className={`pl-8 text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8 ${
-            !isLiquid && hasCompositionValues
-              ? 'border-emerald-500/40 focus:border-emerald-400'
+            isReadOnlyCost
+              ? 'border-emerald-500/40 text-emerald-300 bg-emerald-950/20 cursor-default focus:border-emerald-500/40'
               : ''
           }`}
         />
@@ -98,11 +110,14 @@ interface ProductMarginInputProps {
 }
 
 function ProductMarginInput({ productId, isLiquid, margin, onUpdate }: ProductMarginInputProps) {
+  const [isFocused, setIsFocused] = useState(false)
   const [text, setText] = useState<string>(margin > 0 ? formatNumberBR(margin) : '')
 
   useEffect(() => {
-    setText(margin > 0 ? formatNumberBR(margin) : '')
-  }, [margin])
+    if (!isFocused) {
+      setText(margin > 0 ? formatNumberBR(margin) : '')
+    }
+  }, [margin, isFocused])
 
   return (
     <div className="space-y-1">
@@ -114,6 +129,7 @@ function ProductMarginInput({ productId, isLiquid, margin, onUpdate }: ProductMa
           type="text"
           placeholder="0,00"
           value={text}
+          onFocus={() => setIsFocused(true)}
           onChange={(e) => {
             const raw = e.target.value
             setText(raw)
@@ -121,6 +137,7 @@ function ProductMarginInput({ productId, isLiquid, margin, onUpdate }: ProductMa
             onUpdate(productId, num)
           }}
           onBlur={(e) => {
+            setIsFocused(false)
             const num = parseBRNumber(e.target.value)
             setText(num > 0 ? formatNumberBR(num) : '')
             onUpdate(productId, num)
@@ -163,14 +180,17 @@ export default function MarkupPage() {
     effectiveSimplesRbt12: simplesRbt12,
   } = useTaxContext()
 
-  // Sincronização do ICMS
+  // Sincronização do ICMS (com foco protegido)
+  const [isIcmsFocused, setIsIcmsFocused] = useState(false)
   const [icmsInput, setIcmsInput] = useState<string>(
     icmsRateMarkup > 0 ? formatNumberBR(icmsRateMarkup) : '',
   )
 
   useEffect(() => {
-    setIcmsInput(icmsRateMarkup > 0 ? formatNumberBR(icmsRateMarkup) : '')
-  }, [icmsRateMarkup])
+    if (!isIcmsFocused) {
+      setIcmsInput(icmsRateMarkup > 0 ? formatNumberBR(icmsRateMarkup) : '')
+    }
+  }, [icmsRateMarkup, isIcmsFocused])
 
   // Estado para novo tributo customizado
   const [showAddCustomTax, setShowAddCustomTax] = useState(false)
@@ -182,6 +202,13 @@ export default function MarkupPage() {
     const val = e.target.value
     setIcmsInput(val)
     setIcmsRateMarkup(parseBRNumber(val))
+  }
+
+  const handleIcmsBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    setIsIcmsFocused(false)
+    const num = parseBRNumber(e.target.value)
+    setIcmsInput(num > 0 ? formatNumberBR(num) : '')
+    setIcmsRateMarkup(num)
   }
 
   const handleAddCustomTax = () => {
@@ -254,21 +281,35 @@ export default function MarkupPage() {
       let totalRev = 0
       let totalQty = 0
       const prods = markupProducts.map((p) => {
-        const margin = p.margin || 0
-        const marginFactor = 1 - margin / 100
-        const completeFactor = taxFactor * marginFactor
-        const baseValue = p.mode === 'liquid' ? p.desiredNetRevenue || 0 : p.cost || 0
-        const salePrice = completeFactor > 0 ? baseValue / completeFactor : 0
-        const roundedPrice = Math.round(salePrice * 100) / 100
-        const qty = p.quantity || 0
-        const rev = roundedPrice * qty
+        const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
+        const marginFactor = 1 - rawMargin / 100
+        const completeFactor = (Number.isFinite(taxFactor) ? taxFactor : 0) * marginFactor
+        const safeFactor = completeFactor > 0.0001 ? completeFactor : 0
+        const baseValue =
+          p.mode === 'liquid'
+            ? typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
+              ? p.desiredNetRevenue
+              : 0
+            : typeof p.cost === 'number' && Number.isFinite(p.cost)
+              ? p.cost
+              : 0
+        const rawSalePrice = safeFactor > 0 && baseValue > 0 ? baseValue / safeFactor : 0
+        const roundedPrice = Number.isFinite(rawSalePrice)
+          ? Math.round(rawSalePrice * 100) / 100
+          : 0
+        const qty =
+          typeof p.quantity === 'number' && Number.isFinite(p.quantity)
+            ? Math.max(0, p.quantity)
+            : 0
+        const rawRev = roundedPrice * qty
+        const rev = Number.isFinite(rawRev) ? Math.round(rawRev * 100) / 100 : 0
         totalRev += rev
         totalQty += qty
         return {
           id: p.id,
           name: p.name,
           salePrice: roundedPrice,
-          totalRevenue: Math.round(rev * 100) / 100,
+          totalRevenue: rev,
         }
       })
       const avgPrice =
@@ -788,7 +829,9 @@ export default function MarkupPage() {
                     type="text"
                     placeholder="0,00"
                     value={icmsInput}
+                    onFocus={() => setIsIcmsFocused(true)}
                     onChange={handleIcmsChange}
+                    onBlur={handleIcmsBlur}
                     className="pr-7 text-right bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs focus:border-emerald-500"
                   />
                   <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">

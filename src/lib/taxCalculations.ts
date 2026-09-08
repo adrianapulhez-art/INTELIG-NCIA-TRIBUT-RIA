@@ -7,7 +7,7 @@ export function formatBRL(
   value: number | null | undefined,
   options?: { showSignForNegative?: boolean },
 ): string {
-  if (value === null || value === undefined || isNaN(value)) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
     return 'R$ 0,00'
   }
 
@@ -25,7 +25,7 @@ export function formatBRL(
 }
 
 export function formatNumberBR(value: number | null | undefined, decimals = 2): string {
-  if (value === null || value === undefined || isNaN(value)) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
     return '0,00'
   }
   const parts = value.toFixed(decimals).split('.')
@@ -35,14 +35,14 @@ export function formatNumberBR(value: number | null | undefined, decimals = 2): 
 }
 
 export function formatPercentBR(value: number | null | undefined, decimals = 2): string {
-  if (value === null || value === undefined || isNaN(value)) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
     return '0,00%'
   }
   return `${formatNumberBR(value, decimals)}%`
 }
 
 export function formatFactorBR(value: number | null | undefined, decimals = 4): string {
-  if (value === null || value === undefined || isNaN(value)) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
     return '0,0000'
   }
   return value.toFixed(decimals).replace('.', ',')
@@ -51,10 +51,11 @@ export function formatFactorBR(value: number | null | undefined, decimals = 4): 
 /**
  * Converte string digitada pelo usuário em número.
  * Aceita "1.234,56", "1234,56", "1234.56", "R$ 1.234,56", etc.
+ * Sempre retorna número finito; vazio, NaN e Infinity viram 0.
  */
 export function parseBRNumber(input: string | number | null | undefined): number {
   if (typeof input === 'number') {
-    return isNaN(input) ? 0 : input
+    return Number.isFinite(input) ? input : 0
   }
   if (!input) return 0
 
@@ -72,5 +73,5 @@ export function parseBRNumber(input: string | number | null | undefined): number
   }
 
   const num = parseFloat(cleaned)
-  return isNaN(num) ? 0 : num
+  return Number.isFinite(num) ? num : 0
 }

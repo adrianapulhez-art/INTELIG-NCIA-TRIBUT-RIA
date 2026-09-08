@@ -624,13 +624,20 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Helper para recalcular o custo base automaticamente a partir da composição se houver itens com valor
   const calculateTotalComposition = (composition?: CostComposition): number => {
     if (!composition) return 0
-    const sumDirect = (composition.directCosts || []).reduce((acc, c) => acc + (c.value || 0), 0)
-    const sumIndirect = (composition.indirectCosts || []).reduce(
-      (acc, c) => acc + (c.value || 0),
-      0,
-    )
-    const sumFixed = (composition.fixedCosts || []).reduce((acc, c) => acc + (c.value || 0), 0)
-    return Math.round((sumDirect + sumIndirect + sumFixed) * 100) / 100
+    const sumDirect = (composition.directCosts || []).reduce((acc, c) => {
+      const v = typeof c.value === 'number' && Number.isFinite(c.value) ? c.value : 0
+      return acc + Math.max(0, v)
+    }, 0)
+    const sumIndirect = (composition.indirectCosts || []).reduce((acc, c) => {
+      const v = typeof c.value === 'number' && Number.isFinite(c.value) ? c.value : 0
+      return acc + Math.max(0, v)
+    }, 0)
+    const sumFixed = (composition.fixedCosts || []).reduce((acc, c) => {
+      const v = typeof c.value === 'number' && Number.isFinite(c.value) ? c.value : 0
+      return acc + Math.max(0, v)
+    }, 0)
+    const total = sumDirect + sumIndirect + sumFixed
+    return Number.isFinite(total) ? Math.round(total * 100) / 100 : 0
   }
 
   const addCostCompositionItem = (
@@ -647,12 +654,14 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           indirectCosts: [],
           fixedCosts: [],
         }
+        const cleanVal =
+          typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0
         const updatedCat = [
           ...(currentComp[category] || []),
           {
             id: `cost-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
             description,
-            value: Math.max(0, value),
+            value: cleanVal,
           },
         ]
         const updatedComp: CostComposition = {
@@ -663,7 +672,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return {
           ...prod,
           costComposition: updatedComp,
-          // Se houver valor na composição, atualiza custo base automaticamente
+          // Com composição com itens, cost é derivado da soma
           cost: compTotal > 0 ? compTotal : prod.cost,
         }
       }),
@@ -687,9 +696,16 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         const updatedCat = (currentComp[category] || []).map((item) => {
           if (item.id !== itemId) return item
+          const parsedVal =
+            field === 'value'
+              ? Math.max(
+                  0,
+                  typeof val === 'number' ? (Number.isFinite(val) ? val : 0) : parseBRNumber(val),
+                )
+              : val
           return {
             ...item,
-            [field]: field === 'value' ? (typeof val === 'number' ? val : parseBRNumber(val)) : val,
+            [field]: parsedVal,
           }
         })
         const updatedComp: CostComposition = {
@@ -704,7 +720,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return {
           ...prod,
           costComposition: updatedComp,
-          // Se a composição tem itens e total calculado, sincroniza o custo
+          // Com itens na composição, cost é derivado da soma; se zerada ou sem itens, mantém
           cost: hasAnyCompositionItem ? compTotal : prod.cost,
         }
       }),
@@ -969,26 +985,34 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Assim que o usuário digita qualquer valor, o cálculo ocorre instantaneamente e alimenta todas as conexões.
   useEffect(() => {
     // Verifica se há pelo menos um produto com valor base preenchido (> 0)
-    const hasAnyFilledProduct = markupProducts.some(
-      (p) =>
-        (p.mode === 'liquid' ? (p.desiredNetRevenue || 0) > 0 : (p.cost || 0) > 0) ||
-        (p.quantity || 0) > 0 ||
-        (p.margin || 0) > 0,
-    )
+    const hasAnyFilledProduct = markupProducts.some((p) => {
+      const desired =
+        typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
+          ? p.desiredNetRevenue
+          : 0
+      const costVal = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+      const qty = typeof p.quantity === 'number' && Number.isFinite(p.quantity) ? p.quantity : 0
+      const mrg = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
+      return (p.mode === 'liquid' ? desired > 0 : costVal > 0) || qty > 0 || mrg > 0
+    })
 
     // Alíquotas conforme regime
     const pisRate = regime === 'simples' ? 0 : regime === 'presumido' ? 0.0065 : 0.0165
     const cofinsRate = regime === 'simples' ? 0 : regime === 'presumido' ? 0.03 : 0.076
-    const icmsFactor = 1 - (icmsRateMarkup || 0) / 100
+    const cleanIcms = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
+    const icmsFactor = 1 - cleanIcms / 100
     const pisFactor = regime === 'simples' ? 1 : 1 - pisRate
     const cofinsFactor = regime === 'simples' ? 1 : 1 - cofinsRate
 
     let baseTaxFactor = icmsFactor * pisFactor * cofinsFactor
+    if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
 
     // Tributos customizados
     for (const tax of customTaxesMarkup) {
-      baseTaxFactor *= 1 - (tax.rate || 0) / 100
+      const taxRate = Number.isFinite(tax.rate) ? tax.rate : 0
+      baseTaxFactor *= 1 - taxRate / 100
     }
+    if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
 
     // Se não há dados preenchidos, não ativa a simulação automaticamente
     if (!hasAnyFilledProduct) {
@@ -1009,22 +1033,32 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let totalCostVal = 0
 
     const updated = markupProducts.map((p) => {
-      const margin = p.margin || 0
-      const marginFactor = 1 - margin / 100
-      const completeFactor = baseTaxFactor * marginFactor
+      const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
+      const marginFactor = 1 - rawMargin / 100
+      let completeFactor = baseTaxFactor * marginFactor
+      if (!Number.isFinite(completeFactor)) completeFactor = 0
 
       let baseValue = 0
       if (p.mode === 'liquid') {
-        baseValue = p.desiredNetRevenue || 0
+        baseValue =
+          typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
+            ? p.desiredNetRevenue
+            : 0
       } else {
-        baseValue = p.cost || 0
+        baseValue = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
       }
 
-      const salePrice = completeFactor > 0 && baseValue > 0 ? baseValue / completeFactor : 0
-      const roundedPrice = Math.round(salePrice * 100) / 100
-      const qty = p.quantity || 0
-      const rev = roundedPrice * qty
-      const costItem = (p.cost || 0) * qty
+      // Blindagem contra divisão por zero / NaN / Infinity: safeFactor > 0.0001
+      const safeFactor = completeFactor > 0.0001 ? completeFactor : 0
+      const rawSalePrice = safeFactor > 0 && baseValue > 0 ? baseValue / safeFactor : 0
+      const salePrice = Number.isFinite(rawSalePrice) ? Math.round(rawSalePrice * 100) / 100 : 0
+      const qty =
+        typeof p.quantity === 'number' && Number.isFinite(p.quantity) ? Math.max(0, p.quantity) : 0
+      const rawRev = salePrice * qty
+      const rev = Number.isFinite(rawRev) ? Math.round(rawRev * 100) / 100 : 0
+      const pCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+      const rawCostItem = pCost * qty
+      const costItem = Number.isFinite(rawCostItem) ? Math.round(rawCostItem * 100) / 100 : 0
 
       totalRev += rev
       totalQty += qty
@@ -1032,21 +1066,32 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       return {
         ...p,
-        salePrice: roundedPrice,
+        salePrice,
         taxFactor: baseTaxFactor,
         completeFactor,
-        totalRevenue: Math.round(rev * 100) / 100,
-        totalCost: Math.round(costItem * 100) / 100,
+        totalRevenue: rev,
+        totalCost: costItem,
       }
     })
 
-    // Sincroniza produtos internamente sem loop infinito
-    const hasDiff = updated.some(
-      (p, i) =>
-        p.salePrice !== markupProducts[i]?.salePrice ||
-        p.completeFactor !== markupProducts[i]?.completeFactor ||
-        p.totalRevenue !== markupProducts[i]?.totalRevenue,
-    )
+    // Sincroniza produtos internamente sem loop infinito:
+    // Comparação com tolerância numérica (> 0.00001 para fatores, > 0.01 para monetários)
+    const hasDiff = updated.some((p, i) => {
+      const prev = markupProducts[i]
+      if (!prev) return true
+      const salePriceDiff = Math.abs((p.salePrice || 0) - (prev.salePrice || 0))
+      const factorDiff = Math.abs((p.completeFactor || 0) - (prev.completeFactor || 0))
+      const taxFactorDiff = Math.abs((p.taxFactor || 0) - (prev.taxFactor || 0))
+      const revenueDiff = Math.abs((p.totalRevenue || 0) - (prev.totalRevenue || 0))
+      const costDiff = Math.abs((p.totalCost || 0) - (prev.totalCost || 0))
+      return (
+        salePriceDiff > 0.01 ||
+        factorDiff > 0.00001 ||
+        taxFactorDiff > 0.00001 ||
+        revenueDiff > 0.01 ||
+        costDiff > 0.01
+      )
+    })
     if (hasDiff) {
       setMarkupProducts(updated)
     }
@@ -1057,12 +1102,14 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       : baseTaxFactor * (1 - (additionalMargin || 0) / 100)
     const legacySalePrice = firstProduct ? firstProduct.salePrice : 0
 
-    setSimulatedTaxFactorTotal(baseTaxFactor)
-    setSimulatedCompleteFactor(legacyCompleteFactor)
-    setSimulatedSalePrice(legacySalePrice)
-    setTotalConsolidatedRevenue(Math.round(totalRev * 100) / 100)
+    setSimulatedTaxFactorTotal(Number.isFinite(baseTaxFactor) ? baseTaxFactor : 0)
+    setSimulatedCompleteFactor(Number.isFinite(legacyCompleteFactor) ? legacyCompleteFactor : 0)
+    setSimulatedSalePrice(Number.isFinite(legacySalePrice) ? legacySalePrice : 0)
+    setTotalConsolidatedRevenue(Number.isFinite(totalRev) ? Math.round(totalRev * 100) / 100 : 0)
     setTotalConsolidatedQuantity(totalQty)
-    setTotalConsolidatedCost(Math.round(totalCostVal * 100) / 100)
+    setTotalConsolidatedCost(
+      Number.isFinite(totalCostVal) ? Math.round(totalCostVal * 100) / 100 : 0,
+    )
 
     // Ativa exibição automática dos resultados apenas quando há preço ou receita calculada
     if (legacySalePrice > 0 || totalRev > 0) {
@@ -1088,22 +1135,31 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let consolidatedCost = 0
 
     const updatedProducts = markupProducts.map((p) => {
-      const margin = p.margin || 0
-      const marginFactor = 1 - margin / 100
-      const completeFactor = baseTaxFactor * marginFactor
+      const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
+      const marginFactor = 1 - rawMargin / 100
+      let completeFactor = baseTaxFactor * marginFactor
+      if (!Number.isFinite(completeFactor)) completeFactor = 0
 
       let baseValue = 0
       if (p.mode === 'liquid') {
-        baseValue = p.desiredNetRevenue || 0
+        baseValue =
+          typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
+            ? p.desiredNetRevenue
+            : 0
       } else {
-        baseValue = p.cost || 0
+        baseValue = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
       }
 
-      const salePrice = completeFactor > 0 ? baseValue / completeFactor : 0
-      const roundedPrice = Math.round(salePrice * 100) / 100
-      const qty = p.quantity || 0
-      const totalRev = roundedPrice * qty
-      const totalCost = (p.cost || 0) * qty
+      const safeFactor = completeFactor > 0.0001 ? completeFactor : 0
+      const rawSalePrice = safeFactor > 0 && baseValue > 0 ? baseValue / safeFactor : 0
+      const roundedPrice = Number.isFinite(rawSalePrice) ? Math.round(rawSalePrice * 100) / 100 : 0
+      const qty =
+        typeof p.quantity === 'number' && Number.isFinite(p.quantity) ? Math.max(0, p.quantity) : 0
+      const rawRev = roundedPrice * qty
+      const totalRev = Number.isFinite(rawRev) ? Math.round(rawRev * 100) / 100 : 0
+      const pCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+      const rawTotalCost = pCost * qty
+      const totalCost = Number.isFinite(rawTotalCost) ? Math.round(rawTotalCost * 100) / 100 : 0
 
       consolidatedRevenue += totalRev
       consolidatedQty += qty
@@ -1114,8 +1170,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         salePrice: roundedPrice,
         taxFactor: baseTaxFactor,
         completeFactor,
-        totalRevenue: Math.round(totalRev * 100) / 100,
-        totalCost: Math.round(totalCost * 100) / 100,
+        totalRevenue: totalRev,
+        totalCost,
       }
     })
 
