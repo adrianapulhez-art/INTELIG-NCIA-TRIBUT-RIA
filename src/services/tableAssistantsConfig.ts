@@ -36,13 +36,13 @@ export const TABLE_ASSISTANTS: Record<string, TableAssistantConfig> = {
     description:
       'Orienta sobre apropriação de créditos de ICMS, PIS/COFINS, impacto do IPI, fretes, ST e DIFAL no custo de estoque.',
     quickQuestions: [
+      'Como cadastrar múltiplos itens com alíquotas de ICMS/IPI distintas na mesma compra?',
+      'Como a quantidade e o CMV consolidado dos itens fluem para as DREs?',
       'Como o ICMS-ST recolhido na compra integra o custo (CMV)?',
-      'Como apurar o DIFAL na compra para uso/consumo ou ativo imobilizado?',
-      'Como o Lucro Real aproveita créditos de PIS/COFINS na compra?',
-      'O IPI entra como custo de aquisição na revenda?',
+      'Como o Lucro Real aproveita créditos de PIS/COFINS na compra multi-itens?',
     ],
     contextSummary:
-      'Tabela ativa: Calculadora de Compras. Foco em créditos de entrada, subsistema de ICMS-ST na entrada e compras interestaduais com DIFAL.',
+      'Tabela ativa: Calculadora de Compras Multi-Itens. Cadastro de N itens de mercadoria com tributos específicos, custos apropriados por item, rateio de estoques e encargos globais, e CMV consolidado enviado às DREs.',
   },
   simples: {
     slug: 'it-simples-assistant',

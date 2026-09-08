@@ -62,6 +62,9 @@ export const AssistantChatDrawer: React.FC<AssistantChatDrawerProps> = ({
         parts.push(`Fator completo: ${taxContext.simulatedCompleteFactor.toFixed(4)}`)
         parts.push(`Faturamento simulado: ${formatBRL(taxContext.totalConsolidatedRevenue)}`)
       } else if (currentTab === 'compras') {
+        parts.push(`Total de itens comprados: ${taxContext.purchasesItems?.length || 0}`)
+        parts.push(`Quantidade total comprada: ${taxContext.totalPurchasesQuantity || 0} un.`)
+        parts.push(`Mercadorias totais: ${formatBRL(taxContext.totalPurchasesMerchandise || 0)}`)
         parts.push(`Estoque inicial: ${formatBRL(taxContext.initialInventory)}`)
         parts.push(`Estoque final: ${formatBRL(taxContext.finalInventory)}`)
         parts.push(`CMV Simples: ${formatBRL(taxContext.calculatedPurchases.cmvSimples)}`)

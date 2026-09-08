@@ -62,8 +62,16 @@ export default function DreRealPage() {
     interstateSubsystem,
   } = useTaxContext()
 
+  const { totalPurchasesQuantity } = useTaxContext()
+
   const defaultQty =
-    totalConsolidatedQuantity > 0 ? totalConsolidatedQuantity : realQuantitySold || 0
+    realQuantitySold > 0
+      ? realQuantitySold
+      : (totalPurchasesQuantity || 0) > 0
+        ? totalPurchasesQuantity || 0
+        : totalConsolidatedQuantity > 0
+          ? totalConsolidatedQuantity
+          : 0
 
   const [qtyInput, setQtyInput] = useState<string>(defaultQty > 0 ? String(defaultQty) : '0')
   const [isQtyFocused, setIsQtyFocused] = useState(false)
@@ -75,13 +83,23 @@ export default function DreRealPage() {
   // Sincroniza o input quando o estado for resetado ou carregado via cenário
   React.useEffect(() => {
     if (!isQtyFocused) {
-      if (realQuantitySold === 0 && totalConsolidatedQuantity === 0) {
+      if (
+        realQuantitySold === 0 &&
+        totalConsolidatedQuantity === 0 &&
+        (totalPurchasesQuantity || 0) === 0
+      ) {
         setQtyInput('0')
       } else {
         setQtyInput(String(defaultQty))
       }
     }
-  }, [realQuantitySold, totalConsolidatedQuantity, defaultQty, isQtyFocused])
+  }, [
+    realQuantitySold,
+    totalConsolidatedQuantity,
+    totalPurchasesQuantity,
+    defaultQty,
+    isQtyFocused,
+  ])
 
   React.useEffect(() => {
     if (!isIssFocused) {
@@ -159,9 +177,11 @@ export default function DreRealPage() {
   const effectiveQuantity =
     realQuantitySold > 0
       ? realQuantitySold
-      : totalConsolidatedQuantity > 0
-        ? totalConsolidatedQuantity
-        : 0
+      : (totalPurchasesQuantity || 0) > 0
+        ? totalPurchasesQuantity || 0
+        : totalConsolidatedQuantity > 0
+          ? totalConsolidatedQuantity
+          : 0
 
   // 9. Despesas operacionais unitárias
   const unitExpenses = effectiveQuantity > 0 ? totalExpenses / effectiveQuantity : 0

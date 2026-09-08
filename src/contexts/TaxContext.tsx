@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
 import { parseBRNumber } from '@/lib/taxCalculations'
 import {
   StSubsystemState,
@@ -48,6 +48,32 @@ export interface AdditionalCostItem {
   value: number
 }
 
+export interface PurchaseItem {
+  id: string
+  name: string
+  quantity: number // Quantidade comprada do item
+  unitPrice: number // Valor unitário da mercadoria (opcional / informativo)
+  merchandiseValue: number // Valor total da mercadoria do item (base de cálculo)
+  // Alíquotas e tributos por item
+  ipiRate: number // Alíquota % IPI / Tributos não recuperáveis
+  icmsRate: number // Alíquota % ICMS próprio
+  icmsFreightValue: number // ICMS sobre frete atribuível ao item (ou frete rateado)
+  hasSt: boolean // Se o item possui incidência de ICMS-ST
+  stValue: number // ICMS-ST recolhido na entrada do item (integra custo)
+  // Resultados calculados por item
+  calculatedIpi: number
+  calculatedIcms: number
+  calculatedPis: number
+  calculatedCofins: number
+  // Custo unitário e total por regime para este item:
+  costPresumido: number // mercadoria + ipi + st - icms
+  costReal: number // mercadoria + ipi + st - icms - pis - cofins
+  costSimples: number // mercadoria + ipi + st (sem créditos)
+  unitCostPresumido: number
+  unitCostReal: number
+  unitCostSimples: number
+}
+
 export interface DeductionCostItem {
   id: string
   description: string
@@ -79,8 +105,11 @@ export interface TaxStateSnapshot {
   simulatedCompleteFactor: number
   isMarkupSimulated: boolean
   totalConsolidatedRevenue: number
-  totalConsolidatedQuantity: number
+  totalConsolidatedQuantity: number // Σ quantidade Markup
   totalConsolidatedCost: number
+  // COMPRAS
+  purchasesItems?: PurchaseItem[]
+  totalPurchasesQuantity?: number // Σ quantidade Compras
   initialInventory: number
   finalInventory: number
   additionalCosts: AdditionalCostItem[]
@@ -195,12 +224,37 @@ export interface TaxContextType {
   totalConsolidatedQuantity: number // Σ quantidade
   totalConsolidatedCost: number // Σ (custo * quantidade)
 
-  // COMPRAS STATE (atualiza dinamicamente)
+  // COMPRAS STATE (multi-itens + parâmetros globais)
+  purchasesItems: PurchaseItem[]
+  addPurchaseItem: (name?: string) => void
+  updatePurchaseItem: (
+    id: string,
+    field: keyof Omit<
+      PurchaseItem,
+      | 'id'
+      | 'calculatedIpi'
+      | 'calculatedIcms'
+      | 'calculatedPis'
+      | 'calculatedCofins'
+      | 'costPresumido'
+      | 'costReal'
+      | 'costSimples'
+      | 'unitCostPresumido'
+      | 'unitCostReal'
+      | 'unitCostSimples'
+    >,
+    value: string | number | boolean,
+  ) => void
+  removePurchaseItem: (id: string) => void
+  totalPurchasesQuantity: number // Σ quantidade dos itens de compras
+  totalPurchasesMerchandise: number // Σ mercadorias dos itens
+  isPurchasesCalculated: boolean // indica se há compras ativas simuladas/calculadas
+
   initialInventory: number // EI
   setInitialInventory: (val: number) => void
   finalInventory: number // EF
   setFinalInventory: (val: number) => void
-  additionalCosts: AdditionalCostItem[]
+  additionalCosts: AdditionalCostItem[] // Custos adicionais globais (frete rateado, seguro, outros)
   addAdditionalCost: (description?: string, value?: number) => void
   updateAdditionalCost: (id: string, field: 'description' | 'value', value: string | number) => void
   removeAdditionalCost: (id: string) => void
@@ -415,7 +469,32 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [totalConsolidatedQuantity, setTotalConsolidatedQuantity] = useState<number>(0)
   const [totalConsolidatedCost, setTotalConsolidatedCost] = useState<number>(0)
 
-  // COMPRAS
+  // COMPRAS (MULTI-ITENS)
+  const [purchasesItems, setPurchasesItems] = useState<PurchaseItem[]>([
+    {
+      id: 'purch-1',
+      name: 'Item 1',
+      quantity: 0,
+      unitPrice: 0,
+      merchandiseValue: 0,
+      ipiRate: 0,
+      icmsRate: 0,
+      icmsFreightValue: 0,
+      hasSt: false,
+      stValue: 0,
+      calculatedIpi: 0,
+      calculatedIcms: 0,
+      calculatedPis: 0,
+      calculatedCofins: 0,
+      costPresumido: 0,
+      costReal: 0,
+      costSimples: 0,
+      unitCostPresumido: 0,
+      unitCostReal: 0,
+      unitCostSimples: 0,
+    },
+  ])
+
   const [initialInventory, setInitialInventory] = useState<number>(0)
   const [finalInventory, setFinalInventory] = useState<number>(0)
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCostItem[]>([
@@ -894,6 +973,126 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setDeductionCosts((prev) => [...prev, { id: String(Date.now()), description, value }])
   }
 
+  // Handlers para itens de compras
+  const addPurchaseItem = (name?: string) => {
+    setPurchasesItems((prev) => {
+      const nextNum = prev.length + 1
+      const newItem: PurchaseItem = {
+        id: `purch-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        name: name || `Item ${nextNum}`,
+        quantity: 0,
+        unitPrice: 0,
+        merchandiseValue: 0,
+        ipiRate: 0,
+        icmsRate: 0,
+        icmsFreightValue: 0,
+        hasSt: false,
+        stValue: 0,
+        calculatedIpi: 0,
+        calculatedIcms: 0,
+        calculatedPis: 0,
+        calculatedCofins: 0,
+        costPresumido: 0,
+        costReal: 0,
+        costSimples: 0,
+        unitCostPresumido: 0,
+        unitCostReal: 0,
+        unitCostSimples: 0,
+      }
+      return [...prev, newItem]
+    })
+  }
+
+  const updatePurchaseItem = (
+    id: string,
+    field: keyof Omit<
+      PurchaseItem,
+      | 'id'
+      | 'calculatedIpi'
+      | 'calculatedIcms'
+      | 'calculatedPis'
+      | 'calculatedCofins'
+      | 'costPresumido'
+      | 'costReal'
+      | 'costSimples'
+      | 'unitCostPresumido'
+      | 'unitCostReal'
+      | 'unitCostSimples'
+    >,
+    value: string | number | boolean,
+  ) => {
+    setPurchasesItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item
+        if (field === 'name') {
+          return { ...item, name: String(value) }
+        }
+        if (field === 'hasSt') {
+          return { ...item, hasSt: Boolean(value) }
+        }
+        if (field === 'quantity') {
+          const parsed = typeof value === 'number' ? value : parseInt(String(value), 10)
+          const cleanQty = isNaN(parsed) || parsed < 0 ? 0 : parsed
+          // Se tiver unitPrice > 0 e merchandiseValue estiver 0, calcula
+          let merch = item.merchandiseValue
+          if (cleanQty > 0 && item.unitPrice > 0 && merch === 0) {
+            merch = cleanQty * item.unitPrice
+          }
+          return { ...item, quantity: cleanQty, merchandiseValue: merch }
+        }
+        if (field === 'unitPrice') {
+          const num = typeof value === 'number' ? value : parseBRNumber(String(value))
+          const cleanUnit = Number.isFinite(num) && num >= 0 ? num : 0
+          let merch = item.merchandiseValue
+          if (cleanUnit > 0 && item.quantity > 0 && merch === 0) {
+            merch = cleanUnit * item.quantity
+          }
+          return { ...item, unitPrice: cleanUnit, merchandiseValue: merch }
+        }
+        // Campos numéricos gerais
+        const numVal = typeof value === 'number' ? value : parseBRNumber(String(value))
+        const cleanNum = Number.isFinite(numVal) && numVal >= 0 ? numVal : 0
+        return {
+          ...item,
+          [field]: cleanNum,
+        }
+      }),
+    )
+  }
+
+  const removePurchaseItem = (id: string) => {
+    setPurchasesItems((prev) => {
+      const filtered = prev.filter((item) => item.id !== id)
+      if (filtered.length === 0) {
+        return [
+          {
+            id: `purch-${Date.now()}`,
+            name: 'Item 1',
+            quantity: 0,
+            unitPrice: 0,
+            merchandiseValue: 0,
+            ipiRate: 0,
+            icmsRate: 0,
+            icmsFreightValue: 0,
+            hasSt: false,
+            stValue: 0,
+            calculatedIpi: 0,
+            calculatedIcms: 0,
+            calculatedPis: 0,
+            calculatedCofins: 0,
+            costPresumido: 0,
+            costReal: 0,
+            costSimples: 0,
+            unitCostPresumido: 0,
+            unitCostReal: 0,
+            unitCostSimples: 0,
+          },
+        ]
+      }
+      return filtered
+    })
+  }
+
   const updateDeductionCost = (
     id: string,
     field: 'description' | 'value',
@@ -986,62 +1185,198 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSimplesExpenses((prev) => prev.filter((item) => item.id !== id))
   }
 
-  // CÁLCULO DE COMPRAS DERIVADO
-  const totalAdditionalCosts = additionalCosts.reduce((acc, c) => acc + (c.value || 0), 0)
-  const nonRecoverableTaxResult = (nonRecoverableTaxBase * nonRecoverableTaxRate) / 100
-  const totalAdditions = totalAdditionalCosts + nonRecoverableTaxResult
-
-  const totalDeductionsBase = deductionCosts.reduce((acc, d) => acc + (d.value || 0), 0)
-
-  const icmsResult = (icmsPurchasesBase * icmsPurchasesRate) / 100
-  const icmsFreightResult = (icmsFreightPurchasesBase * icmsFreightPurchasesRate) / 100
-
-  // Tese do século: ICMS a excluir
-  // Se pisExcludedIcmsManual for null ou undefined, usa o icmsResult calculado
-  const effectiveIcmsToExclude = pisExcludedIcmsManual !== null ? pisExcludedIcmsManual : icmsResult
-
-  // PIS / COFINS (regime Real utiliza 1.65% e 7.60%)
+  // CÁLCULO DE COMPRAS DERIVADO (Multi-itens + Rateio Global + Legado)
+  // Alíquotas de PIS/COFINS de compras para o Lucro Real / Outros
   const pisRatePurchases = regime === 'real' ? 1.65 : 0.65
   const cofinsRatePurchases = regime === 'real' ? 7.6 : 3.0
 
+  // Verifica se há itens de compras preenchidos (> 0)
+  const hasPurchasesItemsData = purchasesItems.some(
+    (item) =>
+      (item.merchandiseValue || 0) > 0 || (item.quantity || 0) > 0 || (item.stValue || 0) > 0,
+  )
+
+  // Cálculo individualizado por item
+  const computedPurchasesItems: PurchaseItem[] = useMemo(() => {
+    return purchasesItems.map((item) => {
+      const merch = Math.max(0, Number.isFinite(item.merchandiseValue) ? item.merchandiseValue : 0)
+      const qty = Math.max(0, Number.isFinite(item.quantity) ? item.quantity : 0)
+      const ipiR = Math.max(0, Number.isFinite(item.ipiRate) ? item.ipiRate : 0)
+      const icmsR = Math.max(0, Number.isFinite(item.icmsRate) ? item.icmsRate : 0)
+      const freightIcms = Math.max(
+        0,
+        Number.isFinite(item.icmsFreightValue) ? item.icmsFreightValue : 0,
+      )
+      const itemSt = item.hasSt ? Math.max(0, Number.isFinite(item.stValue) ? item.stValue : 0) : 0
+
+      const calculatedIpi = (merch * ipiR) / 100
+      const calculatedIcms = (merch * icmsR) / 100
+
+      // Base PIS/COFINS com exclusão do ICMS por item (Tese do Século)
+      const pisBase = Math.max(0, merch - calculatedIcms)
+      const cofinsBase = Math.max(0, merch - calculatedIcms)
+
+      const calculatedPis = (pisBase * pisRatePurchases) / 100
+      const calculatedCofins = (cofinsBase * cofinsRatePurchases) / 100
+
+      // Custos totais apropriados do item conforme regime:
+      // Presumido: mercadoria + IPI + ST - ICMS - ICMS_frete
+      const costPresumido = Math.max(
+        0,
+        merch + calculatedIpi + itemSt - calculatedIcms - freightIcms,
+      )
+      // Real: mercadoria + IPI + ST - ICMS - ICMS_frete - PIS - COFINS
+      const costReal = Math.max(
+        0,
+        merch +
+          calculatedIpi +
+          itemSt -
+          calculatedIcms -
+          freightIcms -
+          calculatedPis -
+          calculatedCofins,
+      )
+      // Simples: não recupera ICMS/PIS/COFINS (tudo integra custo)
+      const costSimples = Math.max(0, merch + calculatedIpi + itemSt)
+
+      const unitCostPresumido = qty > 0 ? costPresumido / qty : 0
+      const unitCostReal = qty > 0 ? costReal / qty : 0
+      const unitCostSimples = qty > 0 ? costSimples / qty : 0
+
+      return {
+        ...item,
+        merchandiseValue: merch,
+        quantity: qty,
+        unitPrice: item.unitPrice || (qty > 0 ? merch / qty : 0),
+        ipiRate: ipiR,
+        icmsRate: icmsR,
+        icmsFreightValue: freightIcms,
+        stValue: itemSt,
+        calculatedIpi,
+        calculatedIcms,
+        calculatedPis,
+        calculatedCofins,
+        costPresumido,
+        costReal,
+        costSimples,
+        unitCostPresumido: Number.isFinite(unitCostPresumido) ? unitCostPresumido : 0,
+        unitCostReal: Number.isFinite(unitCostReal) ? unitCostReal : 0,
+        unitCostSimples: Number.isFinite(unitCostSimples) ? unitCostSimples : 0,
+      }
+    })
+  }, [purchasesItems, pisRatePurchases, cofinsRatePurchases])
+
+  // Somatórios dos itens
+  const totalPurchasesQuantity = computedPurchasesItems.reduce(
+    (acc, it) => acc + (it.quantity || 0),
+    0,
+  )
+  const totalPurchasesMerchandise = computedPurchasesItems.reduce(
+    (acc, it) => acc + (it.merchandiseValue || 0),
+    0,
+  )
+  const totalItemsIpi = computedPurchasesItems.reduce((acc, it) => acc + (it.calculatedIpi || 0), 0)
+  const totalItemsIcms = computedPurchasesItems.reduce(
+    (acc, it) => acc + (it.calculatedIcms || 0),
+    0,
+  )
+  const totalItemsFreightIcms = computedPurchasesItems.reduce(
+    (acc, it) => acc + (it.icmsFreightValue || 0),
+    0,
+  )
+  const totalItemsPis = computedPurchasesItems.reduce((acc, it) => acc + (it.calculatedPis || 0), 0)
+  const totalItemsCofins = computedPurchasesItems.reduce(
+    (acc, it) => acc + (it.calculatedCofins || 0),
+    0,
+  )
+  const totalItemsSt = computedPurchasesItems.reduce((acc, it) => acc + (it.stValue || 0), 0)
+
+  // Custos adicionais globais (frete rateado, seguro, outros)
+  const totalAdditionalCosts = additionalCosts.reduce((acc, c) => acc + (c.value || 0), 0)
+  const totalDeductionsBase = deductionCosts.reduce((acc, d) => acc + (d.value || 0), 0)
+
+  // Tributos não recuperáveis globais (IPI geral se não lançado nos itens)
+  const globalNonRecoverableTax = (nonRecoverableTaxBase * nonRecoverableTaxRate) / 100
+  const effectiveIpiAddition = hasPurchasesItemsData ? totalItemsIpi : globalNonRecoverableTax
+
+  // ST global (do subsistema ou dos itens)
+  const stPurchaseAddition = stSubsystem.enabled
+    ? Math.max(0, stSubsystem.purchasesStPaid || 0)
+    : totalItemsSt
+
+  // ICMS global ou dos itens
+  const globalIcmsPurchases = (icmsPurchasesBase * icmsPurchasesRate) / 100
+  const effectiveIcmsPurchases = hasPurchasesItemsData ? totalItemsIcms : globalIcmsPurchases
+
+  // ICMS sobre frete global ou dos itens
+  const globalIcmsFreight = (icmsFreightPurchasesBase * icmsFreightPurchasesRate) / 100
+  const effectiveIcmsFreight = hasPurchasesItemsData ? totalItemsFreightIcms : globalIcmsFreight
+
+  // PIS / COFINS compras
+  const globalPisFreight = (pisFreightPurchasesBase * pisRatePurchases) / 100
+  const globalCofinsFreight = (cofinsFreightPurchasesBase * cofinsRatePurchases) / 100
+
+  // Se multi-itens estiver com dados, PIS/COFINS das mercadorias vem dos itens (+ frete global se houver)
+  // Caso contrário, usa as bases globais
+  const effectiveIcmsToExclude =
+    pisExcludedIcmsManual !== null ? pisExcludedIcmsManual : effectiveIcmsPurchases
+
   const pisAdjustedBase = Math.max(0, pisPurchasesBase - effectiveIcmsToExclude)
-  const pisResult = (pisAdjustedBase * pisRatePurchases) / 100
+  const globalPisPurchases = (pisAdjustedBase * pisRatePurchases) / 100
 
   const cofinsAdjustedBase = Math.max(
     0,
     cofinsPurchasesBase -
-      (cofinsExcludedIcmsManual !== null ? cofinsExcludedIcmsManual : icmsResult),
+      (cofinsExcludedIcmsManual !== null ? cofinsExcludedIcmsManual : effectiveIcmsPurchases),
   )
-  const cofinsResult = (cofinsAdjustedBase * cofinsRatePurchases) / 100
+  const globalCofinsPurchases = (cofinsAdjustedBase * cofinsRatePurchases) / 100
 
-  const pisFreightResult = (pisFreightPurchasesBase * pisRatePurchases) / 100
-  const cofinsFreightResult = (cofinsFreightPurchasesBase * cofinsRatePurchases) / 100
+  const effectivePisPurchases = hasPurchasesItemsData
+    ? totalItemsPis + globalPisFreight
+    : globalPisPurchases + globalPisFreight
+  const effectiveCofinsPurchases = hasPurchasesItemsData
+    ? totalItemsCofins + globalCofinsFreight
+    : globalCofinsPurchases + globalCofinsFreight
 
-  // Impacto do ICMS-ST na Compra: O ST pago na entrada não gera crédito e INTEGRA o custo de aquisição
-  const stPurchaseAddition = stSubsystem.enabled ? Math.max(0, stSubsystem.purchasesStPaid || 0) : 0
+  // Base de aquisições brutas (mercadorias dos itens ou compras brutas globais)
+  const baseGrossPurchases = hasPurchasesItemsData
+    ? totalPurchasesMerchandise + totalAdditionalCosts
+    : totalAdditionalCosts
+
+  const totalAdditions = baseGrossPurchases + effectiveIpiAddition
 
   // CMV Presumido: Apenas ICMS e ICMS s/ frete são recuperáveis + ST pago integra o custo
   const cmvPresumidoNetPurchases =
-    totalAdditions + stPurchaseAddition - totalDeductionsBase - icmsResult - icmsFreightResult
+    totalAdditions +
+    stPurchaseAddition -
+    totalDeductionsBase -
+    effectiveIcmsPurchases -
+    effectiveIcmsFreight
   const cmvPresumido = Math.max(0, initialInventory + cmvPresumidoNetPurchases - finalInventory)
 
-  // CMV Real: ICMS, ICMS frete, PIS, COFINS, PIS frete, COFINS frete deduzem + ST pago integra o custo
+  // CMV Real: ICMS, ICMS frete, PIS, COFINS deduzem + ST pago integra o custo
   const cmvRealNetPurchases =
     totalAdditions +
     stPurchaseAddition -
     totalDeductionsBase -
-    icmsResult -
-    icmsFreightResult -
-    pisResult -
-    cofinsResult -
-    pisFreightResult -
-    cofinsFreightResult
+    effectiveIcmsPurchases -
+    effectiveIcmsFreight -
+    effectivePisPurchases -
+    effectiveCofinsPurchases
   const cmvReal = Math.max(0, initialInventory + cmvRealNetPurchases - finalInventory)
 
-  // CMV Simples Nacional: Tributos sobre compras NÃO são recuperáveis (integram integralmente o custo) + ST pago
-  // CL = totalAdditions + stPurchaseAddition - totalDeductionsBase (sem deduzir ICMS, PIS ou COFINS)
+  // CMV Simples Nacional: Tributos sobre compras NÃO são recuperáveis + ST pago
   const cmvSimplesNetPurchases = totalAdditions + stPurchaseAddition - totalDeductionsBase
   const cmvSimples = Math.max(0, initialInventory + cmvSimplesNetPurchases - finalInventory)
+
+  const isPurchasesCalculated =
+    hasPurchasesItemsData ||
+    totalAdditionalCosts > 0 ||
+    initialInventory > 0 ||
+    finalInventory > 0 ||
+    cmvPresumido > 0 ||
+    cmvReal > 0 ||
+    cmvSimples > 0
 
   // CÁLCULO REATIVO AUTOMÁTICO DO MARKUP (executado sempre que os produtos, taxas ou regime mudam)
   // Mantém a regra de ouro: se tudo estiver zerado (nenhum produto com receita/custo preenchido),
@@ -1307,6 +1642,30 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTotalConsolidatedQuantity(0)
     setTotalConsolidatedCost(0)
 
+    setPurchasesItems([
+      {
+        id: 'purch-1',
+        name: 'Item 1',
+        quantity: 0,
+        unitPrice: 0,
+        merchandiseValue: 0,
+        ipiRate: 0,
+        icmsRate: 0,
+        icmsFreightValue: 0,
+        hasSt: false,
+        stValue: 0,
+        calculatedIpi: 0,
+        calculatedIcms: 0,
+        calculatedPis: 0,
+        calculatedCofins: 0,
+        costPresumido: 0,
+        costReal: 0,
+        costSimples: 0,
+        unitCostPresumido: 0,
+        unitCostReal: 0,
+        unitCostSimples: 0,
+      },
+    ])
     setInitialInventory(0)
     setFinalInventory(0)
     setAdditionalCosts([
@@ -1411,6 +1770,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       totalConsolidatedRevenue,
       totalConsolidatedQuantity,
       totalConsolidatedCost,
+      purchasesItems: computedPurchasesItems,
+      totalPurchasesQuantity,
       initialInventory,
       finalInventory,
       additionalCosts,
@@ -1514,15 +1875,47 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTotalConsolidatedQuantity(snapshot.totalConsolidatedQuantity ?? 0)
     setTotalConsolidatedCost(snapshot.totalConsolidatedCost ?? 0)
 
+    // Restauração de compras: compatibilidade com snapshots que possuem purchasesItems
+    // ou snapshots legados que tinham apenas compra única em additionalCosts / icmsPurchasesBase
+    if (Array.isArray(snapshot.purchasesItems) && snapshot.purchasesItems.length > 0) {
+      setPurchasesItems(snapshot.purchasesItems)
+    } else {
+      // Migração de compra legada:
+      // Se additionalCosts[0] tiver valor de compra bruta > 0, cria 1 item com esse valor
+      const legacyFirstCost = Array.isArray(snapshot.additionalCosts) && snapshot.additionalCosts[0]
+      const legacyMerch = legacyFirstCost && legacyFirstCost.value ? legacyFirstCost.value : 0
+      setPurchasesItems([
+        {
+          id: 'purch-1',
+          name: 'Item 1',
+          quantity: snapshot.totalPurchasesQuantity || 0,
+          unitPrice: 0,
+          merchandiseValue: legacyMerch,
+          ipiRate: snapshot.nonRecoverableTaxRate ?? 0,
+          icmsRate: snapshot.icmsPurchasesRate ?? 0,
+          icmsFreightValue: 0,
+          hasSt: false,
+          stValue: 0,
+          calculatedIpi: 0,
+          calculatedIcms: 0,
+          calculatedPis: 0,
+          calculatedCofins: 0,
+          costPresumido: 0,
+          costReal: 0,
+          costSimples: 0,
+          unitCostPresumido: 0,
+          unitCostReal: 0,
+          unitCostSimples: 0,
+        },
+      ])
+    }
+
     setInitialInventory(snapshot.initialInventory ?? 0)
     setFinalInventory(snapshot.finalInventory ?? 0)
     setAdditionalCosts(
       Array.isArray(snapshot.additionalCosts) && snapshot.additionalCosts.length > 0
         ? snapshot.additionalCosts
-        : [
-            { id: '1', description: 'Compras brutas', value: 0 },
-            { id: '2', description: 'Frete e seguro s/ compras', value: 0 },
-          ],
+        : [{ id: '1', description: 'Frete e seguro s/ compras', value: 0 }],
     )
     setNonRecoverableTaxBase(snapshot.nonRecoverableTaxBase ?? 0)
     setNonRecoverableTaxRate(snapshot.nonRecoverableTaxRate ?? 0)
@@ -1663,6 +2056,14 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         totalConsolidatedQuantity,
         totalConsolidatedCost,
 
+        purchasesItems: computedPurchasesItems,
+        addPurchaseItem,
+        updatePurchaseItem,
+        removePurchaseItem,
+        totalPurchasesQuantity,
+        totalPurchasesMerchandise,
+        isPurchasesCalculated,
+
         initialInventory,
         setInitialInventory,
         finalInventory,
@@ -1784,18 +2185,18 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         calculatedPurchases: {
           totalAdditionalCosts,
-          nonRecoverableTaxResult,
+          nonRecoverableTaxResult: effectiveIpiAddition,
           totalAdditions,
           totalDeductionsBase,
-          icmsResult,
-          icmsFreightResult,
+          icmsResult: effectiveIcmsPurchases,
+          icmsFreightResult: effectiveIcmsFreight,
           effectiveIcmsToExclude,
           pisAdjustedBase,
-          pisResult,
+          pisResult: effectivePisPurchases,
           cofinsAdjustedBase,
-          cofinsResult,
-          pisFreightResult,
-          cofinsFreightResult,
+          cofinsResult: effectiveCofinsPurchases,
+          pisFreightResult: globalPisFreight,
+          cofinsFreightResult: globalCofinsFreight,
           cmvPresumidoNetPurchases,
           cmvPresumido,
           cmvRealNetPurchases,

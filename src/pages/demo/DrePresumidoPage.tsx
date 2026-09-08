@@ -58,9 +58,17 @@ export default function DrePresumidoPage() {
     interstateSubsystem,
   } = useTaxContext()
 
-  // Se houver múltiplos produtos com quantidade preenchida no Markup, inicializa com o consolidado
+  const { totalPurchasesQuantity } = useTaxContext()
+
+  // Se houver quantidade consolidada de Compras ou de Markup, prioriza Compras (quando existente) ou Markup, ou o digitado
   const defaultQty =
-    totalConsolidatedQuantity > 0 ? totalConsolidatedQuantity : presumidoQuantitySold || 0
+    presumidoQuantitySold > 0
+      ? presumidoQuantitySold
+      : (totalPurchasesQuantity || 0) > 0
+        ? totalPurchasesQuantity || 0
+        : totalConsolidatedQuantity > 0
+          ? totalConsolidatedQuantity
+          : 0
 
   const [qtyInput, setQtyInput] = useState<string>(defaultQty > 0 ? String(defaultQty) : '0')
   const [isQtyFocused, setIsQtyFocused] = useState(false)
@@ -72,13 +80,23 @@ export default function DrePresumidoPage() {
   // Sincroniza o input quando o estado for resetado ou carregado via cenário
   React.useEffect(() => {
     if (!isQtyFocused) {
-      if (presumidoQuantitySold === 0 && totalConsolidatedQuantity === 0) {
+      if (
+        presumidoQuantitySold === 0 &&
+        totalConsolidatedQuantity === 0 &&
+        (totalPurchasesQuantity || 0) === 0
+      ) {
         setQtyInput('0')
       } else {
         setQtyInput(String(defaultQty))
       }
     }
-  }, [presumidoQuantitySold, totalConsolidatedQuantity, defaultQty, isQtyFocused])
+  }, [
+    presumidoQuantitySold,
+    totalConsolidatedQuantity,
+    totalPurchasesQuantity,
+    defaultQty,
+    isQtyFocused,
+  ])
 
   React.useEffect(() => {
     if (!isIssFocused) {
@@ -160,13 +178,15 @@ export default function DrePresumidoPage() {
   // 8. Lucro bruto unitário
   const unitGrossProfit = unitNetRevenue - unitCmvVal
 
-  // Quantidade efetiva
+  // Quantidade efetiva: se o usuário digitou, prevalece; senão soma de compras, senão markup
   const effectiveQuantity =
     presumidoQuantitySold > 0
       ? presumidoQuantitySold
-      : totalConsolidatedQuantity > 0
-        ? totalConsolidatedQuantity
-        : 0
+      : (totalPurchasesQuantity || 0) > 0
+        ? totalPurchasesQuantity || 0
+        : totalConsolidatedQuantity > 0
+          ? totalConsolidatedQuantity
+          : 0
 
   // 9. Despesas operacionais unitárias (despesas totais divididas pela quantidade, se qtd > 0)
   const unitExpenses = effectiveQuantity > 0 ? totalExpenses / effectiveQuantity : 0

@@ -92,11 +92,15 @@ export default function ComparisonPage() {
     interstateSubsystem,
   } = useTaxContext()
 
-  // Se houver quantidade consolidada multi-produtos, prioriza ela
+  const { totalPurchasesQuantity } = useTaxContext()
+
+  // Se houver quantidade consolidada multi-produtos ou multi-compras, prioriza elas
   const initialQty =
-    totalConsolidatedQuantity > 0
-      ? totalConsolidatedQuantity
-      : presumidoQuantitySold || realQuantitySold || simplesQuantitySold || 0
+    (totalPurchasesQuantity || 0) > 0
+      ? totalPurchasesQuantity || 0
+      : totalConsolidatedQuantity > 0
+        ? totalConsolidatedQuantity
+        : presumidoQuantitySold || realQuantitySold || simplesQuantitySold || 0
 
   // Estado local para a quantidade na página de comparação
   const [qty, setQty] = useState<number>(initialQty)

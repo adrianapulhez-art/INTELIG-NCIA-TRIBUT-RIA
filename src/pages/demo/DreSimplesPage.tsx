@@ -66,8 +66,16 @@ export default function DreSimplesPage() {
     interstateSubsystem,
   } = useTaxContext()
 
+  const { totalPurchasesQuantity } = useTaxContext()
+
   const defaultQty =
-    totalConsolidatedQuantity > 0 ? totalConsolidatedQuantity : simplesQuantitySold || 0
+    simplesQuantitySold > 0
+      ? simplesQuantitySold
+      : (totalPurchasesQuantity || 0) > 0
+        ? totalPurchasesQuantity || 0
+        : totalConsolidatedQuantity > 0
+          ? totalConsolidatedQuantity
+          : 0
 
   // Estados locais para inputs
   const [qtyInput, setQtyInput] = useState<string>(defaultQty > 0 ? String(defaultQty) : '0')
@@ -84,13 +92,23 @@ export default function DreSimplesPage() {
   // Sincroniza o input quando o estado for resetado ou carregado via cenário
   React.useEffect(() => {
     if (!isQtyFocused) {
-      if (simplesQuantitySold === 0 && totalConsolidatedQuantity === 0) {
+      if (
+        simplesQuantitySold === 0 &&
+        totalConsolidatedQuantity === 0 &&
+        (totalPurchasesQuantity || 0) === 0
+      ) {
         setQtyInput('0')
       } else {
         setQtyInput(String(defaultQty))
       }
     }
-  }, [simplesQuantitySold, totalConsolidatedQuantity, defaultQty, isQtyFocused])
+  }, [
+    simplesQuantitySold,
+    totalConsolidatedQuantity,
+    totalPurchasesQuantity,
+    defaultQty,
+    isQtyFocused,
+  ])
 
   React.useEffect(() => {
     if (!isRbt12Focused) {
@@ -141,9 +159,11 @@ export default function DreSimplesPage() {
   const effectiveQuantity =
     simplesQuantitySold > 0
       ? simplesQuantitySold
-      : totalConsolidatedQuantity > 0
-        ? totalConsolidatedQuantity
-        : 0
+      : (totalPurchasesQuantity || 0) > 0
+        ? totalPurchasesQuantity || 0
+        : totalConsolidatedQuantity > 0
+          ? totalConsolidatedQuantity
+          : 0
   const qty = effectiveQuantity
 
   // CÁLCULOS UNITÁRIOS DA DRE
