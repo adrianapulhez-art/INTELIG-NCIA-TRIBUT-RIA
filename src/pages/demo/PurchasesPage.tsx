@@ -92,14 +92,14 @@ export default function PurchasesPage() {
               </span>
 
               {/* Botões Presumido / Real / Simples Nacional sincronizados */}
-              <div className="inline-flex flex-wrap rounded-lg bg-slate-950/80 p-1 border border-slate-800 gap-1">
+              <div className="inline-flex flex-wrap rounded-lg bg-slate-950/80 p-1 border border-orange-500/30 gap-1">
                 <button
                   type="button"
                   onClick={() => setRegime('presumido')}
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold font-mono transition-all cursor-pointer ${
                     regime === 'presumido'
-                      ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-orange-500 text-slate-950 font-bold shadow-sm shadow-orange-500/20'
+                      : 'text-orange-200/80 hover:text-orange-100 hover:bg-orange-500/10'
                   }`}
                 >
                   Lucro Presumido
@@ -109,8 +109,8 @@ export default function PurchasesPage() {
                   onClick={() => setRegime('real')}
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold font-mono transition-all cursor-pointer ${
                     regime === 'real'
-                      ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-orange-500 text-slate-950 font-bold shadow-sm shadow-orange-500/20'
+                      : 'text-orange-200/80 hover:text-orange-100 hover:bg-orange-500/10'
                   }`}
                 >
                   Lucro Real
@@ -120,8 +120,8 @@ export default function PurchasesPage() {
                   onClick={() => setRegime('simples')}
                   className={`px-3 py-1.5 rounded-md text-xs font-semibold font-mono transition-all cursor-pointer ${
                     regime === 'simples'
-                      ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-orange-500 text-slate-950 font-bold shadow-sm shadow-orange-500/20'
+                      : 'text-orange-200/80 hover:text-orange-100 hover:bg-orange-500/10'
                   }`}
                 >
                   Simples Nacional

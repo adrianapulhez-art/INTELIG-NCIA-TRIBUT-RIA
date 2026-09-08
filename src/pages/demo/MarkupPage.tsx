@@ -391,15 +391,21 @@ export default function MarkupPage() {
                 onClick={() => setRegime('presumido')}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   regime === 'presumido'
-                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm'
-                    : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                    ? 'bg-orange-500 text-slate-950 border-orange-400 font-bold shadow-md shadow-orange-500/20'
+                    : 'bg-slate-950/40 border-orange-500/30 text-orange-200/80 hover:border-orange-500/60 hover:text-orange-100 hover:bg-orange-500/5'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold font-mono uppercase">Lucro Presumido</span>
-                  {regime === 'presumido' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                  <span
+                    className={`text-xs font-bold font-mono uppercase ${regime === 'presumido' ? 'text-slate-950' : 'text-orange-300'}`}
+                  >
+                    Lucro Presumido
+                  </span>
+                  {regime === 'presumido' && <CheckCircle2 className="w-4 h-4 text-slate-950" />}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                <p
+                  className={`text-[11px] mt-1 font-mono ${regime === 'presumido' ? 'text-slate-900/90 font-medium' : 'text-slate-400'}`}
+                >
                   PIS 0,65% · COFINS 3,00% (cumulativo)
                 </p>
               </button>
@@ -409,15 +415,21 @@ export default function MarkupPage() {
                 onClick={() => setRegime('real')}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   regime === 'real'
-                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm'
-                    : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                    ? 'bg-orange-500 text-slate-950 border-orange-400 font-bold shadow-md shadow-orange-500/20'
+                    : 'bg-slate-950/40 border-orange-500/30 text-orange-200/80 hover:border-orange-500/60 hover:text-orange-100 hover:bg-orange-500/5'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold font-mono uppercase">Lucro Real</span>
-                  {regime === 'real' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                  <span
+                    className={`text-xs font-bold font-mono uppercase ${regime === 'real' ? 'text-slate-950' : 'text-orange-300'}`}
+                  >
+                    Lucro Real
+                  </span>
+                  {regime === 'real' && <CheckCircle2 className="w-4 h-4 text-slate-950" />}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                <p
+                  className={`text-[11px] mt-1 font-mono ${regime === 'real' ? 'text-slate-900/90 font-medium' : 'text-slate-400'}`}
+                >
                   PIS 1,65% · COFINS 7,60% (não cumulativo)
                 </p>
               </button>
@@ -427,15 +439,21 @@ export default function MarkupPage() {
                 onClick={() => setRegime('simples')}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   regime === 'simples'
-                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm'
-                    : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                    ? 'bg-orange-500 text-slate-950 border-orange-400 font-bold shadow-md shadow-orange-500/20'
+                    : 'bg-slate-950/40 border-orange-500/30 text-orange-200/80 hover:border-orange-500/60 hover:text-orange-100 hover:bg-orange-500/5'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold font-mono uppercase">Simples Nacional</span>
-                  {regime === 'simples' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                  <span
+                    className={`text-xs font-bold font-mono uppercase ${regime === 'simples' ? 'text-slate-950' : 'text-orange-300'}`}
+                  >
+                    Simples Nacional
+                  </span>
+                  {regime === 'simples' && <CheckCircle2 className="w-4 h-4 text-slate-950" />}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                <p
+                  className={`text-[11px] mt-1 font-mono ${regime === 'simples' ? 'text-slate-900/90 font-medium' : 'text-slate-400'}`}
+                >
                   Guia única DAS (PIS/COFINS sem destaque avulso)
                 </p>
               </button>
