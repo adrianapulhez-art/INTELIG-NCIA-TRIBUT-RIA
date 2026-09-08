@@ -526,8 +526,145 @@ export default function MarkupPage() {
             </div>
           </div>
 
-          {/* Modo padrão de partida para a calculadora */}
-          <div className="space-y-2">
+          {/* Seção % Tributos: ICMS, PIS, COFINS e adicionais */}
+          <div className="space-y-4 pt-2 border-t border-slate-800/80">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+                % Tributos
+              </h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAddCustomTax(!showAddCustomTax)}
+                className="h-7 text-xs bg-slate-950/40 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                Adicionar tributo
+              </Button>
+            </div>
+            {/* Modal/Form inline para tributo adicional */}
+            {showAddCustomTax && (
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                <span className="text-xs font-semibold text-slate-200">Novo tributo adicional</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Input
+                    type="text"
+                    placeholder="Nome (ex.: ISS, IPI)"
+                    value={newTaxName}
+                    onChange={(e) => setNewTaxName(e.target.value)}
+                    className="bg-slate-900 border-slate-700 text-xs font-mono"
+                  />
+                  <Input
+                    type="text"
+                    placeholder="Alíquota %"
+                    value={newTaxRate}
+                    onChange={(e) => setNewTaxRate(e.target.value)}
+                    className="bg-slate-900 border-slate-700 text-xs font-mono"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAddCustomTax(false)}
+                    className="text-xs h-7"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddCustomTax}
+                    className="text-xs h-7 bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-semibold"
+                  >
+                    Salvar
+                  </Button>
+                </div>
+              </div>
+            )}
+            {/* ICMS Primeiro: Alíquota livre */}
+            <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold font-mono text-emerald-400 uppercase">ICMS</span>
+                <span className="text-xs text-slate-400">
+                  (alíquota estadual sobre receita bruta)
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="relative w-28">
+                  <Input
+                    type="text"
+                    placeholder="0,00"
+                    value={icmsInput}
+                    onFocus={() => setIsIcmsFocused(true)}
+                    onChange={handleIcmsChange}
+                    onBlur={handleIcmsBlur}
+                    className="pr-7 text-right bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs focus:border-emerald-500"
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                    %
+                  </span>
+                </div>
+                <div className="text-xs font-mono text-slate-400 min-w-[110px] text-right">
+                  Fator: <span className="text-slate-200">{formatFactorBR(icmsFactor)}</span>
+                </div>
+              </div>
+            </div>
+            {/* Linhas por tributo detalhadas */}
+            <div className="bg-slate-950/50 border border-slate-800 rounded-xl divide-y divide-slate-800/80 text-xs font-mono">
+              <div className="px-3.5 py-2.5 flex items-center justify-between">
+                <span className="text-slate-300 font-bold">PIS</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-slate-400">{formatNumberBR(pisRate)}%</span>
+                  <span className="text-slate-300">
+                    Fator: <strong className="text-emerald-400">{formatFactorBR(pisFactor)}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div className="px-3.5 py-2.5 flex items-center justify-between">
+                <span className="text-slate-300 font-bold">COFINS</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-slate-400">{formatNumberBR(cofinsRate)}%</span>
+                  <span className="text-slate-300">
+                    Fator:{' '}
+                    <strong className="text-emerald-400">{formatFactorBR(cofinsFactor)}</strong>
+                  </span>
+                </div>
+              </div>
+
+              {/* Tributos adicionais se houver */}
+              {customTaxesMarkup.map((ct) => (
+                <div key={ct.id} className="px-3.5 py-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-300 font-bold">{ct.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeCustomTaxMarkup(ct.id)}
+                      className="text-slate-500 hover:text-rose-400 transition-colors"
+                      title="Remover"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-slate-400">{formatNumberBR(ct.rate)}%</span>
+                    <span className="text-slate-300">
+                      Fator:{' '}
+                      <strong className="text-emerald-400">
+                        {formatFactorBR(1 - ct.rate / 100)}
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Modo de cálculo predominante (escolha do modo de cálculo) */}
+          <div className="space-y-2 pt-2 border-t border-slate-800/80">
             <span className="text-xs font-semibold text-slate-300 block">
               Modo de cálculo predominante (ou personalize por produto abaixo):
             </span>
@@ -577,7 +714,7 @@ export default function MarkupPage() {
           </div>
 
           {/* ÁREA DE LISTA / TABELA DE PRODUTOS */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-2 border-t border-slate-800/80">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4 text-emerald-400" />
@@ -789,144 +926,6 @@ export default function MarkupPage() {
                 viewMode="markup"
                 saleOperationValue={totalConsolidatedRevenue || simulatedSalePrice}
               />
-            </div>
-          </div>
-
-          {/* Seção % Tributos */}
-          <div className="space-y-4 pt-2 border-t border-slate-800/80">
-            {' '}
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
-                % Tributos
-              </h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAddCustomTax(!showAddCustomTax)}
-                className="h-7 text-xs bg-slate-950/40 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                Adicionar tributo
-              </Button>
-            </div>
-            {/* Modal/Form inline para tributo adicional */}
-            {showAddCustomTax && (
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
-                <span className="text-xs font-semibold text-slate-200">Novo tributo adicional</span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <Input
-                    type="text"
-                    placeholder="Nome (ex.: ISS, IPI)"
-                    value={newTaxName}
-                    onChange={(e) => setNewTaxName(e.target.value)}
-                    className="bg-slate-900 border-slate-700 text-xs font-mono"
-                  />
-                  <Input
-                    type="text"
-                    placeholder="Alíquota %"
-                    value={newTaxRate}
-                    onChange={(e) => setNewTaxRate(e.target.value)}
-                    className="bg-slate-900 border-slate-700 text-xs font-mono"
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowAddCustomTax(false)}
-                    className="text-xs h-7"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleAddCustomTax}
-                    className="text-xs h-7 bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-semibold"
-                  >
-                    Salvar
-                  </Button>
-                </div>
-              </div>
-            )}
-            {/* ICMS Primeiro: Alíquota livre */}
-            <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold font-mono text-emerald-400 uppercase">ICMS</span>
-                <span className="text-xs text-slate-400">
-                  (alíquota estadual sobre receita bruta)
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="relative w-28">
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    value={icmsInput}
-                    onFocus={() => setIsIcmsFocused(true)}
-                    onChange={handleIcmsChange}
-                    onBlur={handleIcmsBlur}
-                    className="pr-7 text-right bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs focus:border-emerald-500"
-                  />
-                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
-                    %
-                  </span>
-                </div>
-                <div className="text-xs font-mono text-slate-400 min-w-[110px] text-right">
-                  Fator: <span className="text-slate-200">{formatFactorBR(icmsFactor)}</span>
-                </div>
-              </div>
-            </div>
-            {/* Linhas por tributo detalhadas */}
-            <div className="bg-slate-950/50 border border-slate-800 rounded-xl divide-y divide-slate-800/80 text-xs font-mono">
-              <div className="px-3.5 py-2.5 flex items-center justify-between">
-                <span className="text-slate-300 font-bold">PIS</span>
-                <div className="flex items-center gap-4">
-                  <span className="text-slate-400">{formatNumberBR(pisRate)}%</span>
-                  <span className="text-slate-300">
-                    Fator: <strong className="text-emerald-400">{formatFactorBR(pisFactor)}</strong>
-                  </span>
-                </div>
-              </div>
-
-              <div className="px-3.5 py-2.5 flex items-center justify-between">
-                <span className="text-slate-300 font-bold">COFINS</span>
-                <div className="flex items-center gap-4">
-                  <span className="text-slate-400">{formatNumberBR(cofinsRate)}%</span>
-                  <span className="text-slate-300">
-                    Fator:{' '}
-                    <strong className="text-emerald-400">{formatFactorBR(cofinsFactor)}</strong>
-                  </span>
-                </div>
-              </div>
-
-              {/* Tributos adicionais se houver */}
-              {customTaxesMarkup.map((ct) => (
-                <div key={ct.id} className="px-3.5 py-2.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-300 font-bold">{ct.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeCustomTaxMarkup(ct.id)}
-                      className="text-slate-500 hover:text-rose-400 transition-colors"
-                      title="Remover"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-slate-400">{formatNumberBR(ct.rate)}%</span>
-                    <span className="text-slate-300">
-                      Fator:{' '}
-                      <strong className="text-emerald-400">
-                        {formatFactorBR(1 - ct.rate / 100)}
-                      </strong>
-                    </span>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
 
