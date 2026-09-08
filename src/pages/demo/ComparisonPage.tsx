@@ -26,6 +26,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 
 export default function ComparisonPage() {
   const navigate = useNavigate()
@@ -80,6 +81,16 @@ export default function ComparisonPage() {
   // Estado local para a quantidade na página de comparação
   const [qty, setQty] = useState<number>(initialQty)
   const [qtyInput, setQtyInput] = useState<string>(String(initialQty))
+
+  React.useEffect(() => {
+    if (initialQty === 0) {
+      setQty(0)
+      setQtyInput('0')
+    } else {
+      setQty(initialQty)
+      setQtyInput(String(initialQty))
+    }
+  }, [initialQty])
 
   // Atualizar a quantidade em todos os contextos simultaneamente
   const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1468,6 +1479,11 @@ export default function ComparisonPage() {
               </li>
             </ul>
           </div>
+        </div>
+
+        {/* Barra de Gerenciamento de Cenários no fim da página (padrão Markup) */}
+        <div className="pt-2">
+          <ScenarioManagerBar />
         </div>
 
         {/* Rodapé com Navegação para voltar às outras telas */}

@@ -14,6 +14,7 @@ import {
 import { formatBRL, formatNumberBR, formatPercentBR, parseBRNumber } from '@/lib/taxCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 
 export default function DreRealPage() {
   const navigate = useNavigate()
@@ -51,6 +52,19 @@ export default function DreRealPage() {
   const [issInput, setIssInput] = useState<string>(
     realIssRate > 0 ? formatNumberBR(realIssRate) : '',
   )
+
+  // Sincroniza o input quando o estado for resetado ou carregado via cenário
+  React.useEffect(() => {
+    if (realQuantitySold === 0 && totalConsolidatedQuantity === 0) {
+      setQtyInput('0')
+    } else {
+      setQtyInput(String(defaultQty))
+    }
+  }, [realQuantitySold, totalConsolidatedQuantity, defaultQty])
+
+  React.useEffect(() => {
+    setIssInput(realIssRate > 0 ? formatNumberBR(realIssRate) : '')
+  }, [realIssRate])
 
   const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -569,234 +583,263 @@ export default function DreRealPage() {
           </div>
         </div>
 
-        {/* Quadro Demonstração do Resultado (fiel aos prints e especificações) */}
-        <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
-              Demonstração do Resultado
-            </h3>
-            <span className="text-xs font-mono text-emerald-400">
-              Lucro Real ({realActivity.toUpperCase()} · Não cumulativo)
-            </span>
-          </div>
-
-          {/* Tabela da DRE com colunas Unitário e Total */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs font-mono">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-400 text-right">
-                  <th className="py-2.5 text-left font-semibold text-slate-300">Descrição</th>
-                  <th className="py-2.5 px-3 font-semibold text-slate-300 w-36 sm:w-44">
-                    Unitário
-                  </th>
-                  <th className="py-2.5 px-3 font-semibold text-slate-300 w-36 sm:w-44">
-                    Total ({qty} un.)
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {/* 1. Receita bruta */}
-                <tr>
-                  <td className="py-2 text-left font-medium text-slate-200">
-                    {isServices ? 'Receita bruta de serviços' : 'Receita bruta de vendas'}
-                  </td>
-                  <td className="py-2 px-3 text-right text-slate-200">{formatBRL(unitGross)}</td>
-                  <td className="py-2 px-3 text-right text-slate-200">{formatBRL(totalGross)}</td>
-                </tr>
-
-                {/* 2. (-) ICMS ou (-) ISSQN */}
-                <tr>
-                  <td className="py-2 text-left text-slate-400">
-                    {isServices ? '(−) ISSQN' : '(−) ICMS'}
-                  </td>
-                  <td className="py-2 px-3 text-right text-slate-400">
-                    -{formatBRL(unitMunicipalStateTax)}
-                  </td>
-                  <td className="py-2 px-3 text-right text-slate-400">
-                    -{formatBRL(totalMunicipalStateTax)}
-                  </td>
-                </tr>
-
-                {/* 3. Base PIS/COFINS [cinza informativa] */}
-                <tr className="bg-slate-900/30 text-slate-500">
-                  <td className="py-2 text-left italic">
-                    {isServices
-                      ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
-                      : 'Base PIS/COFINS (tese do século · exclui ICMS)'}
-                  </td>
-                  <td className="py-2 px-3 text-right">{formatBRL(unitPisCofinsBase)}</td>
-                  <td className="py-2 px-3 text-right">{formatBRL(totalPisCofinsBase)}</td>
-                </tr>
-
-                {/* 4. (-) PIS não cumulativo */}
-                <tr>
-                  <td className="py-2 text-left text-slate-400">(−) PIS não cumulativo</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(unitPis)}</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalPis)}</td>
-                </tr>
-
-                {/* 5. (-) COFINS não cumulativo */}
-                <tr>
-                  <td className="py-2 text-left text-slate-400">(−) COFINS não cumulativo</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(unitCofins)}</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCofins)}</td>
-                </tr>
-
-                {/* 6. = Receita líquida */}
-                <tr className="bg-slate-950/40 font-bold text-slate-100">
-                  <td className="py-2.5 text-left">= Receita líquida</td>
-                  <td className="py-2.5 px-3 text-right text-slate-100">
-                    {formatBRL(unitNetRevenue)}
-                  </td>
-                  <td className="py-2.5 px-3 text-right text-slate-100">
-                    {formatBRL(totalNetRevenue)}
-                  </td>
-                </tr>
-
-                {/* 7. (-) CMV (líquido de créditos) */}
-                <tr>
-                  <td className="py-2 text-left text-slate-400">(−) CMV (líquido de créditos)</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(unitCmvVal)}</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
-                </tr>
-
-                {/* 8. = Lucro bruto */}
-                <tr className="bg-slate-950/40 font-bold text-slate-100">
-                  <td className="py-2.5 text-left">= Lucro bruto</td>
-                  <td className="py-2.5 px-3 text-right text-slate-100">
-                    {formatBRL(unitGrossProfit)}
-                  </td>
-                  <td className="py-2.5 px-3 text-right text-slate-100">
-                    {formatBRL(totalGrossProfit)}
-                  </td>
-                </tr>
-
-                {/* 9. (-) Despesas operacionais */}
-                <tr>
-                  <td className="py-2 text-left text-slate-400">(−) Despesas operacionais</td>
-                  <td className="py-2 px-3 text-right text-slate-400">
-                    -{formatBRL(unitExpenses)}
-                  </td>
-                  <td className="py-2 px-3 text-right text-slate-400">
-                    -{formatBRL(totalExpenses)}
-                  </td>
-                </tr>
-
-                {/* 10. = Resultado antes do IRPJ/CSLL */}
-                <tr className="bg-slate-950/40 font-bold text-slate-100">
-                  <td className="py-2.5 text-left">= Resultado antes do IRPJ/CSLL</td>
-                  <td className="py-2.5 px-3 text-right text-slate-100">
-                    {formatBRL(unitResultBeforeTax)}
-                  </td>
-                  <td className="py-2.5 px-3 text-right text-slate-100">
-                    {formatBRL(totalResultBeforeTax)}
-                  </td>
-                </tr>
-
-                {/* 11. (+) Adições [— no unitário] */}
-                <tr>
-                  <td className="py-2 text-left text-slate-400">(+) Adições</td>
-                  <td className="py-2 px-3 text-right text-slate-400">—</td>
-                  <td className="py-2 px-3 text-right text-slate-200">
-                    {formatBRL(totalAdditions)}
-                  </td>
-                </tr>
-
-                {/* 12. (-) Exclusões [— no unitário] */}
-                <tr>
-                  <td className="py-2 text-left text-slate-400">(−) Exclusões</td>
-                  <td className="py-2 px-3 text-right text-slate-400">—</td>
-                  <td className="py-2 px-3 text-right text-slate-400">
-                    -{formatBRL(totalExclusions)}
-                  </td>
-                </tr>
-
-                {/* 13. = Lucro real (base IRPJ/CSLL) [cinza/negrito, — no unitário] */}
-                <tr className="bg-slate-900/40 font-bold text-slate-300">
-                  <td className="py-2.5 text-left">= Lucro real (base IRPJ/CSLL)</td>
-                  <td className="py-2.5 px-3 text-right text-slate-400">—</td>
-                  <td className="py-2.5 px-3 text-right text-slate-100">
-                    {formatBRL(taxableRealProfit)}
-                  </td>
-                </tr>
-
-                {/* 14. (-) IRPJ */}
-                <tr>
-                  <td className="py-2 text-left text-slate-400">(−) IRPJ</td>
-                  <td className="py-2 px-3 text-right text-slate-400">—</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalIrpj)}</td>
-                </tr>
-
-                {/* 15. (-) Adicional de IRPJ */}
-                <tr>
-                  <td className="py-2 text-left text-slate-400">(−) Adicional de IRPJ</td>
-                  <td className="py-2 px-3 text-right text-slate-400">—</td>
-                  <td className="py-2 px-3 text-right text-slate-400">
-                    -{formatBRL(totalIrpjAdditional)}
-                  </td>
-                </tr>
-
-                {/* 16. (-) CSLL */}
-                <tr>
-                  <td className="py-2 text-left text-slate-400">(−) CSLL</td>
-                  <td className="py-2 px-3 text-right text-slate-400">—</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCsll)}</td>
-                </tr>
-
-                {/* 17. = Lucro líquido [fundo verde escuro, valores verde brilhante] */}
-                <tr className="bg-emerald-950/40 text-emerald-400 font-extrabold border-t-2 border-emerald-500/40">
-                  <td className="py-3 px-2 text-left text-sm">= Lucro líquido</td>
-                  <td className="py-3 px-3 text-right text-sm text-emerald-400">
-                    {formatBRL(unitNetProfit)}
-                  </td>
-                  <td className="py-3 px-3 text-right text-sm text-emerald-400">
-                    {formatBRL(totalNetProfit)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Cards de Resumo (3 lado a lado, conforme imagem anexada image-a391b) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
-            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-              <span className="text-[11px] text-slate-400 font-mono block mb-1">
-                Carga tributária total
-              </span>
-              <span className="text-xl font-bold font-mono text-slate-200">
-                {formatBRL(totalTaxBurden)}
+        {/* Quadro Demonstração do Resultado — condicionado à simulação */}
+        {isRealSimulated ? (
+          <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                Demonstração do Resultado
+              </h3>
+              <span className="text-xs font-mono text-emerald-400">
+                Lucro Real ({realActivity.toUpperCase()} · Não cumulativo)
               </span>
             </div>
 
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-              <span className="text-[11px] text-emerald-400 font-mono block mb-1 font-semibold">
-                Lucro líquido
-              </span>
-              <span className="text-xl font-bold font-mono text-emerald-400">
-                {formatBRL(totalNetProfit)}
-              </span>
+            {/* Tabela da DRE com colunas Unitário e Total */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 text-right">
+                    <th className="py-2.5 text-left font-semibold text-slate-300">Descrição</th>
+                    <th className="py-2.5 px-3 font-semibold text-slate-300 w-36 sm:w-44">
+                      Unitário
+                    </th>
+                    <th className="py-2.5 px-3 font-semibold text-slate-300 w-36 sm:w-44">
+                      Total ({qty} un.)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {/* 1. Receita bruta */}
+                  <tr>
+                    <td className="py-2 text-left font-medium text-slate-200">
+                      {isServices ? 'Receita bruta de serviços' : 'Receita bruta de vendas'}
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-200">{formatBRL(unitGross)}</td>
+                    <td className="py-2 px-3 text-right text-slate-200">{formatBRL(totalGross)}</td>
+                  </tr>
+
+                  {/* 2. (-) ICMS ou (-) ISSQN */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">
+                      {isServices ? '(−) ISSQN' : '(−) ICMS'}
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(unitMunicipalStateTax)}
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(totalMunicipalStateTax)}
+                    </td>
+                  </tr>
+
+                  {/* 3. Base PIS/COFINS [cinza informativa] */}
+                  <tr className="bg-slate-900/30 text-slate-500">
+                    <td className="py-2 text-left italic">
+                      {isServices
+                        ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
+                        : 'Base PIS/COFINS (tese do século · exclui ICMS)'}
+                    </td>
+                    <td className="py-2 px-3 text-right">{formatBRL(unitPisCofinsBase)}</td>
+                    <td className="py-2 px-3 text-right">{formatBRL(totalPisCofinsBase)}</td>
+                  </tr>
+
+                  {/* 4. (-) PIS não cumulativo */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">(−) PIS não cumulativo</td>
+                    <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(unitPis)}</td>
+                    <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalPis)}</td>
+                  </tr>
+
+                  {/* 5. (-) COFINS não cumulativo */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">(−) COFINS não cumulativo</td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(unitCofins)}
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(totalCofins)}
+                    </td>
+                  </tr>
+
+                  {/* 6. = Receita líquida */}
+                  <tr className="bg-slate-950/40 font-bold text-slate-100">
+                    <td className="py-2.5 text-left">= Receita líquida</td>
+                    <td className="py-2.5 px-3 text-right text-slate-100">
+                      {formatBRL(unitNetRevenue)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-slate-100">
+                      {formatBRL(totalNetRevenue)}
+                    </td>
+                  </tr>
+
+                  {/* 7. (-) CMV (líquido de créditos) */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">(−) CMV (líquido de créditos)</td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(unitCmvVal)}
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
+                  </tr>
+
+                  {/* 8. = Lucro bruto */}
+                  <tr className="bg-slate-950/40 font-bold text-slate-100">
+                    <td className="py-2.5 text-left">= Lucro bruto</td>
+                    <td className="py-2.5 px-3 text-right text-slate-100">
+                      {formatBRL(unitGrossProfit)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-slate-100">
+                      {formatBRL(totalGrossProfit)}
+                    </td>
+                  </tr>
+
+                  {/* 9. (-) Despesas operacionais */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">(−) Despesas operacionais</td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(unitExpenses)}
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(totalExpenses)}
+                    </td>
+                  </tr>
+
+                  {/* 10. = Resultado antes do IRPJ/CSLL */}
+                  <tr className="bg-slate-950/40 font-bold text-slate-100">
+                    <td className="py-2.5 text-left">= Resultado antes do IRPJ/CSLL</td>
+                    <td className="py-2.5 px-3 text-right text-slate-100">
+                      {formatBRL(unitResultBeforeTax)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-slate-100">
+                      {formatBRL(totalResultBeforeTax)}
+                    </td>
+                  </tr>
+
+                  {/* 11. (+) Adições [— no unitário] */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">(+) Adições</td>
+                    <td className="py-2 px-3 text-right text-slate-400">—</td>
+                    <td className="py-2 px-3 text-right text-slate-200">
+                      {formatBRL(totalAdditions)}
+                    </td>
+                  </tr>
+
+                  {/* 12. (-) Exclusões [— no unitário] */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">(−) Exclusões</td>
+                    <td className="py-2 px-3 text-right text-slate-400">—</td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(totalExclusions)}
+                    </td>
+                  </tr>
+
+                  {/* 13. = Lucro real (base IRPJ/CSLL) [cinza/negrito, — no unitário] */}
+                  <tr className="bg-slate-900/40 font-bold text-slate-300">
+                    <td className="py-2.5 text-left">= Lucro real (base IRPJ/CSLL)</td>
+                    <td className="py-2.5 px-3 text-right text-slate-400">—</td>
+                    <td className="py-2.5 px-3 text-right text-slate-100">
+                      {formatBRL(taxableRealProfit)}
+                    </td>
+                  </tr>
+
+                  {/* 14. (-) IRPJ */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">(−) IRPJ</td>
+                    <td className="py-2 px-3 text-right text-slate-400">—</td>
+                    <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalIrpj)}</td>
+                  </tr>
+
+                  {/* 15. (-) Adicional de IRPJ */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">(−) Adicional de IRPJ</td>
+                    <td className="py-2 px-3 text-right text-slate-400">—</td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(totalIrpjAdditional)}
+                    </td>
+                  </tr>
+
+                  {/* 16. (-) CSLL */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">(−) CSLL</td>
+                    <td className="py-2 px-3 text-right text-slate-400">—</td>
+                    <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCsll)}</td>
+                  </tr>
+
+                  {/* 17. = Lucro líquido [fundo verde escuro, valores verde brilhante] */}
+                  <tr className="bg-emerald-950/40 text-emerald-400 font-extrabold border-t-2 border-emerald-500/40">
+                    <td className="py-3 px-2 text-left text-sm">= Lucro líquido</td>
+                    <td className="py-3 px-3 text-right text-sm text-emerald-400">
+                      {formatBRL(unitNetProfit)}
+                    </td>
+                    <td className="py-3 px-3 text-right text-sm text-emerald-400">
+                      {formatBRL(totalNetProfit)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-              <span className="text-[11px] text-slate-400 font-mono block mb-1">
-                Margem líquida
-              </span>
-              <span className="text-xl font-bold font-mono text-slate-200">
-                {formatPercentBR(netMargin)}
-              </span>
+            {/* Cards de Resumo (3 lado a lado, conforme imagem anexada image-a391b) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
+                <span className="text-[11px] text-slate-400 font-mono block mb-1">
+                  Carga tributária total
+                </span>
+                <span className="text-xl font-bold font-mono text-slate-200">
+                  {formatBRL(totalTaxBurden)}
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                <span className="text-[11px] text-emerald-400 font-mono block mb-1 font-semibold">
+                  Lucro líquido
+                </span>
+                <span className="text-xl font-bold font-mono text-emerald-400">
+                  {formatBRL(totalNetProfit)}
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
+                <span className="text-[11px] text-slate-400 font-mono block mb-1">
+                  Margem líquida
+                </span>
+                <span className="text-xl font-bold font-mono text-slate-200">
+                  {formatPercentBR(netMargin)}
+                </span>
+              </div>
             </div>
           </div>
+        ) : (
+          <div className="bg-[#0b101b]/60 border border-dashed border-slate-800 rounded-2xl p-8 text-center space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto">
+              <Calculator className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-white tracking-tight">
+                Demonstração do Resultado pronta para simulação
+              </h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Informe a quantidade vendida acima e clique em{' '}
+                <strong className="text-emerald-400">"Simular DRE"</strong> para gerar os cálculos
+                da DRE do Lucro Real com as deduções de créditos e LALUR.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Barra de Gerenciamento de Cenários no fim da página (padrão Markup) */}
+        <div className="pt-2">
+          <ScenarioManagerBar />
         </div>
 
         {/* Rodapé: Botões de navegação sequencial */}
         <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <Button
             type="button"
-            onClick={() => navigate('/demo/dre-presumido')}
+            onClick={() => navigate('/demo/compras')}
             className="bg-[#0f172a]/90 text-slate-300 border border-slate-700/80 hover:border-emerald-500/40 hover:text-white hover:bg-slate-800/80 font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-sm"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Voltar para DRE Lucro Presumido</span>
+            <span>Voltar para Calculadora de Compras</span>
           </Button>
 
           <Button
@@ -804,7 +847,7 @@ export default function DreRealPage() {
             onClick={() => navigate('/demo/comparacao')}
             className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
           >
-            <span>Comparar regimes</span>
+            <span>Ir para Comparação de Regimes</span>
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>

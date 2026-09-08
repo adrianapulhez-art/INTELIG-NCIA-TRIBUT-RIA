@@ -14,6 +14,7 @@ import {
 import { formatBRL, formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 
 export default function PurchasesPage() {
   const navigate = useNavigate()
@@ -761,6 +762,11 @@ export default function PurchasesPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Barra de Gerenciamento de Cenários no fim da página (padrão Markup) */}
+        <div className="pt-2">
+          <ScenarioManagerBar />
         </div>
 
         {/* Botões de Navegação no Final da Página */}

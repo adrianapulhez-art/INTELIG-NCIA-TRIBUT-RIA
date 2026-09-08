@@ -24,6 +24,7 @@ import {
 } from '@/lib/simplesCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 
 export default function DreSimplesPage() {
   const navigate = useNavigate()
@@ -47,6 +48,7 @@ export default function DreSimplesPage() {
     addSimplesExpense,
     updateSimplesExpense,
     removeSimplesExpense,
+    isSimplesSimulated,
     simulateSimples,
   } = useTaxContext()
 
@@ -61,6 +63,23 @@ export default function DreSimplesPage() {
   const [payrollInput, setPayrollInput] = useState<string>(
     simplesPayroll12m > 0 ? formatNumberBR(simplesPayroll12m) : '',
   )
+
+  // Sincroniza o input quando o estado for resetado ou carregado via cenário
+  React.useEffect(() => {
+    if (simplesQuantitySold === 0 && totalConsolidatedQuantity === 0) {
+      setQtyInput('0')
+    } else {
+      setQtyInput(String(defaultQty))
+    }
+  }, [simplesQuantitySold, totalConsolidatedQuantity, defaultQty])
+
+  React.useEffect(() => {
+    setRbt12Input(simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : '')
+  }, [simplesRbt12])
+
+  React.useEffect(() => {
+    setPayrollInput(simplesPayroll12m > 0 ? formatNumberBR(simplesPayroll12m) : '')
+  }, [simplesPayroll12m])
 
   // RECEITA BRUTA:
   // Se houver múltiplos produtos consolidados (> 0), usa totalConsolidatedRevenue.
@@ -688,223 +707,252 @@ export default function DreSimplesPage() {
           </div>
         </div>
 
-        {/* Quadro Demonstração do Resultado — Simples Nacional */}
-        <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <div className="flex items-center gap-2">
-              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                Demonstração do Resultado (DRE)
+        {/* Quadro Demonstração do Resultado — Simples Nacional (condicionado à simulação) */}
+        {isSimplesSimulated ? (
+          <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                  Demonstração do Resultado (DRE)
+                </h3>
+                <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                  Simples Nacional
+                </span>
+              </div>
+              <span className="text-xs font-mono text-slate-400">
+                {currentAnexoConfig.nome} · {pgdas.faixaNome}
+              </span>
+            </div>
+
+            {/* Tabela da DRE com colunas Unitário e Total */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 text-right">
+                    <th className="py-2.5 text-left font-semibold text-slate-300">Descrição</th>
+                    <th className="py-2.5 px-3 font-semibold text-slate-300 w-36 sm:w-44">
+                      Unitário
+                    </th>
+                    <th className="py-2.5 px-3 font-semibold text-slate-300 w-36 sm:w-44">
+                      Total ({qty} un.)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {/* 1. Receita bruta de vendas / serviços */}
+                  <tr>
+                    <td className="py-2 text-left font-medium text-slate-200">
+                      {currentAnexoConfig.tipoAtividade === 'servicos'
+                        ? 'Receita bruta de serviços'
+                        : 'Receita bruta de vendas'}
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-200">{formatBRL(unitGross)}</td>
+                    <td className="py-2 px-3 text-right text-slate-200">{formatBRL(totalGross)}</td>
+                  </tr>
+
+                  {/* 2. (-) Guia Única DAS (Alíquota efetiva PGDAS) */}
+                  <tr className="bg-slate-950/30">
+                    <td className="py-2 text-left font-semibold text-emerald-400">
+                      (−) Simples Nacional — Guia Única DAS (
+                      {formatNumberBR(pgdas.aliquotaEfetiva, 2)}% efetivo)
+                    </td>
+                    <td className="py-2 px-3 text-right font-semibold text-emerald-400">
+                      -{formatBRL(unitDasTotal)}
+                    </td>
+                    <td className="py-2 px-3 text-right font-semibold text-emerald-400">
+                      -{formatBRL(totalDasTotal)}
+                    </td>
+                  </tr>
+
+                  {/* Sublinhas de detalhamento da partilha da guia DAS (cinza/itálico) */}
+                  <tr className="bg-slate-900/20 text-slate-500">
+                    <td className="py-1 pl-6 text-left italic">
+                      · IRPJ ({formatNumberBR(pgdas.reparticao.irpjRate, 2)}% da receita)
+                    </td>
+                    <td className="py-1 px-3 text-right">-{formatBRL(unitIrpj)}</td>
+                    <td className="py-1 px-3 text-right">-{formatBRL(totalIrpj)}</td>
+                  </tr>
+                  <tr className="bg-slate-900/20 text-slate-500">
+                    <td className="py-1 pl-6 text-left italic">
+                      · CSLL ({formatNumberBR(pgdas.reparticao.csllRate, 2)}% da receita)
+                    </td>
+                    <td className="py-1 px-3 text-right">-{formatBRL(unitCsll)}</td>
+                    <td className="py-1 px-3 text-right">-{formatBRL(totalCsll)}</td>
+                  </tr>
+                  <tr className="bg-slate-900/20 text-slate-500">
+                    <td className="py-1 pl-6 text-left italic">
+                      · COFINS ({formatNumberBR(pgdas.reparticao.cofinsRate, 2)}% da receita)
+                    </td>
+                    <td className="py-1 px-3 text-right">-{formatBRL(unitCofins)}</td>
+                    <td className="py-1 px-3 text-right">-{formatBRL(totalCofins)}</td>
+                  </tr>
+                  <tr className="bg-slate-900/20 text-slate-500">
+                    <td className="py-1 pl-6 text-left italic">
+                      · PIS ({formatNumberBR(pgdas.reparticao.pisRate, 2)}% da receita)
+                    </td>
+                    <td className="py-1 px-3 text-right">-{formatBRL(unitPis)}</td>
+                    <td className="py-1 px-3 text-right">-{formatBRL(totalPis)}</td>
+                  </tr>
+                  {currentAnexoConfig.cppNoDas && (
+                    <tr className="bg-slate-900/20 text-slate-500">
+                      <td className="py-1 pl-6 text-left italic">
+                        · CPP Previdenciária ({formatNumberBR(pgdas.reparticao.cppRate, 2)}% da
+                        receita)
+                      </td>
+                      <td className="py-1 px-3 text-right">-{formatBRL(unitCpp)}</td>
+                      <td className="py-1 px-3 text-right">-{formatBRL(totalCpp)}</td>
+                    </tr>
+                  )}
+                  {pgdas.reparticao.ipiRate > 0 && (
+                    <tr className="bg-slate-900/20 text-slate-500">
+                      <td className="py-1 pl-6 text-left italic">
+                        · IPI ({formatNumberBR(pgdas.reparticao.ipiRate, 2)}% da receita)
+                      </td>
+                      <td className="py-1 px-3 text-right">-{formatBRL(unitIpi)}</td>
+                      <td className="py-1 px-3 text-right">-{formatBRL(totalIpi)}</td>
+                    </tr>
+                  )}
+                  <tr className="bg-slate-900/20 text-slate-500">
+                    <td className="py-1 pl-6 text-left italic">
+                      ·{' '}
+                      {currentAnexoConfig.tributoEstadualMunicipal === 'iss'
+                        ? `ISS Municipal (${formatNumberBR(pgdas.reparticao.issRate, 2)}% da receita)`
+                        : `ICMS Estadual (${formatNumberBR(pgdas.reparticao.icmsRate, 2)}% da receita)`}
+                    </td>
+                    <td className="py-1 px-3 text-right">
+                      -
+                      {formatBRL(
+                        currentAnexoConfig.tributoEstadualMunicipal === 'iss' ? unitIss : unitIcms,
+                      )}
+                    </td>
+                    <td className="py-1 px-3 text-right">
+                      -
+                      {formatBRL(
+                        currentAnexoConfig.tributoEstadualMunicipal === 'iss'
+                          ? totalIss
+                          : totalIcms,
+                      )}
+                    </td>
+                  </tr>
+
+                  {/* 3. = Receita líquida */}
+                  <tr className="bg-slate-950/40 font-bold text-slate-100">
+                    <td className="py-2.5 text-left">= Receita líquida</td>
+                    <td className="py-2.5 px-3 text-right text-slate-100">
+                      {formatBRL(unitNetRevenue)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-slate-100">
+                      {formatBRL(totalNetRevenue)}
+                    </td>
+                  </tr>
+
+                  {/* 4. (-) CMV */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">
+                      (−) CMV (custo não creditável)
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(unitCmvVal)}
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
+                  </tr>
+
+                  {/* 5. = Lucro bruto */}
+                  <tr className="bg-slate-950/40 font-bold text-slate-100">
+                    <td className="py-2.5 text-left">= Lucro bruto</td>
+                    <td className="py-2.5 px-3 text-right text-slate-100">
+                      {formatBRL(unitGrossProfit)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-slate-100">
+                      {formatBRL(totalGrossProfit)}
+                    </td>
+                  </tr>
+
+                  {/* 6. (-) Despesas operacionais */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">(−) Despesas operacionais</td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(unitExpenses)}
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(totalExpenses)}
+                    </td>
+                  </tr>
+
+                  {/* 7. = Lucro líquido [fundo verde escuro, valores verde brilhante] */}
+                  <tr className="bg-emerald-950/40 text-emerald-400 font-extrabold border-t-2 border-emerald-500/40">
+                    <td className="py-3 px-2 text-left text-sm">= Lucro líquido</td>
+                    <td className="py-3 px-3 text-right text-sm text-emerald-400">
+                      {formatBRL(unitNetProfit)}
+                    </td>
+                    <td className="py-3 px-3 text-right text-sm text-emerald-400">
+                      {formatBRL(totalNetProfit)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Cards de Resumo (3 lado a lado, mesmo padrão) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
+                <span className="text-[11px] text-slate-400 font-mono block mb-1">
+                  Carga tributária total (DAS)
+                </span>
+                <span className="text-xl font-bold font-mono text-slate-200">
+                  {formatBRL(totalTaxBurden)}
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono block mt-1">
+                  {formatNumberBR(pgdas.aliquotaEfetiva, 2)}% da receita bruta
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                <span className="text-[11px] text-emerald-400 font-mono block mb-1 font-semibold">
+                  Lucro líquido
+                </span>
+                <span className="text-xl font-bold font-mono text-emerald-400">
+                  {formatBRL(totalNetProfit)}
+                </span>
+                <span className="text-[10px] text-emerald-400/80 font-mono block mt-1">
+                  Resultado final do período
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
+                <span className="text-[11px] text-slate-400 font-mono block mb-1">
+                  Margem líquida
+                </span>
+                <span className="text-xl font-bold font-mono text-slate-200">
+                  {formatPercentBR(netMargin)}
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono block mt-1">
+                  Lucro líquido ÷ Receita bruta
+                </span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-[#0b101b]/60 border border-dashed border-slate-800 rounded-2xl p-8 text-center space-y-3">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto">
+              <Calculator className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-white tracking-tight">
+                Demonstração do Resultado pronta para simulação
               </h3>
-              <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                Simples Nacional
-              </span>
-            </div>
-            <span className="text-xs font-mono text-slate-400">
-              {currentAnexoConfig.nome} · {pgdas.faixaNome}
-            </span>
-          </div>
-
-          {/* Tabela da DRE com colunas Unitário e Total */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs font-mono">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-400 text-right">
-                  <th className="py-2.5 text-left font-semibold text-slate-300">Descrição</th>
-                  <th className="py-2.5 px-3 font-semibold text-slate-300 w-36 sm:w-44">
-                    Unitário
-                  </th>
-                  <th className="py-2.5 px-3 font-semibold text-slate-300 w-36 sm:w-44">
-                    Total ({qty} un.)
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {/* 1. Receita bruta de vendas / serviços */}
-                <tr>
-                  <td className="py-2 text-left font-medium text-slate-200">
-                    {currentAnexoConfig.tipoAtividade === 'servicos'
-                      ? 'Receita bruta de serviços'
-                      : 'Receita bruta de vendas'}
-                  </td>
-                  <td className="py-2 px-3 text-right text-slate-200">{formatBRL(unitGross)}</td>
-                  <td className="py-2 px-3 text-right text-slate-200">{formatBRL(totalGross)}</td>
-                </tr>
-
-                {/* 2. (-) Guia Única DAS (Alíquota efetiva PGDAS) */}
-                <tr className="bg-slate-950/30">
-                  <td className="py-2 text-left font-semibold text-emerald-400">
-                    (−) Simples Nacional — Guia Única DAS (
-                    {formatNumberBR(pgdas.aliquotaEfetiva, 2)}% efetivo)
-                  </td>
-                  <td className="py-2 px-3 text-right font-semibold text-emerald-400">
-                    -{formatBRL(unitDasTotal)}
-                  </td>
-                  <td className="py-2 px-3 text-right font-semibold text-emerald-400">
-                    -{formatBRL(totalDasTotal)}
-                  </td>
-                </tr>
-
-                {/* Sublinhas de detalhamento da partilha da guia DAS (cinza/itálico) */}
-                <tr className="bg-slate-900/20 text-slate-500">
-                  <td className="py-1 pl-6 text-left italic">
-                    · IRPJ ({formatNumberBR(pgdas.reparticao.irpjRate, 2)}% da receita)
-                  </td>
-                  <td className="py-1 px-3 text-right">-{formatBRL(unitIrpj)}</td>
-                  <td className="py-1 px-3 text-right">-{formatBRL(totalIrpj)}</td>
-                </tr>
-                <tr className="bg-slate-900/20 text-slate-500">
-                  <td className="py-1 pl-6 text-left italic">
-                    · CSLL ({formatNumberBR(pgdas.reparticao.csllRate, 2)}% da receita)
-                  </td>
-                  <td className="py-1 px-3 text-right">-{formatBRL(unitCsll)}</td>
-                  <td className="py-1 px-3 text-right">-{formatBRL(totalCsll)}</td>
-                </tr>
-                <tr className="bg-slate-900/20 text-slate-500">
-                  <td className="py-1 pl-6 text-left italic">
-                    · COFINS ({formatNumberBR(pgdas.reparticao.cofinsRate, 2)}% da receita)
-                  </td>
-                  <td className="py-1 px-3 text-right">-{formatBRL(unitCofins)}</td>
-                  <td className="py-1 px-3 text-right">-{formatBRL(totalCofins)}</td>
-                </tr>
-                <tr className="bg-slate-900/20 text-slate-500">
-                  <td className="py-1 pl-6 text-left italic">
-                    · PIS ({formatNumberBR(pgdas.reparticao.pisRate, 2)}% da receita)
-                  </td>
-                  <td className="py-1 px-3 text-right">-{formatBRL(unitPis)}</td>
-                  <td className="py-1 px-3 text-right">-{formatBRL(totalPis)}</td>
-                </tr>
-                {currentAnexoConfig.cppNoDas && (
-                  <tr className="bg-slate-900/20 text-slate-500">
-                    <td className="py-1 pl-6 text-left italic">
-                      · CPP Previdenciária ({formatNumberBR(pgdas.reparticao.cppRate, 2)}% da
-                      receita)
-                    </td>
-                    <td className="py-1 px-3 text-right">-{formatBRL(unitCpp)}</td>
-                    <td className="py-1 px-3 text-right">-{formatBRL(totalCpp)}</td>
-                  </tr>
-                )}
-                {pgdas.reparticao.ipiRate > 0 && (
-                  <tr className="bg-slate-900/20 text-slate-500">
-                    <td className="py-1 pl-6 text-left italic">
-                      · IPI ({formatNumberBR(pgdas.reparticao.ipiRate, 2)}% da receita)
-                    </td>
-                    <td className="py-1 px-3 text-right">-{formatBRL(unitIpi)}</td>
-                    <td className="py-1 px-3 text-right">-{formatBRL(totalIpi)}</td>
-                  </tr>
-                )}
-                <tr className="bg-slate-900/20 text-slate-500">
-                  <td className="py-1 pl-6 text-left italic">
-                    ·{' '}
-                    {currentAnexoConfig.tributoEstadualMunicipal === 'iss'
-                      ? `ISS Municipal (${formatNumberBR(pgdas.reparticao.issRate, 2)}% da receita)`
-                      : `ICMS Estadual (${formatNumberBR(pgdas.reparticao.icmsRate, 2)}% da receita)`}
-                  </td>
-                  <td className="py-1 px-3 text-right">
-                    -
-                    {formatBRL(
-                      currentAnexoConfig.tributoEstadualMunicipal === 'iss' ? unitIss : unitIcms,
-                    )}
-                  </td>
-                  <td className="py-1 px-3 text-right">
-                    -
-                    {formatBRL(
-                      currentAnexoConfig.tributoEstadualMunicipal === 'iss' ? totalIss : totalIcms,
-                    )}
-                  </td>
-                </tr>
-
-                {/* 3. = Receita líquida */}
-                <tr className="bg-slate-950/40 font-bold text-slate-100">
-                  <td className="py-2.5 text-left">= Receita líquida</td>
-                  <td className="py-2.5 px-3 text-right text-slate-100">
-                    {formatBRL(unitNetRevenue)}
-                  </td>
-                  <td className="py-2.5 px-3 text-right text-slate-100">
-                    {formatBRL(totalNetRevenue)}
-                  </td>
-                </tr>
-
-                {/* 4. (-) CMV */}
-                <tr>
-                  <td className="py-2 text-left text-slate-400">(−) CMV (custo não creditável)</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(unitCmvVal)}</td>
-                  <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
-                </tr>
-
-                {/* 5. = Lucro bruto */}
-                <tr className="bg-slate-950/40 font-bold text-slate-100">
-                  <td className="py-2.5 text-left">= Lucro bruto</td>
-                  <td className="py-2.5 px-3 text-right text-slate-100">
-                    {formatBRL(unitGrossProfit)}
-                  </td>
-                  <td className="py-2.5 px-3 text-right text-slate-100">
-                    {formatBRL(totalGrossProfit)}
-                  </td>
-                </tr>
-
-                {/* 6. (-) Despesas operacionais */}
-                <tr>
-                  <td className="py-2 text-left text-slate-400">(−) Despesas operacionais</td>
-                  <td className="py-2 px-3 text-right text-slate-400">
-                    -{formatBRL(unitExpenses)}
-                  </td>
-                  <td className="py-2 px-3 text-right text-slate-400">
-                    -{formatBRL(totalExpenses)}
-                  </td>
-                </tr>
-
-                {/* 7. = Lucro líquido [fundo verde escuro, valores verde brilhante] */}
-                <tr className="bg-emerald-950/40 text-emerald-400 font-extrabold border-t-2 border-emerald-500/40">
-                  <td className="py-3 px-2 text-left text-sm">= Lucro líquido</td>
-                  <td className="py-3 px-3 text-right text-sm text-emerald-400">
-                    {formatBRL(unitNetProfit)}
-                  </td>
-                  <td className="py-3 px-3 text-right text-sm text-emerald-400">
-                    {formatBRL(totalNetProfit)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* Cards de Resumo (3 lado a lado, mesmo padrão) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
-            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-              <span className="text-[11px] text-slate-400 font-mono block mb-1">
-                Carga tributária total (DAS)
-              </span>
-              <span className="text-xl font-bold font-mono text-slate-200">
-                {formatBRL(totalTaxBurden)}
-              </span>
-              <span className="text-[10px] text-slate-500 font-mono block mt-1">
-                {formatNumberBR(pgdas.aliquotaEfetiva, 2)}% da receita bruta
-              </span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-              <span className="text-[11px] text-emerald-400 font-mono block mb-1 font-semibold">
-                Lucro líquido
-              </span>
-              <span className="text-xl font-bold font-mono text-emerald-400">
-                {formatBRL(totalNetProfit)}
-              </span>
-              <span className="text-[10px] text-emerald-400/80 font-mono block mt-1">
-                Resultado final do período
-              </span>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-              <span className="text-[11px] text-slate-400 font-mono block mb-1">
-                Margem líquida
-              </span>
-              <span className="text-xl font-bold font-mono text-slate-200">
-                {formatPercentBR(netMargin)}
-              </span>
-              <span className="text-[10px] text-slate-500 font-mono block mt-1">
-                Lucro líquido ÷ Receita bruta
-              </span>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Informe a quantidade vendida acima e clique em{' '}
+                <strong className="text-emerald-400">"Simular DRE"</strong> para gerar os cálculos
+                da DRE do Simples Nacional com a partilha oficial da guia DAS.
+              </p>
             </div>
           </div>
+        )}
+
+        {/* Barra de Gerenciamento de Cenários no fim da página (padrão Markup) */}
+        <div className="pt-2">
+          <ScenarioManagerBar />
         </div>
 
         {/* Rodapé com par de botões de navegação sequencial */}
@@ -915,7 +963,7 @@ export default function DreSimplesPage() {
             className="bg-[#0f172a]/90 text-slate-300 border border-slate-700/80 hover:border-emerald-500/40 hover:text-white hover:bg-slate-800/80 font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-sm"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Voltar para a calculadora de compras</span>
+            <span>Voltar para Calculadora de Compras</span>
           </Button>
 
           <Button
@@ -923,7 +971,7 @@ export default function DreSimplesPage() {
             onClick={() => navigate('/demo/comparacao')}
             className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
           >
-            <span>Comparar regimes</span>
+            <span>Ir para Comparação de Regimes</span>
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>

@@ -4,8 +4,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useTaxContext } from '@/contexts/TaxContext'
 import { Button } from '@/components/ui/button'
 import { LogOut, RotateCcw, Sparkles } from 'lucide-react'
-import { ScenarioManagerBar } from './ScenarioManagerBar'
-
 export type TabKey = 'markup' | 'compras' | 'simples' | 'dre-presumido' | 'dre-real' | 'comparacao'
 
 interface DemoLayoutProps {
@@ -154,8 +152,6 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
 
       {/* Main Container onde a página ativa é renderizada */}
       <main className="relative z-10 flex-1 px-4 sm:px-8 pb-16 max-w-6xl mx-auto w-full">
-        {/* Painel de Cenários Tributários persistidos por cliente no banco (nas demais páginas permanece no topo; no Markup é renderizado ao final) */}
-        {currentTab !== 'markup' && <ScenarioManagerBar />}
         {children}
       </main>
 

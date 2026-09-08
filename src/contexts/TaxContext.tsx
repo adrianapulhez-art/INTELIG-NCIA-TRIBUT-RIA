@@ -377,13 +377,58 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ])
   const [isSimplesSimulated, setIsSimplesSimulated] = useState<boolean>(false)
 
-  // Limpeza preventiva de rascunhos de versões legadas / antigas no localStorage
+  // Limpeza preventiva de rascunhos de versões legadas / antigas no localStorage e sessionStorage
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('it_tax_context_v1')
-        localStorage.removeItem('it_tax_context_v2')
-        localStorage.removeItem('it_tax_context_v3')
+        const legacyKeys = [
+          'it_tax_context_v1',
+          'it_tax_context_v2',
+          'it_tax_context_v3',
+          'tax_context_draft',
+          'tax_draft',
+          'it_tax_state',
+          'it_tax_draft',
+          'scenario_draft',
+          'active_scenario_id',
+          'last_scenario_id',
+        ]
+        legacyKeys.forEach((k) => {
+          try {
+            localStorage.removeItem(k)
+            sessionStorage.removeItem(k)
+          } catch {
+            // Ignora erro por chave
+          }
+        })
+
+        // Limpa quaisquer chaves que comecem com tax_ ou it_tax_ exceto as de auth
+        try {
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i)
+            if (
+              key &&
+              (key.startsWith('it_tax') ||
+                key.startsWith('tax_state') ||
+                key.startsWith('tax_draft'))
+            ) {
+              localStorage.removeItem(key)
+            }
+          }
+          for (let i = sessionStorage.length - 1; i >= 0; i--) {
+            const key = sessionStorage.key(i)
+            if (
+              key &&
+              (key.startsWith('it_tax') ||
+                key.startsWith('tax_state') ||
+                key.startsWith('tax_draft'))
+            ) {
+              sessionStorage.removeItem(key)
+            }
+          }
+        } catch {
+          // Ignora
+        }
       }
     } catch {
       // Ignora erro de acesso ao localStorage
@@ -812,9 +857,26 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     try {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('it_tax_context_v1')
-        localStorage.removeItem('it_tax_context_v2')
-        localStorage.removeItem('it_tax_context_v3')
+        const legacyKeys = [
+          'it_tax_context_v1',
+          'it_tax_context_v2',
+          'it_tax_context_v3',
+          'tax_context_draft',
+          'tax_draft',
+          'it_tax_state',
+          'it_tax_draft',
+          'scenario_draft',
+          'active_scenario_id',
+          'last_scenario_id',
+        ]
+        legacyKeys.forEach((k) => {
+          try {
+            localStorage.removeItem(k)
+            sessionStorage.removeItem(k)
+          } catch {
+            // Ignora
+          }
+        })
       }
     } catch {
       // Ignora
