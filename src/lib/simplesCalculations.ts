@@ -426,6 +426,53 @@ export const SIMPLES_ANEXOS: Record<SimplesAnexoId, SimplesAnexoConfig> = {
   },
 }
 
+export interface SimplesInicioAtividadeCalculation {
+  isInicioAtividade: boolean
+  monthsCount: number
+  totalRevenue: number
+  calculatedRbt12: number
+  formulaExplanation: string
+}
+
+/**
+ * Calcula a RBT12 proporcional para empresa em início de atividade (LC 123/2006, art. 3º, § 9º):
+ * - 1º mês de atividade: RBT12 = receita do mês * 12
+ * - Meses seguintes (2 a 11 meses): RBT12 = (soma das receitas dos meses decorridos / número de meses) * 12
+ * - Divisão por zero protegida
+ */
+export function calculateRbt12InicioAtividade(
+  monthlyRevenues: number[],
+): SimplesInicioAtividadeCalculation {
+  const validRevenues =
+    Array.isArray(monthlyRevenues) && monthlyRevenues.length > 0
+      ? monthlyRevenues.map((v) => Math.max(0, Number(v) || 0))
+      : [0]
+
+  const monthsCount = validRevenues.length
+  const totalRevenue = validRevenues.reduce((acc, curr) => acc + curr, 0)
+
+  let calculatedRbt12 = 0
+  let formulaExplanation = ''
+
+  if (monthsCount <= 1) {
+    const m1 = validRevenues[0] || 0
+    calculatedRbt12 = m1 * 12
+    formulaExplanation = `RBT12 = R$ ${m1.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} × 12 = R$ ${calculatedRbt12.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  } else {
+    const average = totalRevenue / monthsCount
+    calculatedRbt12 = average * 12
+    formulaExplanation = `RBT12 = (R$ ${totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ÷ ${monthsCount} meses) × 12 = R$ ${calculatedRbt12.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+
+  return {
+    isInicioAtividade: true,
+    monthsCount,
+    totalRevenue,
+    calculatedRbt12: Math.round(calculatedRbt12 * 100) / 100,
+    formulaExplanation,
+  }
+}
+
 export interface FatorRCalculation {
   payroll12m: number
   rbt12: number

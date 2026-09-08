@@ -68,13 +68,15 @@ export default function ComparisonPage() {
     // Simples
     simplesAnexo,
     setSimplesAnexo,
-    simplesRbt12,
+    simplesRbt12: rawSimplesRbt12,
     setSimplesRbt12,
     simplesPayroll12m,
     setSimplesPayroll12m,
     simplesQuantitySold,
     setSimplesQuantitySold,
     simplesExpenses,
+    effectiveSimplesRbt12,
+    simplesIsInicioAtividade,
     payrollSalaries,
     setPayrollSalaries,
     payrollProLabore,
@@ -351,6 +353,7 @@ export default function ComparisonPage() {
   // -------------------------------------------------------------
   const currentAnexoId = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
   const currentAnexoConfig = SIMPLES_ANEXOS[currentAnexoId] || SIMPLES_ANEXOS.anexo_1
+  const simplesRbt12 = effectiveSimplesRbt12
 
   const pgdas = useMemo(() => {
     return calculatePgdas(currentAnexoId, simplesRbt12)
@@ -636,24 +639,42 @@ export default function ComparisonPage() {
 
               {/* RBT12 (para alíquota efetiva do Simples) */}
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300 block">
-                  RBT12 Simples Nacional (R$)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300 block">
+                    RBT12 Simples Nacional (R$)
+                  </label>
+                  {simplesIsInicioAtividade && (
+                    <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                      · proporcional
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
                     R$
                   </span>
                   <Input
                     type="text"
+                    disabled={simplesIsInicioAtividade}
                     defaultValue={simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : ''}
-                    key={`rbt-${simplesRbt12}`}
-                    onBlur={(e) => setSimplesRbt12(parseBRNumber(e.target.value))}
+                    key={`rbt-${simplesRbt12}-${simplesIsInicioAtividade}`}
+                    onBlur={(e) => {
+                      if (!simplesIsInicioAtividade) {
+                        setSimplesRbt12(parseBRNumber(e.target.value))
+                      }
+                    }}
                     placeholder="0,00"
-                    className="pl-8 text-right bg-slate-900 border-slate-800 text-xs font-mono text-slate-100"
+                    className={`pl-8 text-right font-mono text-xs ${
+                      simplesIsInicioAtividade
+                        ? 'bg-slate-950/80 border-emerald-500/50 text-emerald-400 font-bold cursor-not-allowed'
+                        : 'bg-slate-900 border-slate-800 text-slate-100 focus:border-emerald-500'
+                    }`}
                   />
                 </div>
                 <span className="text-[10px] text-slate-500 font-mono">
-                  Receita acumulada 12 meses
+                  {simplesIsInicioAtividade
+                    ? 'Início de atividade (LC 123/2006, art. 3º, § 9º)'
+                    : 'Receita acumulada 12 meses'}
                 </span>
               </div>
             </div>

@@ -20,6 +20,7 @@ import {
   SimplesAnexoId,
   calculateFatorR,
   calculatePgdas,
+  calculateRbt12InicioAtividade,
   SUBLIMITE_SIMPLES,
 } from '@/lib/simplesCalculations'
 import { Button } from '@/components/ui/button'
@@ -51,6 +52,13 @@ export default function DreSimplesPage() {
     addSimplesExpense,
     updateSimplesExpense,
     removeSimplesExpense,
+    simplesIsInicioAtividade,
+    setSimplesIsInicioAtividade,
+    simplesMonthlyRevenues,
+    addSimplesMonthlyRevenue,
+    updateSimplesMonthlyRevenue,
+    removeSimplesMonthlyRevenue,
+    effectiveSimplesRbt12,
     isSimplesSimulated,
     simulateSimples,
   } = useTaxContext()
@@ -77,8 +85,12 @@ export default function DreSimplesPage() {
   }, [simplesQuantitySold, totalConsolidatedQuantity, defaultQty])
 
   React.useEffect(() => {
-    setRbt12Input(simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : '')
-  }, [simplesRbt12])
+    if (simplesIsInicioAtividade) {
+      setRbt12Input(effectiveSimplesRbt12 > 0 ? formatNumberBR(effectiveSimplesRbt12) : '')
+    } else {
+      setRbt12Input(simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : '')
+    }
+  }, [simplesRbt12, effectiveSimplesRbt12, simplesIsInicioAtividade])
 
   React.useEffect(() => {
     setPayrollInput(simplesPayroll12m > 0 ? formatNumberBR(simplesPayroll12m) : '')
@@ -91,20 +103,26 @@ export default function DreSimplesPage() {
   // CMV unitário via Compras (Simples Nacional: sem recuperação de tributos)
   const unitCMV = calculatedPurchases.cmvSimples || 0
 
-  // Cálculo automático do Fator R
+  // Cálculo de início de atividade detalhado
+  const inicioAtividadeCalc = useMemo(
+    () => calculateRbt12InicioAtividade(simplesMonthlyRevenues),
+    [simplesMonthlyRevenues],
+  )
+
+  // Cálculo automático do Fator R (usando a RBT12 efetiva)
   const fatorRResult = useMemo(
-    () => calculateFatorR(simplesPayroll12m, simplesRbt12),
-    [simplesPayroll12m, simplesRbt12],
+    () => calculateFatorR(simplesPayroll12m, effectiveSimplesRbt12),
+    [simplesPayroll12m, effectiveSimplesRbt12],
   )
 
   // Anexo atual selecionado
   const currentAnexoId = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
   const currentAnexoConfig = SIMPLES_ANEXOS[currentAnexoId] || SIMPLES_ANEXOS.anexo_1
 
-  // Cálculo PGDAS da alíquota efetiva e repartição de tributos
+  // Cálculo PGDAS da alíquota efetiva e repartição de tributos (usando a RBT12 efetiva)
   const pgdas = useMemo(
-    () => calculatePgdas(currentAnexoId, simplesRbt12),
-    [currentAnexoId, simplesRbt12],
+    () => calculatePgdas(currentAnexoId, effectiveSimplesRbt12),
+    [currentAnexoId, effectiveSimplesRbt12],
   )
 
   // Quantidade vendida
@@ -357,9 +375,16 @@ export default function DreSimplesPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Campo RBT12 */}
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300 block">
-                  RBT12 (Receita Bruta 12 meses)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300 block">
+                    RBT12 (Receita Bruta 12 meses)
+                  </label>
+                  {simplesIsInicioAtividade && (
+                    <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                      · automático
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
                     R$
@@ -367,18 +392,37 @@ export default function DreSimplesPage() {
                   <Input
                     type="text"
                     placeholder="0,00"
-                    value={rbt12Input}
+                    disabled={simplesIsInicioAtividade}
+                    value={
+                      simplesIsInicioAtividade
+                        ? effectiveSimplesRbt12 > 0
+                          ? formatNumberBR(effectiveSimplesRbt12)
+                          : '0,00'
+                        : rbt12Input
+                    }
                     onChange={(e) => {
-                      const val = e.target.value
-                      setRbt12Input(val)
-                      setSimplesRbt12(parseBRNumber(val))
+                      if (!simplesIsInicioAtividade) {
+                        const val = e.target.value
+                        setRbt12Input(val)
+                        setSimplesRbt12(parseBRNumber(val))
+                      }
                     }}
-                    onBlur={handleRbt12Blur}
-                    className="pl-9 bg-slate-900 border-slate-800 text-slate-100 font-mono text-xs focus:border-emerald-500"
+                    onBlur={(e) => {
+                      if (!simplesIsInicioAtividade) {
+                        handleRbt12Blur(e)
+                      }
+                    }}
+                    className={`pl-9 font-mono text-xs ${
+                      simplesIsInicioAtividade
+                        ? 'bg-slate-950/80 border-emerald-500/50 text-emerald-400 font-bold cursor-not-allowed'
+                        : 'bg-slate-900 border-slate-800 text-slate-100 focus:border-emerald-500'
+                    }`}
                   />
                 </div>
                 <span className="text-[10px] text-slate-500 font-mono">
-                  Base acumulada dos últimos 12 meses
+                  {simplesIsInicioAtividade
+                    ? 'Calculada proporcionalmente (art. 3º, § 9º)'
+                    : 'Base acumulada dos últimos 12 meses'}
                 </span>
               </div>
 
@@ -428,6 +472,150 @@ export default function DreSimplesPage() {
                   {fatorRResult.isElegibleAnexo3 ? '≥ 28% → Anexo III' : '< 28% → Anexo V'}
                 </span>
               </div>
+            </div>
+
+            {/* TOGGLE E FORMULÁRIO DE INÍCIO DE ATIVIDADE (LC 123/2006, art. 3º, § 9º) */}
+            <div className="pt-3 border-t border-slate-800/80 space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={simplesIsInicioAtividade}
+                    onChange={(e) => setSimplesIsInicioAtividade(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/40 cursor-pointer accent-emerald-500"
+                  />
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold font-mono text-slate-200">
+                      Empresa em início de atividade
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                      LC 123/2006, art. 3º, § 9º
+                    </span>
+                  </div>
+                </label>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  {simplesIsInicioAtividade
+                    ? 'RBT12 calculada pela proporcionalidade mensal'
+                    : 'Ative se a empresa tiver menos de 13 meses de atividade'}
+                </span>
+              </div>
+
+              {simplesIsInicioAtividade && (
+                <div className="p-4 rounded-xl bg-slate-900/60 border border-emerald-500/40 space-y-3.5 animate-in fade-in duration-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+                    <div>
+                      <span className="text-xs font-mono font-bold uppercase text-emerald-400 block">
+                        Receita Bruta dos Meses Decorridos
+                      </span>
+                      <p className="text-[11px] text-slate-400">
+                        Informe o faturamento de cada mês de operação para gerar a RBT12
+                        proporcional oficial.
+                      </p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addSimplesMonthlyRevenue(0)}
+                      className="h-7 text-xs bg-slate-950/60 border-slate-700 hover:border-emerald-500 text-slate-200 hover:text-emerald-300 cursor-pointer self-start sm:self-auto"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1 text-emerald-400" />+ Adicionar mês
+                    </Button>
+                  </div>
+
+                  {/* Lista de meses */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                    {simplesMonthlyRevenues.map((rev, index) => (
+                      <div
+                        key={`rev-month-${index}`}
+                        className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 flex items-center gap-2"
+                      >
+                        <span className="text-xs font-mono font-semibold text-slate-300 w-16 shrink-0">
+                          Mês {index + 1}:
+                        </span>
+                        <div className="relative flex-1">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                            R$
+                          </span>
+                          <Input
+                            type="text"
+                            defaultValue={rev > 0 ? formatNumberBR(rev) : ''}
+                            key={`month-val-${index}-${rev}`}
+                            placeholder="0,00"
+                            onBlur={(e) => {
+                              const parsed = parseBRNumber(e.target.value)
+                              updateSimplesMonthlyRevenue(index, parsed)
+                            }}
+                            className="pl-8 text-right bg-slate-900 border-slate-800 text-slate-100 font-mono text-xs h-8 focus:border-emerald-500"
+                          />
+                        </div>
+                        {simplesMonthlyRevenues.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeSimplesMonthlyRevenue(index)}
+                            className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-rose-500/10 cursor-pointer"
+                            title="Remover mês"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Detalhamento transparente do cálculo proporcional */}
+                  <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-500/30 space-y-2 font-mono text-xs">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="font-bold text-emerald-300">
+                          Cálculo Transparente da RBT12 Proporcional:
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-emerald-400 font-semibold">
+                        · automático em tempo real
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 border-t border-emerald-500/20">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">Receita Acumulada</span>
+                        <span className="text-slate-200 font-bold">
+                          {formatBRL(inicioAtividadeCalc.totalRevenue)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">Meses de Atividade</span>
+                        <span className="text-slate-200 font-bold">
+                          {inicioAtividadeCalc.monthsCount}{' '}
+                          {inicioAtividadeCalc.monthsCount === 1 ? 'mês' : 'meses'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-emerald-400 block font-semibold">
+                          RBT12 Proporcional Calculada
+                        </span>
+                        <span className="text-emerald-400 font-extrabold text-sm">
+                          {formatBRL(inicioAtividadeCalc.calculatedRbt12)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded bg-slate-950/80 border border-slate-800 text-[11px] text-emerald-300/90 flex items-center justify-between flex-wrap gap-2">
+                      <span>
+                        <strong className="text-slate-200">Fórmula aplicada:</strong>{' '}
+                        {inicioAtividadeCalc.formulaExplanation}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {inicioAtividadeCalc.monthsCount === 1
+                          ? '1º mês: Receita × 12'
+                          : 'Meses seguintes: (Média mensal) × 12'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Aviso visual de enquadramento do Fator R */}
@@ -908,7 +1096,7 @@ export default function DreSimplesPage() {
             {/* Bloco de Alertas de Limites do Simples */}
             <div className="pt-2">
               <RegimeThresholdsAlerts
-                simplesRbt12={simplesRbt12}
+                simplesRbt12={effectiveSimplesRbt12}
                 annualProjectedRevenue={totalGross}
                 presumidoNetProfit={0}
                 realNetProfit={0}
@@ -975,7 +1163,10 @@ export default function DreSimplesPage() {
                   metadata: [
                     { label: 'Anexo', value: currentAnexoConfig.nome },
                     { label: 'Faixa PGDAS', value: pgdas.faixaNome },
-                    { label: 'RBT12', value: formatBRL(simplesRbt12) },
+                    {
+                      label: simplesIsInicioAtividade ? 'RBT12 (Início de Atividade)' : 'RBT12',
+                      value: formatBRL(effectiveSimplesRbt12),
+                    },
                     {
                       label: 'Alíquota Efetiva',
                       value: `${formatNumberBR(pgdas.aliquotaEfetiva, 2)}%`,
@@ -1125,7 +1316,10 @@ export default function DreSimplesPage() {
                   metadata: [
                     { label: 'Anexo', value: currentAnexoConfig.nome },
                     { label: 'Faixa PGDAS', value: pgdas.faixaNome },
-                    { label: 'RBT12', value: formatBRL(simplesRbt12) },
+                    {
+                      label: simplesIsInicioAtividade ? 'RBT12 (Início de Atividade)' : 'RBT12',
+                      value: formatBRL(effectiveSimplesRbt12),
+                    },
                     {
                       label: 'Alíquota Efetiva',
                       value: `${formatNumberBR(pgdas.aliquotaEfetiva, 2)}%`,

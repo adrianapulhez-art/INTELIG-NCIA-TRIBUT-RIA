@@ -146,7 +146,7 @@ export default function MarkupPage() {
     totalConsolidatedQuantity,
     totalConsolidatedCost,
     simplesAnexo,
-    simplesRbt12,
+    effectiveSimplesRbt12: simplesRbt12,
   } = useTaxContext()
 
   // Sincronização do ICMS

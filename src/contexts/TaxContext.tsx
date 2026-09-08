@@ -94,6 +94,9 @@ export interface TaxStateSnapshot {
   simplesQuantitySold: number
   simplesExpenses: ExpenseItem[]
   isSimplesSimulated: boolean
+  // Empresa em início de atividade (LC 123/2006, art. 3º, § 9º)
+  simplesIsInicioAtividade?: boolean
+  simplesMonthlyRevenues?: number[]
   // Folha de Salários e Pró-labore
   payrollSalaries: number
   payrollProLabore: number
@@ -235,7 +238,7 @@ export interface TaxContextType {
   // DRE SIMPLES NACIONAL STATE
   simplesAnexo: string // 'anexo_1' | 'anexo_2' | 'anexo_3' | 'anexo_4' | 'anexo_5'
   setSimplesAnexo: (anexo: string) => void
-  simplesRbt12: number // Receita bruta acumulada 12 meses
+  simplesRbt12: number // Receita bruta acumulada 12 meses (manual ou efetiva quando início de atividade)
   setSimplesRbt12: (val: number) => void
   simplesPayroll12m: number // Folha de salários 12 meses (para Fator R)
   setSimplesPayroll12m: (val: number) => void
@@ -247,6 +250,19 @@ export interface TaxContextType {
   removeSimplesExpense: (id: string) => void
   isSimplesSimulated: boolean
   simulateSimples: () => void
+
+  // Empresa em início de atividade (LC 123/2006, art. 3º, § 9º)
+  simplesIsInicioAtividade: boolean
+  setSimplesIsInicioAtividade: (val: boolean) => void
+  simplesMonthlyRevenues: number[]
+  setSimplesMonthlyRevenues: React.Dispatch<React.SetStateAction<number[]>>
+  addSimplesMonthlyRevenue: (val?: number) => void
+  updateSimplesMonthlyRevenue: (index: number, val: number) => void
+  removeSimplesMonthlyRevenue: (index: number) => void
+  // RBT12 calculada proporcionalmente para início de atividade
+  calculatedInicioAtividadeRbt12: number
+  // RBT12 efetiva considerada no sistema (calculada se início de atividade, ou simplesRbt12 manual)
+  effectiveSimplesRbt12: number
 
   // CÁLCULOS DERIVADOS DE COMPRAS
   calculatedPurchases: {
@@ -394,6 +410,48 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     { id: '2', description: 'Aluguel e custos operacionais', value: 0 },
   ])
   const [isSimplesSimulated, setIsSimplesSimulated] = useState<boolean>(false)
+
+  // Empresa em início de atividade (LC 123/2006, art. 3º, § 9º)
+  const [simplesIsInicioAtividade, setSimplesIsInicioAtividade] = useState<boolean>(false)
+  const [simplesMonthlyRevenues, setSimplesMonthlyRevenues] = useState<number[]>([0])
+
+  // Cálculo proporcional da RBT12 em início de atividade:
+  // - 1º mês: receita do mês * 12
+  // - Meses seguintes: (soma das receitas dos meses decorridos / meses decorridos) * 12
+  const calculatedInicioAtividadeRbt12 = React.useMemo(() => {
+    const valid =
+      simplesMonthlyRevenues && simplesMonthlyRevenues.length > 0 ? simplesMonthlyRevenues : [0]
+    const count = valid.length
+    if (count <= 1) {
+      return (valid[0] || 0) * 12
+    }
+    const sum = valid.reduce((acc, curr) => acc + (curr || 0), 0)
+    return count > 0 ? (sum / count) * 12 : 0
+  }, [simplesMonthlyRevenues])
+
+  // RBT12 efetiva: se toggle de início de atividade ativo, usa o proporcional calculado; senão a digitada
+  const effectiveSimplesRbt12 = simplesIsInicioAtividade
+    ? calculatedInicioAtividadeRbt12
+    : simplesRbt12
+
+  const addSimplesMonthlyRevenue = (val = 0) => {
+    setSimplesMonthlyRevenues((prev) => [...prev, Math.max(0, val)])
+  }
+
+  const updateSimplesMonthlyRevenue = (index: number, val: number) => {
+    setSimplesMonthlyRevenues((prev) =>
+      prev.map((item, i) => (i === index ? Math.max(0, val) : item)),
+    )
+  }
+
+  const removeSimplesMonthlyRevenue = (index: number) => {
+    setSimplesMonthlyRevenues((prev) => {
+      if (prev.length <= 1) {
+        return [0]
+      }
+      return prev.filter((_, i) => i !== index)
+    })
+  }
 
   // FOLHA E PRÓ-LABORE (Iniciados ZERADOS nos valores monetários; alíquotas com padrão legal e editáveis)
   const [payrollSalaries, setPayrollSalaries] = useState<number>(0)
@@ -984,6 +1042,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       { id: '2', description: 'Aluguel e custos operacionais', value: 0 },
     ])
     setIsSimplesSimulated(false)
+    setSimplesIsInicioAtividade(false)
+    setSimplesMonthlyRevenues([0])
 
     setPayrollSalaries(0)
     setPayrollProLabore(0)
@@ -1065,11 +1125,13 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       realExpenses,
       isRealSimulated,
       simplesAnexo,
-      simplesRbt12,
+      simplesRbt12: effectiveSimplesRbt12,
       simplesPayroll12m,
       simplesQuantitySold,
       simplesExpenses,
       isSimplesSimulated,
+      simplesIsInicioAtividade,
+      simplesMonthlyRevenues,
       payrollSalaries,
       payrollProLabore,
       payrollInssRate,
@@ -1192,6 +1254,15 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ],
     )
     setIsSimplesSimulated(Boolean(snapshot.isSimplesSimulated))
+    setSimplesIsInicioAtividade(Boolean(snapshot.simplesIsInicioAtividade))
+    if (
+      Array.isArray(snapshot.simplesMonthlyRevenues) &&
+      snapshot.simplesMonthlyRevenues.length > 0
+    ) {
+      setSimplesMonthlyRevenues(snapshot.simplesMonthlyRevenues.map((v) => Number(v) || 0))
+    } else {
+      setSimplesMonthlyRevenues([0])
+    }
 
     setPayrollSalaries(snapshot.payrollSalaries ?? 0)
     setPayrollProLabore(snapshot.payrollProLabore ?? 0)
@@ -1313,6 +1384,16 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         removeSimplesExpense,
         isSimplesSimulated,
         simulateSimples,
+
+        simplesIsInicioAtividade,
+        setSimplesIsInicioAtividade,
+        simplesMonthlyRevenues,
+        setSimplesMonthlyRevenues,
+        addSimplesMonthlyRevenue,
+        updateSimplesMonthlyRevenue,
+        removeSimplesMonthlyRevenue,
+        calculatedInicioAtividadeRbt12,
+        effectiveSimplesRbt12,
 
         payrollSalaries,
         setPayrollSalaries,
