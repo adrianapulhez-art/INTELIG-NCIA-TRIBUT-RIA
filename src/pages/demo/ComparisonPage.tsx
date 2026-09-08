@@ -670,7 +670,9 @@ export default function ComparisonPage() {
                     key={`rbt-${simplesRbt12}-${simplesIsInicioAtividade}`}
                     onBlur={(e) => {
                       if (!simplesIsInicioAtividade) {
-                        setSimplesRbt12(parseBRNumber(e.target.value))
+                        const parsed = parseBRNumber(e.target.value)
+                        setSimplesRbt12(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                       }
                     }}
                     placeholder="0,00"
@@ -721,7 +723,11 @@ export default function ComparisonPage() {
                       type="text"
                       defaultValue={payrollSalaries > 0 ? formatNumberBR(payrollSalaries) : ''}
                       key={`sal-${payrollSalaries}`}
-                      onBlur={(e) => setPayrollSalaries(parseBRNumber(e.target.value))}
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        setPayrollSalaries(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
                       placeholder="0,00"
                       className="pl-8 text-right bg-slate-900 border-slate-800 text-xs font-mono text-slate-100"
                     />
@@ -740,7 +746,11 @@ export default function ComparisonPage() {
                       type="text"
                       defaultValue={payrollProLabore > 0 ? formatNumberBR(payrollProLabore) : ''}
                       key={`pro-${payrollProLabore}`}
-                      onBlur={(e) => setPayrollProLabore(parseBRNumber(e.target.value))}
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        setPayrollProLabore(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
                       placeholder="0,00"
                       className="pl-8 text-right bg-slate-900 border-slate-800 text-xs font-mono text-slate-100"
                     />
@@ -756,7 +766,11 @@ export default function ComparisonPage() {
                       type="text"
                       defaultValue={formatNumberBR(payrollInssRate)}
                       key={`inss-${payrollInssRate}`}
-                      onBlur={(e) => setPayrollInssRate(parseBRNumber(e.target.value))}
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        setPayrollInssRate(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
+                      }}
                       className="pr-6 text-right bg-slate-900 border-emerald-500/40 text-xs font-mono text-slate-100"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400">
@@ -774,7 +788,11 @@ export default function ComparisonPage() {
                       type="text"
                       defaultValue={formatNumberBR(payrollRatRate)}
                       key={`rat-${payrollRatRate}`}
-                      onBlur={(e) => setPayrollRatRate(parseBRNumber(e.target.value))}
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        setPayrollRatRate(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
+                      }}
                       className="pr-6 text-right bg-slate-900 border-emerald-500/40 text-xs font-mono text-slate-100"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400">
@@ -792,7 +810,11 @@ export default function ComparisonPage() {
                       type="text"
                       defaultValue={formatNumberBR(payrollTerceirosRate)}
                       key={`terc-${payrollTerceirosRate}`}
-                      onBlur={(e) => setPayrollTerceirosRate(parseBRNumber(e.target.value))}
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        setPayrollTerceirosRate(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
+                      }}
                       className="pr-6 text-right bg-slate-900 border-emerald-500/40 text-xs font-mono text-slate-100"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400">
@@ -850,9 +872,11 @@ export default function ComparisonPage() {
                           type="text"
                           defaultValue={exp.value > 0 ? formatNumberBR(exp.value) : ''}
                           key={`exp-${exp.id}-${exp.value}`}
-                          onBlur={(e) =>
-                            updatePresumidoExpense(exp.id, 'value', parseBRNumber(e.target.value))
-                          }
+                          onBlur={(e) => {
+                            const parsed = parseBRNumber(e.target.value)
+                            updatePresumidoExpense(exp.id, 'value', parsed)
+                            e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                          }}
                           placeholder="0,00"
                           className="pl-6 text-right bg-slate-950/80 border-slate-800 text-xs font-mono text-slate-100 h-8"
                         />

@@ -174,7 +174,11 @@ export default function PurchasesPage() {
                   placeholder="0,00"
                   defaultValue={initialInventory > 0 ? formatNumberBR(initialInventory) : ''}
                   key={`ei-${initialInventory}`}
-                  onBlur={(e) => setInitialInventory(parseBRNumber(e.target.value))}
+                  onBlur={(e) => {
+                    const parsed = parseBRNumber(e.target.value)
+                    setInitialInventory(parsed)
+                    e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                  }}
                   className="pl-9 bg-slate-950/60 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
                 />
               </div>
@@ -191,7 +195,11 @@ export default function PurchasesPage() {
                   placeholder="0,00"
                   defaultValue={finalInventory > 0 ? formatNumberBR(finalInventory) : ''}
                   key={`ef-${finalInventory}`}
-                  onBlur={(e) => setFinalInventory(parseBRNumber(e.target.value))}
+                  onBlur={(e) => {
+                    const parsed = parseBRNumber(e.target.value)
+                    setFinalInventory(parsed)
+                    e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                  }}
                   className="pl-9 bg-slate-950/60 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
                 />
               </div>
@@ -247,9 +255,11 @@ export default function PurchasesPage() {
                       type="text"
                       defaultValue={item.value > 0 ? formatNumberBR(item.value) : ''}
                       key={`add-${item.id}-${item.value}`}
-                      onBlur={(e) =>
-                        updateAdditionalCost(item.id, 'value', parseBRNumber(e.target.value))
-                      }
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        updateAdditionalCost(item.id, 'value', parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
                       placeholder="0,00"
                       className="pl-8 text-right bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-100"
                     />
@@ -286,7 +296,11 @@ export default function PurchasesPage() {
                         nonRecoverableTaxBase > 0 ? formatNumberBR(nonRecoverableTaxBase) : ''
                       }
                       key={`ipi-base-${nonRecoverableTaxBase}`}
-                      onBlur={(e) => setNonRecoverableTaxBase(parseBRNumber(e.target.value))}
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        setNonRecoverableTaxBase(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
                       className="pl-8 text-right bg-slate-950/70 border-slate-800 text-xs font-mono"
                     />
                   </div>
@@ -302,7 +316,11 @@ export default function PurchasesPage() {
                         nonRecoverableTaxRate > 0 ? formatNumberBR(nonRecoverableTaxRate) : ''
                       }
                       key={`ipi-rate-${nonRecoverableTaxRate}`}
-                      onBlur={(e) => setNonRecoverableTaxRate(parseBRNumber(e.target.value))}
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        setNonRecoverableTaxRate(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
                       className="pr-6 text-right bg-slate-950/70 border-slate-800 text-xs font-mono"
                     />
                     <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
@@ -409,9 +427,11 @@ export default function PurchasesPage() {
                       type="text"
                       defaultValue={item.value > 0 ? formatNumberBR(item.value) : ''}
                       key={`ded-${item.id}-${item.value}`}
-                      onBlur={(e) =>
-                        updateDeductionCost(item.id, 'value', parseBRNumber(e.target.value))
-                      }
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        updateDeductionCost(item.id, 'value', parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
                       placeholder="0,00"
                       className="pl-8 text-right bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-100"
                     />
@@ -445,7 +465,11 @@ export default function PurchasesPage() {
                       placeholder="0,00"
                       defaultValue={icmsPurchasesBase > 0 ? formatNumberBR(icmsPurchasesBase) : ''}
                       key={`icms-b-${icmsPurchasesBase}`}
-                      onBlur={(e) => setIcmsPurchasesBase(parseBRNumber(e.target.value))}
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        setIcmsPurchasesBase(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
                       className="pl-8 text-right bg-slate-950/70 border-slate-800 text-xs font-mono"
                     />
                   </div>
@@ -459,7 +483,11 @@ export default function PurchasesPage() {
                       placeholder="0,00"
                       defaultValue={icmsPurchasesRate > 0 ? formatNumberBR(icmsPurchasesRate) : ''}
                       key={`icms-r-${icmsPurchasesRate}`}
-                      onBlur={(e) => setIcmsPurchasesRate(parseBRNumber(e.target.value))}
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        setIcmsPurchasesRate(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
                       className="pr-6 text-right bg-slate-950/70 border-slate-800 text-xs font-mono"
                     />
                     <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
@@ -496,7 +524,11 @@ export default function PurchasesPage() {
                         icmsFreightPurchasesBase > 0 ? formatNumberBR(icmsFreightPurchasesBase) : ''
                       }
                       key={`icms-fb-${icmsFreightPurchasesBase}`}
-                      onBlur={(e) => setIcmsFreightPurchasesBase(parseBRNumber(e.target.value))}
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        setIcmsFreightPurchasesBase(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
                       className="pl-8 text-right bg-slate-950/70 border-slate-800 text-xs font-mono"
                     />
                   </div>
@@ -512,7 +544,11 @@ export default function PurchasesPage() {
                         icmsFreightPurchasesRate > 0 ? formatNumberBR(icmsFreightPurchasesRate) : ''
                       }
                       key={`icms-fr-${icmsFreightPurchasesRate}`}
-                      onBlur={(e) => setIcmsFreightPurchasesRate(parseBRNumber(e.target.value))}
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        setIcmsFreightPurchasesRate(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
                       className="pr-6 text-right bg-slate-950/70 border-slate-800 text-xs font-mono"
                     />
                     <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
@@ -564,7 +600,11 @@ export default function PurchasesPage() {
                             pisPurchasesBase > 0 ? formatNumberBR(pisPurchasesBase) : ''
                           }
                           key={`pis-b-${pisPurchasesBase}`}
-                          onBlur={(e) => setPisPurchasesBase(parseBRNumber(e.target.value))}
+                          onBlur={(e) => {
+                            const parsed = parseBRNumber(e.target.value)
+                            setPisPurchasesBase(parsed)
+                            e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                          }}
                           className="pl-8 text-right bg-slate-950/70 border-slate-800 text-xs font-mono"
                         />
                       </div>
@@ -589,7 +629,10 @@ export default function PurchasesPage() {
                           key={`pis-ex-${pisExcludedIcmsManual}`}
                           onBlur={(e) => {
                             const val = e.target.value.trim()
-                            setPisExcludedIcmsManual(val ? parseBRNumber(val) : null)
+                            const parsed = val ? parseBRNumber(val) : null
+                            setPisExcludedIcmsManual(parsed)
+                            e.target.value =
+                              parsed !== null && parsed > 0 ? formatNumberBR(parsed) : ''
                           }}
                           className="pl-8 text-right bg-slate-950/70 border-slate-800 text-xs font-mono"
                         />
@@ -650,7 +693,11 @@ export default function PurchasesPage() {
                             cofinsPurchasesBase > 0 ? formatNumberBR(cofinsPurchasesBase) : ''
                           }
                           key={`cof-b-${cofinsPurchasesBase}`}
-                          onBlur={(e) => setCofinsPurchasesBase(parseBRNumber(e.target.value))}
+                          onBlur={(e) => {
+                            const parsed = parseBRNumber(e.target.value)
+                            setCofinsPurchasesBase(parsed)
+                            e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                          }}
                           className="pl-8 text-right bg-slate-950/70 border-slate-800 text-xs font-mono"
                         />
                       </div>
@@ -675,7 +722,10 @@ export default function PurchasesPage() {
                           key={`cof-ex-${cofinsExcludedIcmsManual}`}
                           onBlur={(e) => {
                             const val = e.target.value.trim()
-                            setCofinsExcludedIcmsManual(val ? parseBRNumber(val) : null)
+                            const parsed = val ? parseBRNumber(val) : null
+                            setCofinsExcludedIcmsManual(parsed)
+                            e.target.value =
+                              parsed !== null && parsed > 0 ? formatNumberBR(parsed) : ''
                           }}
                           className="pl-8 text-right bg-slate-950/70 border-slate-800 text-xs font-mono"
                         />
@@ -726,7 +776,11 @@ export default function PurchasesPage() {
                               : ''
                           }
                           key={`pisf-b-${pisFreightPurchasesBase}`}
-                          onBlur={(e) => setPisFreightPurchasesBase(parseBRNumber(e.target.value))}
+                          onBlur={(e) => {
+                            const parsed = parseBRNumber(e.target.value)
+                            setPisFreightPurchasesBase(parsed)
+                            e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                          }}
                           className="pl-8 text-right bg-slate-950/70 border-slate-800 text-xs font-mono"
                         />
                       </div>
@@ -769,9 +823,11 @@ export default function PurchasesPage() {
                               : ''
                           }
                           key={`coff-b-${cofinsFreightPurchasesBase}`}
-                          onBlur={(e) =>
-                            setCofinsFreightPurchasesBase(parseBRNumber(e.target.value))
-                          }
+                          onBlur={(e) => {
+                            const parsed = parseBRNumber(e.target.value)
+                            setCofinsFreightPurchasesBase(parsed)
+                            e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                          }}
                           className="pl-8 text-right bg-slate-950/70 border-slate-800 text-xs font-mono"
                         />
                       </div>

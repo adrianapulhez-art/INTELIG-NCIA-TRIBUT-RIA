@@ -51,14 +51,17 @@ export const OperacoesInterestaduaisSection: React.FC<OperacoesInterestaduaisSec
 
   // Buffer local para FCP
   const [fcpPercentInput, setFcpPercentInput] = useState<string>('')
+  const [isFcpFocused, setIsFcpFocused] = useState(false)
 
   useEffect(() => {
-    setFcpPercentInput(
-      interstateSubsystem.fcpPercent
-        ? String(interstateSubsystem.fcpPercent).replace('.', ',')
-        : '',
-    )
-  }, [interstateSubsystem.fcpPercent])
+    if (!isFcpFocused) {
+      setFcpPercentInput(
+        interstateSubsystem.fcpPercent
+          ? String(interstateSubsystem.fcpPercent).replace('.', ',')
+          : '',
+      )
+    }
+  }, [interstateSubsystem.fcpPercent, isFcpFocused])
 
   // Apuração das operações interestaduais
   const effectiveSale = Math.max(0, saleOperationValue || 0)
@@ -299,10 +302,13 @@ export const OperacoesInterestaduaisSection: React.FC<OperacoesInterestaduaisSec
                       inputMode="decimal"
                       placeholder="0,00"
                       value={fcpPercentInput}
+                      onFocus={() => setIsFcpFocused(true)}
                       onChange={(e) => setFcpPercentInput(e.target.value)}
                       onBlur={() => {
+                        setIsFcpFocused(false)
                         const parsed = Math.max(0, parseBRNumber(fcpPercentInput))
                         updateInterstateSubsystem('fcpPercent', parsed)
+                        setFcpPercentInput(parsed > 0 ? String(parsed).replace('.', ',') : '')
                       }}
                       className="font-mono text-xs mt-1"
                     />

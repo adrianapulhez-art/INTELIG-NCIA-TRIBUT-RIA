@@ -36,38 +36,57 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
   const [salariesInput, setSalariesInput] = useState<string>(
     payrollSalaries > 0 ? formatNumberBR(payrollSalaries) : '',
   )
+  const [isSalariesFocused, setIsSalariesFocused] = useState(false)
+
   const [proLaboreInput, setProLaboreInput] = useState<string>(
     payrollProLabore > 0 ? formatNumberBR(payrollProLabore) : '',
   )
+  const [isProLaboreFocused, setIsProLaboreFocused] = useState(false)
+
   const [inssInput, setInssInput] = useState<string>(
     payrollInssRate > 0 ? formatNumberBR(payrollInssRate) : '20,00',
   )
+  const [isInssFocused, setIsInssFocused] = useState(false)
+
   const [ratInput, setRatInput] = useState<string>(
     payrollRatRate > 0 ? formatNumberBR(payrollRatRate) : '3,00',
   )
+  const [isRatFocused, setIsRatFocused] = useState(false)
+
   const [terceirosInput, setTerceirosInput] = useState<string>(
     payrollTerceirosRate > 0 ? formatNumberBR(payrollTerceirosRate) : '5,80',
   )
+  const [isTerceirosFocused, setIsTerceirosFocused] = useState(false)
 
   useEffect(() => {
-    setSalariesInput(payrollSalaries > 0 ? formatNumberBR(payrollSalaries) : '')
-  }, [payrollSalaries])
+    if (!isSalariesFocused) {
+      setSalariesInput(payrollSalaries > 0 ? formatNumberBR(payrollSalaries) : '')
+    }
+  }, [payrollSalaries, isSalariesFocused])
 
   useEffect(() => {
-    setProLaboreInput(payrollProLabore > 0 ? formatNumberBR(payrollProLabore) : '')
-  }, [payrollProLabore])
+    if (!isProLaboreFocused) {
+      setProLaboreInput(payrollProLabore > 0 ? formatNumberBR(payrollProLabore) : '')
+    }
+  }, [payrollProLabore, isProLaboreFocused])
 
   useEffect(() => {
-    setInssInput(payrollInssRate > 0 ? formatNumberBR(payrollInssRate) : '20,00')
-  }, [payrollInssRate])
+    if (!isInssFocused) {
+      setInssInput(payrollInssRate > 0 ? formatNumberBR(payrollInssRate) : '20,00')
+    }
+  }, [payrollInssRate, isInssFocused])
 
   useEffect(() => {
-    setRatInput(payrollRatRate > 0 ? formatNumberBR(payrollRatRate) : '3,00')
-  }, [payrollRatRate])
+    if (!isRatFocused) {
+      setRatInput(payrollRatRate > 0 ? formatNumberBR(payrollRatRate) : '3,00')
+    }
+  }, [payrollRatRate, isRatFocused])
 
   useEffect(() => {
-    setTerceirosInput(payrollTerceirosRate > 0 ? formatNumberBR(payrollTerceirosRate) : '5,80')
-  }, [payrollTerceirosRate])
+    if (!isTerceirosFocused) {
+      setTerceirosInput(payrollTerceirosRate > 0 ? formatNumberBR(payrollTerceirosRate) : '5,80')
+    }
+  }, [payrollTerceirosRate, isTerceirosFocused])
 
   return (
     <div className="p-4 sm:p-5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-4">
@@ -116,9 +135,17 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
               type="text"
               placeholder="0,00"
               value={salariesInput}
+              onFocus={() => setIsSalariesFocused(true)}
               onChange={(e) => {
-                setSalariesInput(e.target.value)
-                setPayrollSalaries(parseBRNumber(e.target.value))
+                const raw = e.target.value
+                setSalariesInput(raw)
+                setPayrollSalaries(parseBRNumber(raw))
+              }}
+              onBlur={(e) => {
+                setIsSalariesFocused(false)
+                const parsed = parseBRNumber(e.target.value)
+                setSalariesInput(parsed > 0 ? formatNumberBR(parsed) : '')
+                setPayrollSalaries(parsed)
               }}
               className="pl-9 text-left sm:text-right bg-slate-900/80 border-slate-800 text-slate-100 font-mono text-xs focus:border-emerald-500 focus:ring-emerald-500/20"
             />
@@ -144,9 +171,17 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
               type="text"
               placeholder="0,00"
               value={proLaboreInput}
+              onFocus={() => setIsProLaboreFocused(true)}
               onChange={(e) => {
-                setProLaboreInput(e.target.value)
-                setPayrollProLabore(parseBRNumber(e.target.value))
+                const raw = e.target.value
+                setProLaboreInput(raw)
+                setPayrollProLabore(parseBRNumber(raw))
+              }}
+              onBlur={(e) => {
+                setIsProLaboreFocused(false)
+                const parsed = parseBRNumber(e.target.value)
+                setProLaboreInput(parsed > 0 ? formatNumberBR(parsed) : '')
+                setPayrollProLabore(parsed)
               }}
               className="pl-9 text-left sm:text-right bg-slate-900/80 border-slate-800 text-slate-100 font-mono text-xs focus:border-emerald-500 focus:ring-emerald-500/20"
             />
@@ -182,9 +217,17 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
               <Input
                 type="text"
                 value={inssInput}
+                onFocus={() => setIsInssFocused(true)}
                 onChange={(e) => {
-                  setInssInput(e.target.value)
-                  setPayrollInssRate(parseBRNumber(e.target.value))
+                  const raw = e.target.value
+                  setInssInput(raw)
+                  setPayrollInssRate(parseBRNumber(raw))
+                }}
+                onBlur={(e) => {
+                  setIsInssFocused(false)
+                  const parsed = parseBRNumber(e.target.value)
+                  setInssInput(parsed > 0 ? formatNumberBR(parsed) : '0,00')
+                  setPayrollInssRate(parsed)
                 }}
                 className="pr-7 text-right bg-slate-950/80 border-emerald-500/50 text-slate-100 font-mono text-xs focus:border-emerald-400"
               />
@@ -208,9 +251,17 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
               <Input
                 type="text"
                 value={ratInput}
+                onFocus={() => setIsRatFocused(true)}
                 onChange={(e) => {
-                  setRatInput(e.target.value)
-                  setPayrollRatRate(parseBRNumber(e.target.value))
+                  const raw = e.target.value
+                  setRatInput(raw)
+                  setPayrollRatRate(parseBRNumber(raw))
+                }}
+                onBlur={(e) => {
+                  setIsRatFocused(false)
+                  const parsed = parseBRNumber(e.target.value)
+                  setRatInput(parsed > 0 ? formatNumberBR(parsed) : '0,00')
+                  setPayrollRatRate(parsed)
                 }}
                 className="pr-7 text-right bg-slate-950/80 border-emerald-500/50 text-slate-100 font-mono text-xs focus:border-emerald-400"
               />
@@ -236,9 +287,17 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
               <Input
                 type="text"
                 value={terceirosInput}
+                onFocus={() => setIsTerceirosFocused(true)}
                 onChange={(e) => {
-                  setTerceirosInput(e.target.value)
-                  setPayrollTerceirosRate(parseBRNumber(e.target.value))
+                  const raw = e.target.value
+                  setTerceirosInput(raw)
+                  setPayrollTerceirosRate(parseBRNumber(raw))
+                }}
+                onBlur={(e) => {
+                  setIsTerceirosFocused(false)
+                  const parsed = parseBRNumber(e.target.value)
+                  setTerceirosInput(parsed > 0 ? formatNumberBR(parsed) : '0,00')
+                  setPayrollTerceirosRate(parsed)
                 }}
                 className="pr-7 text-right bg-slate-950/80 border-emerald-500/50 text-slate-100 font-mono text-xs focus:border-emerald-400"
               />

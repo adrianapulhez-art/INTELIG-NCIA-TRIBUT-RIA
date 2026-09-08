@@ -63,22 +63,28 @@ export default function DrePresumidoPage() {
     totalConsolidatedQuantity > 0 ? totalConsolidatedQuantity : presumidoQuantitySold || 0
 
   const [qtyInput, setQtyInput] = useState<string>(defaultQty > 0 ? String(defaultQty) : '0')
+  const [isQtyFocused, setIsQtyFocused] = useState(false)
   const [issInput, setIssInput] = useState<string>(
     presumidoIssRate > 0 ? formatNumberBR(presumidoIssRate) : '',
   )
+  const [isIssFocused, setIsIssFocused] = useState(false)
 
   // Sincroniza o input quando o estado for resetado ou carregado via cenário
   React.useEffect(() => {
-    if (presumidoQuantitySold === 0 && totalConsolidatedQuantity === 0) {
-      setQtyInput('0')
-    } else {
-      setQtyInput(String(defaultQty))
+    if (!isQtyFocused) {
+      if (presumidoQuantitySold === 0 && totalConsolidatedQuantity === 0) {
+        setQtyInput('0')
+      } else {
+        setQtyInput(String(defaultQty))
+      }
     }
-  }, [presumidoQuantitySold, totalConsolidatedQuantity, defaultQty])
+  }, [presumidoQuantitySold, totalConsolidatedQuantity, defaultQty, isQtyFocused])
 
   React.useEffect(() => {
-    setIssInput(presumidoIssRate > 0 ? formatNumberBR(presumidoIssRate) : '')
-  }, [presumidoIssRate])
+    if (!isIssFocused) {
+      setIssInput(presumidoIssRate > 0 ? formatNumberBR(presumidoIssRate) : '')
+    }
+  }, [presumidoIssRate, isIssFocused])
 
   const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -400,12 +406,14 @@ export default function DrePresumidoPage() {
                       type="text"
                       placeholder="0,00"
                       value={issInput}
+                      onFocus={() => setIsIssFocused(true)}
                       onChange={(e) => {
                         const val = e.target.value
                         setIssInput(val)
                         setPresumidoIssRate(parseBRNumber(val))
                       }}
                       onBlur={(e) => {
+                        setIsIssFocused(false)
                         const val = parseBRNumber(e.target.value)
                         setPresumidoIssRate(val)
                         setIssInput(val > 0 ? formatNumberBR(val) : '')
@@ -615,7 +623,15 @@ export default function DrePresumidoPage() {
                   type="number"
                   min="0"
                   value={qtyInput}
+                  onFocus={() => setIsQtyFocused(true)}
                   onChange={handleQtyChange}
+                  onBlur={(e) => {
+                    setIsQtyFocused(false)
+                    const parsed = parseInt(e.target.value, 10)
+                    const safe = isNaN(parsed) || parsed < 0 ? 0 : parsed
+                    setQtyInput(String(safe))
+                    setPresumidoQuantitySold(safe)
+                  }}
                   className="bg-slate-950/80 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500"
                 />
               </div>

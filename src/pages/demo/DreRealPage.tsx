@@ -66,22 +66,28 @@ export default function DreRealPage() {
     totalConsolidatedQuantity > 0 ? totalConsolidatedQuantity : realQuantitySold || 0
 
   const [qtyInput, setQtyInput] = useState<string>(defaultQty > 0 ? String(defaultQty) : '0')
+  const [isQtyFocused, setIsQtyFocused] = useState(false)
   const [issInput, setIssInput] = useState<string>(
     realIssRate > 0 ? formatNumberBR(realIssRate) : '',
   )
+  const [isIssFocused, setIsIssFocused] = useState(false)
 
   // Sincroniza o input quando o estado for resetado ou carregado via cenário
   React.useEffect(() => {
-    if (realQuantitySold === 0 && totalConsolidatedQuantity === 0) {
-      setQtyInput('0')
-    } else {
-      setQtyInput(String(defaultQty))
+    if (!isQtyFocused) {
+      if (realQuantitySold === 0 && totalConsolidatedQuantity === 0) {
+        setQtyInput('0')
+      } else {
+        setQtyInput(String(defaultQty))
+      }
     }
-  }, [realQuantitySold, totalConsolidatedQuantity, defaultQty])
+  }, [realQuantitySold, totalConsolidatedQuantity, defaultQty, isQtyFocused])
 
   React.useEffect(() => {
-    setIssInput(realIssRate > 0 ? formatNumberBR(realIssRate) : '')
-  }, [realIssRate])
+    if (!isIssFocused) {
+      setIssInput(realIssRate > 0 ? formatNumberBR(realIssRate) : '')
+    }
+  }, [realIssRate, isIssFocused])
 
   const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -335,12 +341,14 @@ export default function DreRealPage() {
                       type="text"
                       placeholder="0,00"
                       value={issInput}
+                      onFocus={() => setIsIssFocused(true)}
                       onChange={(e) => {
                         const val = e.target.value
                         setIssInput(val)
                         setRealIssRate(parseBRNumber(val))
                       }}
                       onBlur={(e) => {
+                        setIsIssFocused(false)
                         const val = parseBRNumber(e.target.value)
                         setRealIssRate(val)
                         setIssInput(val > 0 ? formatNumberBR(val) : '')
@@ -612,9 +620,11 @@ export default function DreRealPage() {
                       type="text"
                       defaultValue={exp.value > 0 ? formatNumberBR(exp.value) : ''}
                       key={`exp-${exp.id}-${exp.value}`}
-                      onBlur={(e) =>
-                        updateRealExpense(exp.id, 'value', parseBRNumber(e.target.value))
-                      }
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        updateRealExpense(exp.id, 'value', parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
                       placeholder="0,00"
                       className="pl-8 text-right bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-100"
                     />
@@ -643,7 +653,15 @@ export default function DreRealPage() {
                   type="number"
                   min="0"
                   value={qtyInput}
+                  onFocus={() => setIsQtyFocused(true)}
                   onChange={handleQtyChange}
+                  onBlur={(e) => {
+                    setIsQtyFocused(false)
+                    const parsed = parseInt(e.target.value, 10)
+                    const safe = isNaN(parsed) || parsed < 0 ? 0 : parsed
+                    setQtyInput(String(safe))
+                    setRealQuantitySold(safe)
+                  }}
                   className="bg-slate-950/80 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500"
                 />
               </div>

@@ -71,33 +71,42 @@ export default function DreSimplesPage() {
 
   // Estados locais para inputs
   const [qtyInput, setQtyInput] = useState<string>(defaultQty > 0 ? String(defaultQty) : '0')
+  const [isQtyFocused, setIsQtyFocused] = useState(false)
   const [rbt12Input, setRbt12Input] = useState<string>(
     simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : '',
   )
+  const [isRbt12Focused, setIsRbt12Focused] = useState(false)
   const [payrollInput, setPayrollInput] = useState<string>(
     simplesPayroll12m > 0 ? formatNumberBR(simplesPayroll12m) : '',
   )
+  const [isPayrollFocused, setIsPayrollFocused] = useState(false)
 
   // Sincroniza o input quando o estado for resetado ou carregado via cenário
   React.useEffect(() => {
-    if (simplesQuantitySold === 0 && totalConsolidatedQuantity === 0) {
-      setQtyInput('0')
-    } else {
-      setQtyInput(String(defaultQty))
+    if (!isQtyFocused) {
+      if (simplesQuantitySold === 0 && totalConsolidatedQuantity === 0) {
+        setQtyInput('0')
+      } else {
+        setQtyInput(String(defaultQty))
+      }
     }
-  }, [simplesQuantitySold, totalConsolidatedQuantity, defaultQty])
+  }, [simplesQuantitySold, totalConsolidatedQuantity, defaultQty, isQtyFocused])
 
   React.useEffect(() => {
-    if (simplesIsInicioAtividade) {
-      setRbt12Input(effectiveSimplesRbt12 > 0 ? formatNumberBR(effectiveSimplesRbt12) : '')
-    } else {
-      setRbt12Input(simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : '')
+    if (!isRbt12Focused) {
+      if (simplesIsInicioAtividade) {
+        setRbt12Input(effectiveSimplesRbt12 > 0 ? formatNumberBR(effectiveSimplesRbt12) : '')
+      } else {
+        setRbt12Input(simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : '')
+      }
     }
-  }, [simplesRbt12, effectiveSimplesRbt12, simplesIsInicioAtividade])
+  }, [simplesRbt12, effectiveSimplesRbt12, simplesIsInicioAtividade, isRbt12Focused])
 
   React.useEffect(() => {
-    setPayrollInput(simplesPayroll12m > 0 ? formatNumberBR(simplesPayroll12m) : '')
-  }, [simplesPayroll12m])
+    if (!isPayrollFocused) {
+      setPayrollInput(simplesPayroll12m > 0 ? formatNumberBR(simplesPayroll12m) : '')
+    }
+  }, [simplesPayroll12m, isPayrollFocused])
 
   // RECEITA BRUTA:
   // Se houver múltiplos produtos consolidados (> 0), usa totalConsolidatedRevenue.
@@ -411,6 +420,7 @@ export default function DreSimplesPage() {
                     type="text"
                     placeholder="0,00"
                     disabled={simplesIsInicioAtividade}
+                    onFocus={() => setIsRbt12Focused(true)}
                     value={
                       simplesIsInicioAtividade
                         ? effectiveSimplesRbt12 > 0
@@ -426,6 +436,7 @@ export default function DreSimplesPage() {
                       }
                     }}
                     onBlur={(e) => {
+                      setIsRbt12Focused(false)
                       if (!simplesIsInicioAtividade) {
                         handleRbt12Blur(e)
                       }
@@ -457,12 +468,16 @@ export default function DreSimplesPage() {
                     type="text"
                     placeholder="0,00"
                     value={payrollInput}
+                    onFocus={() => setIsPayrollFocused(true)}
                     onChange={(e) => {
                       const val = e.target.value
                       setPayrollInput(val)
                       setSimplesPayroll12m(parseBRNumber(val))
                     }}
-                    onBlur={handlePayrollBlur}
+                    onBlur={(e) => {
+                      setIsPayrollFocused(false)
+                      handlePayrollBlur(e)
+                    }}
                     className="pl-9 bg-slate-900 border-slate-800 text-slate-100 font-mono text-xs focus:border-emerald-500"
                   />
                 </div>
@@ -877,9 +892,11 @@ export default function DreSimplesPage() {
                       type="text"
                       defaultValue={exp.value > 0 ? formatNumberBR(exp.value) : ''}
                       key={`exp-${exp.id}-${exp.value}`}
-                      onBlur={(e) =>
-                        updateSimplesExpense(exp.id, 'value', parseBRNumber(e.target.value))
-                      }
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        updateSimplesExpense(exp.id, 'value', parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
                       placeholder="0,00"
                       className="pl-8 text-right bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-100"
                     />
@@ -908,7 +925,15 @@ export default function DreSimplesPage() {
                   type="number"
                   min="0"
                   value={qtyInput}
+                  onFocus={() => setIsQtyFocused(true)}
                   onChange={handleQtyChange}
+                  onBlur={(e) => {
+                    setIsQtyFocused(false)
+                    const parsed = parseInt(e.target.value, 10)
+                    const safe = isNaN(parsed) || parsed < 0 ? 0 : parsed
+                    setQtyInput(String(safe))
+                    setSimplesQuantitySold(safe)
+                  }}
                   className="bg-slate-950/80 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500"
                 />
               </div>

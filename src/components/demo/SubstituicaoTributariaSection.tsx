@@ -35,59 +35,86 @@ export const SubstituicaoTributariaSection: React.FC<SubstituicaoTributariaSecti
 
   // Buffers locais para digitação suave no onBlur
   const [purchasesStPaidInput, setPurchasesStPaidInput] = useState<string>('')
+  const [isPurchasesStPaidFocused, setIsPurchasesStPaidFocused] = useState(false)
+
   const [purchasesBaseStInput, setPurchasesBaseStInput] = useState<string>('')
+  const [isPurchasesBaseStFocused, setIsPurchasesBaseStFocused] = useState(false)
+
   const [mvaPercentInput, setMvaPercentInput] = useState<string>('')
+  const [isMvaFocused, setIsMvaFocused] = useState(false)
+
   const [destInternalIcmsRateInput, setDestInternalIcmsRateInput] = useState<string>('')
+  const [isDestInternalFocused, setIsDestInternalFocused] = useState(false)
+
   const [ipiRateOrValueInput, setIpiRateOrValueInput] = useState<string>('')
+  const [isIpiFocused, setIsIpiFocused] = useState(false)
+
   const [freightValueInput, setFreightValueInput] = useState<string>('')
+  const [isFreightFocused, setIsFreightFocused] = useState(false)
+
   const [simplesRevenueShareInput, setSimplesRevenueShareInput] = useState<string>('')
+  const [isSimplesRevenueShareFocused, setIsSimplesRevenueShareFocused] = useState(false)
 
-  // Sincroniza inputs locais apenas quando o estado externo muda
+  // Sincroniza inputs locais apenas quando o estado externo muda e o campo não está focado
   useEffect(() => {
-    setPurchasesStPaidInput(
-      stSubsystem.purchasesStPaid ? String(stSubsystem.purchasesStPaid).replace('.', ',') : '',
-    )
-  }, [stSubsystem.purchasesStPaid])
-
-  useEffect(() => {
-    setPurchasesBaseStInput(
-      stSubsystem.purchasesBaseSt ? String(stSubsystem.purchasesBaseSt).replace('.', ',') : '',
-    )
-  }, [stSubsystem.purchasesBaseSt])
+    if (!isPurchasesStPaidFocused) {
+      setPurchasesStPaidInput(
+        stSubsystem.purchasesStPaid ? String(stSubsystem.purchasesStPaid).replace('.', ',') : '',
+      )
+    }
+  }, [stSubsystem.purchasesStPaid, isPurchasesStPaidFocused])
 
   useEffect(() => {
-    setMvaPercentInput(
-      stSubsystem.mvaPercent ? String(stSubsystem.mvaPercent).replace('.', ',') : '40',
-    )
-  }, [stSubsystem.mvaPercent])
+    if (!isPurchasesBaseStFocused) {
+      setPurchasesBaseStInput(
+        stSubsystem.purchasesBaseSt ? String(stSubsystem.purchasesBaseSt).replace('.', ',') : '',
+      )
+    }
+  }, [stSubsystem.purchasesBaseSt, isPurchasesBaseStFocused])
 
   useEffect(() => {
-    setDestInternalIcmsRateInput(
-      stSubsystem.destInternalIcmsRate
-        ? String(stSubsystem.destInternalIcmsRate).replace('.', ',')
-        : '18',
-    )
-  }, [stSubsystem.destInternalIcmsRate])
+    if (!isMvaFocused) {
+      setMvaPercentInput(
+        stSubsystem.mvaPercent ? String(stSubsystem.mvaPercent).replace('.', ',') : '40',
+      )
+    }
+  }, [stSubsystem.mvaPercent, isMvaFocused])
 
   useEffect(() => {
-    setIpiRateOrValueInput(
-      stSubsystem.ipiRateOrValue ? String(stSubsystem.ipiRateOrValue).replace('.', ',') : '',
-    )
-  }, [stSubsystem.ipiRateOrValue])
+    if (!isDestInternalFocused) {
+      setDestInternalIcmsRateInput(
+        stSubsystem.destInternalIcmsRate
+          ? String(stSubsystem.destInternalIcmsRate).replace('.', ',')
+          : '18',
+      )
+    }
+  }, [stSubsystem.destInternalIcmsRate, isDestInternalFocused])
 
   useEffect(() => {
-    setFreightValueInput(
-      stSubsystem.freightValue ? String(stSubsystem.freightValue).replace('.', ',') : '',
-    )
-  }, [stSubsystem.freightValue])
+    if (!isIpiFocused) {
+      setIpiRateOrValueInput(
+        stSubsystem.ipiRateOrValue ? String(stSubsystem.ipiRateOrValue).replace('.', ',') : '',
+      )
+    }
+  }, [stSubsystem.ipiRateOrValue, isIpiFocused])
 
   useEffect(() => {
-    setSimplesRevenueShareInput(
-      stSubsystem.simplesStRevenueShare !== undefined
-        ? String(stSubsystem.simplesStRevenueShare).replace('.', ',')
-        : '100',
-    )
-  }, [stSubsystem.simplesStRevenueShare])
+    if (!isFreightFocused) {
+      setFreightValueInput(
+        stSubsystem.freightValue ? String(stSubsystem.freightValue).replace('.', ',') : '',
+      )
+    }
+  }, [stSubsystem.freightValue, isFreightFocused])
+
+  useEffect(() => {
+    if (!isSimplesRevenueShareFocused) {
+      setSimplesRevenueShareInput(
+        stSubsystem.simplesStRevenueShare !== undefined
+          ? String(stSubsystem.simplesStRevenueShare).replace('.', ',')
+          : '100',
+      )
+    }
+  }, [stSubsystem.simplesStRevenueShare, isSimplesRevenueShareFocused])
 
   // Cálculo da retenção de ST na venda (empresa substituta)
   const effectiveSaleValue = Math.max(0, saleOperationValue || 0)
@@ -239,10 +266,13 @@ export const SubstituicaoTributariaSection: React.FC<SubstituicaoTributariaSecti
                       inputMode="decimal"
                       placeholder="0,00"
                       value={purchasesStPaidInput}
+                      onFocus={() => setIsPurchasesStPaidFocused(true)}
                       onChange={(e) => setPurchasesStPaidInput(e.target.value)}
                       onBlur={() => {
+                        setIsPurchasesStPaidFocused(false)
                         const parsed = parseBRNumber(purchasesStPaidInput)
                         updateStSubsystem('purchasesStPaid', parsed)
+                        setPurchasesStPaidInput(parsed > 0 ? String(parsed).replace('.', ',') : '')
                       }}
                       className="font-mono text-sm"
                     />
@@ -261,10 +291,13 @@ export const SubstituicaoTributariaSection: React.FC<SubstituicaoTributariaSecti
                       inputMode="decimal"
                       placeholder="0,00"
                       value={purchasesBaseStInput}
+                      onFocus={() => setIsPurchasesBaseStFocused(true)}
                       onChange={(e) => setPurchasesBaseStInput(e.target.value)}
                       onBlur={() => {
+                        setIsPurchasesBaseStFocused(false)
                         const parsed = parseBRNumber(purchasesBaseStInput)
                         updateStSubsystem('purchasesBaseSt', parsed)
+                        setPurchasesBaseStInput(parsed > 0 ? String(parsed).replace('.', ',') : '')
                       }}
                       className="font-mono text-xs text-muted-foreground mt-1"
                     />
@@ -324,10 +357,13 @@ export const SubstituicaoTributariaSection: React.FC<SubstituicaoTributariaSecti
                           inputMode="decimal"
                           placeholder="Ex: 40,00"
                           value={mvaPercentInput}
+                          onFocus={() => setIsMvaFocused(true)}
                           onChange={(e) => setMvaPercentInput(e.target.value)}
                           onBlur={() => {
+                            setIsMvaFocused(false)
                             const parsed = parseBRNumber(mvaPercentInput)
                             updateStSubsystem('mvaPercent', parsed)
+                            setMvaPercentInput(parsed > 0 ? String(parsed).replace('.', ',') : '')
                           }}
                           className="font-mono text-sm mt-1"
                         />
@@ -343,10 +379,15 @@ export const SubstituicaoTributariaSection: React.FC<SubstituicaoTributariaSecti
                           inputMode="decimal"
                           placeholder="Ex: 18,00"
                           value={destInternalIcmsRateInput}
+                          onFocus={() => setIsDestInternalFocused(true)}
                           onChange={(e) => setDestInternalIcmsRateInput(e.target.value)}
                           onBlur={() => {
+                            setIsDestInternalFocused(false)
                             const parsed = parseBRNumber(destInternalIcmsRateInput)
                             updateStSubsystem('destInternalIcmsRate', parsed)
+                            setDestInternalIcmsRateInput(
+                              parsed > 0 ? String(parsed).replace('.', ',') : '',
+                            )
                           }}
                           className="font-mono text-sm mt-1"
                         />
@@ -401,10 +442,15 @@ export const SubstituicaoTributariaSection: React.FC<SubstituicaoTributariaSecti
                               inputMode="decimal"
                               placeholder="0,00"
                               value={ipiRateOrValueInput}
+                              onFocus={() => setIsIpiFocused(true)}
                               onChange={(e) => setIpiRateOrValueInput(e.target.value)}
                               onBlur={() => {
+                                setIsIpiFocused(false)
                                 const parsed = parseBRNumber(ipiRateOrValueInput)
                                 updateStSubsystem('ipiRateOrValue', parsed)
+                                setIpiRateOrValueInput(
+                                  parsed > 0 ? String(parsed).replace('.', ',') : '',
+                                )
                               }}
                               className="font-mono text-xs mt-1"
                             />
@@ -424,10 +470,15 @@ export const SubstituicaoTributariaSection: React.FC<SubstituicaoTributariaSecti
                               inputMode="decimal"
                               placeholder="0,00"
                               value={freightValueInput}
+                              onFocus={() => setIsFreightFocused(true)}
                               onChange={(e) => setFreightValueInput(e.target.value)}
                               onBlur={() => {
+                                setIsFreightFocused(false)
                                 const parsed = parseBRNumber(freightValueInput)
                                 updateStSubsystem('freightValue', parsed)
+                                setFreightValueInput(
+                                  parsed > 0 ? String(parsed).replace('.', ',') : '',
+                                )
                               }}
                               className="font-mono text-xs mt-1"
                             />
@@ -546,13 +597,16 @@ export const SubstituicaoTributariaSection: React.FC<SubstituicaoTributariaSecti
                         inputMode="decimal"
                         placeholder="100"
                         value={simplesRevenueShareInput}
+                        onFocus={() => setIsSimplesRevenueShareFocused(true)}
                         onChange={(e) => setSimplesRevenueShareInput(e.target.value)}
                         onBlur={() => {
+                          setIsSimplesRevenueShareFocused(false)
                           const parsed = Math.min(
                             100,
                             Math.max(0, parseBRNumber(simplesRevenueShareInput)),
                           )
                           updateStSubsystem('simplesStRevenueShare', parsed)
+                          setSimplesRevenueShareInput(String(parsed).replace('.', ','))
                         }}
                         className="font-mono text-xs h-7 w-20"
                       />

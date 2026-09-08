@@ -468,7 +468,11 @@ export function ReformaPage() {
                 type="text"
                 defaultValue={formatNumberBR(currentYearRates.cbsRate, 2)}
                 key={`cbs-${selectedYear}-${currentYearRates.cbsRate}`}
-                onBlur={(e) => handleUpdateYearRate(selectedYear, 'cbsRate', e.target.value)}
+                onBlur={(e) => {
+                  handleUpdateYearRate(selectedYear, 'cbsRate', e.target.value)
+                  const parsed = parseBRNumber(e.target.value)
+                  e.target.value = formatNumberBR(parsed, 2)
+                }}
                 className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-lg px-2.5 py-1.5 text-sm font-mono text-white text-right outline-none"
               />
               <span className="text-[10px] text-slate-500 mt-1 block">
@@ -485,7 +489,11 @@ export function ReformaPage() {
                 type="text"
                 defaultValue={formatNumberBR(currentYearRates.ibsRate, 2)}
                 key={`ibs-${selectedYear}-${currentYearRates.ibsRate}`}
-                onBlur={(e) => handleUpdateYearRate(selectedYear, 'ibsRate', e.target.value)}
+                onBlur={(e) => {
+                  handleUpdateYearRate(selectedYear, 'ibsRate', e.target.value)
+                  const parsed = parseBRNumber(e.target.value)
+                  e.target.value = formatNumberBR(parsed, 2)
+                }}
                 className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-lg px-2.5 py-1.5 text-sm font-mono text-white text-right outline-none"
               />
               <span className="text-[10px] text-slate-500 mt-1 block">Estados & Municípios</span>
@@ -552,7 +560,11 @@ export function ReformaPage() {
                 disabled={!reformaState.enableImpostoSeletivo || selectedYear < 2027}
                 defaultValue={formatNumberBR(currentYearRates.isRate, 2)}
                 key={`is-${selectedYear}-${currentYearRates.isRate}`}
-                onBlur={(e) => handleUpdateYearRate(selectedYear, 'isRate', e.target.value)}
+                onBlur={(e) => {
+                  handleUpdateYearRate(selectedYear, 'isRate', e.target.value)
+                  const parsed = parseBRNumber(e.target.value)
+                  e.target.value = formatNumberBR(parsed, 2)
+                }}
                 className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 disabled:opacity-40 rounded-lg px-2.5 py-1.5 text-sm font-mono text-white text-right outline-none"
               />
               <span className="text-[10px] text-slate-500 mt-1 block">
