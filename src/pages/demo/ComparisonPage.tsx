@@ -32,6 +32,7 @@ import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
 import { RegimeThresholdsAlerts } from '@/components/demo/RegimeThresholdsAlerts'
 import { SensitivityAnalysisSection } from '@/components/demo/SensitivityAnalysisSection'
 import { exportComparisonToPdf, exportComparisonToExcel } from '@/lib/exportReports'
+import { PageHero } from '@/components/demo/PageHero'
 
 export default function ComparisonPage() {
   const navigate = useNavigate()
@@ -493,39 +494,46 @@ export default function ComparisonPage() {
   return (
     <DemoLayout currentTab="comparacao">
       <div className="space-y-6 max-w-6xl mx-auto">
+        {/* Destaque Central Topo: Hero Banner estilo ADAPTA ONE */}
+        <PageHero
+          title="COMPARAÇÃO DE REGIMES"
+          subtitle="Simulação simultânea da mesma operação comercial nos regimes Lucro Presumido, Lucro Real e Simples Nacional com análise de sensibilidade e diagnóstico comparativo."
+          badge="DIAGNÓSTICO TRIBUTÁRIO COMPARATIVO · 3 REGIMES"
+          icon={Scale}
+        />
+
         {/* Cabeçalho */}
-        <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-xl space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
+        <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-emerald-500/15">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 shadow-sm">
                 <Scale className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                    Comparação de Regimes Tributários
+                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                    Parâmetros Compartilhados e Diagnóstico
                   </h2>
                   <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono">
                     3 Cenários em Paralelo
                   </Badge>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-400">
-                  Simulação simultânea da mesma operação comercial nos regimes Lucro Presumido,
-                  Lucro Real e Simples Nacional.
+                <p className="text-xs text-slate-400">
+                  Operação comercial sincronizada nos 3 regimes tributários.
                 </p>
               </div>
             </div>
 
             {/* Card Destaque Rápido do Vencedor */}
-            <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/40 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+            <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 flex items-center gap-3 shadow-md shadow-emerald-950/40">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-300 shrink-0">
                 <Trophy className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-mono uppercase text-slate-400 block">
+                <span className="text-[10px] font-mono uppercase text-emerald-400/80 block">
                   Regime mais vantajoso
                 </span>
-                <span className="text-sm font-black text-emerald-400 tracking-tight">
+                <span className="text-sm font-black text-white tracking-tight">
                   {bestRegime.name}
                 </span>
               </div>

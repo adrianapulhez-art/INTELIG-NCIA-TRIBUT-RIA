@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { CostCompositionSection } from '@/components/demo/CostCompositionSection'
+import { PageHero } from '@/components/demo/PageHero'
 
 interface ProductBaseValueInputProps {
   productId: string
@@ -410,26 +411,33 @@ export default function MarkupPage() {
   return (
     <DemoLayout currentTab="markup">
       <div className="space-y-6 max-w-5xl mx-auto">
+        {/* Destaque Central Topo: Hero Banner estilo ADAPTA ONE */}
+        <PageHero
+          title="CALCULADORA DE MARKUP"
+          subtitle="Cadastre produtos e serviços, defina a receita líquida ou custo + margem por item e obtenha os preços fracionados com consolidação automática para as DREs."
+          badge="PRECIFICAÇÃO INTELIGENTE & MULTI-PRODUTOS"
+          icon={Calculator}
+        />
+
         {/* Card Principal */}
-        <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-xl space-y-6">
+        <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
           {/* Header com Ícone de Calculadora */}
-          <div className="flex items-start justify-between flex-wrap gap-3">
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
+          <div className="flex items-start justify-between flex-wrap gap-3 pb-2 border-b border-emerald-500/15">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 shadow-sm">
                 <Calculator className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                    Calculadora de MARKUP Multi-Produtos
+                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                    Parâmetros e Produtos do MARKUP
                   </h2>
                   <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono">
                     {markupProducts.length} {markupProducts.length === 1 ? 'produto' : 'produtos'}
                   </Badge>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-400">
-                  Cadastre produtos e serviços, defina a receita líquida ou custo + margem por item
-                  e obtenha os preços fracionados com consolidação automática para as DREs.
+                <p className="text-xs text-slate-400">
+                  Configuração de alíquotas automáticas por regime tributário e lista de produtos.
                 </p>
               </div>
             </div>

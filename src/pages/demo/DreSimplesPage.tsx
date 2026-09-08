@@ -29,6 +29,7 @@ import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
 import { RegimeThresholdsAlerts } from '@/components/demo/RegimeThresholdsAlerts'
 import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
+import { PageHero } from '@/components/demo/PageHero'
 
 export default function DreSimplesPage() {
   const navigate = useNavigate()
@@ -224,25 +225,34 @@ export default function DreSimplesPage() {
   return (
     <DemoLayout currentTab="simples">
       <div className="space-y-6 max-w-5xl mx-auto">
+        {/* Destaque Central Topo: Hero Banner estilo ADAPTA ONE */}
+        <PageHero
+          title="DRE — SIMPLES NACIONAL"
+          subtitle="Cálculo com fórmula oficial do PGDAS (Resolução CGSN 140/2018), Fator R automático para serviços, enquadramento por Anexo e segregação da guia única DAS."
+          badge="LEI COMPLEMENTAR 123/2006 · PGDAS COMPLETO"
+          icon={Calculator}
+        />
+
         {/* Cabeçalho */}
-        <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-xl space-y-6">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
-              <Calculator className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                  DRE — Simples Nacional (PGDAS Completo)
-                </h2>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase">
-                  LC 123/2006
-                </span>
+        <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
+          <div className="flex items-center justify-between pb-2 border-b border-emerald-500/15">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 shadow-sm">
+                <Calculator className="w-5 h-5" />
               </div>
-              <p className="text-xs sm:text-sm text-slate-400">
-                Cálculo com fórmula oficial do PGDAS (Resolução CGSN 140/2018), Fator R automático
-                para serviços, enquadramento por Anexo e segregação da guia única DAS.
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                    Demonstração do Resultado do Exercício
+                  </h2>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase">
+                    LC 123/2006
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Parâmetros de faturamento, RBT12, Fator R e repartição de tributos da guia DAS.
+                </p>
+              </div>
             </div>
           </div>
 

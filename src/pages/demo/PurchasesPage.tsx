@@ -15,6 +15,7 @@ import { formatBRL, formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
+import { PageHero } from '@/components/demo/PageHero'
 
 export default function PurchasesPage() {
   const navigate = useNavigate()
@@ -67,19 +68,26 @@ export default function PurchasesPage() {
   return (
     <DemoLayout currentTab="compras">
       <div className="space-y-6 max-w-5xl mx-auto">
-        {/* Cabeçalho */}
-        <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-xl space-y-6">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
+        {/* Destaque Central Topo: Hero Banner estilo ADAPTA ONE */}
+        <PageHero
+          title="CALCULADORA DE COMPRAS"
+          subtitle="Informe estoques, acréscimos e deduções. O CMV é calculado nas páginas de regime tributário, conforme os tributos recuperáveis de cada um."
+          badge="GESTÃO DE ESTOQUE, ENTRADAS & CRÉDITOS"
+          icon={Package}
+        />
+
+        {/* Card Principal */}
+        <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
+          <div className="flex items-center gap-3.5 pb-2 border-b border-emerald-500/15">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 shadow-sm">
               <Package className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                Calculadora de Compras
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                Parâmetros de Compras e Estoques
               </h2>
-              <p className="text-xs sm:text-sm text-slate-400">
-                Informe estoques, acréscimos e deduções. O CMV é calculado nas páginas de regime
-                tributário, conforme os tributos recuperáveis de cada um.
+              <p className="text-xs text-slate-400">
+                Estoque inicial, final, fretes, tributos não recuperáveis e créditos fiscais.
               </p>
             </div>
           </div>

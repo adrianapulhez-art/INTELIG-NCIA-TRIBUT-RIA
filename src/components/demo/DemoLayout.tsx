@@ -5,6 +5,7 @@ import { useTaxContext } from '@/contexts/TaxContext'
 import { Button } from '@/components/ui/button'
 import { LogOut, RotateCcw, Sparkles } from 'lucide-react'
 export type TabKey =
+  | 'home'
   | 'markup'
   | 'compras'
   | 'simples'
@@ -39,6 +40,7 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
   }
 
   const tabs: { key: TabKey; label: string; path: string }[] = [
+    { key: 'home', label: 'Início', path: '/demo' },
     { key: 'markup', label: 'Calculadora Markup', path: '/demo/markup' },
     { key: 'compras', label: 'Calculadora de Compras', path: '/demo/compras' },
     { key: 'simples', label: 'DRE Simples Nacional', path: '/demo/simples' },
@@ -49,23 +51,28 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
   ]
 
   return (
-    <div className="min-h-screen bg-[#070b12] text-slate-100 flex flex-col justify-between relative selection:bg-emerald-500/30 selection:text-emerald-300 font-sans">
-      {/* Background glow and subtle grid */}
-      <div className="fixed inset-0 pointer-events-none bg-grid-pattern opacity-40" />
-      <div className="fixed inset-0 pointer-events-none bg-glow-radial opacity-60" />
+    <div className="min-h-screen bg-[#050a08] text-slate-100 flex flex-col justify-between relative selection:bg-emerald-500/30 selection:text-emerald-300 font-sans overflow-x-hidden">
+      {/* Atmosfera tom sobre tom em verdes esfumados (estilo Adapta) */}
+      <div className="fixed inset-0 pointer-events-none bg-emerald-smoky-atmosphere z-0" />
+      <div className="fixed inset-0 pointer-events-none bg-grid-pattern opacity-25 z-0" />
+
+      {/* Brumas suaves adicionais para profundidade futurista */}
+      <div className="fixed -top-40 left-1/4 w-[600px] h-[400px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none z-0" />
+      <div className="fixed top-1/2 -right-40 w-[500px] h-[500px] bg-teal-600/10 blur-[140px] rounded-full pointer-events-none z-0" />
 
       {/* Top Navbar */}
-      <header className="relative z-20 border-b border-slate-800/80 bg-[#0a0f18]/90 backdrop-blur-md px-4 sm:px-8 py-3 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-md shadow-emerald-500/20">
+      <header className="relative z-20 border-b border-emerald-500/20 bg-[#06100d]/85 backdrop-blur-md px-4 sm:px-8 py-3 flex items-center justify-between shadow-lg shadow-black/40">
+        <Link to="/demo" className="flex items-center gap-2.5 group">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
             <span className="font-extrabold text-slate-950 text-sm font-mono">IT</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-white tracking-tight">
+            <span className="text-sm font-bold text-white tracking-tight group-hover:text-emerald-300 transition-colors">
               IT — Inteligência Tributária
             </span>
-            <span className="text-[9px] text-emerald-400 font-mono tracking-wider uppercase">
-              Demonstração Interativa
+            <span className="text-[9px] text-emerald-400 font-mono tracking-wider uppercase flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Ambiente de Demonstração
             </span>
           </div>
         </Link>
@@ -117,38 +124,26 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
         </div>
       </header>
 
-      {/* Header da Demo: Badge + Título + Subtítulo + 4 Botões */}
-      <div className="relative z-10 pt-8 pb-4 px-4 sm:px-8 max-w-6xl mx-auto w-full text-center space-y-4">
+      {/* Barra de Navegação em Pills estilo Adapta (Header escuro com pills arredondadas) */}
+      <div className="relative z-10 pt-6 pb-2 px-4 sm:px-8 max-w-6xl mx-auto w-full text-center">
         {/* Badge AMBIENTE DE TESTES */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-mono text-xs tracking-wider uppercase shadow-sm">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border border-emerald-400/40 bg-emerald-500/10 text-emerald-300 font-mono text-xs tracking-wider uppercase shadow-sm mb-4">
           <Sparkles className="w-3 h-3 text-emerald-400" />
           <span>AMBIENTE DE TESTES</span>
         </div>
 
-        {/* Título com degradê */}
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-          Bem-vindo à{' '}
-          <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-            demo da IT
-          </span>
-        </h1>
-
-        <p className="text-sm text-slate-400 max-w-xl mx-auto">
-          Escolha a calculadora que deseja utilizar.
-        </p>
-
-        {/* 4 Botões de Navegação Lado a Lado */}
-        <div className="pt-3 pb-2 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
+        {/* Barra de Tabs em Pills com degradê sutil e cantos arredondados estilo Adapta */}
+        <div className="p-1.5 rounded-2xl bg-[#091511]/90 border border-emerald-500/25 backdrop-blur-md inline-flex flex-wrap items-center justify-center gap-1.5 shadow-xl shadow-emerald-950/40 max-w-full">
           {tabs.map((tab) => {
             const isActive = currentTab === tab.key
             return (
               <button
                 key={tab.key}
                 onClick={() => navigate(tab.path)}
-                className={`px-4 sm:px-5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer shadow-sm ${
+                className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   isActive
-                    ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/20 font-bold'
-                    : 'bg-[#0f172a]/90 text-slate-300 border border-slate-700/80 hover:border-emerald-500/40 hover:text-white hover:bg-slate-800/80'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30 font-bold scale-[1.02]'
+                    : 'text-slate-300 hover:text-white hover:bg-emerald-500/10'
                 }`}
               >
                 {tab.label}
@@ -159,12 +154,12 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
       </div>
 
       {/* Main Container onde a página ativa é renderizada */}
-      <main className="relative z-10 flex-1 px-4 sm:px-8 pb-16 max-w-6xl mx-auto w-full">
+      <main className="relative z-10 flex-1 px-4 sm:px-8 pt-4 pb-16 max-w-6xl mx-auto w-full">
         {children}
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 py-5 border-t border-slate-800/60 bg-[#070b12]/90 text-center text-xs text-slate-500 font-mono">
+      <footer className="relative z-10 py-5 border-t border-emerald-500/15 bg-[#050e0b]/90 text-center text-xs text-slate-500 font-mono">
         IT — Inteligência Tributária • Demonstração Interativa integrada
       </footer>
     </div>

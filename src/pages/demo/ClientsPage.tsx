@@ -21,6 +21,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { formatBRL } from '@/lib/taxCalculations'
+import { PageHero } from '@/components/demo/PageHero'
 import {
   Users,
   Search,
@@ -279,25 +280,32 @@ export default function ClientsPage() {
   return (
     <DemoLayout currentTab="clientes">
       <div className="space-y-6 max-w-6xl mx-auto">
+        {/* Destaque Central Topo: Hero Banner estilo ADAPTA ONE */}
+        <PageHero
+          title="PAINEL DE CLIENTES"
+          subtitle="Gerencie os diagnósticos e planejamentos tributários salvos no servidor vinculados à sua conta com restauração e sincronização instantânea."
+          badge="CONSULTORIA IT & CENÁRIOS SALVOS"
+          icon={Users}
+        />
+
         {/* Cabeçalho */}
-        <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-xl space-y-4">
+        <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 shadow-sm">
                 <Users className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                    Painel de Clientes & Cenários Salvos
+                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                    Gerenciador de Cenários Tributários
                   </h2>
                   <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono">
                     Consultoria IT
                   </Badge>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-400">
-                  Gerencie os diagnósticos e planejamentos tributários salvos no servidor vinculados
-                  à sua conta.
+                <p className="text-xs text-slate-400">
+                  Histórico de planejamentos fiscais salvos na nuvem.
                 </p>
               </div>
             </div>

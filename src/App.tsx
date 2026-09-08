@@ -10,6 +10,7 @@ import Layout from './components/Layout'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { TaxProvider } from './contexts/TaxContext'
+import DemoDashboard from './pages/demo/DemoDashboard'
 import MarkupPage from './pages/demo/MarkupPage'
 import PurchasesPage from './pages/demo/PurchasesPage'
 import DrePresumidoPage from './pages/demo/DrePresumidoPage'
@@ -40,7 +41,7 @@ const App = () => (
               path="/demo"
               element={
                 <ProtectedRoute>
-                  <Navigate to="/demo/markup" replace />
+                  <DemoDashboard />
                 </ProtectedRoute>
               }
             />

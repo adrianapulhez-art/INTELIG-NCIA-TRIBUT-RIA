@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
 import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
+import { PageHero } from '@/components/demo/PageHero'
 
 export default function DreRealPage() {
   const navigate = useNavigate()
@@ -217,20 +218,31 @@ export default function DreRealPage() {
   return (
     <DemoLayout currentTab="dre-real">
       <div className="space-y-6 max-w-5xl mx-auto">
+        {/* Destaque Central Topo: Hero Banner estilo ADAPTA ONE */}
+        <PageHero
+          title="DRE — LUCRO REAL"
+          subtitle={
+            isServices
+              ? 'Receita de serviços com ISSQN. PIS e COFINS não cumulativos sobre receita bruta, IRPJ e CSLL sobre o lucro real ajustado.'
+              : 'PIS e COFINS não cumulativos com a tese do século (ICMS fora da base). IRPJ e CSLL sobre o lucro real ajustado.'
+          }
+          badge="REGIME NÃO CUMULATIVO · AJUSTES LALUR"
+          icon={Calculator}
+        />
+
         {/* Cabeçalho */}
-        <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-xl space-y-6">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 shadow-sm">
+        <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
+          <div className="flex items-center gap-3.5 pb-2 border-b border-emerald-500/15">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 shadow-sm">
               <Calculator className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                DRE — Lucro Real
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                Demonstração do Resultado do Exercício
               </h2>
-              <p className="text-xs sm:text-sm text-slate-400">
-                {isServices
-                  ? 'Receita de serviços com ISSQN. PIS e COFINS não cumulativos sobre receita bruta, IRPJ e CSLL sobre o lucro real ajustado.'
-                  : 'PIS e COFINS não cumulativos com a tese do século (ICMS fora da base). IRPJ e CSLL sobre o lucro real ajustado.'}
+              <p className="text-xs text-slate-400">
+                PIS 1,65% / COFINS 7,6% não cumulativos, deduções de créditos e apuração do Lucro
+                Real no LALUR.
               </p>
             </div>
           </div>
