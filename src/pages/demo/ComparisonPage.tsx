@@ -16,6 +16,7 @@ import {
   Info,
 } from 'lucide-react'
 import { formatBRL, formatNumberBR, formatPercentBR, parseBRNumber } from '@/lib/taxCalculations'
+import { calculatePayroll } from '@/lib/payrollCalculations'
 import {
   SIMPLES_ANEXOS,
   SimplesAnexoId,
@@ -70,6 +71,16 @@ export default function ComparisonPage() {
     simplesQuantitySold,
     setSimplesQuantitySold,
     simplesExpenses,
+    payrollSalaries,
+    setPayrollSalaries,
+    payrollProLabore,
+    setPayrollProLabore,
+    payrollInssRate,
+    setPayrollInssRate,
+    payrollRatRate,
+    setPayrollRatRate,
+    payrollTerceirosRate,
+    setPayrollTerceirosRate,
   } = useTaxContext()
 
   // Se houver quantidade consolidada multi-produtos, prioriza ela
@@ -104,8 +115,24 @@ export default function ComparisonPage() {
     setSimplesQuantitySold(validQty)
   }
 
-  // Despesas compartilhadas: usa as despesas de Lucro Presumido como mestre
-  const totalExpenses = useMemo(() => {
+  // CÁLCULO DE FOLHA E ENCARGOS PATRONAIS
+  const payrollResult = useMemo(() => {
+    return calculatePayroll({
+      payrollSalaries,
+      proLabore: payrollProLabore,
+      inssPatronalRate: payrollInssRate,
+      ratRate: payrollRatRate,
+      terceirosRate: payrollTerceirosRate,
+    })
+  }, [payrollSalaries, payrollProLabore, payrollInssRate, payrollRatRate, payrollTerceirosRate])
+
+  // Valor da folha em si (salários + pró-labore), dedutível igualmente nos 3 regimes como despesa
+  const directPayrollExpenses = payrollSalaries + payrollProLabore
+  // Encargos patronais (INSS 20% + RAT + terceiros), incidem apenas fora do Simples (Presumido e Real)
+  const patronalCharges = payrollResult.patronalChargesTotal
+
+  // Outras despesas compartilhadas: usa as despesas de Lucro Presumido como mestre
+  const totalOtherExpenses = useMemo(() => {
     return presumidoExpenses.reduce((acc, exp) => acc + (exp.value || 0), 0)
   }, [presumidoExpenses])
 
@@ -153,6 +180,9 @@ export default function ComparisonPage() {
     const totalNetRevenue = unitNetRevenue * qty
     const totalCmv = unitCmv * qty
     const totalGrossProfit = unitGrossProfit * qty
+
+    // No Lucro Presumido: despesas = outras despesas + folha/pró-labore + encargos patronais
+    const totalExpenses = totalOtherExpenses + directPayrollExpenses + patronalCharges
     const totalResultBeforeTax = totalGrossProfit - totalExpenses
 
     // Bases presumidas
@@ -165,7 +195,13 @@ export default function ComparisonPage() {
 
     const totalNetProfit = totalResultBeforeTax - totalIrpj - totalIrpjAdditional - totalCsll
     const totalTaxBurden =
-      totalMunicipalStateTax + totalPis + totalCofins + totalIrpj + totalIrpjAdditional + totalCsll
+      totalMunicipalStateTax +
+      totalPis +
+      totalCofins +
+      totalIrpj +
+      totalIrpjAdditional +
+      totalCsll +
+      patronalCharges
     const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
     const effectiveTaxRate = totalGross > 0 ? (totalTaxBurden / totalGross) * 100 : 0
 
@@ -181,6 +217,7 @@ export default function ComparisonPage() {
       totalCmv,
       totalGrossProfit,
       totalResultBeforeTax,
+      totalExpenses,
       totalIrpj,
       totalIrpjAdditional,
       totalCsll,
@@ -188,6 +225,7 @@ export default function ComparisonPage() {
       totalTaxBurden,
       netMargin,
       effectiveTaxRate,
+      patronalCharges,
     }
   }, [
     presumidoActivity,
@@ -196,7 +234,9 @@ export default function ComparisonPage() {
     unitGrossRevenue,
     calculatedPurchases.cmvPresumido,
     qty,
-    totalExpenses,
+    totalOtherExpenses,
+    directPayrollExpenses,
+    patronalCharges,
   ])
 
   // -------------------------------------------------------------
@@ -236,6 +276,9 @@ export default function ComparisonPage() {
     const totalNetRevenue = unitNetRevenue * qty
     const totalCmv = unitCmv * qty
     const totalGrossProfit = unitGrossProfit * qty
+
+    // No Lucro Real: folha, pró-labore e encargos são despesas dedutíveis
+    const totalExpenses = totalOtherExpenses + directPayrollExpenses + patronalCharges
     const totalResultBeforeTax = totalGrossProfit - totalExpenses
 
     // LALUR: Lucro Real tributável
@@ -250,7 +293,13 @@ export default function ComparisonPage() {
 
     const totalNetProfit = totalResultBeforeTax - totalIrpj - totalIrpjAdditional - totalCsll
     const totalTaxBurden =
-      totalMunicipalStateTax + totalPis + totalCofins + totalIrpj + totalIrpjAdditional + totalCsll
+      totalMunicipalStateTax +
+      totalPis +
+      totalCofins +
+      totalIrpj +
+      totalIrpjAdditional +
+      totalCsll +
+      patronalCharges
     const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
     const effectiveTaxRate = totalGross > 0 ? (totalTaxBurden / totalGross) * 100 : 0
 
@@ -264,6 +313,7 @@ export default function ComparisonPage() {
       totalCmv,
       totalGrossProfit,
       totalResultBeforeTax,
+      totalExpenses,
       taxableRealProfit,
       totalIrpj,
       totalIrpjAdditional,
@@ -272,6 +322,7 @@ export default function ComparisonPage() {
       totalTaxBurden,
       netMargin,
       effectiveTaxRate,
+      patronalCharges,
     }
   }, [
     realActivity,
@@ -280,7 +331,9 @@ export default function ComparisonPage() {
     unitGrossRevenue,
     calculatedPurchases.cmvReal,
     qty,
-    totalExpenses,
+    totalOtherExpenses,
+    directPayrollExpenses,
+    patronalCharges,
     realAdditions,
     realExclusions,
   ])
@@ -331,9 +384,12 @@ export default function ComparisonPage() {
     const totalNetRevenue = unitNetRevenue * qty
     const totalCmv = unitCmv * qty
     const totalGrossProfit = unitGrossProfit * qty
+
+    // No Simples Nacional:
+    // A folha em si (salários + pró-labore) é despesa dedutível igual aos outros regimes.
+    // A CPP patronal já está incluída no DAS (não se soma encargo patronal adicional).
+    const totalExpenses = totalOtherExpenses + directPayrollExpenses
     const totalResultBeforeTax = totalGrossProfit - totalExpenses
-    // No Simples Nacional, os tributos sobre a receita já estão no DAS (deduzidos antes do lucro bruto)
-    // Logo o Lucro Líquido = Lucro Bruto - Despesas
     const totalNetProfit = totalGrossProfit - totalExpenses
     const totalTaxBurden = totalDasTotal
     const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
@@ -354,12 +410,20 @@ export default function ComparisonPage() {
       totalCmv,
       totalGrossProfit,
       totalResultBeforeTax,
+      totalExpenses,
       totalNetProfit,
       totalTaxBurden,
       netMargin,
       effectiveTaxRate,
     }
-  }, [unitGrossRevenue, pgdas, calculatedPurchases.cmvSimples, qty, totalExpenses])
+  }, [
+    unitGrossRevenue,
+    pgdas,
+    calculatedPurchases.cmvSimples,
+    qty,
+    totalOtherExpenses,
+    directPayrollExpenses,
+  ])
 
   // -------------------------------------------------------------
   // 4. IDENTIFICAÇÃO DO MELHOR REGIME (Menor Carga Tributária e Maior Lucro Líquido)
@@ -586,12 +650,126 @@ export default function ComparisonPage() {
               </div>
             </div>
 
+            {/* BLOCO COMPARTILHADO: Folha e Pró-labore */}
+            <div className="pt-3 border-t border-slate-800/80 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <span className="text-xs font-mono font-bold uppercase text-slate-200 block">
+                    Folha e Pró-labore (impacto nos 3 regimes)
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    Folha e pró-labore são despesas nos 3 regimes. Encargos patronais (INSS{' '}
+                    {formatNumberBR(payrollInssRate)}% + RAT + terceiros ={' '}
+                    {formatNumberBR(payrollResult.totalPatronalRate)}%) incidem no Presumido e Real.
+                    No Simples, a CPP já integra o DAS.
+                  </span>
+                </div>
+                <div className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
+                  Encargos Presumido/Real: <strong>{formatBRL(patronalCharges)}</strong>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300 block">
+                    Folha de salários (R$)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                      R$
+                    </span>
+                    <Input
+                      type="text"
+                      defaultValue={payrollSalaries > 0 ? formatNumberBR(payrollSalaries) : ''}
+                      key={`sal-${payrollSalaries}`}
+                      onBlur={(e) => setPayrollSalaries(parseBRNumber(e.target.value))}
+                      placeholder="0,00"
+                      className="pl-8 text-right bg-slate-900 border-slate-800 text-xs font-mono text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-300 block">
+                    Pró-labore sócios (R$)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                      R$
+                    </span>
+                    <Input
+                      type="text"
+                      defaultValue={payrollProLabore > 0 ? formatNumberBR(payrollProLabore) : ''}
+                      key={`pro-${payrollProLabore}`}
+                      onBlur={(e) => setPayrollProLabore(parseBRNumber(e.target.value))}
+                      placeholder="0,00"
+                      className="pl-8 text-right bg-slate-900 border-slate-800 text-xs font-mono text-slate-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-emerald-300 block">
+                    INSS Patronal (%)
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      defaultValue={formatNumberBR(payrollInssRate)}
+                      key={`inss-${payrollInssRate}`}
+                      onBlur={(e) => setPayrollInssRate(parseBRNumber(e.target.value))}
+                      className="pr-6 text-right bg-slate-900 border-emerald-500/40 text-xs font-mono text-slate-100"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400">
+                      %
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-emerald-300 block">
+                    Alíquota RAT (%)
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      defaultValue={formatNumberBR(payrollRatRate)}
+                      key={`rat-${payrollRatRate}`}
+                      onBlur={(e) => setPayrollRatRate(parseBRNumber(e.target.value))}
+                      className="pr-6 text-right bg-slate-900 border-emerald-500/40 text-xs font-mono text-slate-100"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400">
+                      %
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-emerald-300 block">
+                    Terceiros (%)
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      defaultValue={formatNumberBR(payrollTerceirosRate)}
+                      key={`terc-${payrollTerceirosRate}`}
+                      onBlur={(e) => setPayrollTerceirosRate(parseBRNumber(e.target.value))}
+                      className="pr-6 text-right bg-slate-900 border-emerald-500/40 text-xs font-mono text-slate-100"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400">
+                      %
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Despesas Operacionais Compartilhadas */}
             <div className="pt-3 border-t border-slate-800/80 space-y-2">
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-xs font-mono font-semibold text-slate-300 block">
-                    Despesas operacionais do período: {formatBRL(totalExpenses)}
+                    Outras despesas operacionais do período: {formatBRL(totalOtherExpenses)}
                   </span>
                   <span className="text-[11px] text-slate-500 font-mono">
                     Deduzidas igualmente do resultado nos 3 regimes.
@@ -1014,6 +1192,43 @@ export default function ComparisonPage() {
                   </td>
                 </tr>
 
+                {/* 4.1 Encargos Patronais (INSS 20% + RAT + Terceiros) */}
+                <tr>
+                  <td className="py-2.5 px-3 text-left text-slate-400">
+                    (−) Encargos Patronais (INSS {formatNumberBR(payrollInssRate)}% + RAT +
+                    Terceiros)
+                  </td>
+                  <td
+                    className={`py-2.5 px-3 text-right text-slate-400 ${
+                      bestRegimeKey === 'presumido'
+                        ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                        : ''
+                    }`}
+                  >
+                    -{formatBRL(patronalCharges)}
+                  </td>
+                  <td
+                    className={`py-2.5 px-3 text-right text-slate-400 ${
+                      bestRegimeKey === 'real'
+                        ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                        : ''
+                    }`}
+                  >
+                    -{formatBRL(patronalCharges)}
+                  </td>
+                  <td
+                    className={`py-2.5 px-3 text-right text-slate-400 ${
+                      bestRegimeKey === 'simples'
+                        ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                        : ''
+                    }`}
+                  >
+                    <span className="text-emerald-400/90 italic font-semibold">
+                      Incluso no DAS (CPP)
+                    </span>
+                  </td>
+                </tr>
+
                 {/* 5. Guia Única DAS (Destaque do Simples Nacional) */}
                 <tr className="bg-slate-900/30">
                   <td className="py-2.5 px-3 text-left font-semibold text-emerald-400">
@@ -1152,7 +1367,7 @@ export default function ComparisonPage() {
                 {/* 9. Despesas Operacionais */}
                 <tr>
                   <td className="py-2.5 px-3 text-left text-slate-400">
-                    (−) Despesas Operacionais
+                    (−) Folha de Salários e Pró-labore
                   </td>
                   <td
                     className={`py-2.5 px-3 text-right text-slate-400 ${
@@ -1161,7 +1376,7 @@ export default function ComparisonPage() {
                         : ''
                     }`}
                   >
-                    -{formatBRL(totalExpenses)}
+                    -{formatBRL(directPayrollExpenses)}
                   </td>
                   <td
                     className={`py-2.5 px-3 text-right text-slate-400 ${
@@ -1170,7 +1385,7 @@ export default function ComparisonPage() {
                         : ''
                     }`}
                   >
-                    -{formatBRL(totalExpenses)}
+                    -{formatBRL(directPayrollExpenses)}
                   </td>
                   <td
                     className={`py-2.5 px-3 text-right text-slate-400 ${
@@ -1179,7 +1394,40 @@ export default function ComparisonPage() {
                         : ''
                     }`}
                   >
-                    -{formatBRL(totalExpenses)}
+                    -{formatBRL(directPayrollExpenses)}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-2.5 px-3 text-left text-slate-400">
+                    (−) Outras Despesas Operacionais
+                  </td>
+                  <td
+                    className={`py-2.5 px-3 text-right text-slate-400 ${
+                      bestRegimeKey === 'presumido'
+                        ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                        : ''
+                    }`}
+                  >
+                    -{formatBRL(totalOtherExpenses)}
+                  </td>
+                  <td
+                    className={`py-2.5 px-3 text-right text-slate-400 ${
+                      bestRegimeKey === 'real'
+                        ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                        : ''
+                    }`}
+                  >
+                    -{formatBRL(totalOtherExpenses)}
+                  </td>
+                  <td
+                    className={`py-2.5 px-3 text-right text-slate-400 ${
+                      bestRegimeKey === 'simples'
+                        ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                        : ''
+                    }`}
+                  >
+                    -{formatBRL(totalOtherExpenses)}
                   </td>
                 </tr>
 
@@ -1452,6 +1700,11 @@ export default function ComparisonPage() {
                 <strong className="text-slate-300">Anexo aplicado:</strong>{' '}
                 {currentAnexoConfig.nome} ({pgdas.faixaNome}). Alíquota efetiva PGDAS de{' '}
                 {formatNumberBR(pgdas.aliquotaEfetiva, 2)}%.
+              </li>
+              <li className="text-emerald-300">
+                <strong className="text-emerald-300">CPP já incluída no DAS:</strong> sem encargo
+                patronal adicional (20% + RAT + terceiros não incidem no Simples Nacional fora do
+                Anexo IV).
               </li>
               {currentAnexoConfig.sujeitoFatorR && (
                 <li>

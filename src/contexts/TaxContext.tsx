@@ -94,6 +94,12 @@ export interface TaxStateSnapshot {
   simplesQuantitySold: number
   simplesExpenses: ExpenseItem[]
   isSimplesSimulated: boolean
+  // Folha de Salários e Pró-labore
+  payrollSalaries: number
+  payrollProLabore: number
+  payrollInssRate: number
+  payrollRatRate: number
+  payrollTerceirosRate: number
 }
 
 export interface TaxContextType {
@@ -268,6 +274,18 @@ export interface TaxContextType {
     cmvSimples: number
   }
 
+  // FOLHA E PRÓ-LABORE STATE (Compartilhado entre as DREs e Comparação)
+  payrollSalaries: number
+  setPayrollSalaries: (val: number) => void
+  payrollProLabore: number
+  setPayrollProLabore: (val: number) => void
+  payrollInssRate: number
+  setPayrollInssRate: (val: number) => void
+  payrollRatRate: number
+  setPayrollRatRate: (val: number) => void
+  payrollTerceirosRate: number
+  setPayrollTerceirosRate: (val: number) => void
+
   // Limpar/Resetar tudo para zerado
   resetAll: () => void
 }
@@ -376,6 +394,13 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     { id: '2', description: 'Aluguel e custos operacionais', value: 0 },
   ])
   const [isSimplesSimulated, setIsSimplesSimulated] = useState<boolean>(false)
+
+  // FOLHA E PRÓ-LABORE (Iniciados ZERADOS nos valores monetários; alíquotas com padrão legal e editáveis)
+  const [payrollSalaries, setPayrollSalaries] = useState<number>(0)
+  const [payrollProLabore, setPayrollProLabore] = useState<number>(0)
+  const [payrollInssRate, setPayrollInssRate] = useState<number>(20.0)
+  const [payrollRatRate, setPayrollRatRate] = useState<number>(3.0)
+  const [payrollTerceirosRate, setPayrollTerceirosRate] = useState<number>(5.8)
 
   // Limpeza preventiva de rascunhos de versões legadas / antigas no localStorage e sessionStorage
   useEffect(() => {
@@ -855,6 +880,12 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ])
     setIsSimplesSimulated(false)
 
+    setPayrollSalaries(0)
+    setPayrollProLabore(0)
+    setPayrollInssRate(20.0)
+    setPayrollRatRate(3.0)
+    setPayrollTerceirosRate(5.8)
+
     try {
       if (typeof window !== 'undefined') {
         const legacyKeys = [
@@ -934,6 +965,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       simplesQuantitySold,
       simplesExpenses,
       isSimplesSimulated,
+      payrollSalaries,
+      payrollProLabore,
+      payrollInssRate,
+      payrollRatRate,
+      payrollTerceirosRate,
     }
   }
 
@@ -1052,6 +1088,12 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     )
     setIsSimplesSimulated(Boolean(snapshot.isSimplesSimulated))
 
+    setPayrollSalaries(snapshot.payrollSalaries ?? 0)
+    setPayrollProLabore(snapshot.payrollProLabore ?? 0)
+    setPayrollInssRate(snapshot.payrollInssRate ?? 20.0)
+    setPayrollRatRate(snapshot.payrollRatRate ?? 3.0)
+    setPayrollTerceirosRate(snapshot.payrollTerceirosRate ?? 5.8)
+
     // Nota: O carregamento de cenários do banco atualiza o estado em memória
     // mantendo a aplicação consistente sem poluir o rascunho de inicialização
   }
@@ -1166,6 +1208,17 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         removeSimplesExpense,
         isSimplesSimulated,
         simulateSimples,
+
+        payrollSalaries,
+        setPayrollSalaries,
+        payrollProLabore,
+        setPayrollProLabore,
+        payrollInssRate,
+        setPayrollInssRate,
+        payrollRatRate,
+        setPayrollRatRate,
+        payrollTerceirosRate,
+        setPayrollTerceirosRate,
 
         getSnapshot,
         loadSnapshot,

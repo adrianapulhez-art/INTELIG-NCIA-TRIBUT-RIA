@@ -12,6 +12,8 @@ import {
   ArrowRight,
 } from 'lucide-react'
 import { formatBRL, formatNumberBR, formatPercentBR, parseBRNumber } from '@/lib/taxCalculations'
+import { calculatePayroll } from '@/lib/payrollCalculations'
+import { PayrollSection } from '@/components/demo/PayrollSection'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
@@ -43,6 +45,16 @@ export default function DreRealPage() {
     removeRealExpense,
     isRealSimulated,
     simulateReal,
+    payrollSalaries,
+    setPayrollSalaries,
+    payrollProLabore,
+    setPayrollProLabore,
+    payrollInssRate,
+    setPayrollInssRate,
+    payrollRatRate,
+    setPayrollRatRate,
+    payrollTerceirosRate,
+    setPayrollTerceirosRate,
   } = useTaxContext()
 
   const defaultQty =
@@ -92,8 +104,21 @@ export default function DreRealPage() {
   const irpjAdditionalLimit = 60000.0 // R$ 60.000,00 trimestral
   const csllRate = 9.0
 
-  // Despesas operacionais totais
-  const totalExpenses = realExpenses.reduce((acc, exp) => acc + (exp.value || 0), 0)
+  // CÁLCULO DE FOLHA E ENCARGOS PATRONAIS
+  const payrollResult = calculatePayroll({
+    payrollSalaries,
+    proLabore: payrollProLabore,
+    inssPatronalRate: payrollInssRate,
+    ratRate: payrollRatRate,
+    terceirosRate: payrollTerceirosRate,
+  })
+
+  // Despesas com pessoal e encargos patronais (Folha + Pró-labore + Encargos Patronais)
+  const totalLaborExpenses = payrollResult.totalLaborExpense
+  // Outras despesas operacionais dinâmicas cadastradas
+  const totalOtherExpenses = realExpenses.reduce((acc, exp) => acc + (exp.value || 0), 0)
+  // Despesas operacionais totais (incluindo folha e encargos, todas dedutíveis no Lucro Real)
+  const totalExpenses = totalOtherExpenses + totalLaborExpenses
 
   // CÁLCULOS UNITÁRIOS
   // 1. Receita bruta
@@ -174,8 +199,15 @@ export default function DreRealPage() {
   const unitNetProfit = qty > 0 ? totalNetProfit / qty : unitResultBeforeTax
 
   // Cards de resumo
+  // Carga tributária total = Tributo Municipal/Estadual + PIS + COFINS + IRPJ + Adicional IRPJ + CSLL + Encargos Patronais
   const totalTaxBurden =
-    totalMunicipalStateTax + totalPis + totalCofins + totalIrpj + totalIrpjAdditional + totalCsll
+    totalMunicipalStateTax +
+    totalPis +
+    totalCofins +
+    totalIrpj +
+    totalIrpjAdditional +
+    totalCsll +
+    payrollResult.patronalChargesTotal
   const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
 
   return (
@@ -490,6 +522,22 @@ export default function DreRealPage() {
             </div>
           </div>
 
+          {/* NOVO BLOCO: Folha e Pró-labore */}
+          <PayrollSection
+            payrollSalaries={payrollSalaries}
+            setPayrollSalaries={setPayrollSalaries}
+            payrollProLabore={payrollProLabore}
+            setPayrollProLabore={setPayrollProLabore}
+            payrollInssRate={payrollInssRate}
+            setPayrollInssRate={setPayrollInssRate}
+            payrollRatRate={payrollRatRate}
+            setPayrollRatRate={setPayrollRatRate}
+            payrollTerceirosRate={payrollTerceirosRate}
+            setPayrollTerceirosRate={setPayrollTerceirosRate}
+            calculation={payrollResult}
+            regimeLabel="Lucro Real"
+          />
+
           {/* Despesas Operacionais (valores totais) */}
           <div className="space-y-3 pt-2 border-t border-slate-800/80">
             <div className="flex items-center justify-between">
@@ -692,18 +740,56 @@ export default function DreRealPage() {
                     </td>
                   </tr>
 
-                  {/* 9. (-) Despesas operacionais */}
+                  {/* 9. Linhas de Folha e Encargos (Dedutíveis no Lucro Real) */}
                   <tr>
-                    <td className="py-2 text-left text-slate-400">(−) Despesas operacionais</td>
+                    <td className="py-2 text-left text-slate-400">(−) Folha de salários</td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(unitExpenses)}
+                      -{formatBRL(qty > 0 ? payrollSalaries / qty : 0)}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(totalExpenses)}
+                      -{formatBRL(payrollSalaries)}
                     </td>
                   </tr>
 
-                  {/* 10. = Resultado antes do IRPJ/CSLL */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">
+                      (−) Pró-labore dos sócios (dedutível)
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(qty > 0 ? payrollProLabore / qty : 0)}
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(payrollProLabore)}
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">
+                      (−) Encargos patronais (INSS {formatNumberBR(payrollInssRate)}% + RAT +
+                      Terceiros)
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(qty > 0 ? payrollResult.patronalChargesTotal / qty : 0)}
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(payrollResult.patronalChargesTotal)}
+                    </td>
+                  </tr>
+
+                  {/* 10. (-) Outras Despesas operacionais */}
+                  <tr>
+                    <td className="py-2 text-left text-slate-400">
+                      (−) Outras despesas operacionais
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(qty > 0 ? totalOtherExpenses / qty : 0)}
+                    </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      -{formatBRL(totalOtherExpenses)}
+                    </td>
+                  </tr>
+
+                  {/* 11. = Resultado antes do IRPJ/CSLL */}
                   <tr className="bg-slate-950/40 font-bold text-slate-100">
                     <td className="py-2.5 text-left">= Resultado antes do IRPJ/CSLL</td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
