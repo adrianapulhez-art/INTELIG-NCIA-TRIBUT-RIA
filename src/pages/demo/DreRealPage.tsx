@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
 import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
+import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
 
 export default function DreRealPage() {
@@ -908,19 +909,33 @@ export default function DreRealPage() {
                   {/* 7. (-) CMV (líquido de créditos) */}
                   <tr>
                     <td className="py-2 text-left text-slate-400">
-                      <div className="flex items-center gap-2">
-                        <span>(−) CMV (líquido de créditos)</span>
-                        {isAutoInventory && (
-                          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded">
-                            · automático (baixa por quantidade)
-                          </span>
-                        )}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span>(−) CMV (líquido de créditos)</span>
+                          {isAutoInventory && (
+                            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                              · automático (baixa por quantidade)
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
                       -{formatBRL(unitCmvVal)}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
+                  </tr>
+
+                  {/* Linha expansível com a discriminação específica do CMV */}
+                  <tr>
+                    <td colSpan={3} className="py-1 px-1">
+                      <CmvDetailedBreakdown
+                        forcedRegime="real"
+                        quantitySold={qty}
+                        title="Ver composição e deduções do CMV (Lucro Real)"
+                        variant="embedded"
+                      />
+                    </td>
                   </tr>
 
                   {/* 8. = Lucro bruto */}

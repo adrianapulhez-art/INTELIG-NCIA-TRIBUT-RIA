@@ -25,6 +25,7 @@ import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 import { PageHero } from '@/components/demo/PageHero'
 import { SubstituicaoTributariaSection } from '@/components/demo/SubstituicaoTributariaSection'
 import { OperacoesInterestaduaisSection } from '@/components/demo/OperacoesInterestaduaisSection'
+import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 
 // Subcomponente de Cartão de Item de Compra com digitação blindada
 interface PurchaseItemCardProps {
@@ -1272,109 +1273,20 @@ export default function PurchasesPage() {
 
             {/* Detalhamento Passo-a-Passo da Memória de Cálculo (Fórmula Legal) */}
             {showCalculationMemory && (
-              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5 font-mono text-xs">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <span className="font-bold uppercase text-slate-200">
-                    Memória de Cálculo: CMV = EI + Compras Líquidas (CL) − EF
-                  </span>
-                  <span className="text-[11px] text-emerald-400">
-                    Regime Selecionado: {regime.toUpperCase()}
-                  </span>
-                </div>
-
-                <div className="divide-y divide-slate-800/60">
-                  <div className="py-1.5 flex justify-between">
-                    <span className="text-slate-400">Estoque inicial (EI)</span>
-                    <span className="text-slate-200">{formatBRL(initialInventory)}</span>
-                  </div>
-                  <div className="py-1.5 flex justify-between">
-                    <span className="text-slate-400">
-                      (+) Aquisições brutas (mercadorias multi-itens + fretes rateados)
-                    </span>
-                    <span className="text-slate-200">
-                      {formatBRL(calculatedPurchases.totalAdditions)}
-                    </span>
-                  </div>
-                  <div className="py-1.5 flex justify-between">
-                    <span className="text-slate-400">(−) Deduções do custo apuradas</span>
-                    <span className="text-slate-400">
-                      -{formatBRL(calculatedPurchases.totalDeductionsBase)}
-                    </span>
-                  </div>
-
-                  {/* Deduções de tributos conforme o regime */}
-                  {regime !== 'simples' && (
-                    <>
-                      <div className="py-1.5 flex justify-between">
-                        <span className="text-slate-400">(−) ICMS recuperável</span>
-                        <span className="text-emerald-400">
-                          -{formatBRL(calculatedPurchases.icmsResult)}
-                        </span>
-                      </div>
-                      {calculatedPurchases.icmsFreightResult > 0 && (
-                        <div className="py-1.5 flex justify-between">
-                          <span className="text-slate-400">(−) ICMS s/ frete recuperável</span>
-                          <span className="text-emerald-400">
-                            -{formatBRL(calculatedPurchases.icmsFreightResult)}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {regime === 'real' && (
-                    <>
-                      <div className="py-1.5 flex justify-between">
-                        <span className="text-slate-400">(−) PIS recuperável (1,65%)</span>
-                        <span className="text-emerald-400">
-                          -{formatBRL(calculatedPurchases.pisResult)}
-                        </span>
-                      </div>
-                      <div className="py-1.5 flex justify-between">
-                        <span className="text-slate-400">(−) COFINS recuperável (7,60%)</span>
-                        <span className="text-emerald-400">
-                          -{formatBRL(calculatedPurchases.cofinsResult)}
-                        </span>
-                      </div>
-                    </>
-                  )}
-
-                  <div className="py-1.5 flex justify-between font-bold">
-                    <span className="text-slate-300">(=) Compras Líquidas (CL)</span>
-                    <span className="text-slate-100">{formatBRL(activeNetPurchases)}</span>
-                  </div>
-
-                  <div className="py-1.5 flex justify-between items-center">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-slate-400">(−) Estoque final (EF)</span>
-                      {autoInventoryDeduction && (
-                        <span className="text-[10px] text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1 py-0.2 rounded">
-                          · automático
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-slate-400">
-                      -{formatBRL(autoInventoryDeduction ? activeAutoEF : finalInventory)}
-                    </span>
-                  </div>
-
-                  {autoInventoryDeduction && (
-                    <div className="py-1.5 flex justify-between text-[11px] text-slate-400 border-t border-slate-800/40">
-                      <span>
-                        Baixa por qtd: {calculatedPurchases.totalSoldUnitsEffective} un. vendidas ×{' '}
-                        {formatBRL(activeUnitCMV)}
-                      </span>
-                      <span className="text-emerald-400">
-                        {calculatedPurchases.isQuantityExceeded ? '(limitado ao estoque)' : ''}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="py-2.5 flex justify-between items-center text-sm font-bold bg-emerald-500/10 px-3 rounded-xl mt-1 border border-emerald-500/30">
-                    <span className="text-emerald-400">(=) CMV Consolidado</span>
-                    <span className="text-emerald-400 text-base">{formatBRL(activeCmv)}</span>
-                  </div>
-                </div>
+              <div className="space-y-3">
+                <CmvDetailedBreakdown
+                  forcedRegime={regime}
+                  quantitySold={calculatedPurchases.totalSoldUnitsEffective}
+                  defaultExpanded={true}
+                  variant="card"
+                  title={`Discriminação Específica de Deduções do CMV — ${
+                    regime === 'presumido'
+                      ? 'Lucro Presumido'
+                      : regime === 'real'
+                        ? 'Lucro Real'
+                        : 'Simples Nacional'
+                  }`}
+                />
               </div>
             )}
           </div>

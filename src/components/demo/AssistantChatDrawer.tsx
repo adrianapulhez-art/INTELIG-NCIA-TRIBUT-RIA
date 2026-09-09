@@ -79,6 +79,14 @@ export const AssistantChatDrawer: React.FC<AssistantChatDrawerProps> = ({
         parts.push(`CMV Simples: ${formatBRL(taxContext.calculatedPurchases.cmvSimples)}`)
         parts.push(`CMV Presumido: ${formatBRL(taxContext.calculatedPurchases.cmvPresumido)}`)
         parts.push(`CMV Real: ${formatBRL(taxContext.calculatedPurchases.cmvReal)}`)
+        parts.push(
+          `Deduções CMV: ICMS recuperável (${formatBRL(taxContext.calculatedPurchases.icmsResult)}), ICMS frete (${formatBRL(taxContext.calculatedPurchases.icmsFreightResult)}), PIS Real (${formatBRL(taxContext.calculatedPurchases.pisResult)}), COFINS Real (${formatBRL(taxContext.calculatedPurchases.cofinsResult)}). No Simples os tributos integram o CMV.`,
+        )
+        if (taxContext.autoInventoryDeduction) {
+          parts.push(
+            `Baixa automática ativa: ${taxContext.calculatedPurchases.totalSoldUnitsEffective} un. vendidas. Unitário Presumido: ${formatBRL(taxContext.calculatedPurchases.unitCostPresumidoEffective)}, Unitário Real: ${formatBRL(taxContext.calculatedPurchases.unitCostRealEffective)}, Unitário Simples: ${formatBRL(taxContext.calculatedPurchases.unitCostSimplesEffective)}.`,
+          )
+        }
       } else if (currentTab === 'simples') {
         parts.push(`Anexo Simples: ${taxContext.simplesAnexo}`)
         parts.push(`RBT12 efetiva: ${formatBRL(taxContext.effectiveSimplesRbt12)}`)

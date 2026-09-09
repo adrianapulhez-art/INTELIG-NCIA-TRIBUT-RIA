@@ -32,6 +32,7 @@ import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
 import { RegimeThresholdsAlerts } from '@/components/demo/RegimeThresholdsAlerts'
 import { SensitivityAnalysisSection } from '@/components/demo/SensitivityAnalysisSection'
 import { exportComparisonToPdf, exportComparisonToExcel } from '@/lib/exportReports'
+import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
 
 export default function ComparisonPage() {
@@ -1483,6 +1484,18 @@ export default function ComparisonPage() {
                     }`}
                   >
                     -{formatBRL(simplesData.totalCmv)}
+                  </td>
+                </tr>
+
+                {/* Linha expansível com a discriminação específica do CMV para Comparação */}
+                <tr>
+                  <td colSpan={4} className="py-1 px-1">
+                    <CmvDetailedBreakdown
+                      quantitySold={qty}
+                      title="Ver composição discriminada do CMV por dedução específica"
+                      showRegimeTabs={true}
+                      variant="embedded"
+                    />
                   </td>
                 </tr>
 

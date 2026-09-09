@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
 import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
+import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
 
 export default function DrePresumidoPage() {
@@ -893,6 +894,18 @@ export default function DrePresumidoPage() {
                       -{formatBRL(unitCmvVal)}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
+                  </tr>
+
+                  {/* Linha expansível com a discriminação específica do CMV */}
+                  <tr>
+                    <td colSpan={3} className="py-1 px-1">
+                      <CmvDetailedBreakdown
+                        forcedRegime="presumido"
+                        quantitySold={qty}
+                        title="Ver composição e deduções do CMV (Lucro Presumido)"
+                        variant="embedded"
+                      />
+                    </td>
                   </tr>
 
                   {/* 8. = Lucro bruto */}

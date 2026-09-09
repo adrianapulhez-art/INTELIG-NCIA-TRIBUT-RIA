@@ -1,4 +1,5 @@
 import { parseBRNumber, formatBRL, formatNumberBR } from './taxCalculations'
+import { calculateCmvDetailedBreakdown } from './cmvBreakdownCalculations'
 
 /**
  * Validação de integridade e fidedignidade dos cálculos do parseBRNumber e
@@ -370,6 +371,175 @@ export function runAutoStockDeductionTests(): {
       typeof t.expected === 'boolean'
         ? t.expected === t.received
         : Math.abs((t.expected as number) - (t.received as number)) < 0.0001
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
+ * Bateria de Testes de Regressão e Fidelidade para Discriminação Específica de Deduções do CMV:
+ * Garante que:
+ * 1. A soma dos componentes discriminados (Mercadorias + Frete + Encargos - Tributos) = CMV total apurado em cada regime.
+ * 2. Cada tributo em R$ bate com as alíquotas oficiais (ICMS 18%, PIS 1.65%, COFINS 7.6% com exclusão de ICMS).
+ * 3. No Simples Nacional, os tributos integram o custo e não há dedução (CMV bruto = CMV líquido).
+ * 4. Na baixa automática por quantidade, unitário discriminado × unidades vendidas bate centavo a centavo.
+ * 5. Com toggles desligados, os números são idênticos aos anteriores (regressão zero).
+ */
+export function runCmvDetailedBreakdownTests() {
+  // Setup do teste:
+  // Item 1: 10 un a R$ 100,00 = R$ 1.000,00 | ICMS 18% (180,00) | PIS 1.65% (13,53) | COFINS 7.6% (62,32) | Frete 100,00 (ICMS frete 12% = 12,00)
+  const mockPurchasesItems = [
+    {
+      id: 'item-1',
+      name: 'Item A',
+      quantity: 10,
+      unitPrice: 100,
+      merchandiseValue: 1000,
+      ipiRate: 0,
+      calculatedIpi: 0,
+      icmsRate: 18,
+      calculatedIcms: 180,
+      freightValue: 100,
+      icmsFreightRate: 12,
+      icmsFreightValue: 12,
+      hasSt: false,
+      stValue: 0,
+      calculatedPis: 13.53,
+      calculatedCofins: 62.32,
+      costPresumido: 1000 + 100 - 180 - 12, // 908,00
+      costReal: 1000 + 100 - 180 - 12 - 13.53 - 62.32, // 832.15
+      costSimples: 1000 + 100, // 1100,00
+      unitCostPresumido: 90.8,
+      unitCostReal: 83.215,
+      unitCostSimples: 110,
+    },
+  ]
+
+  const mockBaseInput = {
+    purchasesItems: mockPurchasesItems,
+    additionalCosts: [],
+    deductionCosts: [],
+    initialInventory: 0,
+    finalInventory: 0,
+    autoInventoryDeduction: false,
+    initialInventoryUnits: 0,
+    nonRecoverableTaxBase: 0,
+    nonRecoverableTaxRate: 0,
+    icmsPurchasesBase: 1000,
+    icmsPurchasesRate: 18,
+    icmsFreightPurchasesBase: 100,
+    icmsFreightPurchasesRate: 12,
+    pisPurchasesBase: 1000,
+    pisRatePurchases: 1.65,
+    cofinsPurchasesBase: 1000,
+    cofinsRatePurchases: 7.6,
+    pisFreightPurchasesBase: 0,
+    cofinsFreightPurchasesBase: 0,
+    pisExcludedIcmsManual: null,
+    cofinsExcludedIcmsManual: null,
+    stSubsystemEnabled: false,
+    stSubsystemPurchasesPaid: 0,
+    quantitySold: 10,
+    // Context values
+    cmvPresumidoNetPurchasesContext: 908,
+    cmvPresumidoContext: 908,
+    cmvRealNetPurchasesContext: 832.15,
+    cmvRealContext: 832.15,
+    cmvSimplesNetPurchasesContext: 1100,
+    cmvSimplesContext: 1100,
+    unitCostPresumidoContext: 90.8,
+    unitCostRealContext: 83.215,
+    unitCostSimplesContext: 110,
+  }
+
+  const breakdownPresumido = calculateCmvDetailedBreakdown({
+    ...mockBaseInput,
+    regime: 'presumido',
+  })
+
+  const breakdownReal = calculateCmvDetailedBreakdown({
+    ...mockBaseInput,
+    regime: 'real',
+  })
+
+  const breakdownSimples = calculateCmvDetailedBreakdown({
+    ...mockBaseInput,
+    regime: 'simples',
+  })
+
+  // Teste de baixa automática (venda de 6 unidades)
+  const breakdownAutoReal = calculateCmvDetailedBreakdown({
+    ...mockBaseInput,
+    regime: 'real',
+    autoInventoryDeduction: true,
+    quantitySold: 6,
+    cmvRealContext: 83.215 * 6, // 499.29
+  })
+
+  const tests = [
+    // 1. Lucro Presumido
+    {
+      test: 'Presumido: ICMS mercadoria discriminado = R$ 180,00',
+      expected: 180,
+      received: breakdownPresumido.icmsMerchandise,
+    },
+    {
+      test: 'Presumido: ICMS frete discriminado = R$ 12,00',
+      expected: 12,
+      received: breakdownPresumido.icmsFreight,
+    },
+    {
+      test: 'Presumido: Soma discriminada bate com CMV total (1000 + 100 - 180 - 12 = 908,00)',
+      expected: 908,
+      received: breakdownPresumido.totalCmv,
+    },
+    // 2. Lucro Real
+    {
+      test: 'Real: PIS discriminado = R$ 13,53',
+      expected: 13.53,
+      received: breakdownReal.totalPis,
+    },
+    {
+      test: 'Real: COFINS discriminada = R$ 62,32',
+      expected: 62.32,
+      received: breakdownReal.totalCofins,
+    },
+    {
+      test: 'Real: Soma discriminada bate com CMV total (1000 + 100 - 180 - 12 - 13.53 - 62.32 = 832,15)',
+      expected: 832.15,
+      received: breakdownReal.totalCmv,
+    },
+    // 3. Simples Nacional
+    {
+      test: 'Simples: Tributos integram o custo (nenhuma dedução efetuada no CMV: R$ 1.100,00)',
+      expected: 1100,
+      received: breakdownSimples.totalCmv,
+    },
+    // 4. Baixa Automática por Quantidade
+    {
+      test: 'Baixa Automática Real: 6 unidades × R$ 83,215 = R$ 499,29',
+      expected: 499.29,
+      received: breakdownAutoReal.totalCmv,
+    },
+    {
+      test: 'Baixa Automática Real: Unidades vendidas batem com 6 un.',
+      expected: 6,
+      received: breakdownAutoReal.soldUnits,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : Math.abs((t.expected as number) - (t.received as number)) < 0.01
     return {
       test: t.test,
       passed,

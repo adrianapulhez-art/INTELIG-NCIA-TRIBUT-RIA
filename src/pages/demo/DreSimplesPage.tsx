@@ -29,6 +29,7 @@ import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
 import { RegimeThresholdsAlerts } from '@/components/demo/RegimeThresholdsAlerts'
 import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
+import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
 
 export default function DreSimplesPage() {
@@ -1176,6 +1177,18 @@ export default function DreSimplesPage() {
                       -{formatBRL(unitCmvVal)}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
+                  </tr>
+
+                  {/* Linha expansível com a discriminação específica do CMV */}
+                  <tr>
+                    <td colSpan={3} className="py-1 px-1">
+                      <CmvDetailedBreakdown
+                        forcedRegime="simples"
+                        quantitySold={qty}
+                        title="Ver composição e tributos integrados do CMV (Simples Nacional)"
+                        variant="embedded"
+                      />
+                    </td>
                   </tr>
 
                   {/* 5. = Lucro bruto */}
