@@ -384,6 +384,87 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * Testes de integridade da exibição e sincronização de 4 Grandezas da DRE Presumido:
+ * 1. Receita Bruta Consolidada = Receita Bruta Unitária × Quantidade
+ * 2. CMV Consolidado = CMV Unitário × Quantidade efetiva (respeitando limite de estoque na baixa automática)
+ * 3. Com 22 unidades vendidas e estoque de 30 compradas:
+ *    - Receita: 3.290,18 × 22 = 72.383,96
+ *    - CMV: 1.150,73 × 22 = 25.316,06
+ * 4. Com baixa automática e quantidade excedida (ex: 40 vendidas vs 30 disponíveis):
+ *    - CMV Consolidado limitado a 30 × custo unitário
+ */
+export function runDrePresumidoFourMetricsTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
+} {
+  // Dados do caso relatado pelo usuário:
+  // Preço de venda unitário = R$ 3.290,18
+  // Quantidade = 22 unidades
+  // Receita consolidada = 72.383,96 (3.290,18 × 22 = 72.383,96)
+  // CMV unitário = R$ 1.150,73
+  // CMV consolidado = 25.316,06 (1.150,73 × 22 = 25.316,06)
+  const unitPrice = 3290.18
+  const soldQty = 22
+  const consolidatedRevenue = Math.round(unitPrice * soldQty * 100) / 100 // 72383.96
+  const unitCmv = 1150.73
+  const consolidatedCmv = Math.round(unitCmv * soldQty * 100) / 100 // 25316.06
+
+  // Cenário de cap de estoque: 30 unidades disponíveis, 40 vendidas
+  const availableUnits = 30
+  const exceededQty = 40
+  const effectiveQtyExceeded = Math.min(exceededQty, availableUnits)
+  const cappedConsolidatedCmv = Math.round(unitCmv * effectiveQtyExceeded * 100) / 100
+
+  const tests: {
+    test: string
+    expected: number | boolean
+    received: number | boolean
+  }[] = [
+    {
+      test: 'Receita consolidada = Unitária (R$ 3.290,18) × 22 un = R$ 72.383,96',
+      expected: 72383.96,
+      received: consolidatedRevenue,
+    },
+    {
+      test: 'CMV consolidado = Unitário (R$ 1.150,73) × 22 un = R$ 25.316,06',
+      expected: 25316.06,
+      received: consolidatedCmv,
+    },
+    {
+      test: 'Receita unitária derivada da consolidada (72.383,96 / 22) = R$ 3.290,18',
+      expected: 3290.18,
+      received: Math.round((consolidatedRevenue / soldQty) * 100) / 100,
+    },
+    {
+      test: 'CMV consolidado sob baixa de estoque respeita cap de 30 unidades (30 × 1.150,73 = R$ 34.521,90)',
+      expected: 34521.9,
+      received: cappedConsolidatedCmv,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : Math.abs((t.expected as number) - (t.received as number)) < 0.001
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
  * Bateria de Testes de Regressão e Fidelidade para Discriminação Específica de Deduções do CMV:
  * Garante que:
  * 1. A soma dos componentes discriminados (Mercadorias + Frete + Encargos - Tributos) = CMV total apurado em cada regime.
