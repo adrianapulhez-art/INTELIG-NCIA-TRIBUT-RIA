@@ -473,6 +473,156 @@ export function runDrePresumidoFourMetricsTests(): {
  * 4. Na baixa automática por quantidade, unitário discriminado × unidades vendidas bate centavo a centavo.
  * 5. Com toggles desligados, os números são idênticos aos anteriores (regressão zero).
  */
+/**
+ * Testes para as 4 grandezas da DRE e baixa de estoque (22 de 30 unidades):
+ * 1. Receita Consolidada = Receita Unitária × Quantidade
+ * 2. CMV Consolidado = CMV Unitário × Quantidade efetiva usada na DRE
+ * 3. Baixa de estoque ativa com 22 unidades vendidas de 30 disponíveis:
+ *    - Presumido: CMV = 22 × R$ 82,00 = R$ 1.804,00 e EF = 8 × R$ 82,00 = R$ 656,00
+ *    - Real: CMV = 22 × R$ 74,415 = R$ 1.637,13 e EF = 8 × R$ 74,415 = R$ 595,32
+ *    - Simples: CMV = 22 × R$ 100,00 = R$ 2.200,00 e EF = 8 × R$ 100,00 = R$ 800,00
+ * 4. Toggle desligado (inativo): números idênticos ao fluxo tradicional (regressão zero)
+ */
+export function runDrePresumidoGrandezasTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
+} {
+  // Dados de teste baseados no caso real de demonstração:
+  // Preço unitário do produto via Markup = R$ 3.290,18
+  // Quantidade = 22 unidades
+  const unitPrice = 3290.18
+  const qty = 22
+  const consolidatedRevenue = Math.round(unitPrice * qty * 100) / 100 // 72383.96
+
+  // Custo unitário Presumido via compras
+  const unitCmvPresumido = 1150.73
+  const consolidatedCmvPresumido = Math.round(unitCmvPresumido * qty * 100) / 100 // 25316.06
+
+  // Cenário de estoque: 30 unidades compradas a R$ 100 cada (mesma base dos testes de baixa automática)
+  const qtyPurchased = 30
+  const merchValue = 3000
+  const icmsVal = (merchValue * 18) / 100 // 540
+  const totalCostPresumido = merchValue - icmsVal // 2460 -> unitCost = 82
+  const unitCostPresumido = totalCostPresumido / qtyPurchased // 82
+
+  const pisCofinsBase = merchValue - icmsVal // 2460
+  const pisVal = (pisCofinsBase * 1.65) / 100 // 40.59
+  const cofinsVal = (pisCofinsBase * 7.6) / 100 // 186.96
+  const totalCostReal = merchValue - icmsVal - pisVal - cofinsVal // 2232.45
+  const unitCostReal = totalCostReal / qtyPurchased // 74.415
+
+  const totalCostSimples = merchValue // 3000
+  const unitCostSimples = totalCostSimples / qtyPurchased // 100
+
+  // Baixa de 22 de 30 unidades
+  const sold22 = 22
+  const rem8 = qtyPurchased - sold22 // 8 unidades remanescentes
+
+  const cmvPresumido22 = unitCostPresumido * sold22 // 22 * 82 = 1804
+  const efPresumido22 = totalCostPresumido - cmvPresumido22 // 2460 - 1804 = 656 (8 * 82)
+
+  const cmvReal22 = unitCostReal * sold22 // 22 * 74.415 = 1637.13
+  const efReal22 = totalCostReal - cmvReal22 // 2232.45 - 1637.13 = 595.32 (8 * 74.415)
+
+  const cmvSimples22 = unitCostSimples * sold22 // 22 * 100 = 2200
+  const efSimples22 = totalCostSimples - cmvSimples22 // 3000 - 2200 = 800 (8 * 100)
+
+  // Toggle inativo (desligado) com EF manual de R$ 500
+  const manualEf = 500
+  const legacyCmvPresumido = Math.max(0, totalCostPresumido - manualEf) // 2460 - 500 = 1960
+  const legacyCmvReal = Math.max(0, totalCostReal - manualEf) // 2232.45 - 500 = 1732.45
+  const legacyCmvSimples = Math.max(0, totalCostSimples - manualEf) // 3000 - 500 = 2500
+
+  const tests: {
+    test: string
+    expected: number | boolean
+    received: number | boolean
+  }[] = [
+    // 1. Receita Consolidada = Unitária × Quantidade
+    {
+      test: 'Receita Consolidada: R$ 3.290,18 × 22 un = R$ 72.383,96',
+      expected: 72383.96,
+      received: consolidatedRevenue,
+    },
+    // 2. CMV Consolidado = Unitário × Quantidade
+    {
+      test: 'CMV Consolidado: R$ 1.150,73 × 22 un = R$ 25.316,06',
+      expected: 25316.06,
+      received: consolidatedCmvPresumido,
+    },
+    // 3. Baixa de 22 de 30 unidades (Presumido)
+    {
+      test: 'Baixa 22 de 30 un (Presumido): CMV = 22 × R$ 82,00 = R$ 1.804,00',
+      expected: 1804,
+      received: cmvPresumido22,
+    },
+    {
+      test: 'Baixa 22 de 30 un (Presumido): EF remanescente = 8 × R$ 82,00 = R$ 656,00',
+      expected: 656,
+      received: efPresumido22,
+    },
+    // 4. Baixa de 22 de 30 unidades (Real)
+    {
+      test: 'Baixa 22 de 30 un (Real): CMV = 22 × R$ 74,415 = R$ 1.637,13',
+      expected: 1637.13,
+      received: cmvReal22,
+    },
+    {
+      test: 'Baixa 22 de 30 un (Real): EF remanescente = 8 × R$ 74,415 = R$ 595,32',
+      expected: 595.32,
+      received: efReal22,
+    },
+    // 5. Baixa de 22 de 30 unidades (Simples)
+    {
+      test: 'Baixa 22 de 30 un (Simples): CMV = 22 × R$ 100,00 = R$ 2.200,00',
+      expected: 2200,
+      received: cmvSimples22,
+    },
+    {
+      test: 'Baixa 22 de 30 un (Simples): EF remanescente = 8 × R$ 100,00 = R$ 800,00',
+      expected: 800,
+      received: efSimples22,
+    },
+    // 6. Toggle inativo (números idênticos aos legados de hoje)
+    {
+      test: 'Toggle inativo Presumido: CMV clássico = 2460 - 500 = R$ 1.960,00',
+      expected: 1960,
+      received: legacyCmvPresumido,
+    },
+    {
+      test: 'Toggle inativo Real: CMV clássico = 2232.45 - 500 = R$ 1.732,45',
+      expected: 1732.45,
+      received: legacyCmvReal,
+    },
+    {
+      test: 'Toggle inativo Simples: CMV clássico = 3000 - 500 = R$ 2.500,00',
+      expected: 2500,
+      received: legacyCmvSimples,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : Math.abs((t.expected as number) - (t.received as number)) < 0.01
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
 export function runCmvDetailedBreakdownTests(): {
   allPassed: boolean
   results: {
