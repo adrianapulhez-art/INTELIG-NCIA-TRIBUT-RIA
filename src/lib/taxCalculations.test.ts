@@ -392,13 +392,43 @@ export function runAutoStockDeductionTests(): {
  * 4. Na baixa automática por quantidade, unitário discriminado × unidades vendidas bate centavo a centavo.
  * 5. Com toggles desligados, os números são idênticos aos anteriores (regressão zero).
  */
-export function runCmvDetailedBreakdownTests() {
-  // Setup do teste:
-  // Item 1: 10 un a R$ 100,00 = R$ 1.000,00 | ICMS 18% (180,00) | PIS 1.65% (13,53) | COFINS 7.6% (62,32) | Frete 100,00 (ICMS frete 12% = 12,00)
-  const mockPurchasesItems = [
+export function runCmvDetailedBreakdownTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
+} {
+  // =========================================================================
+  // CENÁRIO A: Item completo com ICMS, ICMS Frete, PIS, COFINS e ICMS-ST
+  // 10 unidades a R$ 100,00 = R$ 1.000,00
+  // Frete = R$ 100,00 (ICMS Frete 12% = R$ 12,00)
+  // ICMS 18% = R$ 180,00
+  // Base PIS/COFINS (1000 - 180) = 820,00 -> PIS 1.65% = 13,53 | COFINS 7.6% = 62,32
+  // ICMS-ST recolhido na compra = R$ 50,00 (integra o custo)
+  // IPI / Outros = 0
+  //
+  // Custos brutos:
+  // Mercadoria: 1000,00
+  // Frete: 100,00
+  // ICMS-ST: 50,00
+  // Total bruto + ST: 1150,00
+  //
+  // Lucro Presumido:
+  // Custo = 1000 + 100 + 50 - 180 - 12 = 958,00 (Unitário = 95,80)
+  //
+  // Lucro Real:
+  // Custo = 1000 + 100 + 50 - 180 - 12 - 13,53 - 62,32 = 882,15 (Unitário = 88,215)
+  //
+  // Simples Nacional:
+  // Custo = 1000 + 100 + 50 = 1150,00 (Unitário = 115,00) - tributos integram o custo
+  // =========================================================================
+  const mockPurchasesItemsWithSt = [
     {
-      id: 'item-1',
-      name: 'Item A',
+      id: 'item-st-1',
+      name: 'Item com ST e Frete',
       quantity: 10,
       unitPrice: 100,
       merchandiseValue: 1000,
@@ -409,21 +439,21 @@ export function runCmvDetailedBreakdownTests() {
       freightValue: 100,
       icmsFreightRate: 12,
       icmsFreightValue: 12,
-      hasSt: false,
-      stValue: 0,
+      hasSt: true,
+      stValue: 50,
       calculatedPis: 13.53,
       calculatedCofins: 62.32,
-      costPresumido: 1000 + 100 - 180 - 12, // 908,00
-      costReal: 1000 + 100 - 180 - 12 - 13.53 - 62.32, // 832.15
-      costSimples: 1000 + 100, // 1100,00
-      unitCostPresumido: 90.8,
-      unitCostReal: 83.215,
-      unitCostSimples: 110,
+      costPresumido: 1000 + 100 + 50 - 180 - 12, // 958.00
+      costReal: 1000 + 100 + 50 - 180 - 12 - 13.53 - 62.32, // 882.15
+      costSimples: 1000 + 100 + 50, // 1150.00
+      unitCostPresumido: 95.8,
+      unitCostReal: 88.215,
+      unitCostSimples: 115.0,
     },
   ]
 
-  const mockBaseInput = {
-    purchasesItems: mockPurchasesItems,
+  const baseInputWithSt = {
+    purchasesItems: mockPurchasesItemsWithSt,
     additionalCosts: [],
     deductionCosts: [],
     initialInventory: 0,
@@ -447,91 +477,302 @@ export function runCmvDetailedBreakdownTests() {
     stSubsystemEnabled: false,
     stSubsystemPurchasesPaid: 0,
     quantitySold: 10,
-    // Context values
-    cmvPresumidoNetPurchasesContext: 908,
-    cmvPresumidoContext: 908,
-    cmvRealNetPurchasesContext: 832.15,
-    cmvRealContext: 832.15,
-    cmvSimplesNetPurchasesContext: 1100,
-    cmvSimplesContext: 1100,
-    unitCostPresumidoContext: 90.8,
-    unitCostRealContext: 83.215,
-    unitCostSimplesContext: 110,
+    cmvPresumidoNetPurchasesContext: 958,
+    cmvPresumidoContext: 958,
+    cmvRealNetPurchasesContext: 882.15,
+    cmvRealContext: 882.15,
+    cmvSimplesNetPurchasesContext: 1150,
+    cmvSimplesContext: 1150,
+    unitCostPresumidoContext: 95.8,
+    unitCostRealContext: 88.215,
+    unitCostSimplesContext: 115.0,
   }
 
   const breakdownPresumido = calculateCmvDetailedBreakdown({
-    ...mockBaseInput,
+    ...baseInputWithSt,
     regime: 'presumido',
   })
 
   const breakdownReal = calculateCmvDetailedBreakdown({
-    ...mockBaseInput,
+    ...baseInputWithSt,
     regime: 'real',
   })
 
   const breakdownSimples = calculateCmvDetailedBreakdown({
-    ...mockBaseInput,
+    ...baseInputWithSt,
     regime: 'simples',
   })
 
-  // Teste de baixa automática (venda de 6 unidades)
-  const breakdownAutoReal = calculateCmvDetailedBreakdown({
-    ...mockBaseInput,
-    regime: 'real',
+  // Soma discriminada por componentes calculados para conferência centavo por centavo
+  const sumPresumidoParts =
+    breakdownPresumido.merchandiseTotal +
+    breakdownPresumido.freightTotal +
+    breakdownPresumido.otherCostsTotal +
+    breakdownPresumido.ipiTotal +
+    breakdownPresumido.stTotal -
+    breakdownPresumido.deductionsBaseTotal -
+    breakdownPresumido.icmsMerchandise -
+    breakdownPresumido.icmsFreight
+
+  const sumRealParts =
+    breakdownReal.merchandiseTotal +
+    breakdownReal.freightTotal +
+    breakdownReal.otherCostsTotal +
+    breakdownReal.ipiTotal +
+    breakdownReal.stTotal -
+    breakdownReal.deductionsBaseTotal -
+    breakdownReal.icmsMerchandise -
+    breakdownReal.icmsFreight -
+    breakdownReal.totalPis -
+    breakdownReal.totalCofins
+
+  const sumSimplesParts =
+    breakdownSimples.merchandiseTotal +
+    breakdownSimples.freightTotal +
+    breakdownSimples.otherCostsTotal +
+    breakdownSimples.ipiTotal +
+    breakdownSimples.stTotal -
+    breakdownSimples.deductionsBaseTotal
+
+  // =========================================================================
+  // CENÁRIO B: Baixa automática de estoque por quantidade nos 3 regimes
+  // Venda de 6 unidades das 10 disponíveis
+  // =========================================================================
+  const soldQtyAuto = 6
+
+  const breakdownAutoPresumido = calculateCmvDetailedBreakdown({
+    ...baseInputWithSt,
+    regime: 'presumido',
     autoInventoryDeduction: true,
-    quantitySold: 6,
-    cmvRealContext: 83.215 * 6, // 499.29
+    quantitySold: soldQtyAuto,
+    cmvPresumidoContext: 95.8 * soldQtyAuto, // 574.80
   })
 
-  const tests = [
-    // 1. Lucro Presumido
+  const breakdownAutoReal = calculateCmvDetailedBreakdown({
+    ...baseInputWithSt,
+    regime: 'real',
+    autoInventoryDeduction: true,
+    quantitySold: soldQtyAuto,
+    cmvRealContext: 88.215 * soldQtyAuto, // 529.29
+  })
+
+  const breakdownAutoSimples = calculateCmvDetailedBreakdown({
+    ...baseInputWithSt,
+    regime: 'simples',
+    autoInventoryDeduction: true,
+    quantitySold: soldQtyAuto,
+    cmvSimplesContext: 115.0 * soldQtyAuto, // 690.00
+  })
+
+  // =========================================================================
+  // CENÁRIO C: Toggles DESLIGADOS (autoInventoryDeduction = false)
+  // Preservação exata da fórmula clássica CMV = EI + Compras Líquidas - EF manual
+  // Regressão zero garantida
+  // =========================================================================
+  const initialInvManual = 200
+  const finalInvManual = 150
+
+  const breakdownLegacyPresumido = calculateCmvDetailedBreakdown({
+    ...baseInputWithSt,
+    regime: 'presumido',
+    autoInventoryDeduction: false,
+    initialInventory: initialInvManual,
+    finalInventory: finalInvManual,
+    cmvPresumidoNetPurchasesContext: 958,
+    cmvPresumidoContext: initialInvManual + 958 - finalInvManual, // 200 + 958 - 150 = 1008
+  })
+
+  const breakdownLegacyReal = calculateCmvDetailedBreakdown({
+    ...baseInputWithSt,
+    regime: 'real',
+    autoInventoryDeduction: false,
+    initialInventory: initialInvManual,
+    finalInventory: finalInvManual,
+    cmvRealNetPurchasesContext: 882.15,
+    cmvRealContext: initialInvManual + 882.15 - finalInvManual, // 200 + 882.15 - 150 = 932.15
+  })
+
+  const breakdownLegacySimples = calculateCmvDetailedBreakdown({
+    ...baseInputWithSt,
+    regime: 'simples',
+    autoInventoryDeduction: false,
+    initialInventory: initialInvManual,
+    finalInventory: finalInvManual,
+    cmvSimplesNetPurchasesContext: 1150,
+    cmvSimplesContext: initialInvManual + 1150 - finalInvManual, // 200 + 1150 - 150 = 1200
+  })
+
+  const tests: {
+    test: string
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[] = [
+    // -----------------------------------------------------------------------
+    // 1. Fidelidade centavo por centavo das deduções e soma nos 3 regimes
+    // -----------------------------------------------------------------------
     {
-      test: 'Presumido: ICMS mercadoria discriminado = R$ 180,00',
+      test: 'Presumido: Dedução individual de ICMS mercadoria = R$ 180,00',
       expected: 180,
       received: breakdownPresumido.icmsMerchandise,
     },
     {
-      test: 'Presumido: ICMS frete discriminado = R$ 12,00',
+      test: 'Presumido: Dedução individual de ICMS frete = R$ 12,00',
       expected: 12,
       received: breakdownPresumido.icmsFreight,
     },
     {
-      test: 'Presumido: Soma discriminada bate com CMV total (1000 + 100 - 180 - 12 = 908,00)',
-      expected: 908,
+      test: 'Presumido: ICMS-ST integra o custo bruto de compras = R$ 50,00',
+      expected: 50,
+      received: breakdownPresumido.stTotal,
+    },
+    {
+      test: 'Presumido: Soma das deduções e custo bruto bate CENTAVO POR CENTAVO com CMV total (R$ 958,00)',
+      expected: 958,
+      received: sumPresumidoParts,
+    },
+    {
+      test: 'Presumido: CMV total retornado pelo breakdown bate centavo por centavo (R$ 958,00)',
+      expected: 958,
       received: breakdownPresumido.totalCmv,
     },
-    // 2. Lucro Real
     {
-      test: 'Real: PIS discriminado = R$ 13,53',
+      test: 'Real: Dedução individual de ICMS mercadoria = R$ 180,00',
+      expected: 180,
+      received: breakdownReal.icmsMerchandise,
+    },
+    {
+      test: 'Real: Dedução individual de ICMS frete = R$ 12,00',
+      expected: 12,
+      received: breakdownReal.icmsFreight,
+    },
+    {
+      test: 'Real: Dedução individual de PIS recuperável = R$ 13,53',
       expected: 13.53,
       received: breakdownReal.totalPis,
     },
     {
-      test: 'Real: COFINS discriminada = R$ 62,32',
+      test: 'Real: Dedução individual de COFINS recuperável = R$ 62,32',
       expected: 62.32,
       received: breakdownReal.totalCofins,
     },
     {
-      test: 'Real: Soma discriminada bate com CMV total (1000 + 100 - 180 - 12 - 13.53 - 62.32 = 832,15)',
-      expected: 832.15,
+      test: 'Real: ICMS-ST integra o custo de compras = R$ 50,00',
+      expected: 50,
+      received: breakdownReal.stTotal,
+    },
+    {
+      test: 'Real: Soma das deduções (ICMS + ICMS Frete + PIS + COFINS) e custo bruto bate CENTAVO POR CENTAVO com CMV total (R$ 882,15)',
+      expected: 882.15,
+      received: sumRealParts,
+    },
+    {
+      test: 'Real: CMV total retornado pelo breakdown bate centavo por centavo (R$ 882,15)',
+      expected: 882.15,
       received: breakdownReal.totalCmv,
     },
-    // 3. Simples Nacional
+
+    // -----------------------------------------------------------------------
+    // 2. Simples Nacional: tributos integram o custo (sem deduções)
+    // -----------------------------------------------------------------------
     {
-      test: 'Simples: Tributos integram o custo (nenhuma dedução efetuada no CMV: R$ 1.100,00)',
-      expected: 1100,
+      test: 'Simples Nacional: Tributos integram o custo (zero deduções efetuadas de ICMS, PIS ou COFINS)',
+      expected: 0,
+      received: breakdownSimples.lines.filter(
+        (l) => l.type === 'deduction' && l.id !== 'deductions_base',
+      ).length,
+    },
+    {
+      test: 'Simples Nacional: Mercadoria (1000) + Frete (100) + ST (50) bate CENTAVO POR CENTAVO com CMV (R$ 1.150,00)',
+      expected: 1150,
+      received: sumSimplesParts,
+    },
+    {
+      test: 'Simples Nacional: CMV total = R$ 1.150,00',
+      expected: 1150,
       received: breakdownSimples.totalCmv,
     },
-    // 4. Baixa Automática por Quantidade
     {
-      test: 'Baixa Automática Real: 6 unidades × R$ 83,215 = R$ 499,29',
-      expected: 499.29,
+      test: 'Simples Nacional: Custo unitário com tributos integrados = R$ 115,00',
+      expected: 115,
+      received: breakdownSimples.unitCmv,
+    },
+
+    // -----------------------------------------------------------------------
+    // 3. Baixa automática por quantidade: Custo unitário discriminado × unidades vendidas
+    // -----------------------------------------------------------------------
+    {
+      test: 'Baixa Automática Presumido: 6 unidades × R$ 95,80 bate centavo por centavo com CMV (R$ 574,80)',
+      expected: 574.8,
+      received: breakdownAutoPresumido.unitCmv * breakdownAutoPresumido.soldUnits,
+    },
+    {
+      test: 'Baixa Automática Presumido: CMV total consolidado bate centavo por centavo (R$ 574,80)',
+      expected: 574.8,
+      received: breakdownAutoPresumido.totalCmv,
+    },
+    {
+      test: 'Baixa Automática Real: 6 unidades × R$ 88,215 bate centavo por centavo com CMV (R$ 529,29)',
+      expected: 529.29,
+      received: breakdownAutoReal.unitCmv * breakdownAutoReal.soldUnits,
+    },
+    {
+      test: 'Baixa Automática Real: CMV total consolidado bate centavo por centavo (R$ 529,29)',
+      expected: 529.29,
       received: breakdownAutoReal.totalCmv,
     },
     {
-      test: 'Baixa Automática Real: Unidades vendidas batem com 6 un.',
+      test: 'Baixa Automática Simples: 6 unidades × R$ 115,00 bate centavo por centavo com CMV (R$ 690,00)',
+      expected: 690,
+      received: breakdownAutoSimples.unitCmv * breakdownAutoSimples.soldUnits,
+    },
+    {
+      test: 'Baixa Automática Simples: CMV total consolidado bate centavo por centavo (R$ 690,00)',
+      expected: 690,
+      received: breakdownAutoSimples.totalCmv,
+    },
+    {
+      test: 'Baixa Automática: Unidades vendidas registradas corretamente = 6 un.',
       expected: 6,
       received: breakdownAutoReal.soldUnits,
+    },
+
+    // -----------------------------------------------------------------------
+    // 4. Regressão Zero: Com toggles desligados, fórmulas clássicas idênticas (EI + CL - EF)
+    // -----------------------------------------------------------------------
+    {
+      test: 'Regressão zero (Toggle OFF) Presumido: CMV = EI (200) + CL (958) - EF (150) = R$ 1.008,00',
+      expected: 1008,
+      received: breakdownLegacyPresumido.totalCmv,
+    },
+    {
+      test: 'Regressão zero (Toggle OFF) Real: CMV = EI (200) + CL (882.15) - EF (150) = R$ 932,15',
+      expected: 932.15,
+      received: breakdownLegacyReal.totalCmv,
+    },
+    {
+      test: 'Regressão zero (Toggle OFF) Simples: CMV = EI (200) + CL (1150) - EF (150) = R$ 1.200,00',
+      expected: 1200,
+      received: breakdownLegacySimples.totalCmv,
+    },
+    {
+      test: 'Regressão zero: Compras Líquidas Presumido idênticas ao contexto = R$ 958,00',
+      expected: 958,
+      received: breakdownLegacyPresumido.netPurchases,
+    },
+    {
+      test: 'Regressão zero: Compras Líquidas Real idênticas ao contexto = R$ 882,15',
+      expected: 882.15,
+      received: breakdownLegacyReal.netPurchases,
+    },
+    {
+      test: 'Regressão zero: Compras Líquidas Simples idênticas ao contexto = R$ 1.150,00',
+      expected: 1150,
+      received: breakdownLegacySimples.netPurchases,
+    },
+    {
+      test: 'Regressão zero: Flag isAutoInventory permanece false quando toggle está desligado',
+      expected: false,
+      received: breakdownLegacyReal.isAutoInventory,
     },
   ]
 
@@ -539,7 +780,9 @@ export function runCmvDetailedBreakdownTests() {
     const passed =
       typeof t.expected === 'boolean'
         ? t.expected === t.received
-        : Math.abs((t.expected as number) - (t.received as number)) < 0.01
+        : typeof t.expected === 'string'
+          ? t.expected === t.received
+          : Math.abs((t.expected as number) - (t.received as number)) < 0.001
     return {
       test: t.test,
       passed,
