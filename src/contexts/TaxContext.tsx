@@ -115,6 +115,8 @@ export interface TaxStateSnapshot {
   totalPurchasesQuantity?: number // Σ quantidade Compras
   initialInventory: number
   finalInventory: number
+  autoInventoryDeduction?: boolean // Baixa automática de estoque por quantidade
+  initialInventoryUnits?: number // Estoque inicial em unidades (opcional)
   additionalCosts: AdditionalCostItem[]
   nonRecoverableTaxBase: number
   nonRecoverableTaxRate: number
@@ -257,6 +259,10 @@ export interface TaxContextType {
   setInitialInventory: (val: number) => void
   finalInventory: number // EF
   setFinalInventory: (val: number) => void
+  autoInventoryDeduction: boolean // Baixa automática de estoque por quantidade
+  setAutoInventoryDeduction: (val: boolean) => void
+  initialInventoryUnits: number // Estoque inicial em unidades
+  setInitialInventoryUnits: (val: number) => void
   additionalCosts: AdditionalCostItem[] // Custos adicionais globais (frete rateado, seguro, outros)
   addAdditionalCost: (description?: string, value?: number) => void
   updateAdditionalCost: (id: string, field: 'description' | 'value', value: string | number) => void
@@ -391,6 +397,17 @@ export interface TaxContextType {
     // CMV Simples: No Simples Nacional, os tributos da compra não são recuperáveis (integram o custo)
     cmvSimplesNetPurchases: number
     cmvSimples: number
+    // Campos da Baixa Automática de Estoque por Quantidade (toggle autoInventoryDeduction)
+    autoInventoryDeductionActive: boolean
+    totalAvailableUnits: number // Σ compras + estoque inicial em unidades
+    totalSoldUnitsEffective: number // Quantidade vendida considerada
+    isQuantityExceeded: boolean // se sold > available
+    unitCostPresumidoEffective: number
+    unitCostRealEffective: number
+    unitCostSimplesEffective: number
+    autoFinalInventoryPresumido: number
+    autoFinalInventoryReal: number
+    autoFinalInventorySimples: number
   }
 
   // FOLHA E PRÓ-LABORE STATE (Compartilhado entre as DREs e Comparação)
@@ -502,6 +519,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [initialInventory, setInitialInventory] = useState<number>(0)
   const [finalInventory, setFinalInventory] = useState<number>(0)
+  const [autoInventoryDeduction, setAutoInventoryDeduction] = useState<boolean>(false)
+  const [initialInventoryUnits, setInitialInventoryUnits] = useState<number>(0)
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCostItem[]>([
     { id: '1', description: 'Frete e seguro s/ compras', value: 0 },
   ])
@@ -1413,7 +1432,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     totalDeductionsBase -
     effectiveIcmsPurchases -
     effectiveIcmsFreight
-  const cmvPresumido = Math.max(0, initialInventory + cmvPresumidoNetPurchases - finalInventory)
+  const legacyCmvPresumido = Math.max(
+    0,
+    initialInventory + cmvPresumidoNetPurchases - finalInventory,
+  )
 
   // CMV Real: ICMS, ICMS frete, PIS, COFINS deduzem + ST pago integra o custo
   const cmvRealNetPurchases =
@@ -1424,17 +1446,84 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     effectiveIcmsFreight -
     effectivePisPurchases -
     effectiveCofinsPurchases
-  const cmvReal = Math.max(0, initialInventory + cmvRealNetPurchases - finalInventory)
+  const legacyCmvReal = Math.max(0, initialInventory + cmvRealNetPurchases - finalInventory)
 
   // CMV Simples Nacional: Tributos sobre compras NÃO são recuperáveis + ST pago
   const cmvSimplesNetPurchases = totalAdditions + stPurchaseAddition - totalDeductionsBase
-  const cmvSimples = Math.max(0, initialInventory + cmvSimplesNetPurchases - finalInventory)
+  const legacyCmvSimples = Math.max(0, initialInventory + cmvSimplesNetPurchases - finalInventory)
+
+  // =========================================================================
+  // NOVA DINÂMICA: BAIXA AUTOMÁTICA DE ESTOQUE POR QUANTIDADE (Aditiva / Toggle)
+  // =========================================================================
+  // Custo total de compras por regime:
+  // Se multi-itens estiver cadastrado, soma dos custos dos itens (costPresumido/costReal/costSimples).
+  // Caso contrário ou complementando, usa as compras líquidas apuradas.
+  const totalItemsCostPresumido = computedPurchasesItems.reduce(
+    (acc, it) => acc + (it.costPresumido || 0),
+    0,
+  )
+  const totalItemsCostReal = computedPurchasesItems.reduce((acc, it) => acc + (it.costReal || 0), 0)
+  const totalItemsCostSimples = computedPurchasesItems.reduce(
+    (acc, it) => acc + (it.costSimples || 0),
+    0,
+  )
+
+  const purchasesCostPresumido = hasPurchasesItemsData
+    ? totalItemsCostPresumido
+    : cmvPresumidoNetPurchases
+  const purchasesCostReal = hasPurchasesItemsData ? totalItemsCostReal : cmvRealNetPurchases
+  const purchasesCostSimples = hasPurchasesItemsData
+    ? totalItemsCostSimples
+    : cmvSimplesNetPurchases
+
+  // Custo unitário por regime = Σ custo do regime dos itens ÷ Σ quantidade comprada dos itens (protegendo divisão por zero)
+  const unitCostPresumidoAuto =
+    totalPurchasesQuantity > 0 ? purchasesCostPresumido / totalPurchasesQuantity : 0
+  const unitCostRealAuto =
+    totalPurchasesQuantity > 0 ? purchasesCostReal / totalPurchasesQuantity : 0
+  const unitCostSimplesAuto =
+    totalPurchasesQuantity > 0 ? purchasesCostSimples / totalPurchasesQuantity : 0
+
+  // Unidades disponíveis = Σ quantidade comprada + estoque inicial em unidades
+  const totalAvailableUnits =
+    (totalPurchasesQuantity || 0) + Math.max(0, initialInventoryUnits || 0)
+
+  // Quantidade vendida geral de referência (Markup)
+  const generalSoldUnits = (totalConsolidatedQuantity || 0) > 0 ? totalConsolidatedQuantity : 0
+
+  // Quantidade vendida para o cálculo do CMV global na calculadora de Compras:
+  // Usa generalSoldUnits limitada às unidades disponíveis
+  const cappedSoldUnitsGeneral = Math.min(generalSoldUnits, totalAvailableUnits)
+  const isQuantityExceededGeneral =
+    totalAvailableUnits > 0 && generalSoldUnits > totalAvailableUnits
+
+  // CMV com toggle ligado
+  const autoCmvPresumido = unitCostPresumidoAuto * cappedSoldUnitsGeneral
+  const autoCmvReal = unitCostRealAuto * cappedSoldUnitsGeneral
+  const autoCmvSimples = unitCostSimplesAuto * cappedSoldUnitsGeneral
+
+  // EF Automático = EI (R$) + custo total do regime das compras − CMV do regime
+  const autoFinalInventoryPresumido = Math.max(
+    0,
+    initialInventory + purchasesCostPresumido - autoCmvPresumido,
+  )
+  const autoFinalInventoryReal = Math.max(0, initialInventory + purchasesCostReal - autoCmvReal)
+  const autoFinalInventorySimples = Math.max(
+    0,
+    initialInventory + purchasesCostSimples - autoCmvSimples,
+  )
+
+  // Valores finais respeitando o toggle (se desligado, estritamente idêntico ao legado)
+  const cmvPresumido = autoInventoryDeduction ? autoCmvPresumido : legacyCmvPresumido
+  const cmvReal = autoInventoryDeduction ? autoCmvReal : legacyCmvReal
+  const cmvSimples = autoInventoryDeduction ? autoCmvSimples : legacyCmvSimples
 
   const isPurchasesCalculated =
     hasPurchasesItemsData ||
     totalAdditionalCosts > 0 ||
     initialInventory > 0 ||
     finalInventory > 0 ||
+    (autoInventoryDeduction && initialInventoryUnits > 0) ||
     cmvPresumido > 0 ||
     cmvReal > 0 ||
     cmvSimples > 0
@@ -1731,6 +1820,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ])
     setInitialInventory(0)
     setFinalInventory(0)
+    setAutoInventoryDeduction(false)
+    setInitialInventoryUnits(0)
     setAdditionalCosts([{ id: '1', description: 'Frete e seguro s/ compras', value: 0 }])
     setNonRecoverableTaxBase(0)
     setNonRecoverableTaxRate(0)
@@ -1834,6 +1925,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       totalPurchasesQuantity,
       initialInventory,
       finalInventory,
+      autoInventoryDeduction,
+      initialInventoryUnits,
       additionalCosts,
       nonRecoverableTaxBase,
       nonRecoverableTaxRate,
@@ -1986,6 +2079,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setInitialInventory(snapshot.initialInventory ?? 0)
     setFinalInventory(snapshot.finalInventory ?? 0)
+    setAutoInventoryDeduction(Boolean(snapshot.autoInventoryDeduction))
+    setInitialInventoryUnits(snapshot.initialInventoryUnits ?? 0)
 
     // Blindagem de additionalCosts:
     // Se o snapshot tiver linhas com descrição "Compras brutas" cujo valor já esteja absorvido
@@ -2157,6 +2252,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setInitialInventory,
         finalInventory,
         setFinalInventory,
+        autoInventoryDeduction,
+        setAutoInventoryDeduction,
+        initialInventoryUnits,
+        setInitialInventoryUnits,
         additionalCosts,
         addAdditionalCost,
         updateAdditionalCost,
@@ -2292,6 +2391,16 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           cmvReal,
           cmvSimplesNetPurchases,
           cmvSimples,
+          autoInventoryDeductionActive: autoInventoryDeduction,
+          totalAvailableUnits,
+          totalSoldUnitsEffective: generalSoldUnits,
+          isQuantityExceeded: isQuantityExceededGeneral,
+          unitCostPresumidoEffective: unitCostPresumidoAuto,
+          unitCostRealEffective: unitCostRealAuto,
+          unitCostSimplesEffective: unitCostSimplesAuto,
+          autoFinalInventoryPresumido,
+          autoFinalInventoryReal,
+          autoFinalInventorySimples,
         },
 
         resetAll,

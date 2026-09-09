@@ -119,7 +119,10 @@ export default function DrePresumidoPage() {
   const hasConsolidated = totalConsolidatedRevenue > 0
   const activeGrossRevenue = hasConsolidated ? totalConsolidatedRevenue : simulatedSalePrice || 0
   // CMV unitário via Compras (Presumido)
-  const unitCMV = calculatedPurchases.cmvPresumido || 0
+  const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
+  const unitCMV = isAutoInventory
+    ? calculatedPurchases.unitCostPresumidoEffective
+    : calculatedPurchases.cmvPresumido || 0
 
   // Atividade e alíquotas de presunção (Lei 9.249/95 art. 15 e 20)
   // Comércio: IRPJ 8%, CSLL 12%
@@ -211,7 +214,14 @@ export default function DrePresumidoPage() {
   const totalPis = (totalPisCofinsBase * pisRate) / 100
   const totalCofins = (totalPisCofinsBase * cofinsRate) / 100
   const totalNetRevenue = totalGross - totalMunicipalStateTax - totalPis - totalCofins
-  const totalCmv = unitCmvVal * qty
+  const isQuantityExceeded =
+    isAutoInventory &&
+    calculatedPurchases.totalAvailableUnits > 0 &&
+    qty > calculatedPurchases.totalAvailableUnits
+  const effectiveSoldQtyForCmv = isAutoInventory
+    ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
+    : qty
+  const totalCmv = isAutoInventory ? unitCmvVal * effectiveSoldQtyForCmv : unitCmvVal * qty
   const totalGrossProfit = totalNetRevenue - totalCmv
   const totalResultBeforeTax = totalGrossProfit - totalExpenses
 
@@ -261,6 +271,18 @@ export default function DrePresumidoPage() {
           badge="LEI 9.249/95 · REGIME CUMULATIVO"
           icon={Calculator}
         />
+
+        {/* Alerta de Quantidade Excedida (Baixa por quantidade) */}
+        {isQuantityExceeded && (
+          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs font-mono text-amber-300 flex items-center gap-2.5 shadow-lg">
+            <span className="text-base">⚠️</span>
+            <span>
+              Quantidade vendida ({qty} un.) excede o estoque disponível (
+              {calculatedPurchases.totalAvailableUnits} unidades) — CMV limitado ao estoque
+              existente.
+            </span>
+          </div>
+        )}
 
         {/* Cabeçalho */}
         <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
@@ -347,12 +369,30 @@ export default function DrePresumidoPage() {
                   <span className="font-semibold">{formatBRL(stSubsystem.purchasesStPaid)}</span>
                 </div>
               )}
-              <div className="py-1.5 flex justify-between">
-                <span className="text-slate-400">(−) Estoque final (EF)</span>
-                <span className="text-slate-400">-{formatBRL(finalInventory)}</span>
+              <div className="py-1.5 flex justify-between items-center">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-400">(−) Estoque final (EF)</span>
+                  {isAutoInventory && (
+                    <span className="text-[10px] text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1 py-0.2 rounded">
+                      · automático (baixa por quantidade)
+                    </span>
+                  )}
+                </div>
+                <span className="text-slate-400">
+                  -
+                  {formatBRL(
+                    isAutoInventory
+                      ? calculatedPurchases.autoFinalInventoryPresumido
+                      : finalInventory,
+                  )}
+                </span>
               </div>
               <div className="py-2 flex justify-between items-center text-sm font-bold bg-emerald-500/10 px-2 rounded-lg mt-1 border border-emerald-500/20">
-                <span className="text-emerald-400">(=) CMV = EI + CL − EF</span>
+                <span className="text-emerald-400">
+                  {isAutoInventory
+                    ? '(=) CMV unitário (baixa por quantidade)'
+                    : '(=) CMV = EI + CL − EF'}
+                </span>
                 <span className="text-emerald-400">{formatBRL(unitCMV)}</span>
               </div>
             </div>
@@ -839,7 +879,16 @@ export default function DrePresumidoPage() {
 
                   {/* 7. (-) CMV */}
                   <tr>
-                    <td className="py-2 text-left text-slate-400">(−) CMV</td>
+                    <td className="py-2 text-left text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <span>(−) CMV</span>
+                        {isAutoInventory && (
+                          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                            · automático (baixa por quantidade)
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-2 px-3 text-right text-slate-400">
                       -{formatBRL(unitCmvVal)}
                     </td>

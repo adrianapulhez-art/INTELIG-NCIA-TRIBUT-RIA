@@ -32,17 +32,18 @@ export const TABLE_ASSISTANTS: Record<string, TableAssistantConfig> = {
     name: 'Assistente de Compras',
     title: 'IA — Especialista em Compras e Créditos Fiscais',
     pageName: 'Calculadora de Compras',
-    tagline: 'Apuração do Custo Real de Aquisição',
+    tagline: 'Apuração do Custo Real de Aquisição e Baixa por Quantidade',
     description:
-      'Orienta sobre apropriação de créditos de ICMS, PIS/COFINS, impacto do IPI, fretes, ST e DIFAL no custo de estoque.',
+      'Orienta sobre apropriação de créditos de ICMS, PIS/COFINS, impacto do IPI, fretes, ST e DIFAL no custo de estoque, além da conexão do CMV às vendas pela baixa automática de estoque por quantidade.',
     quickQuestions: [
-      'Como cadastrar múltiplos itens com alíquotas de ICMS/IPI distintas na mesma compra?',
+      'Como funciona a baixa automática de estoque por quantidade vendida?',
+      'Quando devo ativar a baixa automática de estoque?',
       'Como a quantidade e o CMV consolidado dos itens fluem para as DREs?',
+      'Como o estoque final é calculado automaticamente no Presumido, Real e Simples?',
       'Como o ICMS-ST recolhido na compra integra o custo (CMV)?',
-      'Como o Lucro Real aproveita créditos de PIS/COFINS na compra multi-itens?',
     ],
     contextSummary:
-      'Tabela ativa: Calculadora de Compras Multi-Itens. Cadastro de N itens de mercadoria com tributos específicos, custos apropriados por item, rateio de estoques e encargos globais, e CMV consolidado enviado às DREs.',
+      'Tabela ativa: Calculadora de Compras Multi-Itens. Cadastro de N itens de mercadoria com tributos específicos, custos apropriados por item, rateio de estoques e encargos globais, baixa automática de estoque por quantidade vendida e CMV consolidado enviado às DREs.',
   },
   simples: {
     slug: 'it-simples-assistant',

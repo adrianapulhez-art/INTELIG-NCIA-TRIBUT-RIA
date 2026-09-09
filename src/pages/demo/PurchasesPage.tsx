@@ -523,6 +523,10 @@ export default function PurchasesPage() {
     setInitialInventory,
     finalInventory,
     setFinalInventory,
+    autoInventoryDeduction,
+    setAutoInventoryDeduction,
+    initialInventoryUnits,
+    setInitialInventoryUnits,
     additionalCosts,
     addAdditionalCost,
     updateAdditionalCost,
@@ -578,8 +582,22 @@ export default function PurchasesPage() {
         ? calculatedPurchases.cmvRealNetPurchases
         : calculatedPurchases.cmvPresumidoNetPurchases
 
-  const activeUnitCMV =
-    (totalPurchasesQuantity || 0) > 0 ? activeCmv / totalPurchasesQuantity : activeCmv
+  const activeUnitCMV = autoInventoryDeduction
+    ? regime === 'simples'
+      ? calculatedPurchases.unitCostSimplesEffective
+      : regime === 'real'
+        ? calculatedPurchases.unitCostRealEffective
+        : calculatedPurchases.unitCostPresumidoEffective
+    : (totalPurchasesQuantity || 0) > 0
+      ? activeCmv / totalPurchasesQuantity
+      : activeCmv
+
+  const activeAutoEF =
+    regime === 'simples'
+      ? calculatedPurchases.autoFinalInventorySimples
+      : regime === 'real'
+        ? calculatedPurchases.autoFinalInventoryReal
+        : calculatedPurchases.autoFinalInventoryPresumido
 
   // Controle de exibição de ajuda / memória de cálculo
   const [showCalculationMemory, setShowCalculationMemory] = useState(true)
@@ -768,11 +786,82 @@ export default function PurchasesPage() {
               </div>
             </div>
 
+            {/* Toggle Baixa Automática e Estoque Inicial em unidades */}
+            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="auto-inventory-toggle"
+                    checked={autoInventoryDeduction}
+                    onChange={(e) => setAutoInventoryDeduction(e.target.checked)}
+                    className="h-4 w-4 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500/30 cursor-pointer"
+                  />
+                  <div>
+                    <label
+                      htmlFor="auto-inventory-toggle"
+                      className="text-xs font-bold text-slate-200 cursor-pointer flex items-center gap-2"
+                    >
+                      Baixa automática de estoque por quantidade
+                      {autoInventoryDeduction && (
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono">
+                          · baixa por quantidade ativa
+                        </span>
+                      )}
+                    </label>
+                    <p className="text-[11px] text-slate-400">
+                      Conecta o CMV às vendas apuradas: calcula o custo unitário da compra, dá baixa
+                      pelo número de unidades vendidas e calcula o estoque final automaticamente.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Campo Estoque Inicial em Unidades (visível quando toggle ligado) */}
+                {autoInventoryDeduction && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <label
+                      htmlFor="initial-inventory-units-input"
+                      className="text-xs font-mono text-slate-300 whitespace-nowrap"
+                    >
+                      Estoque inicial (unidades):
+                    </label>
+                    <Input
+                      id="initial-inventory-units-input"
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      defaultValue={initialInventoryUnits > 0 ? String(initialInventoryUnits) : ''}
+                      key={`ei-units-${initialInventoryUnits}`}
+                      onBlur={(e) => {
+                        const parsed = parseInt(e.target.value, 10)
+                        const safe = isNaN(parsed) || parsed < 0 ? 0 : parsed
+                        setInitialInventoryUnits(safe)
+                        e.target.value = safe > 0 ? String(safe) : ''
+                      }}
+                      className="w-24 bg-slate-900 border-emerald-500/40 text-slate-100 font-mono text-xs focus:border-emerald-400 text-right"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Alerta se quantidade vendida excede o estoque disponível */}
+              {autoInventoryDeduction && calculatedPurchases.isQuantityExceeded && (
+                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] font-mono text-amber-300 flex items-center gap-2">
+                  <span>⚠️</span>
+                  <span>
+                    Quantidade vendida excede o estoque disponível (
+                    {calculatedPurchases.totalAvailableUnits} unidades) — CMV limitado ao estoque
+                    existente.
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* EI e EF */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-300">
-                  Estoque inicial (EI) — período anterior
+                  Estoque inicial (EI) — período anterior (R$)
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
@@ -794,25 +883,47 @@ export default function PurchasesPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">
-                  Estoque final (EF) — inventário apurado
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300">
+                    Estoque final (EF) — inventário apurado (R$)
+                  </label>
+                  {autoInventoryDeduction && (
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                      · automático (baixa por quantidade)
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     R$
                   </span>
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    defaultValue={finalInventory > 0 ? formatNumberBR(finalInventory) : ''}
-                    key={`ef-${finalInventory}`}
-                    onBlur={(e) => {
-                      const parsed = parseBRNumber(e.target.value)
-                      setFinalInventory(parsed)
-                      e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                    }}
-                    className="pl-9 bg-slate-950/60 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
-                  />
+                  {autoInventoryDeduction ? (
+                    <Input
+                      type="text"
+                      disabled
+                      value={formatNumberBR(
+                        regime === 'simples'
+                          ? calculatedPurchases.autoFinalInventorySimples
+                          : regime === 'real'
+                            ? calculatedPurchases.autoFinalInventoryReal
+                            : calculatedPurchases.autoFinalInventoryPresumido,
+                      )}
+                      className="pl-9 bg-slate-950/40 border-emerald-500/40 text-emerald-400 font-mono text-sm cursor-not-allowed opacity-90 font-bold"
+                    />
+                  ) : (
+                    <Input
+                      type="text"
+                      placeholder="0,00"
+                      defaultValue={finalInventory > 0 ? formatNumberBR(finalInventory) : ''}
+                      key={`ef-${finalInventory}`}
+                      onBlur={(e) => {
+                        const parsed = parseBRNumber(e.target.value)
+                        setFinalInventory(parsed)
+                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                      }}
+                      className="pl-9 bg-slate-950/60 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -1082,9 +1193,11 @@ export default function PurchasesPage() {
                   Unitário:{' '}
                   <strong className="text-slate-200">
                     {formatBRL(
-                      (totalPurchasesQuantity || 0) > 0
-                        ? calculatedPurchases.cmvPresumido / totalPurchasesQuantity
-                        : calculatedPurchases.cmvPresumido,
+                      autoInventoryDeduction
+                        ? calculatedPurchases.unitCostPresumidoEffective
+                        : (totalPurchasesQuantity || 0) > 0
+                          ? calculatedPurchases.cmvPresumido / totalPurchasesQuantity
+                          : calculatedPurchases.cmvPresumido,
                     )}
                   </strong>
                 </div>
@@ -1112,9 +1225,11 @@ export default function PurchasesPage() {
                   Unitário:{' '}
                   <strong className="text-slate-200">
                     {formatBRL(
-                      (totalPurchasesQuantity || 0) > 0
-                        ? calculatedPurchases.cmvReal / totalPurchasesQuantity
-                        : calculatedPurchases.cmvReal,
+                      autoInventoryDeduction
+                        ? calculatedPurchases.unitCostRealEffective
+                        : (totalPurchasesQuantity || 0) > 0
+                          ? calculatedPurchases.cmvReal / totalPurchasesQuantity
+                          : calculatedPurchases.cmvReal,
                     )}
                   </strong>
                 </div>
@@ -1144,9 +1259,11 @@ export default function PurchasesPage() {
                   Unitário:{' '}
                   <strong className="text-slate-200">
                     {formatBRL(
-                      (totalPurchasesQuantity || 0) > 0
-                        ? calculatedPurchases.cmvSimples / totalPurchasesQuantity
-                        : calculatedPurchases.cmvSimples,
+                      autoInventoryDeduction
+                        ? calculatedPurchases.unitCostSimplesEffective
+                        : (totalPurchasesQuantity || 0) > 0
+                          ? calculatedPurchases.cmvSimples / totalPurchasesQuantity
+                          : calculatedPurchases.cmvSimples,
                     )}
                   </strong>
                 </div>
@@ -1227,10 +1344,31 @@ export default function PurchasesPage() {
                     <span className="text-slate-100">{formatBRL(activeNetPurchases)}</span>
                   </div>
 
-                  <div className="py-1.5 flex justify-between">
-                    <span className="text-slate-400">(−) Estoque final (EF)</span>
-                    <span className="text-slate-400">-{formatBRL(finalInventory)}</span>
+                  <div className="py-1.5 flex justify-between items-center">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-slate-400">(−) Estoque final (EF)</span>
+                      {autoInventoryDeduction && (
+                        <span className="text-[10px] text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1 py-0.2 rounded">
+                          · automático
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-slate-400">
+                      -{formatBRL(autoInventoryDeduction ? activeAutoEF : finalInventory)}
+                    </span>
                   </div>
+
+                  {autoInventoryDeduction && (
+                    <div className="py-1.5 flex justify-between text-[11px] text-slate-400 border-t border-slate-800/40">
+                      <span>
+                        Baixa por qtd: {calculatedPurchases.totalSoldUnitsEffective} un. vendidas ×{' '}
+                        {formatBRL(activeUnitCMV)}
+                      </span>
+                      <span className="text-emerald-400">
+                        {calculatedPurchases.isQuantityExceeded ? '(limitado ao estoque)' : ''}
+                      </span>
+                    </div>
+                  )}
 
                   <div className="py-2.5 flex justify-between items-center text-sm font-bold bg-emerald-500/10 px-3 rounded-xl mt-1 border border-emerald-500/30">
                     <span className="text-emerald-400">(=) CMV Consolidado</span>

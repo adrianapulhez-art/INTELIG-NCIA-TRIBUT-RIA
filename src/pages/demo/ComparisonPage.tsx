@@ -181,8 +181,10 @@ export default function ComparisonPage() {
 
     const unitPis = (unitPisCofinsBase * pisRate) / 100
     const unitCofins = (unitPisCofinsBase * cofinsRate) / 100
-    const unitNetRevenue = unitGross - unitMunicipalStateTax - unitPis - unitCofins
-    const unitCmv = calculatedPurchases.cmvPresumido || 0
+    const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
+    const unitCmv = isAutoInventory
+      ? calculatedPurchases.unitCostPresumidoEffective
+      : calculatedPurchases.cmvPresumido || 0
     const unitGrossProfit = unitNetRevenue - unitCmv
 
     // Totais com a quantidade
@@ -191,8 +193,11 @@ export default function ComparisonPage() {
     const totalPis = unitPis * qty
     const totalCofins = unitCofins * qty
     const totalNetRevenue = unitNetRevenue * qty
-    const totalCmv = unitCmv * qty
-    const totalGrossProfit = unitGrossProfit * qty
+    const effectiveSoldQtyForCmv = isAutoInventory
+      ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
+      : qty
+    const totalCmv = isAutoInventory ? unitCmv * effectiveSoldQtyForCmv : unitCmv * qty
+    const totalGrossProfit = totalNetRevenue - totalCmv
 
     // No Lucro Presumido: despesas = outras despesas + folha/pró-labore + encargos patronais
     const totalExpenses = totalOtherExpenses + directPayrollExpenses + patronalCharges
@@ -248,6 +253,9 @@ export default function ComparisonPage() {
     icmsRateMarkup,
     unitGrossRevenue,
     calculatedPurchases.cmvPresumido,
+    calculatedPurchases.autoInventoryDeductionActive,
+    calculatedPurchases.unitCostPresumidoEffective,
+    calculatedPurchases.totalAvailableUnits,
     qty,
     totalOtherExpenses,
     directPayrollExpenses,
@@ -279,8 +287,10 @@ export default function ComparisonPage() {
 
     const unitPis = (unitPisCofinsBase * pisRate) / 100
     const unitCofins = (unitPisCofinsBase * cofinsRate) / 100
-    const unitNetRevenue = unitGross - unitMunicipalStateTax - unitPis - unitCofins
-    const unitCmv = calculatedPurchases.cmvReal || 0
+    const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
+    const unitCmv = isAutoInventory
+      ? calculatedPurchases.unitCostRealEffective
+      : calculatedPurchases.cmvReal || 0
     const unitGrossProfit = unitNetRevenue - unitCmv
 
     // Totais com a quantidade
@@ -289,8 +299,11 @@ export default function ComparisonPage() {
     const totalPis = unitPis * qty
     const totalCofins = unitCofins * qty
     const totalNetRevenue = unitNetRevenue * qty
-    const totalCmv = unitCmv * qty
-    const totalGrossProfit = unitGrossProfit * qty
+    const effectiveSoldQtyForCmv = isAutoInventory
+      ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
+      : qty
+    const totalCmv = isAutoInventory ? unitCmv * effectiveSoldQtyForCmv : unitCmv * qty
+    const totalGrossProfit = totalNetRevenue - totalCmv
 
     // No Lucro Real: folha, pró-labore e encargos são despesas dedutíveis
     const totalExpenses = totalOtherExpenses + directPayrollExpenses + patronalCharges
@@ -347,6 +360,9 @@ export default function ComparisonPage() {
     icmsRateMarkup,
     unitGrossRevenue,
     calculatedPurchases.cmvReal,
+    calculatedPurchases.autoInventoryDeductionActive,
+    calculatedPurchases.unitCostRealEffective,
+    calculatedPurchases.totalAvailableUnits,
     qty,
     totalOtherExpenses,
     directPayrollExpenses,
@@ -384,8 +400,10 @@ export default function ComparisonPage() {
     const unitIpi = (unitGross * pgdas.reparticao.ipiRate) / 100
     const unitIss = (unitGross * pgdas.reparticao.issRate) / 100
 
-    const unitNetRevenue = unitGross - unitDasTotal
-    const unitCmv = calculatedPurchases.cmvSimples || 0
+    const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
+    const unitCmv = isAutoInventory
+      ? calculatedPurchases.unitCostSimplesEffective
+      : calculatedPurchases.cmvSimples || 0
     const unitGrossProfit = unitNetRevenue - unitCmv
 
     // Totais com a quantidade
@@ -400,8 +418,11 @@ export default function ComparisonPage() {
     const totalIpi = unitIpi * qty
     const totalIss = unitIss * qty
     const totalNetRevenue = unitNetRevenue * qty
-    const totalCmv = unitCmv * qty
-    const totalGrossProfit = unitGrossProfit * qty
+    const effectiveSoldQtyForCmv = isAutoInventory
+      ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
+      : qty
+    const totalCmv = isAutoInventory ? unitCmv * effectiveSoldQtyForCmv : unitCmv * qty
+    const totalGrossProfit = totalNetRevenue - totalCmv
 
     // No Simples Nacional:
     // A folha em si (salários + pró-labore) é despesa dedutível igual aos outros regimes.
@@ -438,6 +459,9 @@ export default function ComparisonPage() {
     unitGrossRevenue,
     pgdas,
     calculatedPurchases.cmvSimples,
+    calculatedPurchases.autoInventoryDeductionActive,
+    calculatedPurchases.unitCostSimplesEffective,
+    calculatedPurchases.totalAvailableUnits,
     qty,
     totalOtherExpenses,
     directPayrollExpenses,
@@ -507,6 +531,20 @@ export default function ComparisonPage() {
           badge="DIAGNÓSTICO TRIBUTÁRIO COMPARATIVO · 3 REGIMES"
           icon={Scale}
         />
+
+        {/* Alerta de Quantidade Excedida (Baixa por quantidade) */}
+        {calculatedPurchases.autoInventoryDeductionActive &&
+          calculatedPurchases.totalAvailableUnits > 0 &&
+          qty > calculatedPurchases.totalAvailableUnits && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs font-mono text-amber-300 flex items-center gap-2.5 shadow-lg">
+              <span className="text-base">⚠️</span>
+              <span>
+                Quantidade vendida ({qty} un.) excede o estoque disponível (
+                {calculatedPurchases.totalAvailableUnits} unidades) — CMV limitado ao estoque
+                existente.
+              </span>
+            </div>
+          )}
 
         {/* Cabeçalho */}
         <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
@@ -1407,7 +1445,14 @@ export default function ComparisonPage() {
                 {/* 7. CMV */}
                 <tr>
                   <td className="py-2.5 px-3 text-left text-slate-400">
-                    (−) CMV (Custo das Mercadorias)
+                    <div className="flex items-center gap-1.5">
+                      <span>(−) CMV (Custo das Mercadorias)</span>
+                      {calculatedPurchases.autoInventoryDeductionActive && (
+                        <span className="text-[10px] text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1 py-0.2 rounded font-mono">
+                          · automático (baixa por quantidade)
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td
                     className={`py-2.5 px-3 text-right text-slate-400 ${
