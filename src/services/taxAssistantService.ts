@@ -1,6 +1,13 @@
 import pb from '@/lib/pocketbase/client'
 import { streamAgentChat, type AgentCitation } from '@/lib/skipAi'
 
+export interface TaxChatImageAttachment {
+  data_url: string
+  name?: string
+  size?: number
+  type?: string
+}
+
 export interface TaxChatMessage {
   id: string
   role: 'user' | 'assistant'
@@ -9,12 +16,14 @@ export interface TaxChatMessage {
   citations?: AgentCitation[]
   agentSlug?: string
   tabKey?: string
+  image?: TaxChatImageAttachment
 }
 
 export interface SendTaxMessageParams {
   agentSlug: string
   message: string
   context?: string
+  image?: TaxChatImageAttachment | null
   conversationId?: string | null
   tabKey?: string
   signal?: AbortSignal
@@ -38,6 +47,7 @@ export async function sendTaxAssistantMessage({
   agentSlug,
   message,
   context,
+  image,
   conversationId,
   signal,
   onChunk,
@@ -45,6 +55,14 @@ export async function sendTaxAssistantMessage({
 }: SendTaxMessageParams): Promise<SendTaxMessageResult> {
   const token = pb.authStore.token
   const baseUrl = import.meta.env.VITE_POCKETBASE_URL || ''
+
+  const requestPayload = {
+    agent_slug: agentSlug,
+    message,
+    context,
+    image: image || null,
+    conversation_id: conversationId || null,
+  }
 
   // Tentativa com SSE Streaming
   try {
@@ -54,12 +72,7 @@ export async function sendTaxAssistantMessage({
         'Content-Type': 'application/json',
         Authorization: token ? `Bearer ${token}` : '',
       },
-      body: JSON.stringify({
-        agent_slug: agentSlug,
-        message,
-        context,
-        conversation_id: conversationId || null,
-      }),
+      body: JSON.stringify(requestPayload),
       signal,
     })
 
@@ -94,12 +107,7 @@ export async function sendTaxAssistantMessage({
       'Content-Type': 'application/json',
       Authorization: token ? `Bearer ${token}` : '',
     },
-    body: JSON.stringify({
-      agent_slug: agentSlug,
-      message,
-      context,
-      conversation_id: conversationId || null,
-    }),
+    body: JSON.stringify(requestPayload),
     signal,
   })
 
