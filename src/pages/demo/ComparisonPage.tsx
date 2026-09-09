@@ -181,6 +181,7 @@ export default function ComparisonPage() {
 
     const unitPis = (unitPisCofinsBase * pisRate) / 100
     const unitCofins = (unitPisCofinsBase * cofinsRate) / 100
+    const unitNetRevenue = unitGross - unitMunicipalStateTax - unitPis - unitCofins
     const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
     const unitCmv = isAutoInventory
       ? calculatedPurchases.unitCostPresumidoEffective
@@ -287,6 +288,7 @@ export default function ComparisonPage() {
 
     const unitPis = (unitPisCofinsBase * pisRate) / 100
     const unitCofins = (unitPisCofinsBase * cofinsRate) / 100
+    const unitNetRevenue = unitGross - unitMunicipalStateTax - unitPis - unitCofins
     const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
     const unitCmv = isAutoInventory
       ? calculatedPurchases.unitCostRealEffective
@@ -400,6 +402,7 @@ export default function ComparisonPage() {
     const unitIpi = (unitGross * pgdas.reparticao.ipiRate) / 100
     const unitIss = (unitGross * pgdas.reparticao.issRate) / 100
 
+    const unitNetRevenue = unitGross - unitDasTotal
     const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
     const unitCmv = isAutoInventory
       ? calculatedPurchases.unitCostSimplesEffective
