@@ -680,10 +680,13 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               ? Number.isFinite(value)
                 ? Math.max(0, value)
                 : 0
-              : Math.max(0, parseBRNumber(value))
+              : Math.max(0, parseBRNumber(String(value)))
           return { ...entry, value: numVal }
         }
-        return { ...entry, [field]: value }
+        if (field === 'description') {
+          return { ...entry, description: String(value) }
+        }
+        return entry
       }),
     )
   }
