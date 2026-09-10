@@ -391,7 +391,16 @@ export function runAutoStockDeductionTests(): {
  * 2. Carregamento de cenário antigo contendo apenas totais (números idênticos e preservação)
  * 3. Regressão zero com bloco vazio (sem lançamentos, cálculo exatamente idêntico ao modelo anterior)
  */
-export function runMiniLalurTests() {
+// Test runner for Mini-LALUR suite
+export function runMiniLalurTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string | undefined
+  }[]
+} {
   // Simulação de cálculo da apuração de IRPJ e CSLL no Lucro Real
   const calculateRealTaxBase = (
     resultBeforeTax: number,
@@ -536,6 +545,30 @@ export function runMiniLalurTests() {
   const restoredFromLegacy = restoreLalurFromSnapshot(legacySnapshot)
   const legacyRestoredResult = calculateRealTaxBase(resultBeforeTax, restoredFromLegacy)
 
+  // CENÁRIO 4: Cenário com prejuízo fiscal contábil ou apuração zerada
+  // Se resultado antes dos impostos for negativo e adições não superarem o prejuízo,
+  // taxableRealProfit deve ser 0 e IRPJ/CSLL devem ser R$ 0,00
+  const negativeAccountingResult = -50000.0
+  const lossEntries: {
+    id: string
+    description: string
+    value: number
+    type: 'addition' | 'exclusion'
+  }[] = [
+    { id: 'loss-add-1', description: 'Multa indedutível', value: 10000, type: 'addition' },
+    { id: 'loss-ex-1', description: 'Dividendos', value: 5000, type: 'exclusion' },
+  ]
+  // -50.000 + 10.000 - 5.000 = -45.000 -> base zerada
+  const lossLalurResult = calculateRealTaxBase(negativeAccountingResult, lossEntries)
+
+  // CENÁRIO 5: Retrocompatibilidade com totais zerados ou ausentes
+  const emptyLegacySnapshot = {
+    realAdditions: 0,
+    realExclusions: 0,
+  }
+  const restoredFromEmptyLegacy = restoreLalurFromSnapshot(emptyLegacySnapshot)
+  const emptyLegacyRestoredResult = calculateRealTaxBase(resultBeforeTax, restoredFromEmptyLegacy)
+
   const tests = [
     {
       test: 'Regressão zero: Base IRPJ/CSLL com Mini-LALUR vazio é exatamente R$ 100.000,00',
@@ -611,6 +644,31 @@ export function runMiniLalurTests() {
       test: 'Cenário legado: Total de impostos restaurado bate centavo a centavo com o cenário novo = R$ 28.340,00',
       expected: multiLalurResult.totalTaxes,
       received: legacyRestoredResult.totalTaxes,
+    },
+    {
+      test: 'Retrocompatibilidade zero: Snapshot legado com adições e exclusões zero gera lista vazia',
+      expected: 0,
+      received: restoredFromEmptyLegacy.length,
+    },
+    {
+      test: 'Retrocompatibilidade zero: Base de cálculo com snapshot legado zero preserva R$ 100.000,00',
+      expected: 100000,
+      received: emptyLegacyRestoredResult.taxableRealProfit,
+    },
+    {
+      test: 'Retrocompatibilidade zero: Tributos com snapshot legado zero conferem com R$ 28.000,00',
+      expected: 28000,
+      received: emptyLegacyRestoredResult.totalTaxes,
+    },
+    {
+      test: 'Prejuízo fiscal / base não-tributável: Base ajustada negativa resulta em 0,00',
+      expected: 0,
+      received: lossLalurResult.taxableRealProfit,
+    },
+    {
+      test: 'Prejuízo fiscal / base não-tributável: IRPJ e CSLL zerados (0,00)',
+      expected: 0,
+      received: lossLalurResult.totalTaxes,
     },
   ]
 
