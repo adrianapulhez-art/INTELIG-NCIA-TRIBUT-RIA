@@ -737,10 +737,10 @@ export default function DreRealPage() {
                     type="text"
                     value={exp.description}
                     onChange={(e) => updateRealExpense(exp.id, 'description', e.target.value)}
-                    placeholder="Descrição da despesa"
-                    className="flex-1 bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-200"
+                    placeholder="Descrição da despesa operacional..."
+                    className="flex-1 text-xs font-mono field-input-interactive"
                   />
-                  <div className="relative w-36 sm:w-44">
+                  <div className="relative w-40">
                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                       R$
                     </span>
@@ -754,9 +754,9 @@ export default function DreRealPage() {
                         e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                       }}
                       placeholder="0,00"
-                      className="pl-8 text-right bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-100"
+                      className="pl-8 text-right text-xs font-mono field-input-interactive"
                     />
-                  </div>
+                  </div>{' '}
                   <button
                     type="button"
                     onClick={() => removeRealExpense(exp.id)}

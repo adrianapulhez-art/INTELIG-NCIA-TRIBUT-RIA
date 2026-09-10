@@ -704,7 +704,7 @@ export default function ComparisonPage() {
                     setPresumidoActivity(act)
                     setRealActivity(act)
                   }}
-                  className="w-full h-9 rounded-md bg-slate-900 border border-orange-500/50 hover:border-orange-400/80 text-xs font-mono text-orange-50 px-2.5 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 focus:outline-none"
+                  className="w-full h-9 rounded-md text-xs font-mono px-2.5 outline-none field-input-interactive"
                 >
                   <option value="comercio">Comércio (ICMS · IRPJ 8% / CSLL 12%)</option>
                   <option value="industria">Indústria (ICMS · IRPJ 8% / CSLL 12%)</option>
@@ -721,7 +721,7 @@ export default function ComparisonPage() {
                 <select
                   value={currentAnexoId}
                   onChange={(e) => setSimplesAnexo(e.target.value)}
-                  className="w-full h-9 rounded-md bg-slate-900 border border-orange-500/50 hover:border-orange-400/80 text-xs font-mono text-orange-50 px-2.5 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 focus:outline-none"
+                  className="w-full h-9 rounded-md text-xs font-mono px-2.5 outline-none field-input-interactive"
                 >
                   <option value="anexo_1">Anexo I — Comércio</option>
                   <option value="anexo_2">Anexo II — Indústria</option>
@@ -816,7 +816,7 @@ export default function ComparisonPage() {
                         e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                       }}
                       placeholder="0,00"
-                      className="pl-8 text-right bg-slate-900 border-slate-800 text-xs font-mono text-slate-100"
+                      className="pl-8 text-right text-xs font-mono field-input-interactive"
                     />
                   </div>
                 </div>
@@ -839,7 +839,7 @@ export default function ComparisonPage() {
                         e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                       }}
                       placeholder="0,00"
-                      className="pl-8 text-right bg-slate-900 border-slate-800 text-xs font-mono text-slate-100"
+                      className="pl-8 text-right text-xs font-mono field-input-interactive"
                     />
                   </div>
                 </div>
@@ -858,7 +858,7 @@ export default function ComparisonPage() {
                         setPayrollInssRate(parsed)
                         e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
                       }}
-                      className="pr-6 text-right bg-slate-900 text-xs font-mono"
+                      className="pr-6 text-right text-xs font-mono field-input-interactive"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
                       %
@@ -880,7 +880,7 @@ export default function ComparisonPage() {
                         setPayrollRatRate(parsed)
                         e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
                       }}
-                      className="pr-6 text-right bg-slate-900 text-xs font-mono"
+                      className="pr-6 text-right text-xs font-mono field-input-interactive"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
                       %
@@ -902,7 +902,7 @@ export default function ComparisonPage() {
                         setPayrollTerceirosRate(parsed)
                         e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
                       }}
-                      className="pr-6 text-right bg-slate-900 text-xs font-mono"
+                      className="pr-6 text-right text-xs font-mono field-input-interactive"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
                       %
@@ -949,7 +949,7 @@ export default function ComparisonPage() {
                           updatePresumidoExpense(exp.id, 'description', e.target.value)
                         }
                         placeholder="Descrição"
-                        className="flex-1 bg-slate-950/80 border-slate-800 text-xs font-mono text-slate-200 h-8"
+                        className="flex-1 text-xs font-mono h-8 field-input-interactive"
                       />
                       <div className="relative w-32">
                         <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 pointer-events-none">
@@ -965,7 +965,7 @@ export default function ComparisonPage() {
                             e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                           }}
                           placeholder="0,00"
-                          className="pl-6 text-right bg-slate-950/80 border-slate-800 text-xs font-mono text-slate-100 h-8"
+                          className="pl-6 text-right text-xs font-mono h-8 field-input-interactive"
                         />
                       </div>
                       <button

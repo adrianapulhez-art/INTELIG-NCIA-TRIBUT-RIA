@@ -94,10 +94,10 @@ function ProductBaseValueInput({
             setText(num > 0 ? formatNumberBR(num) : '')
             onUpdate(productId, isLiquid ? 'desiredNetRevenue' : 'cost', num)
           }}
-          className={`pl-8 text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8 ${
+          className={`pl-8 text-right text-xs h-8 ${
             isReadOnlyCost
               ? 'border-emerald-500/40 text-emerald-300 bg-emerald-950/20 cursor-default focus:border-emerald-500/40'
-              : ''
+              : 'field-input-interactive'
           }`}
         />
       </div>
@@ -145,7 +145,7 @@ function ProductMarginInput({ productId, isLiquid, margin, onUpdate }: ProductMa
             setText(num > 0 ? formatNumberBR(num) : '')
             onUpdate(productId, num)
           }}
-          className="pr-6 text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8"
+          className="pr-6 text-right text-xs h-8 field-input-interactive"
         />
         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
           %
@@ -422,7 +422,10 @@ export default function MarkupPage() {
         />
 
         {/* Card Principal */}
-        <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
+        <div
+          key={`markup-container-${regime}`}
+          className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6"
+        >
           {/* Header com Ícone de Calculadora */}
           <div className="flex items-start justify-between flex-wrap gap-3 pb-2 border-b border-emerald-500/15">
             <div className="flex items-center gap-3">
@@ -562,14 +565,14 @@ export default function MarkupPage() {
                     placeholder="Nome (ex.: ISS, IPI)"
                     value={newTaxName}
                     onChange={(e) => setNewTaxName(e.target.value)}
-                    className="bg-slate-900 border-slate-700 text-xs font-mono"
+                    className="text-xs font-mono field-input-interactive"
                   />
                   <Input
                     type="text"
                     placeholder="Alíquota %"
                     value={newTaxRate}
                     onChange={(e) => setNewTaxRate(e.target.value)}
-                    className="bg-slate-900 border-slate-700 text-xs font-mono"
+                    className="text-xs font-mono field-input-interactive"
                   />
                 </div>
                 <div className="flex justify-end gap-2">
@@ -610,7 +613,7 @@ export default function MarkupPage() {
                     onFocus={() => setIsIcmsFocused(true)}
                     onChange={handleIcmsChange}
                     onBlur={handleIcmsBlur}
-                    className="pr-7 text-right bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
+                    className="pr-7 text-right font-mono text-xs field-input-interactive"
                   />
                   <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     %
@@ -755,7 +758,7 @@ export default function MarkupPage() {
                           value={prod.name}
                           onChange={(e) => updateMarkupProduct(prod.id, 'name', e.target.value)}
                           placeholder="Nome ou descrição do produto/serviço (ex.: Produto A)"
-                          className="bg-slate-900 border-slate-800 text-slate-100 font-semibold text-xs h-8 flex-1"
+                          className="font-semibold text-xs h-8 flex-1 field-input-interactive"
                         />
                       </div>
 
@@ -856,7 +859,7 @@ export default function MarkupPage() {
                               isNaN(val) || val < 0 ? 0 : val,
                             )
                           }}
-                          className="text-right bg-slate-900 border-slate-800 text-slate-100 text-xs h-8"
+                          className="text-right text-xs h-8 field-input-interactive"
                         />
                       </div>
 

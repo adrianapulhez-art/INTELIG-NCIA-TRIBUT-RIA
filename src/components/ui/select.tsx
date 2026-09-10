@@ -19,9 +19,9 @@ const SelectTrigger = React.forwardRef<
     ref={ref}
     disabled={disabled}
     className={cn(
-      'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
+      'flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 transition-all duration-200',
       !disabled &&
-        'border-orange-500/50 hover:border-orange-400/80 focus:border-orange-500 focus-visible:border-orange-500 focus-visible:ring-orange-500/30 text-orange-50',
+        'bg-orange-500/10 hover:bg-orange-500/15 focus:bg-orange-500/[0.18] border-orange-500/60 hover:border-orange-400/90 focus:border-orange-500 focus-visible:border-orange-500 focus-visible:ring-orange-500/40 text-orange-50 shadow-[0_0_10px_rgba(249,115,22,0.06)]',
       className,
     )}
     {...props}

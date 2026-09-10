@@ -739,7 +739,7 @@ export default function DrePresumidoPage() {
                     value={exp.description}
                     onChange={(e) => updatePresumidoExpense(exp.id, 'description', e.target.value)}
                     placeholder="Descrição da despesa"
-                    className="flex-1 bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-200"
+                    className="flex-1 text-xs font-mono field-input-interactive"
                   />
                   <div className="relative w-36 sm:w-44">
                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
@@ -753,7 +753,7 @@ export default function DrePresumidoPage() {
                         updatePresumidoExpense(exp.id, 'value', parseBRNumber(e.target.value))
                       }
                       placeholder="0,00"
-                      className="pl-8 text-right bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-100"
+                      className="pl-8 text-right text-xs font-mono field-input-interactive"
                     />
                   </div>
                   <button

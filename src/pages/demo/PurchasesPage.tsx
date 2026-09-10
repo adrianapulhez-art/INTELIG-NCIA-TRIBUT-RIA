@@ -166,7 +166,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
             value={item.name}
             onChange={(e) => onUpdate(item.id, 'name', e.target.value)}
             placeholder={`Nome do item ${index + 1}`}
-            className="h-8 max-w-xs bg-slate-900 border-orange-500/50 text-orange-50 text-xs font-semibold focus:border-orange-500 focus-visible:ring-orange-500/30"
+            className="h-8 max-w-xs text-xs font-semibold field-input-interactive"
           />
         </div>
 
@@ -234,7 +234,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                   onUpdate(item.id, 'quantity', safe)
                   setQtyVal(safe > 0 ? String(safe) : '')
                 }}
-                className="bg-slate-900 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
+                className="text-xs font-mono field-input-interactive"
               />
             </div>
 
@@ -262,7 +262,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                     onUpdate(item.id, 'unitPrice', parsed)
                     setUnitVal(parsed > 0 ? formatNumberBR(parsed) : '')
                   }}
-                  className="pl-8 text-right bg-slate-900 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
+                  className="pl-8 text-right text-xs font-mono field-input-interactive"
                 />
               </div>
             </div>
@@ -291,7 +291,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                     onUpdate(item.id, 'merchandiseValue', parsed)
                     setMerchVal(parsed > 0 ? formatNumberBR(parsed) : '')
                   }}
-                  className="pl-8 text-right bg-slate-900 border-orange-500/50 text-orange-50 text-xs font-mono font-bold focus:border-orange-500 focus-visible:ring-orange-500/30"
+                  className="pl-8 text-right text-xs font-mono font-bold field-input-interactive"
                 />
               </div>
             </div>
@@ -329,7 +329,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                       onUpdate(item.id, 'ipiRate', parsed)
                       setIpiVal(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pr-6 text-right bg-slate-950 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
+                    className="pr-6 text-right text-xs font-mono field-input-interactive"
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     %
@@ -362,7 +362,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                       onUpdate(item.id, 'icmsRate', parsed)
                       setIcmsVal(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pr-6 text-right bg-slate-950 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
+                    className="pr-6 text-right text-xs font-mono field-input-interactive"
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     %
@@ -395,7 +395,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                       onUpdate(item.id, 'freightValue', parsed)
                       setFreightValInput(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pl-8 text-right bg-slate-950 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
+                    className="pl-8 text-right text-xs font-mono field-input-interactive"
                   />
                 </div>
               </div>
@@ -428,7 +428,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                       onUpdate(item.id, 'icmsFreightRate', parsed)
                       setIcmsFreightRateInput(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pr-6 text-right bg-slate-950 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
+                    className="pr-6 text-right text-xs font-mono field-input-interactive"
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     %
@@ -958,8 +958,8 @@ export default function PurchasesPage() {
                       type="text"
                       value={item.description}
                       onChange={(e) => updateAdditionalCost(item.id, 'description', e.target.value)}
-                      placeholder="Descrição do encargo (ex.: Frete e seguro)"
-                      className="flex-1 bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-200"
+                      placeholder="Descrição do encargo"
+                      className="text-xs font-semibold h-8 flex-1 field-input-interactive"
                     />
                     <div className="relative w-36 sm:w-44">
                       <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
@@ -968,14 +968,14 @@ export default function PurchasesPage() {
                       <Input
                         type="text"
                         defaultValue={item.value > 0 ? formatNumberBR(item.value) : ''}
-                        key={`add-${item.id}-${item.value}`}
+                        key={`cost-${item.id}-${item.value}`}
                         onBlur={(e) => {
                           const parsed = parseBRNumber(e.target.value)
                           updateAdditionalCost(item.id, 'value', parsed)
                           e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                         }}
                         placeholder="0,00"
-                        className="pl-8 text-right bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-100"
+                        className="pl-7 text-right text-xs font-mono h-8 w-28 field-input-interactive"
                       />
                     </div>
                     <button
@@ -1036,7 +1036,7 @@ export default function PurchasesPage() {
                           e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                         }}
                         placeholder="0,00"
-                        className="pl-8 text-right bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-100"
+                        className="pl-8 text-right text-xs font-mono field-input-interactive"
                       />
                     </div>
                     <button
@@ -1079,7 +1079,7 @@ export default function PurchasesPage() {
                           setPisFreightPurchasesBase(parsed)
                           e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                         }}
-                        className="pl-8 text-right bg-slate-900 border-slate-800 text-xs font-mono"
+                        className="pl-8 text-right text-xs font-mono field-input-interactive"
                       />
                     </div>
                   </div>
@@ -1106,7 +1106,7 @@ export default function PurchasesPage() {
                           setCofinsFreightPurchasesBase(parsed)
                           e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                         }}
-                        className="pl-8 text-right bg-slate-900 border-slate-800 text-xs font-mono"
+                        className="pl-8 text-right text-xs font-mono field-input-interactive"
                       />
                     </div>
                   </div>

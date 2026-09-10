@@ -550,7 +550,7 @@ export default function DreSimplesPage() {
                     className={`pl-9 font-mono text-xs ${
                       simplesIsInicioAtividade
                         ? 'bg-slate-950/80 border-slate-800 text-slate-400 font-bold cursor-not-allowed'
-                        : 'bg-slate-900 border-orange-500/50 text-orange-50 focus:border-orange-500 focus-visible:ring-orange-500/30'
+                        : 'field-input-interactive'
                     }`}
                   />
                 </div>
@@ -584,7 +584,7 @@ export default function DreSimplesPage() {
                       setIsPayrollFocused(false)
                       handlePayrollBlur(e)
                     }}
-                    className="pl-9 bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
+                    className="pl-9 font-mono text-xs field-input-interactive"
                   />
                 </div>
                 <span className="text-[10px] text-slate-500 font-mono">
@@ -716,7 +716,7 @@ export default function DreSimplesPage() {
                                     })
                                   }
                                 }}
-                                className="pl-8 text-right bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs h-8 focus:border-orange-500 focus-visible:ring-orange-500/30"
+                                className="pl-8 text-right font-mono text-xs h-8 field-input-interactive"
                               />
                             </div>
                             {simplesMonthlyRevenues.length > 1 && (
@@ -1098,7 +1098,7 @@ export default function DreSimplesPage() {
                     value={exp.description}
                     onChange={(e) => updateSimplesExpense(exp.id, 'description', e.target.value)}
                     placeholder="Descrição da despesa"
-                    className="flex-1 bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-200"
+                    className="flex-1 text-xs font-mono field-input-interactive"
                   />
                   <div className="relative w-36 sm:w-44">
                     <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
@@ -1108,13 +1108,13 @@ export default function DreSimplesPage() {
                       type="text"
                       defaultValue={exp.value > 0 ? formatNumberBR(exp.value) : ''}
                       key={`exp-${exp.id}-${exp.value}`}
+                      placeholder="0,00"
                       onBlur={(e) => {
                         const parsed = parseBRNumber(e.target.value)
                         updateSimplesExpense(exp.id, 'value', parsed)
                         e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                       }}
-                      placeholder="0,00"
-                      className="pl-8 text-right bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-100"
+                      className="pl-8 text-right text-xs font-mono field-input-interactive"
                     />
                   </div>
                   <button
