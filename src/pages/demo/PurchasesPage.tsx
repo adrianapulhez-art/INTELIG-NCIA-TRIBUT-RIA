@@ -27,6 +27,7 @@ import { PageHero } from '@/components/demo/PageHero'
 import { SubstituicaoTributariaSection } from '@/components/demo/SubstituicaoTributariaSection'
 import { OperacoesInterestaduaisSection } from '@/components/demo/OperacoesInterestaduaisSection'
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
+import { ProductStockModal } from '@/components/demo/ProductStockModal'
 import {
   Dialog,
   DialogContent,
@@ -581,6 +582,16 @@ export default function PurchasesPage() {
   const [isInterstateDialogOpen, setIsInterstateDialogOpen] = useState(false)
   const [isFreightDialogOpen, setIsFreightDialogOpen] = useState(false)
   const [isDeductionsDialogOpen, setIsDeductionsDialogOpen] = useState(false)
+  const [isProductStockDialogOpen, setIsProductStockDialogOpen] = useState(false)
+
+  // Subsistema de estoque por produto: totais para o badge dinâmico
+  const { productStockState, calculatedProductStock } = useTaxContext()
+  const productStockTotals = calculatedProductStock.totals
+  const hasProductStockData =
+    productStockTotals.productsCount > 0 ||
+    productStockTotals.totalStockQty > 0 ||
+    productStockTotals.totalStockValue > 0 ||
+    (productStockState.products && productStockState.products.length > 0)
 
   // Totais e contagens de encargos e deduções para badges dinâmicos em tempo real
   const totalAdditionalCostsValue = additionalCosts.reduce((acc, c) => acc + (c.value || 0), 0)
@@ -1053,6 +1064,39 @@ export default function PurchasesPage() {
                     </Badge>
                     <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
                   </button>
+
+                  {/* Chip 3: Subsistema de Estoque por Produto (Kardex / CMP) */}
+                  <button
+                    type="button"
+                    onClick={() => setIsProductStockDialogOpen(true)}
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer shadow-sm ${
+                      hasProductStockData
+                        ? 'bg-orange-500/[0.22] border-orange-400/90 text-orange-100 hover:bg-orange-500/35 hover:border-orange-300 shadow-orange-500/25 ring-1 ring-orange-500/40'
+                        : 'bg-orange-500/[0.12] border-orange-500/70 text-orange-200 hover:text-white hover:border-orange-400 hover:bg-orange-500/20 shadow-orange-500/10'
+                    }`}
+                    title="Abrir Subsistema de Controle de Estoque por Produto (Kardex, CMP Móvel e CMV por Produto)"
+                  >
+                    <Boxes
+                      className={`w-3.5 h-3.5 ${
+                        hasProductStockData ? 'text-orange-200' : 'text-orange-300/80'
+                      }`}
+                    />
+                    <span className="font-semibold text-orange-100">Estoque por Produto</span>
+                    <Badge
+                      className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
+                        hasProductStockData
+                          ? 'bg-orange-500/35 text-orange-100 font-semibold'
+                          : 'bg-orange-950/70 text-orange-300 border border-orange-500/30'
+                      }`}
+                    >
+                      {hasProductStockData
+                        ? `${productStockTotals.productsCount} ${
+                            productStockTotals.productsCount === 1 ? 'prod.' : 'prods.'
+                          } · ${productStockTotals.totalStockQty} un.`
+                        : 'Disponível'}
+                    </Badge>
+                    <ChevronRight className="w-3 h-3 text-orange-300/70 ml-0.5" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -1155,6 +1199,12 @@ export default function PurchasesPage() {
                 </div>
               </DialogContent>
             </Dialog>
+
+            {/* Diálogo / Camada Completa: Subsistema de Estoque por Produto (Kardex / CMP Móvel) */}
+            <ProductStockModal
+              open={isProductStockDialogOpen}
+              onOpenChange={setIsProductStockDialogOpen}
+            />
 
             {/* Diálogo / Camada Completa: Deduções do Custo (Devoluções / Abatimentos / Descontos) */}
             <Dialog open={isDeductionsDialogOpen} onOpenChange={setIsDeductionsDialogOpen}>

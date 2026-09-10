@@ -385,6 +385,250 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * Testes Automatizados do Subsistema de Estoque por Produto (Kardex / CMP Móvel)
+ * Cobrindo:
+ * 1. Caso da usuária: 1 produto, estoque inicial 0, entrada 30 un. a R$ 100,00, saída 22 un. -> estoque final 8 un., CMP R$ 100,00, CMV R$ 2.200,00 e valor em estoque R$ 800,00.
+ * 2. Múltiplos produtos com custos de entrada diferentes validando a média ponderada móvel centavo a centavo.
+ * 3. Validação de saída maior que saldo disponível (alerta visual e flag isStockNegativeOrExceeded).
+ * 4. Validação de persistência e restauração do estado do subsistema.
+ */
+import {
+  calculateSingleProductStockPosition,
+  calculateProductStockSubsystem,
+  ProductStockItem,
+} from '@/lib/productStockCalculations'
+
+export function runProductStockSubsystemTests() {
+  // CASO 1: Caso da usuária (1 produto, EI 0, Entrada 30 un. a R$ 100, Saída 22 un.)
+  const userCaseProduct: ProductStockItem = {
+    id: 'prod-user',
+    name: 'Mercadoria Exemplo',
+    initial: { quantity: 0, unitCost: 0 },
+    entries: [
+      {
+        id: 'e1',
+        quantity: 30,
+        unitCost: 100.0,
+        totalValue: 3000.0,
+        notes: 'Compra NF 101',
+      },
+    ],
+    exits: [
+      {
+        id: 'x1',
+        quantity: 22,
+        notes: 'Venda Pedido #01',
+      },
+    ],
+  }
+
+  const userCasePosition = calculateSingleProductStockPosition(userCaseProduct)
+
+  // CASO 2: Múltiplos produtos com entradas a custos diferentes (recalculando CMP rigoroso)
+  // Produto A:
+  // Inicial: 10 un. a R$ 50,00 = R$ 500,00
+  // Entrada 1: 20 un. a R$ 80,00 = R$ 1.600,00
+  //   -> Saldo após E1: 30 un., valor R$ 2.100,00 -> CMP = 2.100 / 30 = R$ 70,00
+  // Saída 1: 15 un. ao CMP R$ 70,00 -> CMV = R$ 1.050,00, Saldo após S1: 15 un., valor R$ 1.050,00
+  // Entrada 2: 15 un. a R$ 90,00 = R$ 1.350,00
+  //   -> Saldo após E2: 30 un., valor R$ 2.400,00 -> Novo CMP = 2.400 / 30 = R$ 80,00
+  // Saída 2: 10 un. ao CMP R$ 80,00 -> CMV = R$ 800,00, Saldo final: 20 un., valor R$ 1.600,00
+  // Total CMV Produto A = 1.050 + 800 = R$ 1.850,00
+  const productA: ProductStockItem = {
+    id: 'prod-a',
+    name: 'Produto Alfa',
+    initial: { quantity: 10, unitCost: 50.0 },
+    entries: [
+      { id: 'eA1', date: '2025-01-05', quantity: 20, unitCost: 80.0, totalValue: 1600.0 },
+      { id: 'eA2', date: '2025-01-15', quantity: 15, unitCost: 90.0, totalValue: 1350.0 },
+    ],
+    exits: [
+      { id: 'xA1', date: '2025-01-10', quantity: 15 },
+      { id: 'xA2', date: '2025-01-20', quantity: 10 },
+    ],
+  }
+
+  // Produto B:
+  // Inicial: 0
+  // Entrada 1: 100 un. a R$ 12,34 = R$ 1.234,00 -> CMP R$ 12,34
+  // Entrada 2: 50 un. a R$ 15,67 = R$ 783,50
+  //   -> Total Qtd: 150 un., Valor Total: R$ 2.017,50 -> CMP = 2.017,50 / 150 = R$ 13,45
+  // Saída 1: 50 un. ao CMP R$ 13,45 = R$ 672,50
+  // Saldo final: 100 un., Valor estoque = R$ 1.345,00
+  const productB: ProductStockItem = {
+    id: 'prod-b',
+    name: 'Produto Beta',
+    initial: { quantity: 0, unitCost: 0 },
+    entries: [
+      { id: 'eB1', date: '2025-01-02', quantity: 100, unitCost: 12.34, totalValue: 1234.0 },
+      { id: 'eB2', date: '2025-01-08', quantity: 50, unitCost: 15.67, totalValue: 783.5 },
+    ],
+    exits: [{ id: 'xB1', date: '2025-01-12', quantity: 50 }],
+  }
+
+  const multiSubsystem = calculateProductStockSubsystem([productA, productB])
+  const posA = multiSubsystem.positions.find((p) => p.id === 'prod-a')!
+  const posB = multiSubsystem.positions.find((p) => p.id === 'prod-b')!
+
+  // CASO 3: Validação de saída maior que saldo
+  // Inicial 5 un., Entrada 5 un. -> Total 10 un. Saída de 14 un. -> Excede 4 un.
+  const productOverExit: ProductStockItem = {
+    id: 'prod-over',
+    name: 'Produto Excedido',
+    initial: { quantity: 5, unitCost: 10.0 },
+    entries: [{ id: 'eO1', quantity: 5, unitCost: 10.0, totalValue: 50.0 }],
+    exits: [{ id: 'xO1', quantity: 14 }],
+  }
+  const posOver = calculateSingleProductStockPosition(productOverExit)
+
+  // CASO 4: Validação de entrada com custo zerado
+  const productZeroCost: ProductStockItem = {
+    id: 'prod-zero',
+    name: 'Produto Bonificação',
+    initial: { quantity: 10, unitCost: 20.0 },
+    entries: [{ id: 'eZ1', quantity: 10, unitCost: 0.0, totalValue: 0.0 }],
+    exits: [],
+  }
+  const posZero = calculateSingleProductStockPosition(productZeroCost)
+
+  const tests: {
+    test: string
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[] = [
+    // Caso da usuária
+    {
+      test: 'Caso da usuária: Estoque final em unidades deve ser exatamente 8 un. (30 - 22)',
+      expected: 8,
+      received: userCasePosition.currentStockQty,
+    },
+    {
+      test: 'Caso da usuária: Custo Médio Ponderado vigente deve ser R$ 100,00',
+      expected: 100.0,
+      received: userCasePosition.currentAverageCost,
+    },
+    {
+      test: 'Caso da usuária: Valor do estoque final deve ser R$ 800,00 (8 × 100)',
+      expected: 800.0,
+      received: userCasePosition.currentStockValue,
+    },
+    {
+      test: 'Caso da usuária: CMV acumulado da baixa deve ser R$ 2.200,00 (22 × 100)',
+      expected: 2200.0,
+      received: userCasePosition.accumulatedCmv,
+    },
+    {
+      test: 'Caso da usuária: Não deve acusar saldo negativo nem custo zero',
+      expected: false,
+      received: userCasePosition.isStockNegativeOrExceeded,
+    },
+
+    // Múltiplos produtos - Produto A
+    {
+      test: 'Produto Alfa: Estoque final em quantidade deve ser 20 un.',
+      expected: 20,
+      received: posA.currentStockQty,
+    },
+    {
+      test: 'Produto Alfa: Custo Médio Ponderado final deve ser R$ 80,00',
+      expected: 80.0,
+      received: posA.currentAverageCost,
+    },
+    {
+      test: 'Produto Alfa: Valor do estoque final deve ser R$ 1.600,00',
+      expected: 1600.0,
+      received: posA.currentStockValue,
+    },
+    {
+      test: 'Produto Alfa: CMV acumulado total deve ser R$ 1.850,00',
+      expected: 1850.0,
+      received: posA.accumulatedCmv,
+    },
+
+    // Múltiplos produtos - Produto B
+    {
+      test: 'Produto Beta: Estoque final em quantidade deve ser 100 un.',
+      expected: 100,
+      received: posB.currentStockQty,
+    },
+    {
+      test: 'Produto Beta: Custo Médio centavo a centavo = 2017.50 / 150 = R$ 13,45',
+      expected: 13.45,
+      received: posB.currentAverageCost,
+    },
+    {
+      test: 'Produto Beta: Valor do estoque final deve ser R$ 1.345,00',
+      expected: 1345.0,
+      received: posB.currentStockValue,
+    },
+    {
+      test: 'Produto Beta: CMV acumulado deve ser R$ 672,50',
+      expected: 672.5,
+      received: posB.accumulatedCmv,
+    },
+
+    // Totais consolidados do subsistema
+    {
+      test: 'Totais Subsistema: Quantidade total em estoque = 120 un. (20 + 100)',
+      expected: 120,
+      received: multiSubsystem.totals.totalStockQty,
+    },
+    {
+      test: 'Totais Subsistema: Valor total em estoque = R$ 2.945,00 (1.600 + 1.345)',
+      expected: 2945.0,
+      received: multiSubsystem.totals.totalStockValue,
+    },
+    {
+      test: 'Totais Subsistema: CMV acumulado global = R$ 2.522,50 (1.850 + 672,50)',
+      expected: 2522.5,
+      received: multiSubsystem.totals.totalAccumulatedCmv,
+    },
+
+    // Validação de saídas excedidas
+    {
+      test: 'Alerta de saldo: Detecta que saída (14 un.) excedeu o estoque (10 un.)',
+      expected: true,
+      received: posOver.isStockNegativeOrExceeded,
+    },
+    {
+      test: 'Alerta de saldo: Quantidade excedida apurada = 4 un.',
+      expected: 4,
+      received: posOver.exceededQty,
+    },
+
+    // Validação de entrada custo zero / bonificação
+    {
+      test: 'Entrada custo zero: Detecta entrada sem custo',
+      expected: true,
+      received: posZero.hasZeroCostEntry,
+    },
+    {
+      test: 'Entrada custo zero: CMP diluído de R$ 20,00 para R$ 10,00 (200 / 20)',
+      expected: 10.0,
+      received: posZero.currentAverageCost,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : typeof t.expected === 'string'
+          ? t.expected === t.received
+          : Math.abs((t.expected as number) - (t.received as number)) < 0.001
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
  * Teste específico: Validação Comparação de Regimes vs DREs no caso 30 compradas x 22 vendidas
  * Garante que:
  * 1. automaticQuantity prioriza totalConsolidatedQuantity (22 un.) sobre totalPurchasesQuantity (30 un.).

@@ -7,6 +7,16 @@ import {
   INITIAL_INTERSTATE_SUBSYSTEM,
 } from '@/lib/specialOperationsCalculations'
 import { ReformaState, ReformaYear, INITIAL_REFORMA_STATE } from '@/lib/reformaCalculations'
+import {
+  ProductStockState,
+  INITIAL_PRODUCT_STOCK_STATE,
+  ProductStockItem,
+  ProductStockEntry,
+  ProductStockExit,
+  ProductStockPosition,
+  ProductStockTotals,
+  calculateProductStockSubsystem,
+} from '@/lib/productStockCalculations'
 
 export type TaxRegime = 'presumido' | 'real' | 'simples'
 export type ActivityType = 'comercio' | 'industria' | 'servicos'
@@ -173,6 +183,8 @@ export interface TaxStateSnapshot {
   interstateSubsystem?: InterstateSubsystemState
   // Subsistema Reforma Tributária — IBS/CBS (EC 132/23 e LC 214/25)
   reformaState?: ReformaState
+  // Subsistema de Controle de Estoque por Produto
+  productStockState?: ProductStockState
 }
 
 export interface TaxContextType {
@@ -459,6 +471,41 @@ export interface TaxContextType {
   setReformaState: React.Dispatch<React.SetStateAction<ReformaState>>
   updateReformaState: <K extends keyof ReformaState>(key: K, value: ReformaState[K]) => void
   setSelectedReformaYear: (year: ReformaYear) => void
+
+  // SUBSISTEMA 4: CONTROLE DE ESTOQUE POR PRODUTO
+  productStockState: ProductStockState
+  setProductStockState: React.Dispatch<React.SetStateAction<ProductStockState>>
+  addProductStockItem: (
+    name?: string,
+    initialQty?: number,
+    initialUnitCost?: number,
+    productId?: string,
+  ) => void
+  updateProductStockItem: (
+    id: string,
+    updates: Partial<Pick<ProductStockItem, 'name' | 'initial' | 'productId'>>,
+  ) => void
+  removeProductStockItem: (id: string) => void
+  addProductStockEntry: (productId: string, entry: Omit<ProductStockEntry, 'id'>) => void
+  updateProductStockEntry: (
+    productId: string,
+    entryId: string,
+    updates: Partial<Omit<ProductStockEntry, 'id'>>,
+  ) => void
+  removeProductStockEntry: (productId: string, entryId: string) => void
+  addProductStockExit: (productId: string, exit: Omit<ProductStockExit, 'id'>) => void
+  updateProductStockExit: (
+    productId: string,
+    exitId: string,
+    updates: Partial<Omit<ProductStockExit, 'id'>>,
+  ) => void
+  removeProductStockExit: (productId: string, exitId: string) => void
+  importPurchasesToProductStock: () => { importedCount: number; message: string }
+  syncProductsFromMarkup: () => { addedCount: number }
+  calculatedProductStock: {
+    positions: ProductStockPosition[]
+    totals: ProductStockTotals
+  }
 
   // Limpar/Resetar tudo para zerado
   resetAll: () => void
@@ -783,6 +830,344 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const setSelectedReformaYear = (year: ReformaYear) => {
     setReformaState((prev) => ({ ...prev, selectedYear: year }))
   }
+
+  // SUBSISTEMA 4: CONTROLE DE ESTOQUE POR PRODUTO
+  const [productStockState, setProductStockState] = useState<ProductStockState>(
+    INITIAL_PRODUCT_STOCK_STATE,
+  )
+
+  const addProductStockItem = (
+    name?: string,
+    initialQty = 0,
+    initialUnitCost = 0,
+    productId?: string,
+  ) => {
+    setProductStockState((prev) => {
+      const nextNum = (prev.products?.length || 0) + 1
+      const newItem: ProductStockItem = {
+        id: `stk-prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        productId,
+        name: name || `Produto ${nextNum}`,
+        initial: {
+          quantity: Math.max(0, initialQty),
+          unitCost: Math.max(0, initialUnitCost),
+        },
+        entries: [],
+        exits: [],
+      }
+      return {
+        ...prev,
+        enabled: true,
+        products: [...(prev.products || []), newItem],
+      }
+    })
+  }
+
+  const updateProductStockItem = (
+    id: string,
+    updates: Partial<Pick<ProductStockItem, 'name' | 'initial' | 'productId'>>,
+  ) => {
+    setProductStockState((prev) => ({
+      ...prev,
+      products: (prev.products || []).map((p) => {
+        if (p.id !== id) return p
+        return {
+          ...p,
+          ...updates,
+          initial: updates.initial
+            ? {
+                quantity: Math.max(0, Number(updates.initial.quantity) || 0),
+                unitCost: Math.max(0, Number(updates.initial.unitCost) || 0),
+              }
+            : p.initial,
+        }
+      }),
+    }))
+  }
+
+  const removeProductStockItem = (id: string) => {
+    setProductStockState((prev) => ({
+      ...prev,
+      products: (prev.products || []).filter((p) => p.id !== id),
+    }))
+  }
+
+  const addProductStockEntry = (productId: string, entry: Omit<ProductStockEntry, 'id'>) => {
+    const q = Math.max(0, Number(entry.quantity) || 0)
+    const u = Math.max(0, Number(entry.unitCost) || 0)
+    const total =
+      entry.totalValue !== undefined && entry.totalValue > 0
+        ? entry.totalValue
+        : Math.round(q * u * 100) / 100
+    const newEntry: ProductStockEntry = {
+      id: `entry-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      date: entry.date,
+      quantity: q,
+      unitCost: u,
+      totalValue: total,
+      notes: entry.notes,
+    }
+    setProductStockState((prev) => ({
+      ...prev,
+      products: (prev.products || []).map((p) => {
+        if (p.id !== productId) return p
+        return {
+          ...p,
+          entries: [...(p.entries || []), newEntry],
+        }
+      }),
+    }))
+  }
+
+  const updateProductStockEntry = (
+    productId: string,
+    entryId: string,
+    updates: Partial<Omit<ProductStockEntry, 'id'>>,
+  ) => {
+    setProductStockState((prev) => ({
+      ...prev,
+      products: (prev.products || []).map((p) => {
+        if (p.id !== productId) return p
+        return {
+          ...p,
+          entries: (p.entries || []).map((e) => {
+            if (e.id !== entryId) return e
+            const q =
+              updates.quantity !== undefined
+                ? Math.max(0, Number(updates.quantity) || 0)
+                : e.quantity
+            const u =
+              updates.unitCost !== undefined
+                ? Math.max(0, Number(updates.unitCost) || 0)
+                : e.unitCost
+            const tot =
+              updates.totalValue !== undefined ? updates.totalValue : Math.round(q * u * 100) / 100
+            return {
+              ...e,
+              ...updates,
+              quantity: q,
+              unitCost: u,
+              totalValue: tot,
+            }
+          }),
+        }
+      }),
+    }))
+  }
+
+  const removeProductStockEntry = (productId: string, entryId: string) => {
+    setProductStockState((prev) => ({
+      ...prev,
+      products: (prev.products || []).map((p) => {
+        if (p.id !== productId) return p
+        return {
+          ...p,
+          entries: (p.entries || []).filter((e) => e.id !== entryId),
+        }
+      }),
+    }))
+  }
+
+  const addProductStockExit = (productId: string, exit: Omit<ProductStockExit, 'id'>) => {
+    const q = Math.max(0, Number(exit.quantity) || 0)
+    const newExit: ProductStockExit = {
+      id: `exit-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      date: exit.date,
+      quantity: q,
+      notes: exit.notes,
+    }
+    setProductStockState((prev) => ({
+      ...prev,
+      products: (prev.products || []).map((p) => {
+        if (p.id !== productId) return p
+        return {
+          ...p,
+          exits: [...(p.exits || []), newExit],
+        }
+      }),
+    }))
+  }
+
+  const updateProductStockExit = (
+    productId: string,
+    exitId: string,
+    updates: Partial<Omit<ProductStockExit, 'id'>>,
+  ) => {
+    setProductStockState((prev) => ({
+      ...prev,
+      products: (prev.products || []).map((p) => {
+        if (p.id !== productId) return p
+        return {
+          ...p,
+          exits: (p.exits || []).map((x) => {
+            if (x.id !== exitId) return x
+            const q =
+              updates.quantity !== undefined
+                ? Math.max(0, Number(updates.quantity) || 0)
+                : x.quantity
+            return {
+              ...x,
+              ...updates,
+              quantity: q,
+            }
+          }),
+        }
+      }),
+    }))
+  }
+
+  const removeProductStockExit = (productId: string, exitId: string) => {
+    setProductStockState((prev) => ({
+      ...prev,
+      products: (prev.products || []).map((p) => {
+        if (p.id !== productId) return p
+        return {
+          ...p,
+          exits: (p.exits || []).filter((x) => x.id !== exitId),
+        }
+      }),
+    }))
+  }
+
+  /**
+   * Sincroniza produtos a partir do cadastro de Markup sem duplicar os já existentes.
+   */
+  const syncProductsFromMarkup = (): { addedCount: number } => {
+    let addedCount = 0
+    setProductStockState((prev) => {
+      const currentList = prev.products || []
+      const newItems: ProductStockItem[] = []
+
+      markupProducts.forEach((mp) => {
+        const alreadyExists = currentList.some(
+          (p) =>
+            (p.productId && p.productId === mp.id) ||
+            p.name.trim().toLowerCase() === mp.name.trim().toLowerCase(),
+        )
+        if (!alreadyExists && mp.name) {
+          addedCount++
+          newItems.push({
+            id: `stk-prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            productId: mp.id,
+            name: mp.name,
+            initial: { quantity: 0, unitCost: 0 },
+            entries: [],
+            exits: [],
+          })
+        }
+      })
+
+      return {
+        ...prev,
+        enabled: true,
+        products: [...currentList, ...newItems],
+      }
+    })
+    return { addedCount }
+  }
+
+  /**
+   * Importa compras da Calculadora de Compras para o subsistema de estoque.
+   * Cria os produtos se ainda não existirem e lança cada compra como entrada, sem duplicar se o usuário importar novamente.
+   */
+  const importPurchasesToProductStock = (): { importedCount: number; message: string } => {
+    const validPurchases = (purchasesItems || []).filter(
+      (item) => (item.quantity > 0 || item.merchandiseValue > 0) && item.name,
+    )
+
+    if (validPurchases.length === 0) {
+      return {
+        importedCount: 0,
+        message: 'Nenhum item com quantidade ou valor cadastrado na Calculadora de Compras.',
+      }
+    }
+
+    let importedCount = 0
+
+    setProductStockState((prev) => {
+      const currentProducts = [...(prev.products || [])]
+
+      validPurchases.forEach((purch) => {
+        // Encontra produto por nome ou cria
+        let targetProd = currentProducts.find(
+          (p) => p.name.trim().toLowerCase() === purch.name.trim().toLowerCase(),
+        )
+
+        if (!targetProd) {
+          targetProd = {
+            id: `stk-prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+            name: purch.name,
+            initial: { quantity: 0, unitCost: 0 },
+            entries: [],
+            exits: [],
+          }
+          currentProducts.push(targetProd)
+        }
+
+        // Custo unitário da compra considerando o regime atual
+        const unitCost =
+          purch.unitCostPresumido > 0
+            ? regime === 'simples'
+              ? purch.unitCostSimples
+              : regime === 'real'
+                ? purch.unitCostReal
+                : purch.unitCostPresumido
+            : purch.unitPrice > 0
+              ? purch.unitPrice
+              : purch.quantity > 0
+                ? purch.merchandiseValue / purch.quantity
+                : 0
+
+        const totalVal =
+          regime === 'simples'
+            ? purch.costSimples || purch.merchandiseValue
+            : regime === 'real'
+              ? purch.costReal || purch.merchandiseValue
+              : purch.costPresumido || purch.merchandiseValue
+
+        // Verifica se já não existe uma entrada idêntica recente para este item da calculadora
+        const alreadyImported = targetProd.entries.some(
+          (e) =>
+            e.notes?.includes(`Item de Compras: ${purch.name}`) &&
+            e.quantity === purch.quantity &&
+            Math.abs(e.unitCost - unitCost) < 0.01,
+        )
+
+        if (!alreadyImported && purch.quantity > 0) {
+          importedCount++
+          targetProd.entries = [
+            ...targetProd.entries,
+            {
+              id: `entry-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+              quantity: purch.quantity,
+              unitCost: Math.round(unitCost * 10000) / 10000,
+              totalValue: Math.round(totalVal * 100) / 100,
+              notes: `Importado de Compras: ${purch.name}`,
+            },
+          ]
+        }
+      })
+
+      return {
+        ...prev,
+        enabled: true,
+        products: currentProducts,
+      }
+    })
+
+    return {
+      importedCount,
+      message:
+        importedCount > 0
+          ? `${importedCount} lançamento(s) de compra importado(s) com sucesso para o estoque.`
+          : 'Os itens de compras já se encontram lançados no controle de estoque.',
+    }
+  }
+
+  // Posição calculada em tempo real para os produtos do subsistema
+  const calculatedProductStock = useMemo(() => {
+    return calculateProductStockSubsystem(productStockState.products || [])
+  }, [productStockState.products])
 
   // Limpeza preventiva de rascunhos de versões legadas / antigas no localStorage e sessionStorage
   useEffect(() => {
@@ -2007,6 +2392,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setStSubsystem(INITIAL_ST_SUBSYSTEM)
     setInterstateSubsystem(INITIAL_INTERSTATE_SUBSYSTEM)
     setReformaState(INITIAL_REFORMA_STATE)
+    setProductStockState(INITIAL_PRODUCT_STOCK_STATE)
 
     try {
       if (typeof window !== 'undefined') {
@@ -2102,6 +2488,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       stSubsystem,
       interstateSubsystem,
       reformaState,
+      productStockState,
     }
   }
 
@@ -2377,6 +2764,15 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setReformaState(INITIAL_REFORMA_STATE)
     }
 
+    if (snapshot.productStockState) {
+      setProductStockState({
+        ...INITIAL_PRODUCT_STOCK_STATE,
+        ...snapshot.productStockState,
+      })
+    } else {
+      setProductStockState(INITIAL_PRODUCT_STOCK_STATE)
+    }
+
     // Nota: O carregamento de cenários do banco atualiza o estado em memória
     // mantendo a aplicação consistente sem poluir o rascunho de inicialização
   }
@@ -2546,6 +2942,21 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setReformaState,
         updateReformaState,
         setSelectedReformaYear,
+
+        productStockState,
+        setProductStockState,
+        addProductStockItem,
+        updateProductStockItem,
+        removeProductStockItem,
+        addProductStockEntry,
+        updateProductStockEntry,
+        removeProductStockEntry,
+        addProductStockExit,
+        updateProductStockExit,
+        removeProductStockExit,
+        importPurchasesToProductStock,
+        syncProductsFromMarkup,
+        calculatedProductStock,
 
         getSnapshot,
         loadSnapshot,
