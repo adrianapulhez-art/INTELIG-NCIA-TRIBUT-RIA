@@ -28,6 +28,7 @@ import { SubstituicaoTributariaSection } from '@/components/demo/SubstituicaoTri
 import { OperacoesInterestaduaisSection } from '@/components/demo/OperacoesInterestaduaisSection'
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { ProductStockModal } from '@/components/demo/ProductStockModal'
+import { PurchaseItemModal } from '@/components/demo/PurchaseItemModal'
 import {
   Dialog,
   DialogContent,
@@ -37,488 +38,6 @@ import {
 } from '@/components/ui/dialog'
 import { ShieldAlert, Compass, ChevronRight, SlidersHorizontal, Truck, Receipt } from 'lucide-react'
 import { calculateInterstateOperation } from '@/lib/specialOperationsCalculations'
-
-// Subcomponente de Cartão de Item de Compra com digitação blindada
-interface PurchaseItemCardProps {
-  item: PurchaseItem
-  index: number
-  regime: 'presumido' | 'real' | 'simples'
-  onUpdate: (
-    id: string,
-    field: keyof Omit<
-      PurchaseItem,
-      | 'id'
-      | 'calculatedIpi'
-      | 'calculatedIcms'
-      | 'calculatedPis'
-      | 'calculatedCofins'
-      | 'costPresumido'
-      | 'costReal'
-      | 'costSimples'
-      | 'unitCostPresumido'
-      | 'unitCostReal'
-      | 'unitCostSimples'
-    >,
-    val: string | number | boolean,
-  ) => void
-  onRemove: (id: string) => void
-  canRemove: boolean
-}
-
-const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
-  item,
-  index,
-  regime,
-  onUpdate,
-  onRemove,
-  canRemove,
-}) => {
-  const [isExpanded, setIsExpanded] = useState(true)
-
-  // Estados locais blindados para edição livre e formatação onBlur
-  const [qtyFocused, setQtyFocused] = useState(false)
-  const [qtyVal, setQtyVal] = useState<string>(item.quantity > 0 ? String(item.quantity) : '')
-
-  const [unitFocused, setUnitFocused] = useState(false)
-  const [unitVal, setUnitVal] = useState<string>(
-    item.unitPrice > 0 ? formatNumberBR(item.unitPrice) : '',
-  )
-
-  const [merchFocused, setMerchFocused] = useState(false)
-  const [merchVal, setMerchVal] = useState<string>(
-    item.merchandiseValue > 0 ? formatNumberBR(item.merchandiseValue) : '',
-  )
-
-  const [ipiFocused, setIpiFocused] = useState(false)
-  const [ipiVal, setIpiVal] = useState<string>(item.ipiRate > 0 ? formatNumberBR(item.ipiRate) : '')
-
-  const [icmsFocused, setIcmsFocused] = useState(false)
-  const [icmsVal, setIcmsVal] = useState<string>(
-    item.icmsRate > 0 ? formatNumberBR(item.icmsRate) : '',
-  )
-
-  const [freightValFocused, setFreightValFocused] = useState(false)
-  const [freightValInput, setFreightValInput] = useState<string>(
-    (item.freightValue ?? 0) > 0 ? formatNumberBR(item.freightValue ?? 0) : '',
-  )
-
-  const [icmsFreightRateFocused, setIcmsFreightRateFocused] = useState(false)
-  const [icmsFreightRateInput, setIcmsFreightRateInput] = useState<string>(
-    (item.icmsFreightRate ?? 0) > 0 ? formatNumberBR(item.icmsFreightRate ?? 0) : '',
-  )
-
-  const [stValFocused, setStValFocused] = useState(false)
-  const [stValInput, setStValInput] = useState<string>(
-    item.stValue > 0 ? formatNumberBR(item.stValue) : '',
-  )
-
-  // Sincroniza inputs quando não focados (ex.: resetAll, loadSnapshot ou cálculo derivado)
-  React.useEffect(() => {
-    if (!qtyFocused) setQtyVal(item.quantity > 0 ? String(item.quantity) : '')
-  }, [item.quantity, qtyFocused])
-
-  React.useEffect(() => {
-    if (!unitFocused) setUnitVal(item.unitPrice > 0 ? formatNumberBR(item.unitPrice) : '')
-  }, [item.unitPrice, unitFocused])
-
-  React.useEffect(() => {
-    if (!merchFocused)
-      setMerchVal(item.merchandiseValue > 0 ? formatNumberBR(item.merchandiseValue) : '')
-  }, [item.merchandiseValue, merchFocused])
-
-  React.useEffect(() => {
-    if (!ipiFocused) setIpiVal(item.ipiRate > 0 ? formatNumberBR(item.ipiRate) : '')
-  }, [item.ipiRate, ipiFocused])
-
-  React.useEffect(() => {
-    if (!icmsFocused) setIcmsVal(item.icmsRate > 0 ? formatNumberBR(item.icmsRate) : '')
-  }, [item.icmsRate, icmsFocused])
-
-  React.useEffect(() => {
-    if (!freightValFocused) {
-      const v = item.freightValue ?? 0
-      setFreightValInput(v > 0 ? formatNumberBR(v) : '')
-    }
-  }, [item.freightValue, freightValFocused])
-
-  React.useEffect(() => {
-    if (!icmsFreightRateFocused) {
-      const r = item.icmsFreightRate ?? 0
-      setIcmsFreightRateInput(r > 0 ? formatNumberBR(r) : '')
-    }
-  }, [item.icmsFreightRate, icmsFreightRateFocused])
-
-  React.useEffect(() => {
-    if (!stValFocused) setStValInput(item.stValue > 0 ? formatNumberBR(item.stValue) : '')
-  }, [item.stValue, stValFocused])
-
-  // Custo unitário e total conforme regime ativo
-  const activeCost =
-    regime === 'simples' ? item.costSimples : regime === 'real' ? item.costReal : item.costPresumido
-
-  const activeUnitCost =
-    regime === 'simples'
-      ? item.unitCostSimples
-      : regime === 'real'
-        ? item.unitCostReal
-        : item.unitCostPresumido
-
-  return (
-    <div className="bg-slate-950/70 border border-emerald-500/25 rounded-2xl p-4 sm:p-5 shadow-lg space-y-4 transition-all hover:border-emerald-500/40">
-      {/* Topo do item: Número/Nome + Badges de Custo + Expandir/Excluir */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-mono font-bold text-xs shrink-0">
-            #{index + 1}
-          </div>
-          <Input
-            type="text"
-            value={item.name}
-            onChange={(e) => onUpdate(item.id, 'name', e.target.value)}
-            placeholder={`Nome do item ${index + 1}`}
-            className="h-8 max-w-xs text-xs font-semibold field-input-interactive"
-          />
-        </div>
-
-        {/* Resumo rápido do item */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-mono">
-          <div className="px-2.5 py-1 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300">
-            <span className="text-slate-500 text-[10px] mr-1">QTD:</span>
-            <strong className="text-emerald-400">{item.quantity}</strong> un.
-          </div>
-          <div className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
-            <span className="text-slate-400 text-[10px] mr-1">CUSTO UNIT:</span>
-            <strong>{formatBRL(activeUnitCost)}</strong>
-          </div>
-          <div className="px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-300">
-            <span className="text-slate-400 text-[10px] mr-1">TOTAL:</span>
-            <strong className="text-emerald-400">{formatBRL(activeCost)}</strong>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            title={isExpanded ? 'Recolher detalhes' : 'Expandir detalhes'}
-          >
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-
-          {canRemove && (
-            <button
-              type="button"
-              onClick={() => onRemove(item.id)}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-              title="Remover este item"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Conteúdo Expansível: Valores & Tributos */}
-      {isExpanded && (
-        <div className="space-y-4 pt-1">
-          {/* Linha 1: Quantidade, Preço Unitário, Valor Total da Mercadoria */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-1">
-              <label className="text-[11px] font-mono text-slate-300 font-semibold block">
-                Quantidade comprada (un.)
-              </label>
-              <Input
-                type="number"
-                min="0"
-                placeholder="0"
-                value={qtyVal}
-                onFocus={() => setQtyFocused(true)}
-                onChange={(e) => {
-                  setQtyVal(e.target.value)
-                  const parsed = parseInt(e.target.value, 10)
-                  onUpdate(item.id, 'quantity', isNaN(parsed) || parsed < 0 ? 0 : parsed)
-                }}
-                onBlur={(e) => {
-                  setQtyFocused(false)
-                  const parsed = parseInt(e.target.value, 10)
-                  const safe = isNaN(parsed) || parsed < 0 ? 0 : parsed
-                  onUpdate(item.id, 'quantity', safe)
-                  setQtyVal(safe > 0 ? String(safe) : '')
-                }}
-                className="text-xs font-mono field-input-interactive"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[11px] font-mono text-slate-400 block">
-                Valor unitário da mercadoria (R$)
-              </label>
-              <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                  R$
-                </span>
-                <Input
-                  type="text"
-                  placeholder="0,00"
-                  value={unitVal}
-                  onFocus={() => setUnitFocused(true)}
-                  onChange={(e) => {
-                    setUnitVal(e.target.value)
-                    const parsed = parseBRNumber(e.target.value)
-                    onUpdate(item.id, 'unitPrice', parsed)
-                  }}
-                  onBlur={(e) => {
-                    setUnitFocused(false)
-                    const parsed = parseBRNumber(e.target.value)
-                    onUpdate(item.id, 'unitPrice', parsed)
-                    setUnitVal(parsed > 0 ? formatNumberBR(parsed) : '')
-                  }}
-                  className="pl-8 text-right text-xs font-mono field-input-interactive"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[11px] font-mono text-slate-300 font-semibold block">
-                Valor total da mercadoria (R$)
-              </label>
-              <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                  R$
-                </span>
-                <Input
-                  type="text"
-                  placeholder="0,00"
-                  value={merchVal}
-                  onFocus={() => setMerchFocused(true)}
-                  onChange={(e) => {
-                    setMerchVal(e.target.value)
-                    const parsed = parseBRNumber(e.target.value)
-                    onUpdate(item.id, 'merchandiseValue', parsed)
-                  }}
-                  onBlur={(e) => {
-                    setMerchFocused(false)
-                    const parsed = parseBRNumber(e.target.value)
-                    onUpdate(item.id, 'merchandiseValue', parsed)
-                    setMerchVal(parsed > 0 ? formatNumberBR(parsed) : '')
-                  }}
-                  className="pl-8 text-right text-xs font-mono font-bold field-input-interactive"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Linha 2: Tributos do Item (IPI, ICMS, Frete do item, ICMS s/ frete, ST) */}
-          <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-800/80 space-y-3">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
-              Tributação individual do item
-            </span>
-
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-              {/* IPI % */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400 font-mono">IPI / Não recup. %</span>
-                  <span className="text-[10px] text-slate-500 font-mono">
-                    {formatBRL(item.calculatedIpi)}
-                  </span>
-                </div>
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    value={ipiVal}
-                    onFocus={() => setIpiFocused(true)}
-                    onChange={(e) => {
-                      setIpiVal(e.target.value)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'ipiRate', parsed)
-                    }}
-                    onBlur={(e) => {
-                      setIpiFocused(false)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'ipiRate', parsed)
-                      setIpiVal(parsed > 0 ? formatNumberBR(parsed) : '')
-                    }}
-                    className="pr-6 text-right text-xs font-mono field-input-interactive"
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                    %
-                  </span>
-                </div>
-              </div>
-
-              {/* ICMS % */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400 font-mono">ICMS destacado %</span>
-                  <span className="text-[10px] text-emerald-400 font-mono">
-                    {formatBRL(item.calculatedIcms)}
-                  </span>
-                </div>
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    value={icmsVal}
-                    onFocus={() => setIcmsFocused(true)}
-                    onChange={(e) => {
-                      setIcmsVal(e.target.value)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'icmsRate', parsed)
-                    }}
-                    onBlur={(e) => {
-                      setIcmsFocused(false)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'icmsRate', parsed)
-                      setIcmsVal(parsed > 0 ? formatNumberBR(parsed) : '')
-                    }}
-                    className="pr-6 text-right text-xs font-mono field-input-interactive"
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                    %
-                  </span>
-                </div>
-              </div>
-
-              {/* Frete do item (R$) */}
-              <div className="space-y-1">
-                <span className="text-[10px] text-slate-400 font-mono block">
-                  Frete do item (R$)
-                </span>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                    R$
-                  </span>
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    value={freightValInput}
-                    onFocus={() => setFreightValFocused(true)}
-                    onChange={(e) => {
-                      setFreightValInput(e.target.value)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'freightValue', parsed)
-                    }}
-                    onBlur={(e) => {
-                      setFreightValFocused(false)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'freightValue', parsed)
-                      setFreightValInput(parsed > 0 ? formatNumberBR(parsed) : '')
-                    }}
-                    className="pl-8 text-right text-xs font-mono field-input-interactive"
-                  />
-                </div>
-              </div>
-
-              {/* ICMS s/ frete (%) */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400 font-mono">ICMS s/ frete (%)</span>
-                  <span
-                    className="text-[10px] text-emerald-400 font-mono"
-                    title="Crédito de ICMS s/ frete calculado"
-                  >
-                    {formatBRL(item.icmsFreightValue)}
-                  </span>
-                </div>
-                <div className="relative">
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    value={icmsFreightRateInput}
-                    onFocus={() => setIcmsFreightRateFocused(true)}
-                    onChange={(e) => {
-                      setIcmsFreightRateInput(e.target.value)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'icmsFreightRate', parsed)
-                    }}
-                    onBlur={(e) => {
-                      setIcmsFreightRateFocused(false)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'icmsFreightRate', parsed)
-                      setIcmsFreightRateInput(parsed > 0 ? formatNumberBR(parsed) : '')
-                    }}
-                    className="pr-6 text-right text-xs font-mono field-input-interactive"
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                    %
-                  </span>
-                </div>
-              </div>
-
-              {/* ICMS-ST recolhido */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-amber-400 font-mono">ICMS-ST entrada</span>
-                  <label className="flex items-center gap-1 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={item.hasSt}
-                      onChange={(e) => onUpdate(item.id, 'hasSt', e.target.checked)}
-                      className="rounded bg-slate-900 border-slate-800 text-amber-500 focus:ring-amber-500/20"
-                    />
-                    <span className="text-[9px] font-mono text-slate-400">ST ativo</span>
-                  </label>
-                </div>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                    R$
-                  </span>
-                  <Input
-                    type="text"
-                    disabled={!item.hasSt}
-                    placeholder="0,00"
-                    value={stValInput}
-                    onFocus={() => setStValFocused(true)}
-                    onChange={(e) => {
-                      setStValInput(e.target.value)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'stValue', parsed)
-                    }}
-                    onBlur={(e) => {
-                      setStValFocused(false)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'stValue', parsed)
-                      setStValInput(parsed > 0 ? formatNumberBR(parsed) : '')
-                    }}
-                    className="pl-8 text-right bg-slate-950 border-slate-800 text-xs font-mono text-amber-300 disabled:opacity-40 focus:border-amber-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Créditos no Lucro Real (informativo se regime == real) */}
-            {regime === 'real' && (
-              <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono flex flex-wrap items-center justify-between gap-2 text-slate-400">
-                <span>
-                  Créditos Lucro Real: ICMS mercadoria:{' '}
-                  <strong className="text-emerald-400">{formatBRL(item.calculatedIcms)}</strong> |
-                  ICMS s/ frete:{' '}
-                  <strong className="text-emerald-400">{formatBRL(item.icmsFreightValue)}</strong> |
-                  PIS (1,65% s/ base s/ ICMS):{' '}
-                  <strong className="text-emerald-400">{formatBRL(item.calculatedPis)}</strong> |
-                  COFINS (7,60% s/ base s/ ICMS):{' '}
-                  <strong className="text-emerald-400">{formatBRL(item.calculatedCofins)}</strong>
-                </span>
-                <span className="text-emerald-300">
-                  Total de créditos do item:{' '}
-                  <strong>
-                    {formatBRL(
-                      item.calculatedIcms +
-                        item.icmsFreightValue +
-                        item.calculatedPis +
-                        item.calculatedCofins,
-                    )}
-                  </strong>
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
 
 export default function PurchasesPage() {
   const navigate = useNavigate()
@@ -583,6 +102,10 @@ export default function PurchasesPage() {
   const [isFreightDialogOpen, setIsFreightDialogOpen] = useState(false)
   const [isDeductionsDialogOpen, setIsDeductionsDialogOpen] = useState(false)
   const [isProductStockDialogOpen, setIsProductStockDialogOpen] = useState(false)
+
+  // Estado da camada/modal de detalhe do item de compra
+  const [selectedItemForModal, setSelectedItemForModal] = useState<PurchaseItem | null>(null)
+  const [isPurchaseItemModalOpen, setIsPurchaseItemModalOpen] = useState(false)
 
   // Subsistema de estoque por produto: totais para o badge dinâmico
   const { productStockState, calculatedProductStock } = useTaxContext()
@@ -704,7 +227,17 @@ export default function PurchasesPage() {
               <Button
                 type="button"
                 size="sm"
-                onClick={() => addPurchaseItem()}
+                onClick={() => {
+                  addPurchaseItem()
+                  // O item recém adicionado será o último da lista
+                  setTimeout(() => {
+                    const latest = purchasesItems[purchasesItems.length - 1]
+                    if (latest) {
+                      setSelectedItemForModal(latest)
+                      setIsPurchaseItemModalOpen(true)
+                    }
+                  }, 50)
+                }}
                 className="h-8 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" />+ Adicionar item
@@ -780,20 +313,25 @@ export default function PurchasesPage() {
             </p>
           </div>
 
-          {/* (B) Bloco de ITENS DE COMPRA (Multi-Itens) */}
+          {/* (B) Bloco de ITENS DE COMPRA (Subsistema em Camadas: Tabela Compacta Frontal + Modal Completo) */}
           <div className="space-y-4 pt-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-md bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                   <Layers className="w-4 h-4" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-200">
-                  Itens da Compra ({purchasesItems.length})
-                </h3>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-200">
+                    Itens da Compra ({purchasesItems.length})
+                  </h3>
+                  <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+                    Clique em qualquer item para abrir a camada de detalhes e edição fiscal
+                  </span>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-                <span>Total de unidades:</span>
+                <span>Total unidades:</span>
                 <strong className="text-emerald-400">{totalPurchasesQuantity} un.</strong>
                 <span className="text-slate-600">|</span>
                 <span>Total mercadorias:</span>
@@ -801,32 +339,200 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            {/* Lista dos cartões de itens */}
-            <div className="space-y-3">
-              {purchasesItems.map((item, idx) => (
-                <PurchaseItemCard
-                  key={item.id}
-                  item={item}
-                  index={idx}
-                  regime={regime}
-                  onUpdate={updatePurchaseItem}
-                  onRemove={removePurchaseItem}
-                  canRemove={purchasesItems.length > 1}
-                />
-              ))}
+            {/* Interface Frontal Compacta: UMA linha por produto adquirido com SOMENTE:
+                (1) Nome do item
+                (2) Quantidade em estoque
+                (3) Preço médio por produto
+                (4) Preço total
+            */}
+            <div className="rounded-2xl border border-emerald-500/30 bg-slate-950/70 shadow-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 bg-slate-900/80 text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                      <th className="py-3 px-4 font-semibold w-12 text-center">#</th>
+                      <th className="py-3 px-4 font-semibold">Nome do Item</th>
+                      <th className="py-3 px-4 font-semibold text-right">Qtd em Estoque</th>
+                      <th className="py-3 px-4 font-semibold text-right">Preço Médio / un.</th>
+                      <th className="py-3 px-4 font-semibold text-right">Preço Total</th>
+                      <th className="py-3 px-4 font-semibold text-center w-24">Camada</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+                    {purchasesItems.map((item, idx) => {
+                      // Procura produto correspondente no subsistema de estoque
+                      const matchedStockProd = (productStockState.products || []).find(
+                        (p) =>
+                          p.name &&
+                          item.name &&
+                          p.name.trim().toLowerCase() === item.name.trim().toLowerCase(),
+                      )
+                      const stockPos = matchedStockProd
+                        ? calculatedProductStock.positions.find(
+                            (pos) => pos.id === matchedStockProd.id,
+                          )
+                        : null
+
+                      // Quantidade em estoque: se houver movimentações no subsistema de estoque, usa currentStockQty; senão a quantidade comprada do item
+                      const stockQty =
+                        stockPos !== null && stockPos !== undefined
+                          ? stockPos.currentStockQty
+                          : item.quantity
+
+                      // Preço médio por produto: se o produto tiver movimentações no subsistema de estoque e currentAverageCost > 0, usa CMP;
+                      // caso contrário, o custo unitário apropriado do item para o regime ativo (ou unitPrice/merchandiseValue)
+                      const activeItemUnitCost =
+                        regime === 'simples'
+                          ? item.unitCostSimples
+                          : regime === 'real'
+                            ? item.unitCostReal
+                            : item.unitCostPresumido
+
+                      const fallbackUnitCost =
+                        activeItemUnitCost > 0
+                          ? activeItemUnitCost
+                          : item.unitPrice > 0
+                            ? item.unitPrice
+                            : item.quantity > 0
+                              ? item.merchandiseValue / item.quantity
+                              : 0
+
+                      const avgPrice =
+                        stockPos && stockPos.currentAverageCost > 0
+                          ? stockPos.currentAverageCost
+                          : fallbackUnitCost
+
+                      // Preço total: quantidade em estoque × preço médio se houver estoque; ou custo total do item no regime ativo
+                      const activeItemTotalCost =
+                        regime === 'simples'
+                          ? item.costSimples
+                          : regime === 'real'
+                            ? item.costReal
+                            : item.costPresumido
+
+                      const totalPrice =
+                        stockPos && stockPos.currentStockValue > 0
+                          ? stockPos.currentStockValue
+                          : stockQty > 0 && avgPrice > 0
+                            ? stockQty * avgPrice
+                            : activeItemTotalCost > 0
+                              ? activeItemTotalCost
+                              : item.merchandiseValue
+
+                      return (
+                        <tr
+                          key={item.id}
+                          onClick={() => {
+                            setSelectedItemForModal(item)
+                            setIsPurchaseItemModalOpen(true)
+                          }}
+                          className="hover:bg-emerald-500/[0.08] transition-colors cursor-pointer group"
+                        >
+                          {/* # */}
+                          <td className="py-3 px-4 text-center text-slate-500 font-bold text-[11px]">
+                            <span className="w-6 h-6 rounded-md bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-emerald-400 group-hover:border-emerald-500/40">
+                              {idx + 1}
+                            </span>
+                          </td>
+
+                          {/* 1. Nome do Item */}
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <span className="font-sans font-semibold text-slate-200 group-hover:text-emerald-300 transition-colors text-xs sm:text-sm">
+                                {item.name || `Item ${idx + 1}`}
+                              </span>
+                              {item.hasSt && (
+                                <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[9px] px-1.5 py-0 font-normal">
+                                  ST
+                                </Badge>
+                              )}
+                              {(item.freightValue ?? 0) > 0 && (
+                                <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/40 text-[9px] px-1.5 py-0 font-normal">
+                                  Frete
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* 2. Quantidade em Estoque */}
+                          <td className="py-3 px-4 text-right">
+                            <span className="font-bold text-slate-200">
+                              {stockQty}{' '}
+                              <span className="text-slate-500 font-normal text-[11px]">un.</span>
+                            </span>
+                          </td>
+
+                          {/* 3. Preço Médio por Produto */}
+                          <td className="py-3 px-4 text-right">
+                            <span className="text-emerald-400 font-semibold">
+                              {formatBRL(avgPrice)}
+                            </span>
+                          </td>
+
+                          {/* 4. Preço Total */}
+                          <td className="py-3 px-4 text-right">
+                            <span className="text-emerald-300 font-bold">
+                              {formatBRL(totalPrice)}
+                            </span>
+                          </td>
+
+                          {/* Botão de abrir camada */}
+                          <td className="py-3 px-4 text-center">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-sans font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 rounded-lg transition-all group-hover:border-emerald-400 shadow-sm">
+                              <span>Detalhes</span>
+                              <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Barra de Rodapé da Lista Compacta */}
+              <div className="p-3 bg-slate-900/60 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono">
+                <span className="text-slate-400 text-[11px]">
+                  💡 Clique na linha do item para abrir a camada e editar tributos (IPI, ICMS,
+                  Frete, ST e memória fiscal).
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    addPurchaseItem()
+                    setTimeout(() => {
+                      const latest = purchasesItems[purchasesItems.length - 1]
+                      if (latest) {
+                        setSelectedItemForModal(latest)
+                        setIsPurchaseItemModalOpen(true)
+                      }
+                    }, 50)
+                  }}
+                  className="h-7 text-xs border-dashed border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/15 cursor-pointer font-bold shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />+ Novo item de compra
+                </Button>
+              </div>
             </div>
 
-            {/* Botão para adicionar mais um item no rodapé da lista */}
-            <div className="flex justify-center pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => addPurchaseItem()}
-                className="w-full sm:w-auto px-6 border-dashed border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer text-xs font-mono"
-              >
-                <Plus className="w-4 h-4 mr-1.5" />+ Adicionar outro item à compra
-              </Button>
-            </div>
+            {/* Modal / Camada Completa do Item de Compra Selecionado */}
+            {selectedItemForModal && (
+              <PurchaseItemModal
+                open={isPurchaseItemModalOpen}
+                onOpenChange={setIsPurchaseItemModalOpen}
+                item={
+                  purchasesItems.find((p) => p.id === selectedItemForModal.id) ||
+                  selectedItemForModal
+                }
+                index={purchasesItems.findIndex((p) => p.id === selectedItemForModal.id)}
+                regime={regime}
+                onUpdate={updatePurchaseItem}
+                onRemove={removePurchaseItem}
+                canRemove={purchasesItems.length > 1}
+              />
+            )}
           </div>
 
           {/* (C) Campos da Compra como um todo (Estoque Inicial, Final e Rateio Global) */}
