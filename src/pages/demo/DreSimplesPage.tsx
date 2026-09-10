@@ -68,6 +68,9 @@ export default function DreSimplesPage() {
     interstateSubsystem,
   } = useTaxContext()
 
+  // Rastreamento local de quais meses foram preenchidos via Markup
+  const [markupFilledMonths, setMarkupFilledMonths] = useState<Record<number, boolean>>({})
+
   const { totalPurchasesQuantity } = useTaxContext()
 
   // Quantidade automática conectada diretamente ao Markup/Compras
@@ -271,6 +274,14 @@ export default function DreSimplesPage() {
   // Aplicar sugestão do Fator R
   const applyFatorRRecommendation = () => {
     setSimplesAnexo(fatorRResult.recommendedAnexo)
+  }
+
+  // Ação explícita: Preencher o mês corrente (último da lista) com a receita bruta mensal consolidada do Markup
+  const handleApplyMarkupRevenueToCurrentMonth = () => {
+    if (activeGrossRevenue <= 0) return
+    const targetIndex = Math.max(0, simplesMonthlyRevenues.length - 1)
+    updateSimplesMonthlyRevenue(targetIndex, activeGrossRevenue)
+    setMarkupFilledMonths((prev) => ({ ...prev, [targetIndex]: true }))
   }
 
   return (
@@ -624,55 +635,103 @@ export default function DreSimplesPage() {
                       </p>
                     </div>
 
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addSimplesMonthlyRevenue(0)}
-                      className="h-7 text-xs bg-slate-950/60 border-slate-700 hover:border-emerald-500 text-slate-200 hover:text-emerald-300 cursor-pointer self-start sm:self-auto"
-                    >
-                      <Plus className="w-3.5 h-3.5 mr-1 text-emerald-400" />+ Adicionar mês
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                      {activeGrossRevenue > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleApplyMarkupRevenueToCurrentMonth}
+                          title={`Preencher Mês ${simplesMonthlyRevenues.length} com ${formatBRL(activeGrossRevenue)} apurado no Markup`}
+                          className="h-7 text-xs bg-emerald-500/10 border-emerald-500/40 hover:bg-emerald-500/20 text-emerald-300 hover:text-emerald-200 cursor-pointer"
+                        >
+                          <LinkIcon className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                          Usar receita simulada do Markup ({formatBRL(activeGrossRevenue)})
+                        </Button>
+                      )}
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addSimplesMonthlyRevenue(0)}
+                        className="h-7 text-xs bg-slate-950/60 border-slate-700 hover:border-emerald-500 text-slate-200 hover:text-emerald-300 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1 text-emerald-400" />+ Adicionar mês
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Lista de meses */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                    {simplesMonthlyRevenues.map((rev, index) => (
-                      <div
-                        key={`rev-month-${index}`}
-                        className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 flex items-center gap-2"
-                      >
-                        <span className="text-xs font-mono font-semibold text-slate-300 w-16 shrink-0">
-                          Mês {index + 1}:
-                        </span>
-                        <div className="relative flex-1">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                            R$
-                          </span>
-                          <Input
-                            type="text"
-                            defaultValue={rev > 0 ? formatNumberBR(rev) : ''}
-                            key={`month-val-${index}-${rev}`}
-                            placeholder="0,00"
-                            onBlur={(e) => {
-                              const parsed = parseBRNumber(e.target.value)
-                              updateSimplesMonthlyRevenue(index, parsed)
-                            }}
-                            className="pl-8 text-right bg-slate-900 border-slate-800 text-slate-100 font-mono text-xs h-8 focus:border-emerald-500"
-                          />
+                    {simplesMonthlyRevenues.map((rev, index) => {
+                      const isFilledFromMarkup =
+                        Boolean(markupFilledMonths[index]) &&
+                        Math.abs(rev - activeGrossRevenue) < 0.01 &&
+                        activeGrossRevenue > 0
+
+                      return (
+                        <div
+                          key={`rev-month-${index}`}
+                          className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 flex flex-col gap-1.5"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono font-semibold text-slate-300 w-16 shrink-0">
+                              Mês {index + 1}:
+                            </span>
+                            <div className="relative flex-1">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                                R$
+                              </span>
+                              <Input
+                                type="text"
+                                defaultValue={rev > 0 ? formatNumberBR(rev) : ''}
+                                key={`month-val-${index}-${rev}`}
+                                placeholder="0,00"
+                                onBlur={(e) => {
+                                  const parsed = parseBRNumber(e.target.value)
+                                  updateSimplesMonthlyRevenue(index, parsed)
+                                  if (Math.abs(parsed - activeGrossRevenue) > 0.01) {
+                                    setMarkupFilledMonths((prev) => {
+                                      const next = { ...prev }
+                                      delete next[index]
+                                      return next
+                                    })
+                                  }
+                                }}
+                                className="pl-8 text-right bg-slate-900 border-slate-800 text-slate-100 font-mono text-xs h-8 focus:border-emerald-500"
+                              />
+                            </div>
+                            {simplesMonthlyRevenues.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  removeSimplesMonthlyRevenue(index)
+                                  setMarkupFilledMonths((prev) => {
+                                    const next = { ...prev }
+                                    delete next[index]
+                                    return next
+                                  })
+                                }}
+                                className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-rose-500/10 cursor-pointer"
+                                title="Remover mês"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+
+                          {isFilledFromMarkup && (
+                            <div className="flex items-center gap-1.5 pl-1">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                <LinkIcon className="w-2.5 h-2.5" />
+                                via Markup (simulação)
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        {simplesMonthlyRevenues.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeSimplesMonthlyRevenue(index)}
-                            className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-rose-500/10 cursor-pointer"
-                            title="Remover mês"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
 
                   {/* Detalhamento transparente do cálculo proporcional */}

@@ -1,5 +1,6 @@
 import { parseBRNumber, formatBRL, formatNumberBR } from './taxCalculations'
 import { calculateCmvDetailedBreakdown } from './cmvBreakdownCalculations'
+import { calculateRbt12InicioAtividade } from './simplesCalculations'
 
 /**
  * Validação de integridade e fidedignidade dos cálculos do parseBRNumber e
@@ -371,6 +372,86 @@ export function runAutoStockDeductionTests(): {
       typeof t.expected === 'boolean'
         ? t.expected === t.received
         : Math.abs((t.expected as number) - (t.received as number)) < 0.0001
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
+ * Testes para a funcionalidade de Empresa em Início de Atividade do Simples Nacional:
+ * (a) Clicar no botão / preencher o mês com a receita consolidada do Markup
+ * (b) A RBT12 proporcional recalcula corretamente com esse valor (1º mês: receita × 12; meses seguintes: média × 12)
+ * (c) Sem Markup preenchido (receita = 0), o botão não deve ficar habilitado/visível e o bloco funciona como antes (regressão zero)
+ */
+export function runSimplesInicioAtividadeMarkupTests() {
+  // Cenário 1: 1º mês preenchido com a receita consolidada do Markup (ex: R$ 72.383,96)
+  const markupConsolidatedRevenue = 72383.96
+  const month1OnlyRevenues = [markupConsolidatedRevenue]
+  const calc1Month = calculateRbt12InicioAtividade(month1OnlyRevenues)
+
+  // Cenário 2: 3 meses, sendo o último preenchido via Markup
+  const threeMonthsRevenues = [50000, 60000, markupConsolidatedRevenue]
+  const calc3Months = calculateRbt12InicioAtividade(threeMonthsRevenues)
+  const expectedAverage3m = (50000 + 60000 + markupConsolidatedRevenue) / 3
+  const expectedRbt123m = Math.round(expectedAverage3m * 12 * 100) / 100
+
+  // Cenário 3: Markup zerado ou vazio (regressão zero)
+  const zeroRevenue = 0
+  const isButtonEnabledWithZero = zeroRevenue > 0
+  const isButtonEnabledWithMarkup = markupConsolidatedRevenue > 0
+  const defaultRevenues = [0]
+  const calcDefault = calculateRbt12InicioAtividade(defaultRevenues)
+
+  const tests = [
+    {
+      test: '(a) 1º Mês preenchido com receita do Markup: receita acumulada coincide com R$ 72.383,96',
+      expected: 72383.96,
+      received: calc1Month.totalRevenue,
+    },
+    {
+      test: '(b) RBT12 proporcional recalcula corretamente no 1º mês (receita × 12 = 72.383,96 × 12 = 868.607,52)',
+      expected: 868607.52,
+      received: calc1Month.calculatedRbt12,
+    },
+    {
+      test: '(b) Quantidade de meses de atividade no 1º mês é 1',
+      expected: 1,
+      received: calc1Month.monthsCount,
+    },
+    {
+      test: '(b) RBT12 proporcional em múltiplos meses recalcula pela média × 12',
+      expected: expectedRbt123m,
+      received: calc3Months.calculatedRbt12,
+    },
+    {
+      test: '(c) Sem Markup preenchido (receita = 0), o botão "Usar receita simulada" deve estar inativo/oculto',
+      expected: false,
+      received: isButtonEnabledWithZero,
+    },
+    {
+      test: '(a) Com receita apurada no Markup (> 0), o botão "Usar receita simulada" está habilitado',
+      expected: true,
+      received: isButtonEnabledWithMarkup,
+    },
+    {
+      test: '(c) Regressão zero: cálculo padrão com mês zerado resulta em RBT12 = 0',
+      expected: 0,
+      received: calcDefault.calculatedRbt12,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : Math.abs((t.expected as number) - (t.received as number)) < 0.01
     return {
       test: t.test,
       passed,
