@@ -99,8 +99,19 @@ export const AssistantChatDrawer: React.FC<AssistantChatDrawerProps> = ({
       } else if (currentTab === 'dre-real') {
         parts.push(`Atividade Lucro Real: ${taxContext.realActivity}`)
         parts.push(`ISS Lucro Real: ${formatPercentBR(taxContext.realIssRate)}`)
-        parts.push(`Adições Lalur: ${formatBRL(taxContext.realAdditions)}`)
-        parts.push(`Exclusões Lalur: ${formatBRL(taxContext.realExclusions)}`)
+        parts.push(`Total Adições Mini-LALUR: ${formatBRL(taxContext.realAdditions)}`)
+        parts.push(`Total Exclusões Mini-LALUR: ${formatBRL(taxContext.realExclusions)}`)
+        if (Array.isArray(taxContext.realLalurEntries) && taxContext.realLalurEntries.length > 0) {
+          const entriesSummary = taxContext.realLalurEntries
+            .map(
+              (e) =>
+                `[${e.type === 'addition' ? '+' : '-'}] ${e.description}: ${formatBRL(e.value)}`,
+            )
+            .join('; ')
+          parts.push(
+            `Lançamentos Mini-LALUR (${taxContext.realLalurEntries.length}): ${entriesSummary}`,
+          )
+        }
       } else if (currentTab === 'comparacao') {
         parts.push(`Folha salários: ${formatBRL(taxContext.payrollSalaries)}`)
         parts.push(`Pró-labore: ${formatBRL(taxContext.payrollProLabore)}`)

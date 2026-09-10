@@ -82,19 +82,19 @@ export const TABLE_ASSISTANTS: Record<string, TableAssistantConfig> = {
   'dre-real': {
     slug: 'it-real-assistant',
     name: 'Assistente do Lucro Real',
-    title: 'IA — Especialista em Lucro Real',
+    title: 'IA — Especialista em Lucro Real & LALUR',
     pageName: 'DRE Lucro Real',
-    tagline: 'Apuração Não-Cumulativa e Lucro Efetivo',
+    tagline: 'Apuração Não-Cumulativa, Mini-LALUR e Lucro Efetivo',
     description:
-      'Orienta sobre créditos de compras e insumos (PIS 1,65% e COFINS 7,6%), dedutibilidade de despesas operacionais e apuração sobre o resultado líquido.',
+      'Orienta sobre créditos de PIS/COFINS (1,65%/7,6%), deduções e o Mini-LALUR (adições de despesas indedutíveis como multas e exclusões como dividendos e incentivos).',
     quickQuestions: [
+      'Essa multa por atraso de tributos é adição no LALUR?',
+      'Dividendos e lucros no exterior entram como exclusão no LALUR?',
       'Como calcular os créditos de PIS (1,65%) e COFINS (7,6%)?',
       'Quais despesas operacionais são dedutíveis da base do IRPJ/CSLL?',
-      'O que acontece em meses com prejuízo fiscal no Lucro Real?',
-      'Como a folha de pagamento impacta a apuração do Lucro Real?',
     ],
     contextSummary:
-      'Tabela ativa: DRE Lucro Real. PIS 1,65% e COFINS 7,6% não-cumulativos, IRPJ 15%+10%, CSLL 9% sobre lucro líquido ajustado.',
+      'Tabela ativa: DRE Lucro Real. PIS 1,65% e COFINS 7,6% não-cumulativos, Mini-LALUR estruturado (adições e exclusões individuais), IRPJ 15%+10%, CSLL 9% sobre lucro líquido ajustado.',
   },
   comparacao: {
     slug: 'it-comparacao-assistant',

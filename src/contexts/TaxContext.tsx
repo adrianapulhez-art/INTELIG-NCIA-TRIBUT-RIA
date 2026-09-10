@@ -89,6 +89,15 @@ export interface ExpenseItem {
   value: number
 }
 
+export type LalurEntryType = 'addition' | 'exclusion'
+
+export interface LalurEntryItem {
+  id: string
+  description: string
+  value: number
+  type: LalurEntryType
+}
+
 export interface CustomTaxItem {
   id: string
   name: string
@@ -140,6 +149,7 @@ export interface TaxStateSnapshot {
   realIssRate: number
   realAdditions: number
   realExclusions: number
+  realLalurEntries?: LalurEntryItem[]
   realQuantitySold: number
   realExpenses: ExpenseItem[]
   isRealSimulated: boolean
@@ -335,6 +345,15 @@ export interface TaxContextType {
   setRealAdditions: (val: number) => void
   realExclusions: number
   setRealExclusions: (val: number) => void
+  realLalurEntries: LalurEntryItem[]
+  setRealLalurEntries: React.Dispatch<React.SetStateAction<LalurEntryItem[]>>
+  addRealLalurEntry: (description?: string, value?: number, type?: LalurEntryType) => void
+  updateRealLalurEntry: (
+    id: string,
+    field: 'description' | 'value' | 'type',
+    value: string | number | LalurEntryType,
+  ) => void
+  removeRealLalurEntry: (id: string) => void
   realQuantitySold: number
   setRealQuantitySold: (qty: number) => void
   realExpenses: ExpenseItem[]
@@ -559,13 +578,119 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // DRE REAL
   const [realActivity, setRealActivity] = useState<ActivityType>('comercio')
   const [realIssRate, setRealIssRate] = useState<number>(0)
-  const [realAdditions, setRealAdditions] = useState<number>(0)
-  const [realExclusions, setRealExclusions] = useState<number>(0)
   const [realQuantitySold, setRealQuantitySold] = useState<number>(0)
   const [realExpenses, setRealExpenses] = useState<ExpenseItem[]>([
     { id: '1', description: 'Despesas operacionais e administrativas', value: 0 },
   ])
   const [isRealSimulated, setIsRealSimulated] = useState<boolean>(false)
+
+  // MINI-LALUR STATE: Lista estruturada de lançamentos individuais de Adições e Exclusões
+  const [realLalurEntries, setRealLalurEntries] = useState<LalurEntryItem[]>([])
+
+  // Totais calculados a partir dos lançamentos
+  const computedRealAdditions = useMemo(() => {
+    return realLalurEntries
+      .filter((e) => e.type === 'addition')
+      .reduce(
+        (acc, curr) => acc + (Number.isFinite(curr.value) && curr.value > 0 ? curr.value : 0),
+        0,
+      )
+  }, [realLalurEntries])
+
+  const computedRealExclusions = useMemo(() => {
+    return realLalurEntries
+      .filter((e) => e.type === 'exclusion')
+      .reduce(
+        (acc, curr) => acc + (Number.isFinite(curr.value) && curr.value > 0 ? curr.value : 0),
+        0,
+      )
+  }, [realLalurEntries])
+
+  // Backward-compatibility: realAdditions e realExclusions expostos refletem a soma
+  const realAdditions = computedRealAdditions
+  const realExclusions = computedRealExclusions
+
+  // Se setRealAdditions ou setRealExclusions forem invocados diretamente (ex.: testes ou chamadas legadas),
+  // atualizamos o Mini-LALUR criando/atualizando o lançamento consolidado correspondente
+  const setRealAdditions = (val: number) => {
+    const cleanVal = Math.max(0, Number.isFinite(val) ? val : 0)
+    setRealLalurEntries((prev) => {
+      const nonAdditions = prev.filter((e) => e.type !== 'addition')
+      if (cleanVal <= 0) return nonAdditions
+      return [
+        ...nonAdditions,
+        {
+          id: `add-entry-${Date.now()}`,
+          description: 'Adições ao Lucro Real',
+          value: cleanVal,
+          type: 'addition' as LalurEntryType,
+        },
+      ]
+    })
+  }
+
+  const setRealExclusions = (val: number) => {
+    const cleanVal = Math.max(0, Number.isFinite(val) ? val : 0)
+    setRealLalurEntries((prev) => {
+      const nonExclusions = prev.filter((e) => e.type !== 'exclusion')
+      if (cleanVal <= 0) return nonExclusions
+      return [
+        ...nonExclusions,
+        {
+          id: `ex-entry-${Date.now()}`,
+          description: 'Exclusões do Lucro Real',
+          value: cleanVal,
+          type: 'exclusion' as LalurEntryType,
+        },
+      ]
+    })
+  }
+
+  const addRealLalurEntry = (
+    description = 'Novo lançamento LALUR',
+    value = 0,
+    type: LalurEntryType = 'addition',
+  ) => {
+    const cleanVal = Math.max(0, typeof value === 'number' && Number.isFinite(value) ? value : 0)
+    setRealLalurEntries((prev) => [
+      ...prev,
+      {
+        id: `lalur-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        description,
+        value: cleanVal,
+        type,
+      },
+    ])
+  }
+
+  const updateRealLalurEntry = (
+    id: string,
+    field: 'description' | 'value' | 'type',
+    value: string | number | LalurEntryType,
+  ) => {
+    setRealLalurEntries((prev) =>
+      prev.map((entry) => {
+        if (entry.id !== id) return entry
+        if (field === 'type') {
+          return { ...entry, type: value as LalurEntryType }
+        }
+        if (field === 'value') {
+          const numVal =
+            typeof value === 'number'
+              ? Number.isFinite(value)
+                ? Math.max(0, value)
+                : 0
+              : Math.max(0, parseBRNumber(value))
+          return { ...entry, value: numVal }
+        }
+        return { ...entry, [field]: value }
+      }),
+    )
+  }
+
+  const removeRealLalurEntry = (id: string) => {
+    setRealLalurEntries((prev) => prev.filter((entry) => entry.id !== id))
+  }
 
   // DRE SIMPLES NACIONAL
   const [simplesAnexo, setSimplesAnexo] = useState<string>('anexo_1')
@@ -1849,8 +1974,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setRealActivity('comercio')
     setRealIssRate(0)
-    setRealAdditions(0)
-    setRealExclusions(0)
+    setRealLalurEntries([])
     setRealQuantitySold(0)
     setRealExpenses([{ id: '1', description: 'Despesas operacionais e administrativas', value: 0 }])
     setIsRealSimulated(false)
@@ -1951,6 +2075,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       realIssRate,
       realAdditions,
       realExclusions,
+      realLalurEntries,
       realQuantitySold,
       realExpenses,
       isRealSimulated,
@@ -2141,8 +2266,45 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (snapshot.realActivity) setRealActivity(snapshot.realActivity)
     setRealIssRate(snapshot.realIssRate ?? 0)
-    setRealAdditions(snapshot.realAdditions ?? 0)
-    setRealExclusions(snapshot.realExclusions ?? 0)
+
+    // Restauração do Mini-LALUR com retrocompatibilidade total:
+    // Se o snapshot possui realLalurEntries (formato novo), restaura diretamente.
+    // Se é um cenário legado que possui apenas realAdditions ou realExclusions > 0,
+    // converte cada total num lançamento genérico preservando o valor exato.
+    if (Array.isArray(snapshot.realLalurEntries) && snapshot.realLalurEntries.length > 0) {
+      setRealLalurEntries(
+        snapshot.realLalurEntries.map((e) => ({
+          ...e,
+          value: typeof e.value === 'number' && Number.isFinite(e.value) ? Math.max(0, e.value) : 0,
+          type: e.type === 'exclusion' ? 'exclusion' : 'addition',
+        })),
+      )
+    } else {
+      const legacyEntries: LalurEntryItem[] = []
+      const legacyAdditions = Number(snapshot.realAdditions) || 0
+      const legacyExclusions = Number(snapshot.realExclusions) || 0
+
+      if (legacyAdditions > 0) {
+        legacyEntries.push({
+          id: `legacy-add-${Date.now()}`,
+          description: 'Adições (lançamento importado)',
+          value: legacyAdditions,
+          type: 'addition',
+        })
+      }
+
+      if (legacyExclusions > 0) {
+        legacyEntries.push({
+          id: `legacy-ex-${Date.now()}`,
+          description: 'Exclusões (lançamento importado)',
+          value: legacyExclusions,
+          type: 'exclusion',
+        })
+      }
+
+      setRealLalurEntries(legacyEntries)
+    }
+
     setRealQuantitySold(snapshot.realQuantitySold ?? 0)
     setRealExpenses(
       Array.isArray(snapshot.realExpenses) && snapshot.realExpenses.length > 0
@@ -2311,6 +2473,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setRealAdditions,
         realExclusions,
         setRealExclusions,
+        realLalurEntries,
+        setRealLalurEntries,
+        addRealLalurEntry,
+        updateRealLalurEntry,
+        removeRealLalurEntry,
         realQuantitySold,
         setRealQuantitySold,
         realExpenses,

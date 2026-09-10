@@ -21,6 +21,7 @@ import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
 import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
+import { MiniLalurSection } from '@/components/demo/MiniLalurSection'
 
 export default function DreRealPage() {
   const navigate = useNavigate()
@@ -42,6 +43,10 @@ export default function DreRealPage() {
     setRealAdditions,
     realExclusions,
     setRealExclusions,
+    realLalurEntries,
+    addRealLalurEntry,
+    updateRealLalurEntry,
+    removeRealLalurEntry,
     realQuantitySold,
     setRealQuantitySold,
     realExpenses,
@@ -652,52 +657,15 @@ export default function DreRealPage() {
             </div>
           </div>
 
-          {/* Campos Abertos: Adições e Exclusões do Lucro Real (LALUR) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">
-                Adições ao lucro real (R$)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                  R$
-                </span>
-                <Input
-                  type="text"
-                  placeholder="0,00"
-                  defaultValue={realAdditions > 0 ? formatNumberBR(realAdditions) : ''}
-                  key={`add-${realAdditions}`}
-                  onBlur={(e) => setRealAdditions(parseBRNumber(e.target.value))}
-                  className="pl-9 bg-slate-950/60 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
-                />
-              </div>
-              <span className="text-[11px] text-slate-500 font-mono">
-                Despesas indedutíveis a adicionar à base tributável.
-              </span>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">
-                Exclusões do lucro real (R$)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                  R$
-                </span>
-                <Input
-                  type="text"
-                  placeholder="0,00"
-                  defaultValue={realExclusions > 0 ? formatNumberBR(realExclusions) : ''}
-                  key={`ex-${realExclusions}`}
-                  onBlur={(e) => setRealExclusions(parseBRNumber(e.target.value))}
-                  className="pl-9 bg-slate-950/60 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
-                />
-              </div>
-              <span className="text-[11px] text-slate-500 font-mono">
-                Receitas não tributáveis ou incentivos fiscais.
-              </span>
-            </div>
-          </div>
+          {/* Mini-LALUR Estruturado: Lançamentos Individuais de Adições e Exclusões */}
+          <MiniLalurSection
+            entries={realLalurEntries}
+            onAddEntry={addRealLalurEntry}
+            onUpdateEntry={updateRealLalurEntry}
+            onRemoveEntry={removeRealLalurEntry}
+            totalAdditions={totalAdditions}
+            totalExclusions={totalExclusions}
+          />
 
           {/* NOVO BLOCO: Folha e Pró-labore */}
           <PayrollSection

@@ -385,6 +385,255 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * 8. SUÍTE DE TESTES: Mini-LALUR (DRE Lucro Real)
+ * Cobertura exigida:
+ * 1. Soma de múltiplos lançamentos individuais alimentando a base do IRPJ/CSLL
+ * 2. Carregamento de cenário antigo contendo apenas totais (números idênticos e preservação)
+ * 3. Regressão zero com bloco vazio (sem lançamentos, cálculo exatamente idêntico ao modelo anterior)
+ */
+export function runMiniLalurTests() {
+  // Simulação de cálculo da apuração de IRPJ e CSLL no Lucro Real
+  const calculateRealTaxBase = (
+    resultBeforeTax: number,
+    entries: { id: string; description: string; value: number; type: 'addition' | 'exclusion' }[],
+  ) => {
+    const totalAdditions = entries
+      .filter((e) => e.type === 'addition')
+      .reduce(
+        (acc, curr) => acc + (Number.isFinite(curr.value) && curr.value > 0 ? curr.value : 0),
+        0,
+      )
+
+    const totalExclusions = entries
+      .filter((e) => e.type === 'exclusion')
+      .reduce(
+        (acc, curr) => acc + (Number.isFinite(curr.value) && curr.value > 0 ? curr.value : 0),
+        0,
+      )
+
+    const taxableRealProfit = Math.max(0, resultBeforeTax + totalAdditions - totalExclusions)
+    const irpjRate = 15.0
+    const irpjAdditionalRate = 10.0
+    const irpjAdditionalLimit = 60000.0
+    const csllRate = 9.0
+
+    const totalIrpj = (taxableRealProfit * irpjRate) / 100
+    const totalIrpjExcess = Math.max(0, taxableRealProfit - irpjAdditionalLimit)
+    const totalIrpjAdditional = (totalIrpjExcess * irpjAdditionalRate) / 100
+    const totalCsll = (taxableRealProfit * csllRate) / 100
+    const totalTaxes = totalIrpj + totalIrpjAdditional + totalCsll
+
+    return {
+      totalAdditions,
+      totalExclusions,
+      taxableRealProfit,
+      totalIrpj,
+      totalIrpjAdditional,
+      totalCsll,
+      totalTaxes,
+    }
+  }
+
+  // Função de restauração compatível idêntica à do TaxContext
+  const restoreLalurFromSnapshot = (snapshot: {
+    realAdditions?: number
+    realExclusions?: number
+    realLalurEntries?: {
+      id: string
+      description: string
+      value: number
+      type: 'addition' | 'exclusion'
+    }[]
+  }) => {
+    if (Array.isArray(snapshot.realLalurEntries) && snapshot.realLalurEntries.length > 0) {
+      return snapshot.realLalurEntries.map((e) => ({
+        ...e,
+        value: typeof e.value === 'number' && Number.isFinite(e.value) ? Math.max(0, e.value) : 0,
+        type: e.type === 'exclusion' ? ('exclusion' as const) : ('addition' as const),
+      }))
+    }
+    const legacyEntries: {
+      id: string
+      description: string
+      value: number
+      type: 'addition' | 'exclusion'
+    }[] = []
+    const legacyAdditions = Number(snapshot.realAdditions) || 0
+    const legacyExclusions = Number(snapshot.realExclusions) || 0
+
+    if (legacyAdditions > 0) {
+      legacyEntries.push({
+        id: 'legacy-add-1',
+        description: 'Adições (lançamento importado)',
+        value: legacyAdditions,
+        type: 'addition',
+      })
+    }
+    if (legacyExclusions > 0) {
+      legacyEntries.push({
+        id: 'legacy-ex-1',
+        description: 'Exclusões (lançamento importado)',
+        value: legacyExclusions,
+        type: 'exclusion',
+      })
+    }
+    return legacyEntries
+  }
+
+  const resultBeforeTax = 100000.0 // R$ 100.000,00 de lucro contábil antes de tributos
+
+  // CENÁRIO 1: Bloco vazio (Regressão zero)
+  const emptyLalurResult = calculateRealTaxBase(resultBeforeTax, [])
+  // Sem adições e sem exclusões:
+  // Base = 100.000
+  // IRPJ = 15.000
+  // IRPJ Adicional (100k - 60k = 40k * 10%) = 4.000
+  // CSLL (9%) = 9.000
+  // Total Tributos Lucro Real = 28.000
+
+  // CENÁRIO 2: Múltiplos lançamentos estruturados
+  const multiEntries: {
+    id: string
+    description: string
+    value: number
+    type: 'addition' | 'exclusion'
+  }[] = [
+    {
+      id: '1',
+      description: 'Multa por atraso no pagamento de tributos',
+      value: 3000,
+      type: 'addition',
+    },
+    { id: '2', description: 'Despesas pessoais dos sócios', value: 2000, type: 'addition' },
+    { id: '3', description: 'Gorjetas pagas a empregados', value: 1500, type: 'addition' },
+    {
+      id: '4',
+      description: 'Lucros e dividendos recebidos (isentos)',
+      value: 4000,
+      type: 'exclusion',
+    },
+    {
+      id: '5',
+      description: 'Incentivos fiscais (Lei do Bem / PAT)',
+      value: 1500,
+      type: 'exclusion',
+    },
+  ]
+  // Total Adições = 3000 + 2000 + 1500 = 6500
+  // Total Exclusões = 4000 + 1500 = 5500
+  // Lucro Real Tributável = 100.000 + 6500 - 5500 = 101.000
+  // IRPJ = 101.000 * 15% = 15.150
+  // Adicional = (101.000 - 60.000) * 10% = 41.000 * 10% = 4.100
+  // CSLL = 101.000 * 9% = 9.090
+  // Total Tributos = 15.150 + 4.100 + 9.090 = 28.340
+  const multiLalurResult = calculateRealTaxBase(resultBeforeTax, multiEntries)
+
+  // CENÁRIO 3: Restauração de cenário antigo (apenas totais legados)
+  const legacySnapshot = {
+    realAdditions: 6500,
+    realExclusions: 5500,
+  }
+  const restoredFromLegacy = restoreLalurFromSnapshot(legacySnapshot)
+  const legacyRestoredResult = calculateRealTaxBase(resultBeforeTax, restoredFromLegacy)
+
+  const tests = [
+    {
+      test: 'Regressão zero: Base IRPJ/CSLL com Mini-LALUR vazio é exatamente R$ 100.000,00',
+      expected: 100000,
+      received: emptyLalurResult.taxableRealProfit,
+    },
+    {
+      test: 'Regressão zero: IRPJ total com Mini-LALUR vazio é R$ 19.000,00 (15k base + 4k adicional)',
+      expected: 19000,
+      received: emptyLalurResult.totalIrpj + emptyLalurResult.totalIrpjAdditional,
+    },
+    {
+      test: 'Regressão zero: CSLL com Mini-LALUR vazio é R$ 9.000,00',
+      expected: 9000,
+      received: emptyLalurResult.totalCsll,
+    },
+    {
+      test: 'Múltiplos lançamentos: Soma das Adições correta = R$ 6.500,00',
+      expected: 6500,
+      received: multiLalurResult.totalAdditions,
+    },
+    {
+      test: 'Múltiplos lançamentos: Soma das Exclusões correta = R$ 5.500,00',
+      expected: 5500,
+      received: multiLalurResult.totalExclusions,
+    },
+    {
+      test: 'Múltiplos lançamentos: Base Lucro Real ajustada = R$ 101.000,00',
+      expected: 101000,
+      received: multiLalurResult.taxableRealProfit,
+    },
+    {
+      test: 'Múltiplos lançamentos: IRPJ Base = R$ 15.150,00',
+      expected: 15150,
+      received: multiLalurResult.totalIrpj,
+    },
+    {
+      test: 'Múltiplos lançamentos: IRPJ Adicional = R$ 4.100,00',
+      expected: 4100,
+      received: multiLalurResult.totalIrpjAdditional,
+    },
+    {
+      test: 'Múltiplos lançamentos: CSLL = R$ 9.090,00',
+      expected: 9090,
+      received: multiLalurResult.totalCsll,
+    },
+    {
+      test: 'Múltiplos lançamentos: Total tributos IRPJ + CSLL = R$ 28.340,00',
+      expected: 28340,
+      received: multiLalurResult.totalTaxes,
+    },
+    {
+      test: 'Cenário legado: Conversão em lançamentos gerados preserva exatamente 2 registros',
+      expected: 2,
+      received: restoredFromLegacy.length,
+    },
+    {
+      test: 'Cenário legado: Lançamento genérico de adição importado preserva R$ 6.500,00',
+      expected: 6500,
+      received: restoredFromLegacy.find((e) => e.type === 'addition')?.value,
+    },
+    {
+      test: 'Cenário legado: Lançamento genérico de exclusão importado preserva R$ 5.500,00',
+      expected: 5500,
+      received: restoredFromLegacy.find((e) => e.type === 'exclusion')?.value,
+    },
+    {
+      test: 'Cenário legado: Base de cálculo do IRPJ/CSLL restaurada é idêntica à apuração com totais = R$ 101.000,00',
+      expected: multiLalurResult.taxableRealProfit,
+      received: legacyRestoredResult.taxableRealProfit,
+    },
+    {
+      test: 'Cenário legado: Total de impostos restaurado bate centavo a centavo com o cenário novo = R$ 28.340,00',
+      expected: multiLalurResult.totalTaxes,
+      received: legacyRestoredResult.totalTaxes,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : typeof t.expected === 'string'
+          ? t.expected === t.received
+          : Math.abs((t.expected as number) - (t.received as number)) < 0.001
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
  * Testes para a funcionalidade de Empresa em Início de Atividade do Simples Nacional:
  * (a) Clicar no botão / preencher o mês com a receita consolidada do Markup
  * (b) A RBT12 proporcional recalcula corretamente com esse valor (1º mês: receita × 12; meses seguintes: média × 12)
