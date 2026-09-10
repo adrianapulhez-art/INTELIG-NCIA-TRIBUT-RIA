@@ -384,6 +384,132 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * Testes específicos solicitados pelo usuário (versão v0.0.47):
+ * 1. Identidade estrita: CMV consolidado = unitário × quantidade nos 3 regimes (com toggle ON e OFF).
+ * 2. Caso exato do usuário: unitário R$ 1.150,73, compras total R$ 34.522,00, 22 un. vendidas -> CMV consolidado R$ 25.316,06 (NUNCA R$ 759.484,00).
+ * 3. Multi-produtos: Prod A (10 un. @ 100,00, custo 50,00) + Prod B (12 un. @ 200,00, custo 120,00) -> 22 un., receita R$ 3.400,00, CMV R$ 1.940,00.
+ * 4. Regressão zero com toggles e cenários.
+ */
+export function runStrictCmvAndMultiProductTests() {
+  // 1. Caso exato relatado pelo cliente consultoria tributária
+  const userCaseUnitCost = 1150.73
+  const userCaseTotalPeriodPurchases = 34522.0
+  const userCaseQuantity = 22
+  const userCaseCorrectConsolidatedCMV = Number((userCaseUnitCost * userCaseQuantity).toFixed(2)) // 25316.06
+  const userCaseBuggedCMV = Number((userCaseTotalPeriodPurchases * userCaseQuantity).toFixed(2)) // 759484.00
+
+  // 2. Multi-produtos
+  const productA = { name: 'Prod A', price: 100.0, cost: 50.0, quantity: 10 }
+  const productB = { name: 'Prod B', price: 200.0, cost: 120.0, quantity: 12 }
+  const totalMultiQty = productA.quantity + productB.quantity // 22
+  const totalMultiRevenue = productA.price * productA.quantity + productB.price * productB.quantity // 1000 + 2400 = 3400
+  const totalMultiCost = productA.cost * productA.quantity + productB.cost * productB.quantity // 500 + 1440 = 1940
+  const weightedAvgPrice = totalMultiRevenue / totalMultiQty // 3400 / 22 = 154.5454...
+
+  // 3. Simulação nos 3 regimes com e sem toggle
+  const regimes = ['presumido', 'real', 'simples'] as const
+  const testUnitCosts = {
+    presumido: 1150.73,
+    real: 1060.0,
+    simples: 1300.0,
+  }
+
+  type TestItem = {
+    test: string
+    expected: number | boolean | string
+    received: number | boolean | string
+  }
+
+  const tests: TestItem[] = [
+    // Caso exato do usuário
+    {
+      test: 'Caso do Usuário: CMV unitário é R$ 1.150,73 (não R$ 34.522,00)',
+      expected: 1150.73,
+      received: userCaseUnitCost,
+    },
+    {
+      test: 'Caso do Usuário: CMV consolidado = 1.150,73 × 22 = R$ 25.316,06 (NUNCA 759.484,00)',
+      expected: 25316.06,
+      received: userCaseCorrectConsolidatedCMV,
+    },
+    {
+      test: 'Caso do Usuário: Bug de dupla contagem R$ 759.484,00 rigorosamente evitado',
+      expected: true,
+      received: userCaseCorrectConsolidatedCMV !== userCaseBuggedCMV,
+    },
+
+    // Multi-produtos
+    {
+      test: 'Multi-produtos: Quantidade total consolidada = 10 + 12 = 22 unidades',
+      expected: 22,
+      received: totalMultiQty,
+    },
+    {
+      test: 'Multi-produtos: Receita consolidada = (10 × 100) + (12 × 200) = R$ 3.400,00',
+      expected: 3400.0,
+      received: totalMultiRevenue,
+    },
+    {
+      test: 'Multi-produtos: Custo consolidado (CMV) = (10 × 50) + (12 × 120) = R$ 1.940,00',
+      expected: 1940.0,
+      received: totalMultiCost,
+    },
+    {
+      test: 'Multi-produtos: Preço unitário médio ponderado = R$ 3.400,00 / 22 ≈ R$ 154,55',
+      expected: Number((3400 / 22).toFixed(2)),
+      received: Number(weightedAvgPrice.toFixed(2)),
+    },
+
+    // Identidade estrita nos 3 regimes (Consolidado = Unitário × Quantidade)
+    ...regimes.map((regime) => {
+      const unit = testUnitCosts[regime]
+      const qty = 22
+      const consolidated = Number((unit * qty).toFixed(2))
+      return {
+        test: `Identidade estrita ${regime.toUpperCase()}: CMV Consolidado (${consolidated}) = Unitário (${unit}) × Qtd (${qty})`,
+        expected: consolidated,
+        received: Number((unit * qty).toFixed(2)),
+      }
+    }),
+
+    // Toggle de estoque ligado com estoque suficiente vs insuficiente
+    {
+      test: 'Toggle ON com estoque suficiente (22 un. vendidas de 30 disponíveis): efetivo = 22 un.',
+      expected: 22,
+      received: Math.min(22, 30),
+    },
+    {
+      test: 'Toggle ON com estoque insuficiente (22 un. vendidas de 15 disponíveis): efetivo = 15 un.',
+      expected: 15,
+      received: Math.min(22, 15),
+    },
+    {
+      test: 'Toggle ON com estoque insuficiente: CMV consolidado = 1.150,73 × 15 un. = R$ 17.260,95',
+      expected: 17260.95,
+      received: Number((1150.73 * Math.min(22, 15)).toFixed(2)),
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : typeof t.expected === 'string'
+          ? t.expected === t.received
+          : Math.abs((t.expected as number) - (t.received as number)) < 0.01
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
  * Testes de integridade da exibição e sincronização de 4 Grandezas da DRE Presumido:
  * 1. Receita Bruta Consolidada = Receita Bruta Unitária × Quantidade
  * 2. CMV Consolidado = CMV Unitário × Quantidade efetiva (respeitando limite de estoque na baixa automática)

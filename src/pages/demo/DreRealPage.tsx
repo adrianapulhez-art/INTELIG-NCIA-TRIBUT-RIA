@@ -28,6 +28,7 @@ export default function DreRealPage() {
     simulatedSalePrice,
     totalConsolidatedRevenue,
     totalConsolidatedQuantity,
+    totalConsolidatedCost,
     markupProducts,
     calculatedPurchases,
     initialInventory,
@@ -65,42 +66,10 @@ export default function DreRealPage() {
 
   const { totalPurchasesQuantity } = useTaxContext()
 
-  const defaultQty =
-    realQuantitySold > 0
-      ? realQuantitySold
-      : (totalPurchasesQuantity || 0) > 0
-        ? totalPurchasesQuantity || 0
-        : totalConsolidatedQuantity > 0
-          ? totalConsolidatedQuantity
-          : 0
-
-  const [qtyInput, setQtyInput] = useState<string>(defaultQty > 0 ? String(defaultQty) : '0')
-  const [isQtyFocused, setIsQtyFocused] = useState(false)
   const [issInput, setIssInput] = useState<string>(
     realIssRate > 0 ? formatNumberBR(realIssRate) : '',
   )
   const [isIssFocused, setIsIssFocused] = useState(false)
-
-  // Sincroniza o input quando o estado for resetado ou carregado via cenário
-  React.useEffect(() => {
-    if (!isQtyFocused) {
-      if (
-        realQuantitySold === 0 &&
-        totalConsolidatedQuantity === 0 &&
-        (totalPurchasesQuantity || 0) === 0
-      ) {
-        setQtyInput('0')
-      } else {
-        setQtyInput(String(defaultQty))
-      }
-    }
-  }, [
-    realQuantitySold,
-    totalConsolidatedQuantity,
-    totalPurchasesQuantity,
-    defaultQty,
-    isQtyFocused,
-  ])
 
   React.useEffect(() => {
     if (!isIssFocused) {
@@ -108,24 +77,75 @@ export default function DreRealPage() {
     }
   }, [realIssRate, isIssFocused])
 
-  const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setQtyInput(val)
-    const parsed = parseInt(val, 10)
-    setRealQuantitySold(isNaN(parsed) || parsed < 0 ? 0 : parsed)
-  }
+  // Quantidade automática conectada diretamente ao Markup/Compras
+  const automaticQuantity =
+    totalConsolidatedQuantity > 0
+      ? totalConsolidatedQuantity
+      : (totalPurchasesQuantity || 0) > 0
+        ? totalPurchasesQuantity || 0
+        : realQuantitySold > 0
+          ? realQuantitySold
+          : 0
+
+  // Garante que o estado compartilhado fique alinhado à quantidade automática
+  React.useEffect(() => {
+    if (automaticQuantity > 0 && realQuantitySold !== automaticQuantity) {
+      setRealQuantitySold(automaticQuantity)
+    }
+  }, [automaticQuantity, realQuantitySold, setRealQuantitySold])
+
+  // Identificação da origem da quantidade para exibição transparente
+  const countMarkupProductsWithQty = markupProducts.filter((p) => (p.quantity || 0) > 0).length
+  const quantitySourceLabel =
+    totalConsolidatedQuantity > 0
+      ? countMarkupProductsWithQty > 1
+        ? `via Markup · ${countMarkupProductsWithQty} produtos`
+        : 'via Markup'
+      : (totalPurchasesQuantity || 0) > 0
+        ? 'via Compras'
+        : 'sem quantidade cadastrada'
 
   const isServices = realActivity === 'servicos'
 
   // RECEITA BRUTA:
-  // Se houver múltiplos produtos consolidados (> 0), usa totalConsolidatedRevenue.
+  // 1. Receita bruta UNITÁRIA (preço de venda médio ponderado via Markup)
+  const unitGrossRevenue =
+    totalConsolidatedQuantity > 0 && totalConsolidatedRevenue > 0
+      ? totalConsolidatedRevenue / totalConsolidatedQuantity
+      : simulatedSalePrice || 0
+
+  // 2. Receita bruta CONSOLIDADA (total consolidado dos produtos do Markup ou unitário × quantidade)
   const hasConsolidated = totalConsolidatedRevenue > 0
-  const activeGrossRevenue = hasConsolidated ? totalConsolidatedRevenue : simulatedSalePrice || 0
-  // CMV unitário via Compras (Lucro Real com deduções completas de créditos)
+  const activeGrossRevenue = hasConsolidated
+    ? totalConsolidatedRevenue
+    : unitGrossRevenue * (automaticQuantity > 0 ? automaticQuantity : 1)
+
+  // CMV via Compras (Lucro Real):
+  // IDENTIDADE ESTRITA:
+  // - CMV unitário = SEMPRE o custo unitário líquido do regime apurado via Compras (unitCostRealEffective).
+  //   Se unitCostRealEffective não estiver disponível, deriva cmvReal / totalPurchasesQuantity.
+  // - CMV consolidado = unitário × quantidade vendida (com toggle ligado, limitada ao estoque disponível).
+  //   Jamais multiplica o custo total do período por quantidade.
   const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-  const unitCMV = isAutoInventory
-    ? calculatedPurchases.unitCostRealEffective
-    : calculatedPurchases.cmvReal || 0
+  const fallbackUnitReal =
+    (totalPurchasesQuantity || 0) > 0
+      ? (calculatedPurchases.cmvReal || 0) / totalPurchasesQuantity
+      : calculatedPurchases.cmvReal || 0
+  const unitCMV =
+    calculatedPurchases.unitCostRealEffective > 0
+      ? calculatedPurchases.unitCostRealEffective
+      : fallbackUnitReal
+
+  // 4. CMV CONSOLIDADO:
+  const effectiveSoldQtyForCmv = isAutoInventory
+    ? Math.min(automaticQuantity, calculatedPurchases.totalAvailableUnits)
+    : automaticQuantity
+  const consolidatedCMV =
+    unitCMV > 0
+      ? unitCMV * effectiveSoldQtyForCmv
+      : totalConsolidatedCost > 0
+        ? totalConsolidatedCost
+        : 0
 
   // Alíquotas fixas do Lucro Real
   const icmsRate = icmsRateMarkup || 0
@@ -177,15 +197,8 @@ export default function DreRealPage() {
   // 8. Lucro bruto
   const unitGrossProfit = unitNetRevenue - unitCmvVal
 
-  // Quantidade efetiva
-  const effectiveQuantity =
-    realQuantitySold > 0
-      ? realQuantitySold
-      : (totalPurchasesQuantity || 0) > 0
-        ? totalPurchasesQuantity || 0
-        : totalConsolidatedQuantity > 0
-          ? totalConsolidatedQuantity
-          : 0
+  // Quantidade efetiva: usa diretamente a quantidade automática ligada ao Markup/Compras
+  const effectiveQuantity = automaticQuantity
 
   // 9. Despesas operacionais unitárias
   const unitExpenses = effectiveQuantity > 0 ? totalExpenses / effectiveQuantity : 0
@@ -214,10 +227,7 @@ export default function DreRealPage() {
     isAutoInventory &&
     calculatedPurchases.totalAvailableUnits > 0 &&
     qty > calculatedPurchases.totalAvailableUnits
-  const effectiveSoldQtyForCmv = isAutoInventory
-    ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
-    : qty
-  const totalCmv = isAutoInventory ? unitCmvVal * effectiveSoldQtyForCmv : unitCmvVal * qty
+  const totalCmv = consolidatedCMV
   const totalGrossProfit = totalNetRevenue - totalCmv
   const totalResultBeforeTax = totalGrossProfit - totalExpenses
 
@@ -302,16 +312,24 @@ export default function DreRealPage() {
           <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
             <div className="flex items-center gap-2 text-emerald-400 font-semibold">
               <LinkIcon className="w-4 h-4" />
-              <span>Conectado às calculadoras — valores importados automaticamente</span>
+              <span>
+                Conectado às calculadoras — valores e quantidades importados automaticamente
+              </span>
             </div>
             <div className="flex flex-wrap items-center gap-4 text-slate-300">
               <div>
-                Receita Markup {hasConsolidated ? '(consolidada)' : ''}:{' '}
+                Quantidade:{' '}
+                <strong className="text-emerald-400">
+                  {qty} un. ({quantitySourceLabel})
+                </strong>
+              </div>
+              <div>
+                Receita Consolidada:{' '}
                 <strong className="text-emerald-400">{formatBRL(activeGrossRevenue)}</strong>
               </div>
               <div>
-                CMV (Compras · Lucro Real):{' '}
-                <strong className="text-emerald-400">{formatBRL(unitCMV)}</strong>
+                CMV Consolidado:{' '}
+                <strong className="text-emerald-400">{formatBRL(consolidatedCMV)}</strong>
               </div>
             </div>
           </div>
@@ -485,38 +503,100 @@ export default function DreRealPage() {
             </div>
           </div>
 
-          {/* Campos Automáticos Bloqueados */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-300">
-                  {hasConsolidated
-                    ? 'Receita bruta — via Markup (total dos produtos)'
-                    : 'Receita bruta unitária (R$)'}
-                </label>
-                <span className="text-[11px] text-emerald-400 font-mono font-semibold">
-                  · automático{' '}
-                  {hasConsolidated ? `(${markupProducts.length} produtos)` : '(via Markup)'}
-                </span>
-              </div>
-              <div className="h-10 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
-                <span className="text-slate-500 text-xs">R$</span>
-                <span className="font-bold text-emerald-400">
-                  {formatNumberBR(activeGrossRevenue)}
-                </span>
-              </div>
+          {/* Quadro Informativo de 4 Grandezas: Receita (Unitária / Consolidada) e CMV (Unitário / Consolidado) */}
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold uppercase text-slate-200">
+                Resumo Operacional — Receita e CMV (Unitário vs. Consolidado)
+              </span>
+              <span className="text-[11px] text-emerald-400 font-mono font-semibold">
+                · automático (via Markup e Compras · {qty} un.)
+              </span>
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-300">CMV unitário (R$)</label>
-                <span className="text-[11px] text-emerald-400 font-mono font-semibold">
-                  · automático (via Compras)
-                </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {/* 1. Receita Bruta Unitária */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300">
+                    Receita bruta unitária
+                  </label>
+                  <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                    · unitário (Markup)
+                  </span>
+                </div>
+                <div className="h-11 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
+                  <span className="text-slate-500 text-xs">R$</span>
+                  <span className="font-bold text-emerald-400">
+                    {formatNumberBR(unitGrossRevenue)}
+                  </span>
+                </div>
+                <p className="text-[10px] font-mono text-slate-400 px-1">
+                  Preço unitário de venda apurado
+                </p>
               </div>
-              <div className="h-10 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
-                <span className="text-slate-500 text-xs">R$</span>
-                <span className="font-bold text-emerald-400">{formatNumberBR(unitCMV)}</span>
+
+              {/* 2. Receita Bruta Consolidada */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300">
+                    Receita bruta consolidada
+                  </label>
+                  <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                    · consolidado ({qty} un.)
+                  </span>
+                </div>
+                <div className="h-11 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
+                  <span className="text-slate-500 text-xs">R$</span>
+                  <span className="font-bold text-emerald-400">
+                    {formatNumberBR(activeGrossRevenue)}
+                  </span>
+                </div>
+                <p
+                  className="text-[10px] font-mono text-slate-400 px-1 truncate"
+                  title={`${formatBRL(unitGrossRevenue)} × ${qty} un.`}
+                >
+                  {formatBRL(unitGrossRevenue)} × {qty} un.
+                </p>
+              </div>
+
+              {/* 3. CMV Unitário */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300">CMV unitário</label>
+                  <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                    · unitário (Compras)
+                  </span>
+                </div>
+                <div className="h-11 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
+                  <span className="text-slate-500 text-xs">R$</span>
+                  <span className="font-bold text-emerald-400">{formatNumberBR(unitCMV)}</span>
+                </div>
+                <p className="text-[10px] font-mono text-slate-400 px-1">
+                  Custo líquido unitário apurado
+                </p>
+              </div>
+
+              {/* 4. CMV Consolidado */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300">CMV consolidado</label>
+                  <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                    · consolidado ({effectiveSoldQtyForCmv} un.)
+                  </span>
+                </div>
+                <div className="h-11 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
+                  <span className="text-slate-500 text-xs">R$</span>
+                  <span className="font-bold text-emerald-400">
+                    {formatNumberBR(consolidatedCMV)}
+                  </span>
+                </div>
+                <p
+                  className="text-[10px] font-mono text-slate-400 px-1 truncate"
+                  title={`${formatBRL(unitCMV)} × ${effectiveSoldQtyForCmv} un.`}
+                >
+                  {formatBRL(unitCMV)} × {effectiveSoldQtyForCmv} un.
+                </p>
               </div>
             </div>
           </div>
@@ -701,39 +781,40 @@ export default function DreRealPage() {
             </div>
           </div>
 
-          {/* Faixa Verde: Quantidade Vendida + Botão Simular */}
+          {/* Faixa Informativa: Quantidade Vendida Automática (linkada diretamente ao Markup/Compras) */}
           <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-xs font-mono font-semibold text-emerald-400 block">
-                Quantidade vendida — a coluna "Total" da DRE acompanha este valor
+              <span className="text-xs font-mono font-semibold text-emerald-400 flex items-center gap-2">
+                <LinkIcon className="w-4 h-4" />
+                Quantidade vendida integrada à DRE — definida automaticamente via Markup e Compras
               </span>
-              <div className="relative w-36">
-                <Input
-                  type="number"
-                  min="0"
-                  value={qtyInput}
-                  onFocus={() => setIsQtyFocused(true)}
-                  onChange={handleQtyChange}
-                  onBlur={(e) => {
-                    setIsQtyFocused(false)
-                    const parsed = parseInt(e.target.value, 10)
-                    const safe = isNaN(parsed) || parsed < 0 ? 0 : parsed
-                    setQtyInput(String(safe))
-                    setRealQuantitySold(safe)
-                  }}
-                  className="bg-slate-950/80 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500"
-                />
-              </div>
+              <p className="text-[11px] font-mono text-slate-400">
+                A coluna "Total ({qty} un.)" e as linhas de resultado acompanham diretamente os
+                produtos calculados, sem necessidade de digitação manual.
+              </p>
             </div>
 
-            <Button
-              type="button"
-              onClick={simulateReal}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 cursor-pointer transition-transform active:scale-95"
-            >
-              <Calculator className="w-4 h-4" />
-              Simular DRE
-            </Button>
+            <div className="flex items-center gap-3">
+              <div className="h-10 px-4 rounded-xl bg-slate-950/80 border border-emerald-500/40 flex items-center gap-2 font-mono text-sm text-slate-100 shrink-0 shadow-inner">
+                <span className="text-slate-400 text-xs">Qtd:</span>
+                <span className="font-bold text-emerald-400 text-base">{qty}</span>
+                <span className="text-xs text-slate-400">un.</span>
+                <span className="text-[10px] text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded font-semibold ml-1">
+                  · {quantitySourceLabel}
+                </span>
+              </div>
+
+              {!isRealSimulated && (
+                <Button
+                  type="button"
+                  onClick={simulateReal}
+                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-5 py-2 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 cursor-pointer transition-transform active:scale-95 text-xs sm:text-sm shrink-0"
+                >
+                  <Calculator className="w-4 h-4" />
+                  Simular DRE
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 

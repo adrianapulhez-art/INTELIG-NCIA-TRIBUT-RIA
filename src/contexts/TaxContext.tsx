@@ -1477,6 +1477,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     : cmvSimplesNetPurchases
 
   // Custo unitário por regime = Σ custo do regime dos itens ÷ Σ quantidade comprada dos itens (protegendo divisão por zero)
+  // Permanece SEMPRE disponível (com ou sem toggle de baixa automática de estoque)
   const unitCostPresumidoAuto =
     totalPurchasesQuantity > 0 ? purchasesCostPresumido / totalPurchasesQuantity : 0
   const unitCostRealAuto =

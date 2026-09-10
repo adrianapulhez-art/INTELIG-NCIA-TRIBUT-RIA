@@ -28,6 +28,7 @@ export default function DrePresumidoPage() {
     simulatedSalePrice,
     totalConsolidatedRevenue,
     totalConsolidatedQuantity,
+    totalConsolidatedCost,
     markupProducts,
     calculatedPurchases,
     initialInventory,
@@ -93,9 +94,12 @@ export default function DrePresumidoPage() {
   }, [automaticQuantity, presumidoQuantitySold, setPresumidoQuantitySold])
 
   // Identificação da origem da quantidade para exibição transparente
+  const countMarkupProductsWithQty = markupProducts.filter((p) => (p.quantity || 0) > 0).length
   const quantitySourceLabel =
     totalConsolidatedQuantity > 0
-      ? 'via Markup'
+      ? countMarkupProductsWithQty > 1
+        ? `via Markup · ${countMarkupProductsWithQty} produtos`
+        : 'via Markup'
       : (totalPurchasesQuantity || 0) > 0
         ? 'via Compras'
         : 'sem quantidade cadastrada'
@@ -114,20 +118,34 @@ export default function DrePresumidoPage() {
     : unitGrossRevenue * (automaticQuantity > 0 ? automaticQuantity : 1)
 
   // CMV via Compras (Presumido):
-  // 3. CMV UNITÁRIO (custo unitário efetivo por regime via Compras)
+  // IDENTIDADE ESTRITA:
+  // - CMV unitário = SEMPRE o custo unitário líquido do regime apurado via Compras (unitCostPresumidoEffective).
+  //   Se unitCostPresumidoEffective não estiver disponível, deriva cmvPresumido / totalPurchasesQuantity.
+  // - CMV consolidado = unitário × quantidade vendida (com toggle ligado, limitada ao estoque disponível).
+  //   Jamais multiplica o custo total do período por quantidade.
   const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-  const unitCMV = isAutoInventory
-    ? calculatedPurchases.unitCostPresumidoEffective
-    : calculatedPurchases.cmvPresumido || 0
+  const fallbackUnitPresumido =
+    (totalPurchasesQuantity || 0) > 0
+      ? (calculatedPurchases.cmvPresumido || 0) / totalPurchasesQuantity
+      : calculatedPurchases.cmvPresumido || 0
+  const unitCMV =
+    calculatedPurchases.unitCostPresumidoEffective > 0
+      ? calculatedPurchases.unitCostPresumidoEffective
+      : fallbackUnitPresumido
 
-  // 4. CMV CONSOLIDADO: custo unitário × quantidade efetiva vendida na DRE
-  // Respeita o toggle de baixa automática e o limite de estoque disponível
+  // 4. CMV CONSOLIDADO:
+  // Se houver multi-produtos cadastrados com custo e quantidade (> 0) e sem compras registradas,
+  // ou se totalConsolidatedCost > 0 e compras zeradas, respeita totalConsolidatedCost.
+  // Caso haja compras ou custo unitário apurado via compras, a identidade estrita prevalece:
   const effectiveSoldQtyForCmv = isAutoInventory
     ? Math.min(automaticQuantity, calculatedPurchases.totalAvailableUnits)
     : automaticQuantity
-  const consolidatedCMV = isAutoInventory
-    ? unitCMV * effectiveSoldQtyForCmv
-    : unitCMV * automaticQuantity
+  const consolidatedCMV =
+    unitCMV > 0
+      ? unitCMV * effectiveSoldQtyForCmv
+      : totalConsolidatedCost > 0
+        ? totalConsolidatedCost
+        : 0
 
   // Atividade e alíquotas de presunção (Lei 9.249/95 art. 15 e 20)
   // Comércio: IRPJ 8%, CSLL 12%
@@ -216,7 +234,7 @@ export default function DrePresumidoPage() {
     isAutoInventory &&
     calculatedPurchases.totalAvailableUnits > 0 &&
     qty > calculatedPurchases.totalAvailableUnits
-  const totalCmv = isAutoInventory ? unitCmvVal * effectiveSoldQtyForCmv : unitCmvVal * qty
+  const totalCmv = consolidatedCMV
   const totalGrossProfit = totalNetRevenue - totalCmv
   const totalResultBeforeTax = totalGrossProfit - totalExpenses
 

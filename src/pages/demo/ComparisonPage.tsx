@@ -184,9 +184,14 @@ export default function ComparisonPage() {
     const unitCofins = (unitPisCofinsBase * cofinsRate) / 100
     const unitNetRevenue = unitGross - unitMunicipalStateTax - unitPis - unitCofins
     const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-    const unitCmv = isAutoInventory
-      ? calculatedPurchases.unitCostPresumidoEffective
-      : calculatedPurchases.cmvPresumido || 0
+    const fallbackUnitPresumido =
+      (totalPurchasesQuantity || 0) > 0
+        ? (calculatedPurchases.cmvPresumido || 0) / totalPurchasesQuantity
+        : calculatedPurchases.cmvPresumido || 0
+    const unitCmv =
+      calculatedPurchases.unitCostPresumidoEffective > 0
+        ? calculatedPurchases.unitCostPresumidoEffective
+        : fallbackUnitPresumido
     const unitGrossProfit = unitNetRevenue - unitCmv
 
     // Totais com a quantidade
@@ -198,7 +203,7 @@ export default function ComparisonPage() {
     const effectiveSoldQtyForCmv = isAutoInventory
       ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
       : qty
-    const totalCmv = isAutoInventory ? unitCmv * effectiveSoldQtyForCmv : unitCmv * qty
+    const totalCmv = unitCmv * effectiveSoldQtyForCmv
     const totalGrossProfit = totalNetRevenue - totalCmv
 
     // No Lucro Presumido: despesas = outras despesas + folha/pró-labore + encargos patronais
@@ -291,9 +296,14 @@ export default function ComparisonPage() {
     const unitCofins = (unitPisCofinsBase * cofinsRate) / 100
     const unitNetRevenue = unitGross - unitMunicipalStateTax - unitPis - unitCofins
     const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-    const unitCmv = isAutoInventory
-      ? calculatedPurchases.unitCostRealEffective
-      : calculatedPurchases.cmvReal || 0
+    const fallbackUnitReal =
+      (totalPurchasesQuantity || 0) > 0
+        ? (calculatedPurchases.cmvReal || 0) / totalPurchasesQuantity
+        : calculatedPurchases.cmvReal || 0
+    const unitCmv =
+      calculatedPurchases.unitCostRealEffective > 0
+        ? calculatedPurchases.unitCostRealEffective
+        : fallbackUnitReal
     const unitGrossProfit = unitNetRevenue - unitCmv
 
     // Totais com a quantidade
@@ -305,7 +315,7 @@ export default function ComparisonPage() {
     const effectiveSoldQtyForCmv = isAutoInventory
       ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
       : qty
-    const totalCmv = isAutoInventory ? unitCmv * effectiveSoldQtyForCmv : unitCmv * qty
+    const totalCmv = unitCmv * effectiveSoldQtyForCmv
     const totalGrossProfit = totalNetRevenue - totalCmv
 
     // No Lucro Real: folha, pró-labore e encargos são despesas dedutíveis
@@ -405,9 +415,14 @@ export default function ComparisonPage() {
 
     const unitNetRevenue = unitGross - unitDasTotal
     const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-    const unitCmv = isAutoInventory
-      ? calculatedPurchases.unitCostSimplesEffective
-      : calculatedPurchases.cmvSimples || 0
+    const fallbackUnitSimples =
+      (totalPurchasesQuantity || 0) > 0
+        ? (calculatedPurchases.cmvSimples || 0) / totalPurchasesQuantity
+        : calculatedPurchases.cmvSimples || 0
+    const unitCmv =
+      calculatedPurchases.unitCostSimplesEffective > 0
+        ? calculatedPurchases.unitCostSimplesEffective
+        : fallbackUnitSimples
     const unitGrossProfit = unitNetRevenue - unitCmv
 
     // Totais com a quantidade
@@ -425,7 +440,7 @@ export default function ComparisonPage() {
     const effectiveSoldQtyForCmv = isAutoInventory
       ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
       : qty
-    const totalCmv = isAutoInventory ? unitCmv * effectiveSoldQtyForCmv : unitCmv * qty
+    const totalCmv = unitCmv * effectiveSoldQtyForCmv
     const totalGrossProfit = totalNetRevenue - totalCmv
 
     // No Simples Nacional:
