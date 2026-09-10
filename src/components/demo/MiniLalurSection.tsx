@@ -1,5 +1,14 @@
-import React from 'react'
-import { Plus, Trash2, ArrowUpRight, ArrowDownRight, Sparkles, BookOpen } from 'lucide-react'
+import React, { useState } from 'react'
+import {
+  Plus,
+  Trash2,
+  ArrowUpRight,
+  ArrowDownRight,
+  Sparkles,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -88,6 +97,7 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
   totalAdditions,
   totalExclusions,
 }) => {
+  const [showExamples, setShowExamples] = useState(false)
   const netLalurAdjustment = totalAdditions - totalExclusions
 
   return (
@@ -110,8 +120,29 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
           </p>
         </div>
 
-        {/* Dois botões claros: + Adição e + Exclusão */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Botões de Ação: Ver exemplos de lançamentos + Adição e Exclusão */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowExamples((prev) => !prev)}
+            aria-expanded={showExamples}
+            className={`h-7 text-xs font-mono transition-all cursor-pointer ${
+              showExamples
+                ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-400'
+                : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-slate-100 hover:border-slate-700'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-400" />
+            {showExamples ? 'Ocultar exemplos' : 'Ver simulações prontas'}
+            {showExamples ? (
+              <ChevronUp className="w-3 h-3 ml-1 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-3 h-3 ml-1 text-slate-400" />
+            )}
+          </Button>
+
           <Button
             type="button"
             variant="outline"
@@ -134,43 +165,54 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
         </div>
       </div>
 
-      {/* Chips de Exemplos Prontos do LALUR para 1-clique */}
-      <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2">
-        <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-400 font-medium">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span>Exemplos prontos para simulação (clique para lançar):</span>
-        </div>
+      {/* Chips de Exemplos Prontos do LALUR para 1-clique (visíveis apenas sob demanda do usuário) */}
+      {showExamples && (
+        <div className="p-3 rounded-2xl bg-slate-950/60 border border-amber-500/20 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-[11px] font-mono text-amber-300/90 font-medium">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>Exemplos prontos para simulação (clique para lançar):</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowExamples(false)}
+              className="text-[10px] font-mono text-slate-400 hover:text-slate-200 underline cursor-pointer"
+            >
+              Fechar exemplos
+            </button>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          {LALUR_EXAMPLES.map((ex, idx) => {
-            const isAdd = ex.type === 'addition'
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => onAddEntry(ex.description, ex.suggestedValue, ex.type)}
-                title={`${ex.hint} · Sugestão: ${formatBRL(ex.suggestedValue)}`}
-                className={`group inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all border cursor-pointer active:scale-95 ${
-                  isAdd
-                    ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-400'
-                    : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400'
-                }`}
-              >
-                {isAdd ? (
-                  <ArrowUpRight className="w-3 h-3 text-emerald-400 shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                ) : (
-                  <ArrowDownRight className="w-3 h-3 text-cyan-400 shrink-0 group-hover:translate-x-0.5 group-hover:translate-y-0.5 transition-transform" />
-                )}
-                <span className="font-semibold">{isAdd ? '+ Adição:' : '− Exclusão:'}</span>
-                <span>{ex.label}</span>
-                <span className="text-[10px] opacity-70 ml-0.5">
-                  ({formatBRL(ex.suggestedValue)})
-                </span>
-              </button>
-            )
-          })}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {LALUR_EXAMPLES.map((ex, idx) => {
+              const isAdd = ex.type === 'addition'
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => onAddEntry(ex.description, ex.suggestedValue, ex.type)}
+                  title={`${ex.hint} · Sugestão: ${formatBRL(ex.suggestedValue)}`}
+                  className={`group inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all border cursor-pointer active:scale-95 ${
+                    isAdd
+                      ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-400'
+                      : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400'
+                  }`}
+                >
+                  {isAdd ? (
+                    <ArrowUpRight className="w-3 h-3 text-emerald-400 shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  ) : (
+                    <ArrowDownRight className="w-3 h-3 text-cyan-400 shrink-0 group-hover:translate-x-0.5 group-hover:translate-y-0.5 transition-transform" />
+                  )}
+                  <span className="font-semibold">{isAdd ? '+ Adição:' : '− Exclusão:'}</span>
+                  <span>{ex.label}</span>
+                  <span className="text-[10px] opacity-70 ml-0.5">
+                    ({formatBRL(ex.suggestedValue)})
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Lista de Lançamentos Individuais */}
       {entries.length > 0 ? (
@@ -268,8 +310,9 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
           </p>
           <p className="text-[11px] font-mono text-slate-500">
             Clique em <strong className="text-emerald-400">+ Adição</strong>,{' '}
-            <strong className="text-cyan-400">+ Exclusão</strong> ou selecione um dos exemplos acima
-            para lançar.
+            <strong className="text-cyan-400">+ Exclusão</strong> ou em{' '}
+            <strong className="text-amber-400">Ver simulações prontas</strong> para abrir exemplos
+            de lançamento.
           </p>
         </div>
       )}
