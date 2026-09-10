@@ -992,24 +992,24 @@ export default function PurchasesPage() {
                   <button
                     type="button"
                     onClick={() => setIsFreightDialogOpen(true)}
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer shadow-sm ${
                       hasAdditionalCosts
-                        ? 'bg-amber-500/20 border-amber-400/70 text-amber-200 hover:bg-amber-500/30 hover:border-amber-400 shadow-sm shadow-amber-500/20'
-                        : 'bg-slate-900/90 border-slate-700/80 text-slate-300 hover:text-white hover:border-orange-500/50 hover:bg-slate-800/80'
+                        ? 'bg-emerald-500/[0.22] border-emerald-400/90 text-emerald-100 hover:bg-emerald-500/35 hover:border-emerald-300 shadow-emerald-500/25 ring-1 ring-emerald-500/40'
+                        : 'bg-emerald-500/[0.12] border-emerald-500/70 text-emerald-200 hover:text-white hover:border-emerald-400 hover:bg-emerald-500/20 shadow-emerald-500/10'
                     }`}
                     title="Abrir camada de Frete e Encargos Adicionais Rateados na Compra"
                   >
                     <Truck
                       className={`w-3.5 h-3.5 ${
-                        hasAdditionalCosts ? 'text-amber-300' : 'text-slate-400'
+                        hasAdditionalCosts ? 'text-emerald-200' : 'text-emerald-300/80'
                       }`}
                     />
-                    <span className="font-semibold">Frete e Encargos</span>
+                    <span className="font-semibold text-emerald-100">Frete e Encargos</span>
                     <Badge
                       className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
                         hasAdditionalCosts
-                          ? 'bg-amber-500/30 text-amber-200'
-                          : 'bg-slate-800 text-slate-400'
+                          ? 'bg-emerald-500/35 text-emerald-100 font-semibold'
+                          : 'bg-emerald-950/70 text-emerald-300 border border-emerald-500/30'
                       }`}
                     >
                       {hasAdditionalCosts
@@ -1018,31 +1018,31 @@ export default function PurchasesPage() {
                           }`
                         : 'Inativo'}
                     </Badge>
-                    <ChevronRight className="w-3 h-3 opacity-70 ml-0.5" />
+                    <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
                   </button>
 
                   {/* Chip 2: Deduções do Custo */}
                   <button
                     type="button"
                     onClick={() => setIsDeductionsDialogOpen(true)}
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer shadow-sm ${
                       hasDeductions
-                        ? 'bg-emerald-500/20 border-emerald-400/70 text-emerald-200 hover:bg-emerald-500/30 hover:border-emerald-400 shadow-sm shadow-emerald-500/20'
-                        : 'bg-slate-900/90 border-slate-700/80 text-slate-300 hover:text-white hover:border-orange-500/50 hover:bg-slate-800/80'
+                        ? 'bg-emerald-500/[0.22] border-emerald-400/90 text-emerald-100 hover:bg-emerald-500/35 hover:border-emerald-300 shadow-emerald-500/25 ring-1 ring-emerald-500/40'
+                        : 'bg-emerald-500/[0.12] border-emerald-500/70 text-emerald-200 hover:text-white hover:border-emerald-400 hover:bg-emerald-500/20 shadow-emerald-500/10'
                     }`}
                     title="Abrir camada de Deduções do Custo (Devoluções / Abatimentos / Descontos)"
                   >
                     <Receipt
                       className={`w-3.5 h-3.5 ${
-                        hasDeductions ? 'text-emerald-300' : 'text-slate-400'
+                        hasDeductions ? 'text-emerald-200' : 'text-emerald-300/80'
                       }`}
                     />
-                    <span className="font-semibold">Deduções do Custo</span>
+                    <span className="font-semibold text-emerald-100">Deduções do Custo</span>
                     <Badge
                       className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
                         hasDeductions
-                          ? 'bg-emerald-500/30 text-emerald-200'
-                          : 'bg-slate-800 text-slate-400'
+                          ? 'bg-emerald-500/35 text-emerald-100 font-semibold'
+                          : 'bg-emerald-950/70 text-emerald-300 border border-emerald-500/30'
                       }`}
                     >
                       {hasDeductions
@@ -1051,7 +1051,7 @@ export default function PurchasesPage() {
                           }`
                         : 'Inativo'}
                     </Badge>
-                    <ChevronRight className="w-3 h-3 opacity-70 ml-0.5" />
+                    <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
                   </button>
                 </div>
               </div>
