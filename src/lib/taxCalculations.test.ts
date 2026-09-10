@@ -460,6 +460,11 @@ export function runComparisonVsDre30Bought22SoldTests(): {
     ? Math.min(comparisonQty, calculatedPurchases.totalAvailableUnits)
     : comparisonQty
 
+  // Preço de venda unitário de exemplo para receita bruta consolidada
+  const exampleUnitPrice = 200.0
+  const expectedGrossRevenue = Math.round(exampleUnitPrice * comparisonQty * 100) / 100 // 200 * 22 = 4400.00
+  const rejectedGrossRevenuePurchased = Math.round(exampleUnitPrice * qtyPurchased * 100) / 100 // 200 * 30 = 6000.00
+
   const comparisonPresumidoCmv =
     Math.round((Math.round(unitCostPresumido * 100) / 100) * comparisonEffectiveQty * 100) / 100
   const comparisonRealCmv =
@@ -535,6 +540,16 @@ export function runComparisonVsDre30Bought22SoldTests(): {
       test: 'Estoque final Simples = R$ 800,00 (8 un. × R$ 100,00)',
       expected: 800,
       received: efSimples,
+    },
+    {
+      test: 'Receita Bruta consolidada na Comparação = 22 un. vendidas × Preço Unitário (R$ 4.400,00)',
+      expected: 4400,
+      received: expectedGrossRevenue,
+    },
+    {
+      test: 'Receita Bruta consolidada NÃO multiplica 30 unidades compradas (R$ 6.000,00 rejeitado)',
+      expected: true,
+      received: expectedGrossRevenue !== rejectedGrossRevenuePurchased,
     },
   ]
 

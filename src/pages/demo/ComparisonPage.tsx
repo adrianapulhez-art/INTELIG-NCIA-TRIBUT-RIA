@@ -93,16 +93,23 @@ export default function ComparisonPage() {
 
   const { totalPurchasesQuantity } = useTaxContext()
 
-  // Regra idêntica às DREs: prioriza quantidade consolidada vendida, depois baixa automática, compras e individual
+  // Regra de resolução estrita da quantidade vendida
   const automaticQuantity =
-    totalConsolidatedQuantity > 0
-      ? totalConsolidatedQuantity
-      : calculatedPurchases.autoInventoryDeductionActive &&
-          calculatedPurchases.totalSoldUnitsEffective > 0
-        ? calculatedPurchases.totalSoldUnitsEffective
-        : (totalPurchasesQuantity || 0) > 0
-          ? totalPurchasesQuantity || 0
-          : presumidoQuantitySold || realQuantitySold || simplesQuantitySold || 0
+    calculatedPurchases.autoInventoryDeductionActive &&
+    calculatedPurchases.totalSoldUnitsEffective > 0
+      ? Math.min(
+          calculatedPurchases.totalSoldUnitsEffective,
+          calculatedPurchases.totalAvailableUnits > 0
+            ? calculatedPurchases.totalAvailableUnits
+            : calculatedPurchases.totalSoldUnitsEffective,
+        )
+      : totalConsolidatedQuantity > 0
+        ? totalConsolidatedQuantity
+        : totalPurchasesQuantity ||
+          presumidoQuantitySold ||
+          realQuantitySold ||
+          simplesQuantitySold ||
+          0
 
   const initialQty = automaticQuantity
 
@@ -162,10 +169,7 @@ export default function ComparisonPage() {
         ? totalConsolidatedRevenue / totalConsolidatedQuantity
         : simulatedSalePrice || 0) * 100,
     ) / 100
-  const activeGrossRevenue =
-    hasConsolidated && (qty === totalConsolidatedQuantity || qty === 0)
-      ? totalConsolidatedRevenue
-      : Math.round(unitGrossRevenue * (qty > 0 ? qty : 1) * 100) / 100
+  const activeGrossRevenue = Math.round(unitGrossRevenue * (qty > 0 ? qty : 0) * 100) / 100
 
   // -------------------------------------------------------------
   // 1. CÁLCULO LUCRO PRESUMIDO
@@ -209,11 +213,7 @@ export default function ComparisonPage() {
     const unitGrossProfit = Math.round((unitNetRevenue - unitCmv) * 100) / 100
 
     // Totais com a quantidade (Regra de ouro: total = round(unitário arredondado × quantidade))
-    const totalGross =
-      hasConsolidated &&
-      (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
-        ? totalConsolidatedRevenue
-        : Math.round(unitGross * qty * 100) / 100
+    const totalGross = Math.round(unitGross * qty * 100) / 100
     const totalMunicipalStateTax = Math.round(unitMunicipalStateTax * qty * 100) / 100
     const totalPis = Math.round(unitPis * qty * 100) / 100
     const totalCofins = Math.round(unitCofins * qty * 100) / 100
@@ -327,11 +327,7 @@ export default function ComparisonPage() {
     const unitGrossProfit = Math.round((unitNetRevenue - unitCmv) * 100) / 100
 
     // Totais com a quantidade (Regra de ouro: total = round(unitário arredondado × quantidade))
-    const totalGross =
-      hasConsolidated &&
-      (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
-        ? totalConsolidatedRevenue
-        : Math.round(unitGross * qty * 100) / 100
+    const totalGross = Math.round(unitGross * qty * 100) / 100
     const totalMunicipalStateTax = Math.round(unitMunicipalStateTax * qty * 100) / 100
     const totalPis = Math.round(unitPis * qty * 100) / 100
     const totalCofins = Math.round(unitCofins * qty * 100) / 100
@@ -451,11 +447,7 @@ export default function ComparisonPage() {
     const unitGrossProfit = Math.round((unitNetRevenue - unitCmv) * 100) / 100
 
     // Totais com a quantidade (Regra de ouro: total = round(unitário arredondado × quantidade))
-    const totalGross =
-      hasConsolidated &&
-      (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
-        ? totalConsolidatedRevenue
-        : Math.round(unitGross * qty * 100) / 100
+    const totalGross = Math.round(unitGross * qty * 100) / 100
     const totalDasTotal = Math.round(unitDasTotal * qty * 100) / 100
     const totalIrpj = Math.round(unitIrpj * qty * 100) / 100
     const totalCsll = Math.round(unitCsll * qty * 100) / 100
@@ -1850,7 +1842,7 @@ export default function ComparisonPage() {
               exportComparisonToPdf({
                 quantity: qty,
                 unitGrossRevenue: unitGrossRevenue,
-                totalGrossRevenue: activeGrossRevenue * (qty > 0 ? qty : 1),
+                totalGrossRevenue: activeGrossRevenue,
                 bestRegime: {
                   key: bestRegimeKey,
                   name: bestRegime.name,
@@ -2015,7 +2007,7 @@ export default function ComparisonPage() {
               exportComparisonToExcel({
                 quantity: qty,
                 unitGrossRevenue: unitGrossRevenue,
-                totalGrossRevenue: activeGrossRevenue * (qty > 0 ? qty : 1),
+                totalGrossRevenue: activeGrossRevenue,
                 bestRegime: {
                   key: bestRegimeKey,
                   name: bestRegime.name,
