@@ -1375,9 +1375,12 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   // CÁLCULO DE COMPRAS DERIVADO (Multi-itens + Rateio Global + Legado)
-  // Alíquotas de PIS/COFINS de compras para o Lucro Real / Outros
-  const pisRatePurchases = regime === 'real' ? 1.65 : 0.65
-  const cofinsRatePurchases = regime === 'real' ? 7.6 : 3.0
+  // Alíquotas legais não-cumulativas de PIS/COFINS fixas para o Lucro Real:
+  // mercadoria + IPI + frete + ST − ICMS − ICMS s/ frete − (mercadoria × 1,65%) − (mercadoria × 7,60%)
+  const PIS_RATE_REAL = 1.65
+  const COFINS_RATE_REAL = 7.6
+  const pisRatePurchases = PIS_RATE_REAL
+  const cofinsRatePurchases = COFINS_RATE_REAL
 
   // Verifica se há itens de compras preenchidos (> 0)
   const hasPurchasesItemsData = purchasesItems.some(
@@ -1416,8 +1419,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const pisBase = Math.max(0, merch - calculatedIcms)
       const cofinsBase = Math.max(0, merch - calculatedIcms)
 
-      const calculatedPis = (pisBase * pisRatePurchases) / 100
-      const calculatedCofins = (cofinsBase * cofinsRatePurchases) / 100
+      // Créditos fiscais fixos do Lucro Real (alíquotas legais 1,65% e 7,60%)
+      const calculatedPis = (pisBase * PIS_RATE_REAL) / 100
+      const calculatedCofins = (cofinsBase * COFINS_RATE_REAL) / 100
 
       // Custos totais apropriados do item conforme regime:
       // Frete integra o custo de aquisição em todos os regimes.
@@ -1426,7 +1430,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         0,
         merch + freightVal + calculatedIpi + itemSt - calculatedIcms - freightIcms,
       )
-      // Real: mercadoria + frete + IPI + ST - ICMS - ICMS_frete - PIS - COFINS
+      // Real: mercadoria + frete + IPI + ST - ICMS - ICMS_frete - PIS (1,65%) - COFINS (7,60%)
       const costReal = Math.max(
         0,
         merch +
@@ -1468,7 +1472,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         unitCostSimples: Number.isFinite(unitCostSimples) ? unitCostSimples : 0,
       }
     })
-  }, [purchasesItems, pisRatePurchases, cofinsRatePurchases])
+  }, [purchasesItems])
 
   // Somatórios dos itens
   const totalPurchasesQuantity = computedPurchasesItems.reduce(
@@ -2105,7 +2109,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const loadSnapshot = (snapshot: TaxStateSnapshot) => {
     if (!snapshot) return
 
-    if (snapshot.regime) setRegime(snapshot.regime)
+    if (snapshot.regime) {
+      setRegime(snapshot.regime)
+    } else {
+      setRegime('presumido')
+    }
     if (snapshot.markupMode) setMarkupMode(snapshot.markupMode)
     setDesiredNetRevenue(snapshot.desiredNetRevenue ?? 0)
     setAdditionalMargin(snapshot.additionalMargin ?? 0)

@@ -23,9 +23,13 @@ import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
 import { MiniLalurSection } from '@/components/demo/MiniLalurSection'
 
+import { Badge } from '@/components/ui/badge'
+
 export default function DreRealPage() {
   const navigate = useNavigate()
   const {
+    regime,
+    setRegime,
     simulatedSalePrice,
     totalConsolidatedRevenue,
     totalConsolidatedQuantity,
@@ -70,6 +74,13 @@ export default function DreRealPage() {
   } = useTaxContext()
 
   const { totalPurchasesQuantity } = useTaxContext()
+
+  // Força o regime global da própria tela ao montar/trocar
+  React.useEffect(() => {
+    if (regime !== 'real') {
+      setRegime('real')
+    }
+  }, [regime, setRegime])
 
   const [issInput, setIssInput] = useState<string>(
     realIssRate > 0 ? formatNumberBR(realIssRate) : '',
@@ -304,9 +315,18 @@ export default function DreRealPage() {
               <Calculator className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                Demonstração do Resultado do Exercício
-              </h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                  Demonstração do Resultado do Exercício
+                </h2>
+                <Badge
+                  variant="outline"
+                  className="text-[11px] font-mono border-emerald-500/40 text-emerald-400 bg-emerald-500/5 px-2 py-0.5 inline-flex items-center gap-1.5 font-normal shadow-sm"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Sincronizado globalmente
+                </Badge>
+              </div>
               <p className="text-xs text-slate-400">
                 PIS 1,65% / COFINS 7,6% não cumulativos, deduções de créditos e apuração do Lucro
                 Real no LALUR.

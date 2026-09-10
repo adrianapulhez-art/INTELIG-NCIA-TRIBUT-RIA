@@ -21,10 +21,13 @@ import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
 import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
+import { Badge } from '@/components/ui/badge'
 
 export default function DrePresumidoPage() {
   const navigate = useNavigate()
   const {
+    regime,
+    setRegime,
     simulatedSalePrice,
     totalConsolidatedRevenue,
     totalConsolidatedQuantity,
@@ -61,6 +64,13 @@ export default function DrePresumidoPage() {
   } = useTaxContext()
 
   const { totalPurchasesQuantity } = useTaxContext()
+
+  // Força o regime global da própria tela ao montar/trocar
+  React.useEffect(() => {
+    if (regime !== 'presumido') {
+      setRegime('presumido')
+    }
+  }, [regime, setRegime])
 
   const [issInput, setIssInput] = useState<string>(
     presumidoIssRate > 0 ? formatNumberBR(presumidoIssRate) : '',
@@ -298,9 +308,18 @@ export default function DrePresumidoPage() {
               <Calculator className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                Demonstração do Resultado do Exercício
-              </h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                  Demonstração do Resultado do Exercício
+                </h2>
+                <Badge
+                  variant="outline"
+                  className="text-[11px] font-mono border-emerald-500/40 text-emerald-400 bg-emerald-500/5 px-2 py-0.5 inline-flex items-center gap-1.5 font-normal shadow-sm"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Sincronizado globalmente
+                </Badge>
+              </div>
               <p className="text-xs text-slate-400">
                 Parâmetros setoriais, margens de presunção de IRPJ/CSLL e cálculo de folha patronal.
               </p>

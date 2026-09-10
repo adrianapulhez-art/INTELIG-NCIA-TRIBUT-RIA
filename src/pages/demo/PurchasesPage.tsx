@@ -19,6 +19,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react'
 import { formatBRL, formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
@@ -1146,11 +1147,20 @@ export default function PurchasesPage() {
           {/* (E) RESULTADO & CMV CONSOLIDADO COM MEMÓRIA DE CÁLCULO */}
           <div className="pt-4 border-t border-emerald-500/30 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                  <Calculator className="w-5 h-5 text-emerald-400" />
-                  CMV Consolidado da Compra
-                </h3>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                    <Calculator className="w-5 h-5 text-emerald-400" />
+                    CMV Consolidado da Compra
+                  </h3>
+                  <Badge
+                    variant="outline"
+                    className="text-[11px] font-mono border-emerald-500/40 text-emerald-400 bg-emerald-500/5 px-2 py-0.5 inline-flex items-center gap-1.5 font-normal shadow-sm"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Sincronizado globalmente
+                  </Badge>
+                </div>
                 <p className="text-xs text-slate-400">
                   Alimenta automaticamente os campos "CMV · automático" das DREs (Presumido, Real e
                   Simples) e a Comparação.

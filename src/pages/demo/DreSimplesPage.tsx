@@ -31,10 +31,13 @@ import { RegimeThresholdsAlerts } from '@/components/demo/RegimeThresholdsAlerts
 import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
+import { Badge } from '@/components/ui/badge'
 
 export default function DreSimplesPage() {
   const navigate = useNavigate()
   const {
+    regime,
+    setRegime,
     simulatedSalePrice,
     totalConsolidatedRevenue,
     totalConsolidatedQuantity,
@@ -72,6 +75,13 @@ export default function DreSimplesPage() {
   const [markupFilledMonths, setMarkupFilledMonths] = useState<Record<number, boolean>>({})
 
   const { totalPurchasesQuantity } = useTaxContext()
+
+  // Força o regime global da própria tela ao montar/trocar
+  React.useEffect(() => {
+    if (regime !== 'simples') {
+      setRegime('simples')
+    }
+  }, [regime, setRegime])
 
   // Quantidade automática conectada diretamente ao Markup/Compras
   const automaticQuantity =
@@ -319,6 +329,13 @@ export default function DreSimplesPage() {
                   <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
                     Demonstração do Resultado do Exercício
                   </h2>
+                  <Badge
+                    variant="outline"
+                    className="text-[11px] font-mono border-emerald-500/40 text-emerald-400 bg-emerald-500/5 px-2 py-0.5 inline-flex items-center gap-1.5 font-normal shadow-sm"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Sincronizado globalmente
+                  </Badge>
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase">
                     LC 123/2006
                   </span>
