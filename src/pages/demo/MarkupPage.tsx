@@ -36,7 +36,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { ShieldAlert, Compass, ChevronRight } from 'lucide-react'
+import { ShieldAlert, Compass, ChevronRight, SlidersHorizontal } from 'lucide-react'
 import {
   calculateSaleIcmsSt,
   calculateInterstateOperation,
@@ -958,85 +958,100 @@ export default function MarkupPage() {
             </div>
           </div>
 
-          {/* Subsistemas Integrados em Camadas (Chips Compactos em Linha) */}
-          <div className="pt-3 border-t border-slate-800/80 space-y-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
-                  Situações Especiais da Operação
-                </span>
-                <p className="text-[11px] text-slate-400">
-                  Acesse os subsistemas integrados por camadas sem poluição visual na tela.
-                </p>
-              </div>
+          {/* Subsistemas Integrados em Camadas (Situações Especiais da Operação) */}
+          <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
+            <div className="relative overflow-hidden rounded-xl border-2 border-orange-500/70 bg-gradient-to-r from-orange-500/[0.14] via-amber-500/[0.08] to-orange-500/[0.04] p-3 sm:p-4 shadow-lg shadow-orange-500/10 transition-all hover:border-orange-500 hover:shadow-orange-500/20">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-orange-500/20 border border-orange-500/50 flex items-center justify-center text-orange-400 shadow-sm shrink-0">
+                    <SlidersHorizontal className="w-4 h-4 text-orange-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-mono uppercase tracking-wider text-orange-300 font-bold">
+                        Situações Especiais da Operação
+                      </span>
+                      {(stSubsystem.enabled || interstateSubsystem.enabled) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-orange-500/20 text-orange-300 border border-orange-500/40">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          Subsistemas Ativos
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-300 mt-0.5">
+                      Acesse os subsistemas integrados por camadas (ICMS-ST e DIFAL interestadual).
+                    </p>
+                  </div>
+                </div>
 
-              {/* Chips compactos em linha */}
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Chip ICMS-ST */}
-                <button
-                  type="button"
-                  onClick={() => setIsStDialogOpen(true)}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
-                    stSubsystem.enabled
-                      ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/60 shadow-sm shadow-amber-500/10'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                  }`}
-                  title="Abrir camada de Substituição Tributária (ICMS-ST)"
-                >
-                  <ShieldAlert
-                    className={`w-3.5 h-3.5 ${
-                      stSubsystem.enabled ? 'text-amber-400' : 'text-slate-500'
-                    }`}
-                  />
-                  <span className="font-semibold">ICMS-ST</span>
-                  <Badge
-                    className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
+                {/* Chips compactos com destaque refinado */}
+                <div className="flex flex-wrap items-center gap-2 pt-1 md:pt-0">
+                  {/* Chip ICMS-ST */}
+                  <button
+                    type="button"
+                    onClick={() => setIsStDialogOpen(true)}
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
                       stSubsystem.enabled
-                        ? 'bg-amber-500/20 text-amber-300'
-                        : 'bg-slate-800 text-slate-400'
+                        ? 'bg-amber-500/20 border-amber-400/70 text-amber-200 hover:bg-amber-500/30 hover:border-amber-400 shadow-sm shadow-amber-500/20'
+                        : 'bg-slate-900/90 border-slate-700/80 text-slate-300 hover:text-white hover:border-orange-500/50 hover:bg-slate-850'
                     }`}
+                    title="Abrir camada de Substituição Tributária (ICMS-ST)"
                   >
-                    {stSubsystem.enabled
-                      ? stSaleResult && stSaleResult.icmsStAReter > 0
-                        ? `ST: ${formatBRL(stSaleResult.icmsStAReter)}`
-                        : 'Ativo'
-                      : 'Inativo'}
-                  </Badge>
-                  <ChevronRight className="w-3 h-3 opacity-60 ml-0.5" />
-                </button>
+                    <ShieldAlert
+                      className={`w-3.5 h-3.5 ${
+                        stSubsystem.enabled ? 'text-amber-300' : 'text-slate-400'
+                      }`}
+                    />
+                    <span className="font-semibold">ICMS-ST</span>
+                    <Badge
+                      className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
+                        stSubsystem.enabled
+                          ? 'bg-amber-500/30 text-amber-200'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {stSubsystem.enabled
+                        ? stSaleResult && stSaleResult.icmsStAReter > 0
+                          ? `ST: ${formatBRL(stSaleResult.icmsStAReter)}`
+                          : 'Ativo'
+                        : 'Inativo'}
+                    </Badge>
+                    <ChevronRight className="w-3 h-3 opacity-70 ml-0.5" />
+                  </button>
 
-                {/* Chip DIFAL / Interestadual */}
-                <button
-                  type="button"
-                  onClick={() => setIsInterstateDialogOpen(true)}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
-                    interstateSubsystem.enabled
-                      ? 'bg-blue-500/10 border-blue-500/40 text-blue-300 hover:bg-blue-500/20 hover:border-blue-500/60 shadow-sm shadow-blue-500/10'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                  }`}
-                  title="Abrir camada de Operações Interestaduais e DIFAL"
-                >
-                  <Compass
-                    className={`w-3.5 h-3.5 ${
-                      interstateSubsystem.enabled ? 'text-blue-400' : 'text-slate-500'
-                    }`}
-                  />
-                  <span className="font-semibold">DIFAL / Interestadual</span>
-                  <Badge
-                    className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
+                  {/* Chip DIFAL / Interestadual */}
+                  <button
+                    type="button"
+                    onClick={() => setIsInterstateDialogOpen(true)}
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
                       interstateSubsystem.enabled
-                        ? 'bg-blue-500/20 text-blue-300'
-                        : 'bg-slate-800 text-slate-400'
+                        ? 'bg-blue-500/20 border-blue-400/70 text-blue-200 hover:bg-blue-500/30 hover:border-blue-400 shadow-sm shadow-blue-500/20'
+                        : 'bg-slate-900/90 border-slate-700/80 text-slate-300 hover:text-white hover:border-orange-500/50 hover:bg-slate-850'
                     }`}
+                    title="Abrir camada de Operações Interestaduais e DIFAL"
                   >
-                    {interstateSubsystem.enabled
-                      ? interstateSaleResult && interstateSaleResult.hasDifalSale
-                        ? `${interstateSubsystem.originUf}→${interstateSubsystem.destinationUf} · ${formatBRL(interstateSaleResult.difalDestino)}`
-                        : `${interstateSubsystem.originUf}→${interstateSubsystem.destinationUf}`
-                      : 'Inativo'}
-                  </Badge>
-                  <ChevronRight className="w-3 h-3 opacity-60 ml-0.5" />
-                </button>
+                    <Compass
+                      className={`w-3.5 h-3.5 ${
+                        interstateSubsystem.enabled ? 'text-blue-300' : 'text-slate-400'
+                      }`}
+                    />
+                    <span className="font-semibold">DIFAL / Interestadual</span>
+                    <Badge
+                      className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
+                        interstateSubsystem.enabled
+                          ? 'bg-blue-500/30 text-blue-200'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {interstateSubsystem.enabled
+                        ? interstateSaleResult && interstateSaleResult.hasDifalSale
+                          ? `${interstateSubsystem.originUf}→${interstateSubsystem.destinationUf} · ${formatBRL(interstateSaleResult.difalDestino)}`
+                          : `${interstateSubsystem.originUf}→${interstateSubsystem.destinationUf}`
+                        : 'Inativo'}
+                    </Badge>
+                    <ChevronRight className="w-3 h-3 opacity-70 ml-0.5" />
+                  </button>
+                </div>
               </div>
             </div>
 
