@@ -48,8 +48,8 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
 
   const tabs: { key: TabKey; label: string; path: string }[] = [
     { key: 'home', label: 'Início', path: '/demo' },
-    { key: 'markup', label: 'Calculadora Markup', path: '/demo/markup' },
     { key: 'compras', label: 'Calculadora de Compras', path: '/demo/compras' },
+    { key: 'markup', label: 'Calculadora Markup', path: '/demo/markup' },
     { key: 'dre-presumido', label: 'DRE Lucro Presumido', path: '/demo/dre-presumido' },
     { key: 'dre-real', label: 'DRE Lucro Real', path: '/demo/dre-real' },
     { key: 'simples', label: 'DRE Simples Nacional', path: '/demo/simples' },

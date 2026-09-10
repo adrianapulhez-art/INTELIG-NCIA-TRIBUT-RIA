@@ -1680,27 +1680,19 @@ export default function PurchasesPage() {
         <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <Button
             type="button"
-            onClick={() => navigate('/demo/markup')}
+            onClick={() => navigate('/demo')}
             className="bg-[#0f172a]/90 text-slate-300 border border-slate-700/80 hover:border-emerald-500/40 hover:text-white hover:bg-slate-800/80 font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-sm"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Voltar para a calculadora Markup</span>
+            <span>Voltar para o Início</span>
           </Button>
 
           <Button
             type="button"
-            onClick={() => {
-              if (regime === 'simples') {
-                navigate('/demo/simples')
-              } else if (regime === 'real') {
-                navigate('/demo/dre-real')
-              } else {
-                navigate('/demo/dre-presumido')
-              }
-            }}
+            onClick={() => navigate('/demo/markup')}
             className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
           >
-            <span>Ir para a DRE</span>
+            <span>Ir para a Calculadora Markup</span>
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>

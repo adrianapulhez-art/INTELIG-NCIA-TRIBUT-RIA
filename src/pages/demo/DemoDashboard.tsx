@@ -33,19 +33,6 @@ export default function DemoDashboard() {
 
   const tools: ToolCard[] = [
     {
-      id: 'markup',
-      tag: 'PRECIFICAÇÃO INTELIGENTE',
-      title: 'Calculadora de Markup',
-      subtitle: 'Multi-Produtos & Margens',
-      description:
-        'Cálculo fracionado de preço de venda a partir da receita líquida ou custo + margem com simulação instantânea.',
-      path: '/demo/markup',
-      gradient: 'from-[#0c3125]/90 via-[#0a231b]/80 to-[#061410]/95',
-      borderAccent: 'border-emerald-500/30 hover:border-emerald-400/60',
-      accentColor: 'text-emerald-400',
-      icon: Calculator,
-    },
-    {
       id: 'compras',
       tag: 'GESTÃO DE ESTOQUE & CMV',
       title: 'Calculadora de Compras',
@@ -57,6 +44,19 @@ export default function DemoDashboard() {
       borderAccent: 'border-teal-500/30 hover:border-teal-400/60',
       accentColor: 'text-teal-400',
       icon: ShoppingCart,
+    },
+    {
+      id: 'markup',
+      tag: 'PRECIFICAÇÃO INTELIGENTE',
+      title: 'Calculadora de Markup',
+      subtitle: 'Multi-Produtos & Margens',
+      description:
+        'Cálculo fracionado de preço de venda a partir da receita líquida ou custo + margem com simulação instantânea.',
+      path: '/demo/markup',
+      gradient: 'from-[#0c3125]/90 via-[#0a231b]/80 to-[#061410]/95',
+      borderAccent: 'border-emerald-500/30 hover:border-emerald-400/60',
+      accentColor: 'text-emerald-400',
+      icon: Calculator,
     },
     {
       id: 'dre-presumido',
@@ -174,10 +174,10 @@ export default function DemoDashboard() {
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <button
                 type="button"
-                onClick={() => navigate('/demo/markup')}
+                onClick={() => navigate('/demo/compras')}
                 className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-white text-slate-950 font-bold text-xs sm:text-sm uppercase tracking-wider hover:bg-emerald-400 hover:text-slate-950 transition-all duration-200 shadow-lg shadow-emerald-500/20 cursor-pointer group"
               >
-                <span>INICIAR COM MARKUP</span>
+                <span>INICIAR COM COMPRAS</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
 
