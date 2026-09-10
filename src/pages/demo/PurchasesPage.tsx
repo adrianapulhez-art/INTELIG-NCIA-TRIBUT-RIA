@@ -27,6 +27,15 @@ import { PageHero } from '@/components/demo/PageHero'
 import { SubstituicaoTributariaSection } from '@/components/demo/SubstituicaoTributariaSection'
 import { OperacoesInterestaduaisSection } from '@/components/demo/OperacoesInterestaduaisSection'
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { ShieldAlert, Compass, ChevronRight } from 'lucide-react'
+import { calculateInterstateOperation } from '@/lib/specialOperationsCalculations'
 
 // Subcomponente de Cartão de Item de Compra com digitação blindada
 interface PurchaseItemCardProps {
@@ -563,7 +572,26 @@ export default function PurchasesPage() {
     setCofinsFreightPurchasesBase,
     calculatedPurchases,
     resetAll,
+    stSubsystem,
+    interstateSubsystem,
   } = useTaxContext()
+
+  // Estados dos modais em camadas para ST e DIFAL
+  const [isStDialogOpen, setIsStDialogOpen] = useState(false)
+  const [isInterstateDialogOpen, setIsInterstateDialogOpen] = useState(false)
+
+  // Resumo em tempo real do DIFAL na compra
+  const purchasesTotalBase =
+    totalPurchasesMerchandise + additionalCosts.reduce((a, b) => a + (b.value || 0), 0)
+
+  const interstatePurchasesResult = React.useMemo(() => {
+    if (!interstateSubsystem.enabled) return null
+    return calculateInterstateOperation({
+      subsystem: interstateSubsystem,
+      saleGrossValue: 0,
+      purchasesGrossValue: purchasesTotalBase,
+    })
+  }, [interstateSubsystem, purchasesTotalBase])
 
   // Alíquotas automáticas de PIS/COFINS por regime
   const pisRate = regime === 'real' ? 1.65 : 0.65
@@ -1115,33 +1143,133 @@ export default function PurchasesPage() {
             )}
           </div>
 
-          {/* (D) Situações Especiais: Substituição Tributária & DIFAL (Preservadas) */}
-          <div className="space-y-4 pt-4 border-t border-slate-800/80">
-            <div className="flex items-center justify-between">
+          {/* (D) Situações Especiais em Camadas (Chips Compactos em Linha) */}
+          <div className="pt-3 border-t border-slate-800/80 space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
-                  Situações Especiais de Compras (Subsistemas Integrados)
-                </h3>
+                <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+                  Situações Especiais de Compras
+                </span>
                 <p className="text-[11px] text-slate-400">
-                  Acione apenas se a compra envolver Substituição Tributária (ICMS-ST na entrada) ou
-                  fornecedor de outro estado (DIFAL uso/consumo).
+                  Acesse os subsistemas integrados por camadas sem poluição visual na tela.
                 </p>
+              </div>
+
+              {/* Chips compactos em linha */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Chip ICMS-ST */}
+                <button
+                  type="button"
+                  onClick={() => setIsStDialogOpen(true)}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
+                    stSubsystem.enabled
+                      ? 'bg-amber-500/10 border-amber-500/40 text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/60 shadow-sm shadow-amber-500/10'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  }`}
+                  title="Abrir camada de Substituição Tributária (ICMS-ST na compra)"
+                >
+                  <ShieldAlert
+                    className={`w-3.5 h-3.5 ${
+                      stSubsystem.enabled ? 'text-amber-400' : 'text-slate-500'
+                    }`}
+                  />
+                  <span className="font-semibold">ICMS-ST</span>
+                  <Badge
+                    className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
+                      stSubsystem.enabled
+                        ? 'bg-amber-500/20 text-amber-300'
+                        : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    {stSubsystem.enabled
+                      ? stSubsystem.purchasesStPaid > 0
+                        ? `ST: ${formatBRL(stSubsystem.purchasesStPaid)}`
+                        : 'Ativo'
+                      : 'Inativo'}
+                  </Badge>
+                  <ChevronRight className="w-3 h-3 opacity-60 ml-0.5" />
+                </button>
+
+                {/* Chip DIFAL / Interestadual */}
+                <button
+                  type="button"
+                  onClick={() => setIsInterstateDialogOpen(true)}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
+                    interstateSubsystem.enabled
+                      ? 'bg-blue-500/10 border-blue-500/40 text-blue-300 hover:bg-blue-500/20 hover:border-blue-500/60 shadow-sm shadow-blue-500/10'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  }`}
+                  title="Abrir camada de Compra Interestadual e DIFAL"
+                >
+                  <Compass
+                    className={`w-3.5 h-3.5 ${
+                      interstateSubsystem.enabled ? 'text-blue-400' : 'text-slate-500'
+                    }`}
+                  />
+                  <span className="font-semibold">DIFAL / Interestadual</span>
+                  <Badge
+                    className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
+                      interstateSubsystem.enabled
+                        ? 'bg-blue-500/20 text-blue-300'
+                        : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    {interstateSubsystem.enabled
+                      ? interstatePurchasesResult && interstatePurchasesResult.hasDifalPurchase
+                        ? `${interstateSubsystem.purchasesOriginUf}→${interstateSubsystem.purchasesDestUf} · DIFAL: ${formatBRL(interstatePurchasesResult.difalPurchaseValue)}`
+                        : `${interstateSubsystem.purchasesOriginUf}→${interstateSubsystem.purchasesDestUf}`
+                      : 'Inativo'}
+                  </Badge>
+                  <ChevronRight className="w-3 h-3 opacity-60 ml-0.5" />
+                </button>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <SubstituicaoTributariaSection
-                viewMode="compras"
-                saleOperationValue={totalPurchasesMerchandise}
-              />
-              <OperacoesInterestaduaisSection
-                viewMode="compras"
-                purchasesOperationValue={
-                  totalPurchasesMerchandise +
-                  additionalCosts.reduce((a, b) => a + (b.value || 0), 0)
-                }
-              />
-            </div>
+            {/* Diálogo / Camada Completa: ICMS-ST na Compra */}
+            <Dialog open={isStDialogOpen} onOpenChange={setIsStDialogOpen}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-slate-800 p-6 text-slate-100 shadow-2xl">
+                <DialogHeader className="border-b border-slate-800 pb-3">
+                  <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                    <ShieldAlert className="w-5 h-5 text-amber-400" />
+                    Substituição Tributária (ICMS-ST) — Calculadora de Compras
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-slate-400">
+                    Informe o ICMS-ST recolhido na nota fiscal de entrada (empresa substituída),
+                    integrando-se diretamente ao CMV e ao custo de aquisição.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="pt-2">
+                  <SubstituicaoTributariaSection
+                    viewMode="compras"
+                    saleOperationValue={totalPurchasesMerchandise}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Diálogo / Camada Completa: Operações Interestaduais e DIFAL na Compra */}
+            <Dialog open={isInterstateDialogOpen} onOpenChange={setIsInterstateDialogOpen}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-slate-800 p-6 text-slate-100 shadow-2xl">
+                <DialogHeader className="border-b border-slate-800 pb-3">
+                  <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                    <Compass className="w-5 h-5 text-blue-400" />
+                    Operações Interestaduais e DIFAL — Calculadora de Compras
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-slate-400">
+                    Configure a origem do fornecedor, UF da compradora e diferencial de alíquota
+                    (DIFAL) nas compras para uso/consumo ou ativo permanente.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="pt-2">
+                  <OperacoesInterestaduaisSection
+                    viewMode="compras"
+                    purchasesOperationValue={purchasesTotalBase}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* (E) RESULTADO & CMV CONSOLIDADO COM MEMÓRIA DE CÁLCULO */}
