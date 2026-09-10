@@ -76,7 +76,7 @@ function CostItemRow({ item, placeholder, onUpdateDesc, onUpdateVal, onRemove }:
         value={item.description}
         onChange={(e) => onUpdateDesc(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 bg-slate-950/70 border-slate-800 text-xs font-mono text-slate-200 h-8 focus:border-emerald-500"
+        className="flex-1 bg-slate-950/70 border-orange-500/50 text-orange-50 text-xs font-mono h-8 focus:border-orange-500 focus-visible:ring-orange-500/30"
       />
       <div className="relative w-32 sm:w-40 shrink-0">
         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
@@ -98,7 +98,7 @@ function CostItemRow({ item, placeholder, onUpdateDesc, onUpdateVal, onRemove }:
             setValText(num > 0 ? formatNumberBR(num) : '')
             onUpdateVal(num)
           }}
-          className="pl-8 text-right bg-slate-950/70 border-slate-800 text-xs font-mono text-slate-100 h-8 focus:border-emerald-500"
+          className="pl-8 text-right bg-slate-950/70 border-orange-500/50 text-orange-50 text-xs font-mono h-8 focus:border-orange-500 focus-visible:ring-orange-500/30"
         />
       </div>
       <button

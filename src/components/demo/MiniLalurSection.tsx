@@ -265,7 +265,7 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
                   value={entry.description}
                   onChange={(e) => onUpdateEntry(entry.id, 'description', e.target.value)}
                   placeholder="Descrição do lançamento LALUR"
-                  className="flex-1 bg-slate-900/90 border-slate-800 text-xs font-mono text-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                  className="flex-1 bg-slate-900/90 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
                 />
 
                 {/* Campo de Valor com Digitação Blindada (parseBRNumber determinístico) */}

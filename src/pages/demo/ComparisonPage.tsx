@@ -684,7 +684,7 @@ export default function ComparisonPage() {
                     min="0"
                     value={qtyInput}
                     onChange={handleQtyChange}
-                    className="bg-slate-900 border-emerald-500/40 text-slate-100 font-mono text-xs focus:border-emerald-400"
+                    className="bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
                   />
                 </div>
                 <span className="text-[10px] text-slate-500 font-mono">
@@ -704,7 +704,7 @@ export default function ComparisonPage() {
                     setPresumidoActivity(act)
                     setRealActivity(act)
                   }}
-                  className="w-full h-9 rounded-md bg-slate-900 border border-slate-800 text-xs font-mono text-slate-200 px-2.5 focus:border-emerald-500 focus:outline-none"
+                  className="w-full h-9 rounded-md bg-slate-900 border border-orange-500/50 hover:border-orange-400/80 text-xs font-mono text-orange-50 px-2.5 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 focus:outline-none"
                 >
                   <option value="comercio">Comércio (ICMS · IRPJ 8% / CSLL 12%)</option>
                   <option value="industria">Indústria (ICMS · IRPJ 8% / CSLL 12%)</option>
@@ -721,7 +721,7 @@ export default function ComparisonPage() {
                 <select
                   value={currentAnexoId}
                   onChange={(e) => setSimplesAnexo(e.target.value)}
-                  className="w-full h-9 rounded-md bg-slate-900 border border-slate-800 text-xs font-mono text-slate-200 px-2.5 focus:border-emerald-500 focus:outline-none"
+                  className="w-full h-9 rounded-md bg-slate-900 border border-orange-500/50 hover:border-orange-400/80 text-xs font-mono text-orange-50 px-2.5 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 focus:outline-none"
                 >
                   <option value="anexo_1">Anexo I — Comércio</option>
                   <option value="anexo_2">Anexo II — Indústria</option>
@@ -765,8 +765,8 @@ export default function ComparisonPage() {
                     placeholder="0,00"
                     className={`pl-8 text-right font-mono text-xs ${
                       simplesIsInicioAtividade
-                        ? 'bg-slate-950/80 border-emerald-500/50 text-emerald-400 font-bold cursor-not-allowed'
-                        : 'bg-slate-900 border-slate-800 text-slate-100 focus:border-emerald-500'
+                        ? 'bg-slate-950/80 border-slate-800 text-slate-400 font-bold cursor-not-allowed'
+                        : 'bg-slate-900 border-orange-500/50 text-orange-50 focus:border-orange-500 focus-visible:ring-orange-500/30'
                     }`}
                   />
                 </div>
@@ -858,7 +858,7 @@ export default function ComparisonPage() {
                         setPayrollInssRate(parsed)
                         e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
                       }}
-                      className="pr-6 text-right bg-slate-900 border-emerald-500/40 text-xs font-mono text-slate-100"
+                      className="pr-6 text-right bg-slate-900 text-xs font-mono"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
                       %
@@ -867,7 +867,7 @@ export default function ComparisonPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-emerald-300 block">
+                  <label className="text-[11px] font-semibold text-slate-300 block">
                     Alíquota RAT (%)
                   </label>
                   <div className="relative">
@@ -880,7 +880,7 @@ export default function ComparisonPage() {
                         setPayrollRatRate(parsed)
                         e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
                       }}
-                      className="pr-6 text-right bg-slate-900 border-emerald-500/40 text-xs font-mono text-slate-100"
+                      className="pr-6 text-right bg-slate-900 text-xs font-mono"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
                       %
@@ -889,7 +889,7 @@ export default function ComparisonPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-emerald-300 block">
+                  <label className="text-[11px] font-semibold text-slate-300 block">
                     Terceiros (%)
                   </label>
                   <div className="relative">
@@ -902,7 +902,7 @@ export default function ComparisonPage() {
                         setPayrollTerceirosRate(parsed)
                         e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
                       }}
-                      className="pr-6 text-right bg-slate-900 border-emerald-500/40 text-xs font-mono text-slate-100"
+                      className="pr-6 text-right bg-slate-900 text-xs font-mono"
                     />
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
                       %

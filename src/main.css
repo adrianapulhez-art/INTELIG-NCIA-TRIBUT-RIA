@@ -170,6 +170,21 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Padronização visual em laranja para campos de entrada/seleção interativos */
+.field-input-interactive {
+  border-color: rgba(249, 115, 22, 0.55) !important;
+  color: #ffedd5 !important;
+}
+.field-input-interactive:hover {
+  border-color: rgba(251, 146, 60, 0.8) !important;
+}
+.field-input-interactive:focus,
+.field-input-interactive:focus-visible,
+.field-input-interactive:focus-within {
+  border-color: #f97316 !important;
+  --tw-ring-color: rgba(249, 115, 22, 0.45) !important;
+  outline: none !important;
+}
 @layer utilities {
   /* KEEP ALL THE ANIMATIONS CLASSES THAT ARE USED BELOW */
   @keyframes accordion-down {

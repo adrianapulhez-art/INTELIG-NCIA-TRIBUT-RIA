@@ -147,7 +147,7 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
                 setSalariesInput(parsed > 0 ? formatNumberBR(parsed) : '')
                 setPayrollSalaries(parsed)
               }}
-              className="pl-9 text-left sm:text-right bg-slate-900/80 border-slate-800 text-slate-100 font-mono text-xs focus:border-emerald-500 focus:ring-emerald-500/20"
+              className="pl-9 text-left sm:text-right bg-slate-900/80 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
             />
           </div>
           <span className="text-[10px] text-slate-500 font-mono block">
@@ -183,7 +183,7 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
                 setProLaboreInput(parsed > 0 ? formatNumberBR(parsed) : '')
                 setPayrollProLabore(parsed)
               }}
-              className="pl-9 text-left sm:text-right bg-slate-900/80 border-slate-800 text-slate-100 font-mono text-xs focus:border-emerald-500 focus:ring-emerald-500/20"
+              className="pl-9 text-left sm:text-right bg-slate-900/80 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
             />
           </div>
           <span className="text-[10px] text-slate-500 font-mono block">
@@ -229,9 +229,9 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
                   setInssInput(parsed > 0 ? formatNumberBR(parsed) : '0,00')
                   setPayrollInssRate(parsed)
                 }}
-                className="pr-7 text-right bg-slate-950/80 border-emerald-500/50 text-slate-100 font-mono text-xs focus:border-emerald-400"
+                className="pr-7 text-right bg-slate-950/80 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
               />
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400">
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-orange-300">
                 %
               </span>
             </div>
@@ -242,9 +242,9 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
           </div>
 
           {/* RAT */}
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-emerald-500/40 space-y-1.5">
+          <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold text-emerald-300">Alíquota RAT (%)</label>
+              <label className="text-[11px] font-semibold text-slate-300">Alíquota RAT (%)</label>
               <span className="text-[10px] text-slate-400 font-mono">Risco médio (2)</span>
             </div>
             <div className="relative">
@@ -263,9 +263,9 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
                   setRatInput(parsed > 0 ? formatNumberBR(parsed) : '0,00')
                   setPayrollRatRate(parsed)
                 }}
-                className="pr-7 text-right bg-slate-950/80 border-emerald-500/50 text-slate-100 font-mono text-xs focus:border-emerald-400"
+                className="pr-7 text-right bg-slate-950/80 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
               />
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400">
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-orange-300">
                 %
               </span>
             </div>
@@ -276,9 +276,9 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
           </div>
 
           {/* Terceiros / Outras Entidades */}
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-emerald-500/40 space-y-1.5">
+          <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold text-emerald-300">
+              <label className="text-[11px] font-semibold text-slate-300">
                 Outras entidades / terceiros (%)
               </label>
               <span className="text-[10px] text-slate-400 font-mono">Sistema S</span>
@@ -299,9 +299,9 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
                   setTerceirosInput(parsed > 0 ? formatNumberBR(parsed) : '0,00')
                   setPayrollTerceirosRate(parsed)
                 }}
-                className="pr-7 text-right bg-slate-950/80 border-emerald-500/50 text-slate-100 font-mono text-xs focus:border-emerald-400"
+                className="pr-7 text-right bg-slate-950/80 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
               />
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400">
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-orange-300">
                 %
               </span>
             </div>

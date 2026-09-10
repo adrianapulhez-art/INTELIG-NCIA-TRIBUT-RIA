@@ -549,8 +549,8 @@ export default function DreSimplesPage() {
                     }}
                     className={`pl-9 font-mono text-xs ${
                       simplesIsInicioAtividade
-                        ? 'bg-slate-950/80 border-emerald-500/50 text-emerald-400 font-bold cursor-not-allowed'
-                        : 'bg-slate-900 border-slate-800 text-slate-100 focus:border-emerald-500'
+                        ? 'bg-slate-950/80 border-slate-800 text-slate-400 font-bold cursor-not-allowed'
+                        : 'bg-slate-900 border-orange-500/50 text-orange-50 focus:border-orange-500 focus-visible:ring-orange-500/30'
                     }`}
                   />
                 </div>
@@ -584,7 +584,7 @@ export default function DreSimplesPage() {
                       setIsPayrollFocused(false)
                       handlePayrollBlur(e)
                     }}
-                    className="pl-9 bg-slate-900 border-slate-800 text-slate-100 font-mono text-xs focus:border-emerald-500"
+                    className="pl-9 bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
                   />
                 </div>
                 <span className="text-[10px] text-slate-500 font-mono">
@@ -621,7 +621,7 @@ export default function DreSimplesPage() {
                     type="checkbox"
                     checked={simplesIsInicioAtividade}
                     onChange={(e) => setSimplesIsInicioAtividade(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/40 cursor-pointer accent-emerald-500"
+                    className="w-4 h-4 rounded border-orange-500/50 bg-slate-900 text-orange-500 focus:ring-orange-500/40 cursor-pointer accent-orange-500"
                   />
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold font-mono text-slate-200">
@@ -716,7 +716,7 @@ export default function DreSimplesPage() {
                                     })
                                   }
                                 }}
-                                className="pl-8 text-right bg-slate-900 border-slate-800 text-slate-100 font-mono text-xs h-8 focus:border-emerald-500"
+                                className="pl-8 text-right bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs h-8 focus:border-orange-500 focus-visible:ring-orange-500/30"
                               />
                             </div>
                             {simplesMonthlyRevenues.length > 1 && (

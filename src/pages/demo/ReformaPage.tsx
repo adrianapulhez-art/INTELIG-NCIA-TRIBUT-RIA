@@ -473,7 +473,7 @@ export function ReformaPage() {
                   const parsed = parseBRNumber(e.target.value)
                   e.target.value = formatNumberBR(parsed, 2)
                 }}
-                className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-lg px-2.5 py-1.5 text-sm font-mono text-white text-right outline-none"
+                className="w-full bg-slate-950 border border-orange-500/50 hover:border-orange-400/80 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 rounded-lg px-2.5 py-1.5 text-sm font-mono text-orange-50 text-right outline-none"
               />
               <span className="text-[10px] text-slate-500 mt-1 block">
                 {selectedYear === 2026 ? 'Ano teste' : 'Ref. Plena'}
@@ -494,7 +494,7 @@ export function ReformaPage() {
                   const parsed = parseBRNumber(e.target.value)
                   e.target.value = formatNumberBR(parsed, 2)
                 }}
-                className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-lg px-2.5 py-1.5 text-sm font-mono text-white text-right outline-none"
+                className="w-full bg-slate-950 border border-orange-500/50 hover:border-orange-400/80 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 rounded-lg px-2.5 py-1.5 text-sm font-mono text-orange-50 text-right outline-none"
               />
               <span className="text-[10px] text-slate-500 mt-1 block">Estados & Municípios</span>
             </div>
@@ -565,7 +565,7 @@ export function ReformaPage() {
                   const parsed = parseBRNumber(e.target.value)
                   e.target.value = formatNumberBR(parsed, 2)
                 }}
-                className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 disabled:opacity-40 rounded-lg px-2.5 py-1.5 text-sm font-mono text-white text-right outline-none"
+                className="w-full bg-slate-950 border border-orange-500/50 hover:border-orange-400/80 focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 disabled:border-slate-800 disabled:text-slate-400 disabled:opacity-40 rounded-lg px-2.5 py-1.5 text-sm font-mono text-orange-50 text-right outline-none"
               />
               <span className="text-[10px] text-slate-500 mt-1 block">
                 {reformaState.enableImpostoSeletivo ? 'Incide s/ base' : 'Inativo'}

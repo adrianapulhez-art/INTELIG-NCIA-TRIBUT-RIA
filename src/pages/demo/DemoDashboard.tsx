@@ -59,19 +59,6 @@ export default function DemoDashboard() {
       icon: ShoppingCart,
     },
     {
-      id: 'simples',
-      tag: 'LEI COMPLEMENTAR 123/2006',
-      title: 'DRE — Simples Nacional',
-      subtitle: 'PGDAS Completo & Fator R',
-      description:
-        'Alíquota efetiva oficial por faixa, 5 anexos, segregação de tributos e Fator R automático para serviços.',
-      path: '/demo/simples',
-      gradient: 'from-[#123326]/90 via-[#0d261e]/80 to-[#071612]/95',
-      borderAccent: 'border-emerald-500/30 hover:border-emerald-400/60',
-      accentColor: 'text-emerald-300',
-      icon: PieChart,
-    },
-    {
       id: 'dre-presumido',
       tag: 'LEI 9.249/95 & TESE DO SÉCULO',
       title: 'DRE — Lucro Presumido',
@@ -96,6 +83,19 @@ export default function DemoDashboard() {
       borderAccent: 'border-emerald-500/30 hover:border-emerald-400/60',
       accentColor: 'text-emerald-400',
       icon: FileSpreadsheet,
+    },
+    {
+      id: 'simples',
+      tag: 'LEI COMPLEMENTAR 123/2006',
+      title: 'DRE — Simples Nacional',
+      subtitle: 'PGDAS Completo & Fator R',
+      description:
+        'Alíquota efetiva oficial por faixa, 5 anexos, segregação de tributos e Fator R automático para serviços.',
+      path: '/demo/simples',
+      gradient: 'from-[#123326]/90 via-[#0d261e]/80 to-[#071612]/95',
+      borderAccent: 'border-emerald-500/30 hover:border-emerald-400/60',
+      accentColor: 'text-emerald-300',
+      icon: PieChart,
     },
     {
       id: 'comparacao',

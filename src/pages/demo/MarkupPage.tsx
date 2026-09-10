@@ -610,7 +610,7 @@ export default function MarkupPage() {
                     onFocus={() => setIsIcmsFocused(true)}
                     onChange={handleIcmsChange}
                     onBlur={handleIcmsBlur}
-                    className="pr-7 text-right bg-slate-900 border-slate-700 text-slate-100 font-mono text-xs focus:border-emerald-500"
+                    className="pr-7 text-right bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
                   />
                   <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     %

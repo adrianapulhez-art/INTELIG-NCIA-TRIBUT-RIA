@@ -166,7 +166,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
             value={item.name}
             onChange={(e) => onUpdate(item.id, 'name', e.target.value)}
             placeholder={`Nome do item ${index + 1}`}
-            className="h-8 max-w-xs bg-slate-900 border-slate-800 text-xs font-semibold text-slate-100 focus:border-emerald-500"
+            className="h-8 max-w-xs bg-slate-900 border-orange-500/50 text-orange-50 text-xs font-semibold focus:border-orange-500 focus-visible:ring-orange-500/30"
           />
         </div>
 
@@ -234,7 +234,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                   onUpdate(item.id, 'quantity', safe)
                   setQtyVal(safe > 0 ? String(safe) : '')
                 }}
-                className="bg-slate-900 border-slate-800 text-xs font-mono text-slate-100 focus:border-emerald-500"
+                className="bg-slate-900 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
               />
             </div>
 
@@ -262,7 +262,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                     onUpdate(item.id, 'unitPrice', parsed)
                     setUnitVal(parsed > 0 ? formatNumberBR(parsed) : '')
                   }}
-                  className="pl-8 text-right bg-slate-900 border-slate-800 text-xs font-mono text-slate-100 focus:border-emerald-500"
+                  className="pl-8 text-right bg-slate-900 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
                 />
               </div>
             </div>
@@ -291,7 +291,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                     onUpdate(item.id, 'merchandiseValue', parsed)
                     setMerchVal(parsed > 0 ? formatNumberBR(parsed) : '')
                   }}
-                  className="pl-8 text-right bg-slate-900 border-slate-800 text-xs font-mono text-emerald-400 font-bold focus:border-emerald-500"
+                  className="pl-8 text-right bg-slate-900 border-orange-500/50 text-orange-50 text-xs font-mono font-bold focus:border-orange-500 focus-visible:ring-orange-500/30"
                 />
               </div>
             </div>
@@ -329,7 +329,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                       onUpdate(item.id, 'ipiRate', parsed)
                       setIpiVal(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pr-6 text-right bg-slate-950 border-slate-800 text-xs font-mono text-slate-200 focus:border-emerald-500"
+                    className="pr-6 text-right bg-slate-950 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     %
@@ -362,7 +362,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                       onUpdate(item.id, 'icmsRate', parsed)
                       setIcmsVal(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pr-6 text-right bg-slate-950 border-slate-800 text-xs font-mono text-slate-200 focus:border-emerald-500"
+                    className="pr-6 text-right bg-slate-950 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     %
@@ -395,7 +395,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                       onUpdate(item.id, 'freightValue', parsed)
                       setFreightValInput(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pl-8 text-right bg-slate-950 border-slate-800 text-xs font-mono text-slate-200 focus:border-emerald-500"
+                    className="pl-8 text-right bg-slate-950 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
                   />
                 </div>
               </div>
@@ -428,7 +428,7 @@ const PurchaseItemCard: React.FC<PurchaseItemCardProps> = ({
                       onUpdate(item.id, 'icmsFreightRate', parsed)
                       setIcmsFreightRateInput(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pr-6 text-right bg-slate-950 border-slate-800 text-xs font-mono text-slate-200 focus:border-emerald-500"
+                    className="pr-6 text-right bg-slate-950 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
                     %
@@ -840,7 +840,7 @@ export default function PurchasesPage() {
                         setInitialInventoryUnits(safe)
                         e.target.value = safe > 0 ? String(safe) : ''
                       }}
-                      className="w-24 bg-slate-900 border-emerald-500/40 text-slate-100 font-mono text-xs focus:border-emerald-400 text-right"
+                      className="w-24 bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30 text-right"
                     />
                   </div>
                 )}
@@ -879,7 +879,7 @@ export default function PurchasesPage() {
                       setInitialInventory(parsed)
                       e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                     }}
-                    className="pl-9 bg-slate-950/60 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
+                    className="pl-9 bg-slate-950/60 border-orange-500/50 text-orange-50 font-mono text-sm focus:border-orange-500 focus:ring-orange-500/30"
                   />
                 </div>
               </div>
@@ -923,7 +923,7 @@ export default function PurchasesPage() {
                         setFinalInventory(parsed)
                         e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                       }}
-                      className="pl-9 bg-slate-950/60 border-slate-800 text-slate-100 font-mono text-sm focus:border-emerald-500 focus:ring-emerald-500/20"
+                      className="pl-9 bg-slate-950/60 border-orange-500/50 text-orange-50 font-mono text-sm focus:border-orange-500 focus:ring-orange-500/30"
                     />
                   )}
                 </div>

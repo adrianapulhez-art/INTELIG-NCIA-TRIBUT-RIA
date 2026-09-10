@@ -513,9 +513,9 @@ export default function DrePresumidoPage() {
                         setPresumidoIssRate(val)
                         setIssInput(val > 0 ? formatNumberBR(val) : '')
                       }}
-                      className="pr-7 text-right bg-slate-900 border-emerald-500/50 text-slate-100 font-mono text-xs focus:border-emerald-400 focus:ring-emerald-500/20"
+                      className="pr-7 text-right bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
                     />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-orange-300 pointer-events-none">
                       %
                     </span>
                   </div>
