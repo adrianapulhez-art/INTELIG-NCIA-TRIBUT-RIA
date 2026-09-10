@@ -27,7 +27,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
-import { RegimeThresholdsAlerts } from '@/components/demo/RegimeThresholdsAlerts'
 import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
@@ -1381,24 +1380,6 @@ export default function DreSimplesPage() {
                   </tr>
                 </tbody>
               </table>
-            </div>
-
-            {/* Bloco de Alertas de Limites do Simples */}
-            <div className="pt-2">
-              <RegimeThresholdsAlerts
-                simplesRbt12={effectiveSimplesRbt12}
-                annualProjectedRevenue={totalGross}
-                presumidoNetProfit={0}
-                realNetProfit={0}
-                simplesNetProfit={totalNetProfit}
-                presumidoTaxBurden={0}
-                realTaxBurden={0}
-                simplesTaxBurden={totalTaxBurden}
-                bestRegimeKey="simples"
-                bestRegimeName="Simples Nacional"
-                hasSimulatedData={isSimplesSimulated}
-                compact
-              />
             </div>
 
             {/* Cards de Resumo (3 lado a lado, mesmo padrão) */}
