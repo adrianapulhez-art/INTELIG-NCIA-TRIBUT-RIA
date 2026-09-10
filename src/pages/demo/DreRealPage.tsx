@@ -107,42 +107,45 @@ export default function DreRealPage() {
 
   const isServices = realActivity === 'servicos'
 
+  // Quantidade de referência
+  const initialQtyVal = automaticQuantity
+
   // RECEITA BRUTA:
-  // 1. Receita bruta UNITÁRIA (preço de venda médio ponderado via Markup)
+  // 1. Receita bruta UNITÁRIA (preço de venda unitário por unidade, SEMPRE valor por unidade)
   const unitGrossRevenue =
-    totalConsolidatedQuantity > 0 && totalConsolidatedRevenue > 0
-      ? totalConsolidatedRevenue / totalConsolidatedQuantity
-      : simulatedSalePrice || 0
+    Math.round(
+      (totalConsolidatedQuantity > 0 && totalConsolidatedRevenue > 0
+        ? totalConsolidatedRevenue / totalConsolidatedQuantity
+        : simulatedSalePrice || 0) * 100,
+    ) / 100
 
   // 2. Receita bruta CONSOLIDADA (total consolidado dos produtos do Markup ou unitário × quantidade)
   const hasConsolidated = totalConsolidatedRevenue > 0
-  const activeGrossRevenue = hasConsolidated
-    ? totalConsolidatedRevenue
-    : unitGrossRevenue * (automaticQuantity > 0 ? automaticQuantity : 1)
+  const activeGrossRevenue =
+    hasConsolidated && (initialQtyVal === totalConsolidatedQuantity || initialQtyVal === 0)
+      ? totalConsolidatedRevenue
+      : Math.round(unitGrossRevenue * (initialQtyVal > 0 ? initialQtyVal : 1) * 100) / 100
 
   // CMV via Compras (Lucro Real):
   // IDENTIDADE ESTRITA:
-  // - CMV unitário = SEMPRE o custo unitário líquido do regime apurado via Compras (unitCostRealEffective).
-  //   Se unitCostRealEffective não estiver disponível, deriva cmvReal / totalPurchasesQuantity.
-  // - CMV consolidado = unitário × quantidade vendida (com toggle ligado, limitada ao estoque disponível).
-  //   Jamais multiplica o custo total do período por quantidade.
+  // - CMV unitário = SEMPRE o custo unitário líquido do regime apurado via Compras com 2 casas decimais.
   const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-  const fallbackUnitReal =
-    (totalPurchasesQuantity || 0) > 0
-      ? (calculatedPurchases.cmvReal || 0) / totalPurchasesQuantity
-      : calculatedPurchases.cmvReal || 0
-  const unitCMV =
+  const rawUnitReal =
     calculatedPurchases.unitCostRealEffective > 0
       ? calculatedPurchases.unitCostRealEffective
-      : fallbackUnitReal
+      : (totalPurchasesQuantity || 0) > 0
+        ? (calculatedPurchases.cmvReal || 0) / totalPurchasesQuantity
+        : calculatedPurchases.cmvReal || 0
+  const unitCMV = Math.round(rawUnitReal * 100) / 100
 
   // 4. CMV CONSOLIDADO:
+  // Regra de ouro: total = round(unitário arredondado × quantidade efetiva) centavo a centavo
   const effectiveSoldQtyForCmv = isAutoInventory
-    ? Math.min(automaticQuantity, calculatedPurchases.totalAvailableUnits)
-    : automaticQuantity
+    ? Math.min(initialQtyVal, calculatedPurchases.totalAvailableUnits)
+    : initialQtyVal
   const consolidatedCMV =
     unitCMV > 0
-      ? unitCMV * effectiveSoldQtyForCmv
+      ? Math.round(unitCMV * effectiveSoldQtyForCmv * 100) / 100
       : totalConsolidatedCost > 0
         ? totalConsolidatedCost
         : 0
@@ -173,63 +176,61 @@ export default function DreRealPage() {
   // Despesas operacionais totais (incluindo folha e encargos, todas dedutíveis no Lucro Real)
   const totalExpenses = totalOtherExpenses + totalLaborExpenses
 
-  // CÁLCULOS UNITÁRIOS
-  // 1. Receita bruta
-  const unitGross = activeGrossRevenue
-  // 2. Tributo municipal/estadual (ICMS para comércio/indústria, ISSQN para serviços)
-  const unitMunicipalStateTax = isServices
-    ? (unitGross * issRate) / 100
-    : (unitGross * icmsRate) / 100
+  // CÁLCULOS UNITÁRIOS (PADRONIZADOS POR UNIDADE COM 2 CASAS DECIMAIS)
+  // 1. Receita bruta unitária
+  const unitGross = unitGrossRevenue
+  // 2. Tributo municipal/estadual unitário (ICMS para comércio/indústria, ISSQN para serviços)
+  const unitMunicipalStateTax =
+    Math.round((isServices ? (unitGross * issRate) / 100 : (unitGross * icmsRate) / 100) * 100) /
+    100
 
-  // 3. Base PIS/COFINS:
+  // 3. Base PIS/COFINS unitária:
   // Se Comércio/Indústria: Tese do século (exclui o ICMS)
   // Se Serviços: Tese do século NÃO se aplica ao ISS — base é a receita bruta
-  const unitPisCofinsBase = isServices ? unitGross : Math.max(0, unitGross - unitMunicipalStateTax)
+  const unitPisCofinsBase = isServices
+    ? unitGross
+    : Math.round(Math.max(0, unitGross - unitMunicipalStateTax) * 100) / 100
 
   // 4. PIS não cumulativo unitário
-  const unitPis = (unitPisCofinsBase * pisRate) / 100
+  const unitPis = Math.round(((unitPisCofinsBase * pisRate) / 100) * 100) / 100
   // 5. COFINS não cumulativo unitário
-  const unitCofins = (unitPisCofinsBase * cofinsRate) / 100
-  // 6. Receita líquida
-  const unitNetRevenue = unitGross - unitMunicipalStateTax - unitPis - unitCofins
-  // 7. CMV (líquido de créditos)
+  const unitCofins = Math.round(((unitPisCofinsBase * cofinsRate) / 100) * 100) / 100
+  // 6. Receita líquida unitária
+  const unitNetRevenue =
+    Math.round((unitGross - unitMunicipalStateTax - unitPis - unitCofins) * 100) / 100
+  // 7. CMV unitário (líquido de créditos)
   const unitCmvVal = unitCMV
-  // 8. Lucro bruto
-  const unitGrossProfit = unitNetRevenue - unitCmvVal
+  // 8. Lucro bruto unitário
+  const unitGrossProfit = Math.round((unitNetRevenue - unitCmvVal) * 100) / 100
 
   // Quantidade efetiva: usa diretamente a quantidade automática ligada ao Markup/Compras
   const effectiveQuantity = automaticQuantity
+  const qty = effectiveQuantity
 
   // 9. Despesas operacionais unitárias
-  const unitExpenses = effectiveQuantity > 0 ? totalExpenses / effectiveQuantity : 0
+  const unitExpenses = qty > 0 ? Math.round((totalExpenses / qty) * 100) / 100 : 0
   // 10. Resultado antes IRPJ/CSLL
-  const unitResultBeforeTax = unitGrossProfit - unitExpenses
+  const unitResultBeforeTax = Math.round((unitGrossProfit - unitExpenses) * 100) / 100
 
-  // CÁLCULOS TOTAIS
-  const qty = effectiveQuantity
+  // CÁLCULOS TOTAIS (Regra de ouro: total = round(unitário arredondado × quantidade), batendo centavo a centavo)
   const totalGross =
     hasConsolidated &&
     (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
       ? totalConsolidatedRevenue
-      : unitGross * (qty > 0 ? qty : 0)
+      : Math.round(unitGross * (qty > 0 ? qty : 0) * 100) / 100
 
-  const totalMunicipalStateTax = isServices
-    ? (totalGross * issRate) / 100
-    : (totalGross * icmsRate) / 100
-
-  const totalPisCofinsBase = isServices
-    ? totalGross
-    : Math.max(0, totalGross - totalMunicipalStateTax)
-  const totalPis = (totalPisCofinsBase * pisRate) / 100
-  const totalCofins = (totalPisCofinsBase * cofinsRate) / 100
-  const totalNetRevenue = totalGross - totalMunicipalStateTax - totalPis - totalCofins
+  const totalMunicipalStateTax = Math.round(unitMunicipalStateTax * (qty > 0 ? qty : 0) * 100) / 100
+  const totalPisCofinsBase = Math.round(unitPisCofinsBase * (qty > 0 ? qty : 0) * 100) / 100
+  const totalPis = Math.round(unitPis * (qty > 0 ? qty : 0) * 100) / 100
+  const totalCofins = Math.round(unitCofins * (qty > 0 ? qty : 0) * 100) / 100
+  const totalNetRevenue = Math.round(unitNetRevenue * (qty > 0 ? qty : 0) * 100) / 100
   const isQuantityExceeded =
     isAutoInventory &&
     calculatedPurchases.totalAvailableUnits > 0 &&
     qty > calculatedPurchases.totalAvailableUnits
   const totalCmv = consolidatedCMV
-  const totalGrossProfit = totalNetRevenue - totalCmv
-  const totalResultBeforeTax = totalGrossProfit - totalExpenses
+  const totalGrossProfit = Math.round((totalNetRevenue - totalCmv) * 100) / 100
+  const totalResultBeforeTax = Math.round((totalGrossProfit - totalExpenses) * 100) / 100
 
   // Lucro Real (Base IRPJ / CSLL): Resultado antes dos tributos + Adições - Exclusões
   const totalAdditions = realAdditions || 0

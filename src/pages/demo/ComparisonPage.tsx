@@ -150,10 +150,19 @@ export default function ComparisonPage() {
     return presumidoExpenses.reduce((acc, exp) => acc + (exp.value || 0), 0)
   }, [presumidoExpenses])
 
-  // Preço de venda ou receita consolidada (Markup)
+  // Preço de venda unitário e receita consolidada (Markup)
+  // Regra de ouro: unitGrossRevenue = valor por unidade (arredondado a 2 casas decimais)
   const hasConsolidated = totalConsolidatedRevenue > 0
-  const activeGrossRevenue = hasConsolidated ? totalConsolidatedRevenue : simulatedSalePrice || 0
-  const unitGrossRevenue = activeGrossRevenue
+  const unitGrossRevenue =
+    Math.round(
+      (totalConsolidatedQuantity > 0 && totalConsolidatedRevenue > 0
+        ? totalConsolidatedRevenue / totalConsolidatedQuantity
+        : simulatedSalePrice || 0) * 100,
+    ) / 100
+  const activeGrossRevenue =
+    hasConsolidated && (qty === totalConsolidatedQuantity || qty === 0)
+      ? totalConsolidatedRevenue
+      : Math.round(unitGrossRevenue * (qty > 0 ? qty : 1) * 100) / 100
 
   // -------------------------------------------------------------
   // 1. CÁLCULO LUCRO PRESUMIDO
@@ -172,39 +181,45 @@ export default function ComparisonPage() {
     const csllRate = 9.0
 
     const unitGross = unitGrossRevenue
-    const unitMunicipalStateTax = isServices
-      ? (unitGross * issRate) / 100
-      : (unitGross * icmsRate) / 100
+    const unitMunicipalStateTax =
+      Math.round((isServices ? (unitGross * issRate) / 100 : (unitGross * icmsRate) / 100) * 100) /
+      100
 
     const unitPisCofinsBase = isServices
       ? unitGross
-      : Math.max(0, unitGross - unitMunicipalStateTax)
+      : Math.round(Math.max(0, unitGross - unitMunicipalStateTax) * 100) / 100
 
-    const unitPis = (unitPisCofinsBase * pisRate) / 100
-    const unitCofins = (unitPisCofinsBase * cofinsRate) / 100
-    const unitNetRevenue = unitGross - unitMunicipalStateTax - unitPis - unitCofins
+    const unitPis = Math.round(((unitPisCofinsBase * pisRate) / 100) * 100) / 100
+    const unitCofins = Math.round(((unitPisCofinsBase * cofinsRate) / 100) * 100) / 100
+    const unitNetRevenue =
+      Math.round((unitGross - unitMunicipalStateTax - unitPis - unitCofins) * 100) / 100
     const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-    const fallbackUnitPresumido =
+    const rawFallbackUnitPresumido =
       (totalPurchasesQuantity || 0) > 0
         ? (calculatedPurchases.cmvPresumido || 0) / totalPurchasesQuantity
         : calculatedPurchases.cmvPresumido || 0
-    const unitCmv =
+    const rawUnitPresumido =
       calculatedPurchases.unitCostPresumidoEffective > 0
         ? calculatedPurchases.unitCostPresumidoEffective
-        : fallbackUnitPresumido
-    const unitGrossProfit = unitNetRevenue - unitCmv
+        : rawFallbackUnitPresumido
+    const unitCmv = Math.round(rawUnitPresumido * 100) / 100
+    const unitGrossProfit = Math.round((unitNetRevenue - unitCmv) * 100) / 100
 
-    // Totais com a quantidade
-    const totalGross = unitGross * qty
-    const totalMunicipalStateTax = unitMunicipalStateTax * qty
-    const totalPis = unitPis * qty
-    const totalCofins = unitCofins * qty
-    const totalNetRevenue = unitNetRevenue * qty
+    // Totais com a quantidade (Regra de ouro: total = round(unitário arredondado × quantidade))
+    const totalGross =
+      hasConsolidated &&
+      (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
+        ? totalConsolidatedRevenue
+        : Math.round(unitGross * qty * 100) / 100
+    const totalMunicipalStateTax = Math.round(unitMunicipalStateTax * qty * 100) / 100
+    const totalPis = Math.round(unitPis * qty * 100) / 100
+    const totalCofins = Math.round(unitCofins * qty * 100) / 100
+    const totalNetRevenue = Math.round(unitNetRevenue * qty * 100) / 100
     const effectiveSoldQtyForCmv = isAutoInventory
       ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
       : qty
-    const totalCmv = unitCmv * effectiveSoldQtyForCmv
-    const totalGrossProfit = totalNetRevenue - totalCmv
+    const totalCmv = Math.round(unitCmv * effectiveSoldQtyForCmv * 100) / 100
+    const totalGrossProfit = Math.round((totalNetRevenue - totalCmv) * 100) / 100
 
     // No Lucro Presumido: despesas = outras despesas + folha/pró-labore + encargos patronais
     const totalExpenses = totalOtherExpenses + directPayrollExpenses + patronalCharges
@@ -284,39 +299,45 @@ export default function ComparisonPage() {
     const csllRate = 9.0
 
     const unitGross = unitGrossRevenue
-    const unitMunicipalStateTax = isServices
-      ? (unitGross * issRate) / 100
-      : (unitGross * icmsRate) / 100
+    const unitMunicipalStateTax =
+      Math.round((isServices ? (unitGross * issRate) / 100 : (unitGross * icmsRate) / 100) * 100) /
+      100
 
     const unitPisCofinsBase = isServices
       ? unitGross
-      : Math.max(0, unitGross - unitMunicipalStateTax)
+      : Math.round(Math.max(0, unitGross - unitMunicipalStateTax) * 100) / 100
 
-    const unitPis = (unitPisCofinsBase * pisRate) / 100
-    const unitCofins = (unitPisCofinsBase * cofinsRate) / 100
-    const unitNetRevenue = unitGross - unitMunicipalStateTax - unitPis - unitCofins
+    const unitPis = Math.round(((unitPisCofinsBase * pisRate) / 100) * 100) / 100
+    const unitCofins = Math.round(((unitPisCofinsBase * cofinsRate) / 100) * 100) / 100
+    const unitNetRevenue =
+      Math.round((unitGross - unitMunicipalStateTax - unitPis - unitCofins) * 100) / 100
     const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-    const fallbackUnitReal =
+    const rawFallbackUnitReal =
       (totalPurchasesQuantity || 0) > 0
         ? (calculatedPurchases.cmvReal || 0) / totalPurchasesQuantity
         : calculatedPurchases.cmvReal || 0
-    const unitCmv =
+    const rawUnitReal =
       calculatedPurchases.unitCostRealEffective > 0
         ? calculatedPurchases.unitCostRealEffective
-        : fallbackUnitReal
-    const unitGrossProfit = unitNetRevenue - unitCmv
+        : rawFallbackUnitReal
+    const unitCmv = Math.round(rawUnitReal * 100) / 100
+    const unitGrossProfit = Math.round((unitNetRevenue - unitCmv) * 100) / 100
 
-    // Totais com a quantidade
-    const totalGross = unitGross * qty
-    const totalMunicipalStateTax = unitMunicipalStateTax * qty
-    const totalPis = unitPis * qty
-    const totalCofins = unitCofins * qty
-    const totalNetRevenue = unitNetRevenue * qty
+    // Totais com a quantidade (Regra de ouro: total = round(unitário arredondado × quantidade))
+    const totalGross =
+      hasConsolidated &&
+      (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
+        ? totalConsolidatedRevenue
+        : Math.round(unitGross * qty * 100) / 100
+    const totalMunicipalStateTax = Math.round(unitMunicipalStateTax * qty * 100) / 100
+    const totalPis = Math.round(unitPis * qty * 100) / 100
+    const totalCofins = Math.round(unitCofins * qty * 100) / 100
+    const totalNetRevenue = Math.round(unitNetRevenue * qty * 100) / 100
     const effectiveSoldQtyForCmv = isAutoInventory
       ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
       : qty
-    const totalCmv = unitCmv * effectiveSoldQtyForCmv
-    const totalGrossProfit = totalNetRevenue - totalCmv
+    const totalCmv = Math.round(unitCmv * effectiveSoldQtyForCmv * 100) / 100
+    const totalGrossProfit = Math.round((totalNetRevenue - totalCmv) * 100) / 100
 
     // No Lucro Real: folha, pró-labore e encargos são despesas dedutíveis
     const totalExpenses = totalOtherExpenses + directPayrollExpenses + patronalCharges
@@ -402,46 +423,51 @@ export default function ComparisonPage() {
   const simplesData = useMemo(() => {
     const unitGross = unitGrossRevenue
     const effectiveRateDec = pgdas.aliquotaEfetiva / 100
-    const unitDasTotal = unitGross * effectiveRateDec
+    const unitDasTotal = Math.round(unitGross * effectiveRateDec * 100) / 100
 
-    const unitIrpj = (unitGross * pgdas.reparticao.irpjRate) / 100
-    const unitCsll = (unitGross * pgdas.reparticao.csllRate) / 100
-    const unitCofins = (unitGross * pgdas.reparticao.cofinsRate) / 100
-    const unitPis = (unitGross * pgdas.reparticao.pisRate) / 100
-    const unitCpp = (unitGross * pgdas.reparticao.cppRate) / 100
-    const unitIcms = (unitGross * pgdas.reparticao.icmsRate) / 100
-    const unitIpi = (unitGross * pgdas.reparticao.ipiRate) / 100
-    const unitIss = (unitGross * pgdas.reparticao.issRate) / 100
+    const unitIrpj = Math.round(((unitGross * pgdas.reparticao.irpjRate) / 100) * 100) / 100
+    const unitCsll = Math.round(((unitGross * pgdas.reparticao.csllRate) / 100) * 100) / 100
+    const unitCofins = Math.round(((unitGross * pgdas.reparticao.cofinsRate) / 100) * 100) / 100
+    const unitPis = Math.round(((unitGross * pgdas.reparticao.pisRate) / 100) * 100) / 100
+    const unitCpp = Math.round(((unitGross * pgdas.reparticao.cppRate) / 100) * 100) / 100
+    const unitIcms = Math.round(((unitGross * pgdas.reparticao.icmsRate) / 100) * 100) / 100
+    const unitIpi = Math.round(((unitGross * pgdas.reparticao.ipiRate) / 100) * 100) / 100
+    const unitIss = Math.round(((unitGross * pgdas.reparticao.issRate) / 100) * 100) / 100
 
-    const unitNetRevenue = unitGross - unitDasTotal
+    const unitNetRevenue = Math.round((unitGross - unitDasTotal) * 100) / 100
     const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-    const fallbackUnitSimples =
+    const rawFallbackUnitSimples =
       (totalPurchasesQuantity || 0) > 0
         ? (calculatedPurchases.cmvSimples || 0) / totalPurchasesQuantity
         : calculatedPurchases.cmvSimples || 0
-    const unitCmv =
+    const rawUnitSimples =
       calculatedPurchases.unitCostSimplesEffective > 0
         ? calculatedPurchases.unitCostSimplesEffective
-        : fallbackUnitSimples
-    const unitGrossProfit = unitNetRevenue - unitCmv
+        : rawFallbackUnitSimples
+    const unitCmv = Math.round(rawUnitSimples * 100) / 100
+    const unitGrossProfit = Math.round((unitNetRevenue - unitCmv) * 100) / 100
 
-    // Totais com a quantidade
-    const totalGross = unitGross * qty
-    const totalDasTotal = unitDasTotal * qty
-    const totalIrpj = unitIrpj * qty
-    const totalCsll = unitCsll * qty
-    const totalCofins = unitCofins * qty
-    const totalPis = unitPis * qty
-    const totalCpp = unitCpp * qty
-    const totalIcms = unitIcms * qty
-    const totalIpi = unitIpi * qty
-    const totalIss = unitIss * qty
-    const totalNetRevenue = unitNetRevenue * qty
+    // Totais com a quantidade (Regra de ouro: total = round(unitário arredondado × quantidade))
+    const totalGross =
+      hasConsolidated &&
+      (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
+        ? totalConsolidatedRevenue
+        : Math.round(unitGross * qty * 100) / 100
+    const totalDasTotal = Math.round(unitDasTotal * qty * 100) / 100
+    const totalIrpj = Math.round(unitIrpj * qty * 100) / 100
+    const totalCsll = Math.round(unitCsll * qty * 100) / 100
+    const totalCofins = Math.round(unitCofins * qty * 100) / 100
+    const totalPis = Math.round(unitPis * qty * 100) / 100
+    const totalCpp = Math.round(unitCpp * qty * 100) / 100
+    const totalIcms = Math.round(unitIcms * qty * 100) / 100
+    const totalIpi = Math.round(unitIpi * qty * 100) / 100
+    const totalIss = Math.round(unitIss * qty * 100) / 100
+    const totalNetRevenue = Math.round(unitNetRevenue * qty * 100) / 100
     const effectiveSoldQtyForCmv = isAutoInventory
       ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
       : qty
-    const totalCmv = unitCmv * effectiveSoldQtyForCmv
-    const totalGrossProfit = totalNetRevenue - totalCmv
+    const totalCmv = Math.round(unitCmv * effectiveSoldQtyForCmv * 100) / 100
+    const totalGrossProfit = Math.round((totalNetRevenue - totalCmv) * 100) / 100
 
     // No Simples Nacional:
     // A folha em si (salários + pró-labore) é despesa dedutível igual aos outros regimes.

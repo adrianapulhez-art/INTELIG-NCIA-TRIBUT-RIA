@@ -124,42 +124,46 @@ export default function DreSimplesPage() {
         ? 'via Compras'
         : 'sem quantidade cadastrada'
 
+  // Quantidade vendida: usa diretamente a quantidade automática ligada ao Markup/Compras
+  const effectiveQuantity = automaticQuantity
+  const qty = effectiveQuantity
+
   // RECEITA BRUTA:
-  // 1. Receita bruta UNITÁRIA (preço de venda médio ponderado via Markup)
+  // 1. Receita bruta UNITÁRIA (preço de venda unitário por unidade, SEMPRE valor por unidade)
   const unitGrossRevenue =
-    totalConsolidatedQuantity > 0 && totalConsolidatedRevenue > 0
-      ? totalConsolidatedRevenue / totalConsolidatedQuantity
-      : simulatedSalePrice || 0
+    Math.round(
+      (totalConsolidatedQuantity > 0 && totalConsolidatedRevenue > 0
+        ? totalConsolidatedRevenue / totalConsolidatedQuantity
+        : simulatedSalePrice || 0) * 100,
+    ) / 100
 
   // 2. Receita bruta CONSOLIDADA (total consolidado dos produtos do Markup ou unitário × quantidade)
   const hasConsolidated = totalConsolidatedRevenue > 0
-  const activeGrossRevenue = hasConsolidated
-    ? totalConsolidatedRevenue
-    : unitGrossRevenue * (automaticQuantity > 0 ? automaticQuantity : 1)
+  const activeGrossRevenue =
+    hasConsolidated && (qty === totalConsolidatedQuantity || qty === 0)
+      ? totalConsolidatedRevenue
+      : Math.round(unitGrossRevenue * (qty > 0 ? qty : 1) * 100) / 100
 
   // CMV via Compras (Simples Nacional: sem recuperação de tributos):
   // IDENTIDADE ESTRITA:
-  // - CMV unitário = SEMPRE o custo unitário líquido do regime apurado via Compras (unitCostSimplesEffective).
-  //   Se unitCostSimplesEffective não estiver disponível, deriva cmvSimples / totalPurchasesQuantity.
-  // - CMV consolidado = unitário × quantidade vendida (com toggle ligado, limitada ao estoque disponível).
-  //   Jamais multiplica o custo total do período por quantidade.
+  // - CMV unitário = SEMPRE o custo unitário líquido do regime apurado via Compras com 2 casas decimais.
   const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-  const fallbackUnitSimples =
-    (totalPurchasesQuantity || 0) > 0
-      ? (calculatedPurchases.cmvSimples || 0) / totalPurchasesQuantity
-      : calculatedPurchases.cmvSimples || 0
-  const unitCMV =
+  const rawUnitSimples =
     calculatedPurchases.unitCostSimplesEffective > 0
       ? calculatedPurchases.unitCostSimplesEffective
-      : fallbackUnitSimples
+      : (totalPurchasesQuantity || 0) > 0
+        ? (calculatedPurchases.cmvSimples || 0) / totalPurchasesQuantity
+        : calculatedPurchases.cmvSimples || 0
+  const unitCMV = Math.round(rawUnitSimples * 100) / 100
 
   // 4. CMV CONSOLIDADO:
+  // Regra de ouro: total = round(unitário arredondado × quantidade efetiva) centavo a centavo
   const effectiveSoldQtyForCmv = isAutoInventory
-    ? Math.min(automaticQuantity, calculatedPurchases.totalAvailableUnits)
-    : automaticQuantity
+    ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
+    : qty
   const consolidatedCMV =
     unitCMV > 0
-      ? unitCMV * effectiveSoldQtyForCmv
+      ? Math.round(unitCMV * effectiveSoldQtyForCmv * 100) / 100
       : totalConsolidatedCost > 0
         ? totalConsolidatedCost
         : 0
@@ -186,71 +190,67 @@ export default function DreSimplesPage() {
     [currentAnexoId, effectiveSimplesRbt12],
   )
 
-  // Quantidade vendida: usa diretamente a quantidade automática ligada ao Markup/Compras
-  const effectiveQuantity = automaticQuantity
-  const qty = effectiveQuantity
-
-  // CÁLCULOS UNITÁRIOS DA DRE
-  // 1. Receita Bruta Unitária (vinda do Markup ou consolidada)
-  const unitGross = activeGrossRevenue
+  // CÁLCULOS UNITÁRIOS DA DRE (PADRONIZADOS POR UNIDADE COM 2 CASAS DECIMAIS)
+  // 1. Receita Bruta Unitária (preço de venda por unidade)
+  const unitGross = unitGrossRevenue
 
   // Alíquota Efetiva do PGDAS (%)
   const effectiveRate = pgdas.aliquotaEfetiva
   const effectiveRateDec = effectiveRate / 100
 
   // Guia Única DAS unitária
-  const unitDasTotal = unitGross * effectiveRateDec
+  const unitDasTotal = Math.round(unitGross * effectiveRateDec * 100) / 100
 
   // Distribuição dos tributos unitários conforme partilha do PGDAS
-  const unitIrpj = (unitGross * pgdas.reparticao.irpjRate) / 100
-  const unitCsll = (unitGross * pgdas.reparticao.csllRate) / 100
-  const unitCofins = (unitGross * pgdas.reparticao.cofinsRate) / 100
-  const unitPis = (unitGross * pgdas.reparticao.pisRate) / 100
-  const unitCpp = (unitGross * pgdas.reparticao.cppRate) / 100
-  const unitIcms = (unitGross * pgdas.reparticao.icmsRate) / 100
-  const unitIpi = (unitGross * pgdas.reparticao.ipiRate) / 100
-  const unitIss = (unitGross * pgdas.reparticao.issRate) / 100
+  const unitIrpj = Math.round(((unitGross * pgdas.reparticao.irpjRate) / 100) * 100) / 100
+  const unitCsll = Math.round(((unitGross * pgdas.reparticao.csllRate) / 100) * 100) / 100
+  const unitCofins = Math.round(((unitGross * pgdas.reparticao.cofinsRate) / 100) * 100) / 100
+  const unitPis = Math.round(((unitGross * pgdas.reparticao.pisRate) / 100) * 100) / 100
+  const unitCpp = Math.round(((unitGross * pgdas.reparticao.cppRate) / 100) * 100) / 100
+  const unitIcms = Math.round(((unitGross * pgdas.reparticao.icmsRate) / 100) * 100) / 100
+  const unitIpi = Math.round(((unitGross * pgdas.reparticao.ipiRate) / 100) * 100) / 100
+  const unitIss = Math.round(((unitGross * pgdas.reparticao.issRate) / 100) * 100) / 100
 
   // Receita Líquida unitária (Receita Bruta - Guia DAS)
-  const unitNetRevenue = unitGross - unitDasTotal
+  const unitNetRevenue = Math.round((unitGross - unitDasTotal) * 100) / 100
 
   // CMV unitário
   const unitCmvVal = unitCMV
 
   // Lucro Bruto unitário
-  const unitGrossProfit = unitNetRevenue - unitCmvVal
+  const unitGrossProfit = Math.round((unitNetRevenue - unitCmvVal) * 100) / 100
 
   // Despesas operacionais totais e unitárias
   const totalExpenses = simplesExpenses.reduce((acc, exp) => acc + (exp.value || 0), 0)
-  const unitExpenses = qty > 0 ? totalExpenses / qty : 0
+  const unitExpenses = qty > 0 ? Math.round((totalExpenses / qty) * 100) / 100 : 0
 
   // Lucro Líquido unitário
-  const unitNetProfit = unitGrossProfit - unitExpenses
+  const unitNetProfit = Math.round((unitGrossProfit - unitExpenses) * 100) / 100
 
-  // CÁLCULOS TOTAIS DA DRE
+  // CÁLCULOS TOTAIS DA DRE (Regra de ouro: total = round(unitário arredondado × quantidade), batendo centavo a centavo)
   const totalGross =
     hasConsolidated &&
     (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
       ? totalConsolidatedRevenue
-      : unitGross * (qty > 0 ? qty : 0)
+      : Math.round(unitGross * (qty > 0 ? qty : 0) * 100) / 100
 
-  const totalDasTotal = totalGross * effectiveRateDec
-  const totalIrpj = (totalGross * pgdas.reparticao.irpjRate) / 100
-  const totalCsll = (totalGross * pgdas.reparticao.csllRate) / 100
-  const totalCofins = (totalGross * pgdas.reparticao.cofinsRate) / 100
-  const totalPis = (totalGross * pgdas.reparticao.pisRate) / 100
-  const totalCpp = (totalGross * pgdas.reparticao.cppRate) / 100
-  const totalIcms = (totalGross * pgdas.reparticao.icmsRate) / 100
-  const totalIpi = (totalGross * pgdas.reparticao.ipiRate) / 100
-  const totalIss = (totalGross * pgdas.reparticao.issRate) / 100
-  const totalNetRevenue = totalGross - totalDasTotal
+  const totalDasTotal = Math.round(unitDasTotal * (qty > 0 ? qty : 0) * 100) / 100
+  const totalIrpj = Math.round(unitIrpj * (qty > 0 ? qty : 0) * 100) / 100
+  const totalCsll = Math.round(unitCsll * (qty > 0 ? qty : 0) * 100) / 100
+  const totalCofins = Math.round(unitCofins * (qty > 0 ? qty : 0) * 100) / 100
+  const totalPis = Math.round(unitPis * (qty > 0 ? qty : 0) * 100) / 100
+  const totalCpp = Math.round(unitCpp * (qty > 0 ? qty : 0) * 100) / 100
+  const totalIcms = Math.round(unitIcms * (qty > 0 ? qty : 0) * 100) / 100
+  const totalIpi = Math.round(unitIpi * (qty > 0 ? qty : 0) * 100) / 100
+  const totalIss = Math.round(unitIss * (qty > 0 ? qty : 0) * 100) / 100
+  const totalNetRevenue = Math.round(unitNetRevenue * (qty > 0 ? qty : 0) * 100) / 100
   const isQuantityExceeded =
     isAutoInventory &&
     calculatedPurchases.totalAvailableUnits > 0 &&
     qty > calculatedPurchases.totalAvailableUnits
   const totalCmv = consolidatedCMV
-  const totalGrossProfit = totalNetRevenue - totalCmv
-  const totalNetProfit = totalGrossProfit - totalExpenses
+  const totalGrossProfit = Math.round((totalNetRevenue - totalCmv) * 100) / 100
+  const totalNetProfit = Math.round((totalGrossProfit - totalExpenses) * 100) / 100
 
   // Cards de Resumo
   const totalTaxBurden = totalGross > 0 ? totalDasTotal : 0

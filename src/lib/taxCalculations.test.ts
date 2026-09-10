@@ -618,16 +618,64 @@ export function runDrePresumidoGrandezasTests(): {
     received: number | boolean | string
   }[]
 } {
-  // Dados de teste baseados no caso real de demonstração:
+  // Dados de teste baseados no caso real de demonstração / ERRO GRAVE relatado pela usuária:
   // Preço unitário do produto via Markup = R$ 3.290,18
   // Quantidade = 22 unidades
+  // Regra de ouro da usuária: Coluna Unitário = valor por unidade; Coluna Total = round(unitário arredondado × quantidade)
   const unitPrice = 3290.18
   const qty = 22
   const consolidatedRevenue = Math.round(unitPrice * qty * 100) / 100 // 72383.96
 
+  // 1. Lucro Presumido - caso da usuária:
+  // unitGross = 3.290,18 | totalGross = 72.383,96
+  // icmsRate = 18% -> unitIcms = round(3290.18 * 0.18) = 592.23 | totalIcms = round(592.23 * 22) = 13.029,06
+  // unitPisCofinsBase = 3290.18 - 592.23 = 2697.95
+  // pisRate = 0.65% -> unitPis = round(2697.95 * 0.0065) = 17.54 | totalPis = round(17.54 * 22) = 385.88
+  // cofinsRate = 3.00% -> unitCofins = round(2697.95 * 0.03) = 80.94 | totalCofins = round(80.94 * 22) = 1.780,68
+  // unitNetRevenue = 3290.18 - 592.23 - 17.54 - 80.94 = 2599.47 | totalNetRevenue = round(2599.47 * 22) = 57.188,34
+  // unitCmv = 1150.73 | totalCmv = round(1150.73 * 22) = 25.316,06
+  // unitGrossProfit = 2599.47 - 1150.73 = 1448.74 | totalGrossProfit = round(57188.34 - 25316.06) = 31.872,28
+  const unitIcmsPresumido = Math.round(unitPrice * 0.18 * 100) / 100
+  const unitPisCofinsBasePresumido = Math.round((unitPrice - unitIcmsPresumido) * 100) / 100
+  const unitPisPresumido = Math.round(((unitPisCofinsBasePresumido * 0.65) / 100) * 100) / 100
+  const unitCofinsPresumido = Math.round(((unitPisCofinsBasePresumido * 3.0) / 100) * 100) / 100
+  const unitNetRevenuePresumido =
+    Math.round((unitPrice - unitIcmsPresumido - unitPisPresumido - unitCofinsPresumido) * 100) / 100
+
   // Custo unitário Presumido via compras
   const unitCmvPresumido = 1150.73
   const consolidatedCmvPresumido = Math.round(unitCmvPresumido * qty * 100) / 100 // 25316.06
+
+  const unitGrossProfitPresumido =
+    Math.round((unitNetRevenuePresumido - unitCmvPresumido) * 100) / 100
+  const totalNetRevenuePresumido = Math.round(unitNetRevenuePresumido * qty * 100) / 100
+  const totalGrossProfitPresumido =
+    Math.round((totalNetRevenuePresumido - consolidatedCmvPresumido) * 100) / 100
+
+  // 2. Lucro Real - caso da usuária:
+  // unitGross = 3.290,18
+  // ICMS 18% -> unitIcms = 592.23
+  // Base PIS/COFINS = 2697.95
+  // PIS 1.65% -> unitPis = round(2697.95 * 0.0165) = 44.52 | totalPis = round(44.52 * 22) = 979.44
+  // COFINS 7.60% -> unitCofins = round(2697.95 * 0.076) = 205.04 | totalCofins = round(205.04 * 22) = 4.510,88
+  // unitNetRevenueReal = 3290.18 - 592.23 - 44.52 - 205.04 = 2448.39
+  // totalNetRevenueReal = round(2448.39 * 22) = 53.864,58
+  const unitPisReal = Math.round(((unitPisCofinsBasePresumido * 1.65) / 100) * 100) / 100
+  const unitCofinsReal = Math.round(((unitPisCofinsBasePresumido * 7.6) / 100) * 100) / 100
+  const unitNetRevenueReal =
+    Math.round((unitPrice - unitIcmsPresumido - unitPisReal - unitCofinsReal) * 100) / 100
+  const totalNetRevenueReal = Math.round(unitNetRevenueReal * qty * 100) / 100
+
+  // 3. Simples Nacional - caso da usuária:
+  // Exemplo de alíquota efetiva PGDAS de 10%
+  // unitGross = 3.290,18 | totalGross = 72.383,96
+  // unitDas = round(3290.18 * 0.10) = 329.02 | totalDas = round(329.02 * 22) = 7.238,44
+  // unitNetRevenueSimples = 3290.18 - 329.02 = 2961.16 | totalNetRevenueSimples = round(2961.16 * 22) = 65.145,52
+  const simEffectiveRate = 0.1
+  const unitDasSimples = Math.round(unitPrice * simEffectiveRate * 100) / 100
+  const totalDasSimples = Math.round(unitDasSimples * qty * 100) / 100
+  const unitNetRevenueSimples = Math.round((unitPrice - unitDasSimples) * 100) / 100
+  const totalNetRevenueSimples = Math.round(unitNetRevenueSimples * qty * 100) / 100
 
   // Cenário de estoque: 30 unidades compradas a R$ 100 cada (mesma base dos testes de baixa automática)
   const qtyPurchased = 30
@@ -669,19 +717,70 @@ export function runDrePresumidoGrandezasTests(): {
     expected: number | boolean
     received: number | boolean
   }[] = [
-    // 1. Receita Consolidada = Unitária × Quantidade
+    // 1. Caso da usuária na DRE Lucro Presumido: Unitário R$ 3.290,18 e Total R$ 72.383,96
     {
-      test: 'Receita Consolidada: R$ 3.290,18 × 22 un = R$ 72.383,96',
+      test: 'DRE Presumido - Receita Bruta Unitária: R$ 3.290,18 (NÃO o consolidado)',
+      expected: 3290.18,
+      received: unitPrice,
+    },
+    {
+      test: 'DRE Presumido - Receita Bruta Consolidada: R$ 3.290,18 × 22 un = R$ 72.383,96',
       expected: 72383.96,
       received: consolidatedRevenue,
     },
-    // 2. CMV Consolidado = Unitário × Quantidade
+    // 2. CMV Consolidado = Unitário × Quantidade (centavo a centavo sem desvio de 7 centavos)
     {
-      test: 'CMV Consolidado: R$ 1.150,73 × 22 un = R$ 25.316,06',
+      test: 'DRE Presumido - CMV Unitário: R$ 1.150,73',
+      expected: 1150.73,
+      received: unitCmvPresumido,
+    },
+    {
+      test: 'DRE Presumido - CMV Consolidado: R$ 1.150,73 × 22 un = R$ 25.316,06 (NÃO 25.316,13)',
       expected: 25316.06,
       received: consolidatedCmvPresumido,
     },
-    // 3. Baixa de 22 de 30 unidades (Presumido)
+    {
+      test: 'DRE Presumido - ICMS Unitário R$ 592,23 | Total R$ 13.029,06',
+      expected: 13029.06,
+      received: Math.round(unitIcmsPresumido * qty * 100) / 100,
+    },
+    {
+      test: 'DRE Presumido - PIS Unitário R$ 17,54 | Total R$ 385,88',
+      expected: 385.88,
+      received: Math.round(unitPisPresumido * qty * 100) / 100,
+    },
+    {
+      test: 'DRE Presumido - COFINS Unitário R$ 80,94 | Total R$ 1.780,68',
+      expected: 1780.68,
+      received: Math.round(unitCofinsPresumido * qty * 100) / 100,
+    },
+    {
+      test: 'DRE Presumido - Receita Líquida Unitária R$ 2.599,47 | Total R$ 57.188,34',
+      expected: 57188.34,
+      received: totalNetRevenuePresumido,
+    },
+    {
+      test: 'DRE Presumido - Lucro Bruto Unitário R$ 1.448,74 | Total R$ 31.872,28',
+      expected: 31872.28,
+      received: totalGrossProfitPresumido,
+    },
+    // 3. Lucro Real e Simples Nacional com a mesma identidade
+    {
+      test: 'DRE Real - Receita Líquida Unitária R$ 2.448,39 | Total R$ 53.864,58',
+      expected: 53864.58,
+      received: totalNetRevenueReal,
+    },
+    {
+      test: 'DRE Simples - DAS Unitário R$ 329,02 | Total R$ 7.238,44',
+      expected: 7238.44,
+      received: totalDasSimples,
+    },
+    {
+      test: 'DRE Simples - Receita Líquida Unitária R$ 2.961,16 | Total R$ 65.145,52',
+      expected: 65145.52,
+      received: totalNetRevenueSimples,
+    },
+    // 4. Baixa de 22 de 30 unidades (Presumido)
     {
       test: 'Baixa 22 de 30 un (Presumido): CMV = 22 × R$ 82,00 = R$ 1.804,00',
       expected: 1804,
