@@ -29,8 +29,6 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
-import { RegimeThresholdsAlerts } from '@/components/demo/RegimeThresholdsAlerts'
-import { SensitivityAnalysisSection } from '@/components/demo/SensitivityAnalysisSection'
 import { exportComparisonToPdf, exportComparisonToExcel } from '@/lib/exportReports'
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
@@ -95,13 +93,18 @@ export default function ComparisonPage() {
 
   const { totalPurchasesQuantity } = useTaxContext()
 
-  // Se houver quantidade consolidada multi-produtos ou multi-compras, prioriza elas
-  const initialQty =
-    (totalPurchasesQuantity || 0) > 0
-      ? totalPurchasesQuantity || 0
-      : totalConsolidatedQuantity > 0
-        ? totalConsolidatedQuantity
-        : presumidoQuantitySold || realQuantitySold || simplesQuantitySold || 0
+  // Regra idêntica às DREs: prioriza quantidade consolidada vendida, depois baixa automática, compras e individual
+  const automaticQuantity =
+    totalConsolidatedQuantity > 0
+      ? totalConsolidatedQuantity
+      : calculatedPurchases.autoInventoryDeductionActive &&
+          calculatedPurchases.totalSoldUnitsEffective > 0
+        ? calculatedPurchases.totalSoldUnitsEffective
+        : (totalPurchasesQuantity || 0) > 0
+          ? totalPurchasesQuantity || 0
+          : presumidoQuantitySold || realQuantitySold || simplesQuantitySold || 0
+
+  const initialQty = automaticQuantity
 
   // Estado local para a quantidade na página de comparação
   const [qty, setQty] = useState<number>(initialQty)
@@ -642,21 +645,15 @@ export default function ComparisonPage() {
               </div>
               <div>
                 CMV Presumido:{' '}
-                <strong className="text-emerald-400">
-                  {formatBRL(calculatedPurchases.cmvPresumido)}
-                </strong>
+                <strong className="text-emerald-400">{formatBRL(presumidoData.totalCmv)}</strong>
               </div>
               <div>
                 CMV Real:{' '}
-                <strong className="text-emerald-400">
-                  {formatBRL(calculatedPurchases.cmvReal)}
-                </strong>
+                <strong className="text-emerald-400">{formatBRL(realData.totalCmv)}</strong>
               </div>
               <div>
                 CMV Simples:{' '}
-                <strong className="text-emerald-400">
-                  {formatBRL(calculatedPurchases.cmvSimples)}
-                </strong>
+                <strong className="text-emerald-400">{formatBRL(simplesData.totalCmv)}</strong>
               </div>
             </div>
           </div>
@@ -983,45 +980,6 @@ export default function ComparisonPage() {
             </div>
           </div>
         </div>
-
-        {/* TAREFA B: BLOCO DE ALERTAS DE LIMITES E TRANSIÇÃO DE REGIME */}
-        <RegimeThresholdsAlerts
-          simplesRbt12={simplesRbt12}
-          annualProjectedRevenue={activeGrossRevenue * (qty > 0 ? qty : 1)}
-          presumidoNetProfit={presumidoData.totalNetProfit}
-          realNetProfit={realData.totalNetProfit}
-          simplesNetProfit={simplesData.totalNetProfit}
-          presumidoTaxBurden={presumidoData.totalTaxBurden}
-          realTaxBurden={realData.totalTaxBurden}
-          simplesTaxBurden={simplesData.totalTaxBurden}
-          bestRegimeKey={bestRegimeKey}
-          bestRegimeName={bestRegime.name}
-          hasSimulatedData={activeGrossRevenue > 0 || qty > 0 || simplesRbt12 > 0}
-        />
-
-        {/* TAREFA C: SENSIBILIDADE DE VOLUME & PONTO DE EQUILÍBRIO */}
-        <SensitivityAnalysisSection
-          baseQuantity={qty}
-          unitGrossRevenue={unitGrossRevenue}
-          totalConsolidatedRevenue={totalConsolidatedRevenue}
-          hasConsolidated={hasConsolidated}
-          cmvPresumidoUnit={calculatedPurchases.cmvPresumido || 0}
-          cmvRealUnit={calculatedPurchases.cmvReal || 0}
-          cmvSimplesUnit={calculatedPurchases.cmvSimples || 0}
-          totalOtherExpenses={totalOtherExpenses}
-          directPayrollExpenses={directPayrollExpenses}
-          patronalCharges={patronalCharges}
-          presumidoActivity={presumidoActivity}
-          presumidoIssRate={presumidoIssRate}
-          icmsRateMarkup={icmsRateMarkup || 0}
-          realActivity={realActivity}
-          realIssRate={realIssRate}
-          realAdditions={realAdditions}
-          realExclusions={realExclusions}
-          simplesAnexoId={currentAnexoId}
-          simplesRbt12={simplesRbt12}
-          hasSimulatedData={activeGrossRevenue > 0 && qty > 0}
-        />
 
         {/* CARDS DE RESUMO COMPARATIVO (3 cards lado a lado com destaque visual para o melhor) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

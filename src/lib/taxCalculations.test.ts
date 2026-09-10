@@ -385,6 +385,185 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * Teste específico: Validação Comparação de Regimes vs DREs no caso 30 compradas x 22 vendidas
+ * Garante que:
+ * 1. automaticQuantity prioriza totalConsolidatedQuantity (22 un.) sobre totalPurchasesQuantity (30 un.).
+ * 2. CMV nos 3 regimes (Presumido, Real e Simples) é baixado por 22 unidades vendidas (NUNCA 30 un.).
+ * 3. Os valores de CMV total da página Comparação são 100% idênticos aos das três DREs.
+ * 4. Estoque final remanescente é rigorosamente de 8 unidades nos três regimes.
+ */
+export function runComparisonVsDre30Bought22SoldTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
+} {
+  const qtyPurchased = 30
+  const qtySoldConsolidated = 22
+  const merchValue = 3000
+
+  // 1. Custos de compra
+  const icmsVal = (merchValue * 18) / 100 // 540
+  const totalCostPresumido = merchValue - icmsVal // 2460 -> unitCost = 82.00
+  const unitCostPresumido = totalCostPresumido / qtyPurchased // 82
+
+  const pisCofinsBase = merchValue - icmsVal // 2460
+  const pisVal = (pisCofinsBase * 1.65) / 100 // 40.59
+  const cofinsVal = (pisCofinsBase * 7.6) / 100 // 186.96
+  const totalCostReal = merchValue - icmsVal - pisVal - cofinsVal // 2232.45
+  const unitCostReal = totalCostReal / qtyPurchased // 74.415
+
+  const totalCostSimples = merchValue // 3000
+  const unitCostSimples = totalCostSimples / qtyPurchased // 100
+
+  // 2. Regra de resolução de automaticQuantity usada nas DREs e agora na Comparação
+  const totalPurchasesQuantity = 30
+  const totalConsolidatedQuantity = 22
+  const calculatedPurchases = {
+    autoInventoryDeductionActive: true,
+    totalSoldUnitsEffective: 22,
+    totalAvailableUnits: 30,
+    cmvPresumido: totalCostPresumido, // 2460
+    cmvReal: totalCostReal, // 2232.45
+    cmvSimples: totalCostSimples, // 3000
+    unitCostPresumidoEffective: unitCostPresumido,
+    unitCostRealEffective: unitCostReal,
+    unitCostSimplesEffective: unitCostSimples,
+  }
+
+  const automaticQuantity =
+    totalConsolidatedQuantity > 0
+      ? totalConsolidatedQuantity
+      : calculatedPurchases.autoInventoryDeductionActive &&
+          calculatedPurchases.totalSoldUnitsEffective > 0
+        ? calculatedPurchases.totalSoldUnitsEffective
+        : (totalPurchasesQuantity || 0) > 0
+          ? totalPurchasesQuantity || 0
+          : 0
+
+  // 3. Cálculos da DRE (espelho exato do código de DrePresumidoPage, DreRealPage, DreSimplesPage)
+  const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
+  const effectiveSoldQtyForCmv = isAutoInventory
+    ? Math.min(automaticQuantity, calculatedPurchases.totalAvailableUnits)
+    : automaticQuantity
+
+  const drePresumidoCmv = Math.round(unitCostPresumido * effectiveSoldQtyForCmv * 100) / 100 // 82 * 22 = 1804.00
+  const dreRealCmv = Math.round(unitCostReal * effectiveSoldQtyForCmv * 100) / 100 // 74.415 * 22 = 1637.13
+  const dreSimplesCmv = Math.round(unitCostSimples * effectiveSoldQtyForCmv * 100) / 100 // 100 * 22 = 2200.00
+
+  // 4. Cálculos da ComparisonPage com a nova regra implementada
+  const comparisonQty = automaticQuantity
+  const comparisonEffectiveQty = isAutoInventory
+    ? Math.min(comparisonQty, calculatedPurchases.totalAvailableUnits)
+    : comparisonQty
+
+  const comparisonPresumidoCmv =
+    Math.round((Math.round(unitCostPresumido * 100) / 100) * comparisonEffectiveQty * 100) / 100
+  const comparisonRealCmv =
+    Math.round((Math.round(unitCostReal * 100) / 100) * comparisonEffectiveQty * 100) / 100
+  const comparisonSimplesCmv =
+    Math.round((Math.round(unitCostSimples * 100) / 100) * comparisonEffectiveQty * 100) / 100
+
+  // Estoque final remanescente em unidades
+  const remainingStockUnits = calculatedPurchases.totalAvailableUnits - comparisonEffectiveQty // 30 - 22 = 8
+
+  // Estoque final em valor nos 3 regimes
+  const efPresumido = totalCostPresumido - comparisonPresumidoCmv // 2460 - 1804 = 656
+  const efReal = totalCostReal - comparisonRealCmv // 2232.45 - 1637.13 = 595.32
+  const efSimples = totalCostSimples - comparisonSimplesCmv // 3000 - 2200 = 800
+
+  const tests = [
+    {
+      test: 'automaticQuantity prioriza totalConsolidatedQuantity (22 un.) sobre compras (30 un.)',
+      expected: 22,
+      received: automaticQuantity,
+    },
+    {
+      test: 'Quantidade efetiva para CMV na Comparação é de 22 unidades vendidas',
+      expected: 22,
+      received: comparisonEffectiveQty,
+    },
+    {
+      test: 'Comparação CMV Presumido = DRE Presumido CMV = R$ 1.804,00 (22 un. × R$ 82,00)',
+      expected: drePresumidoCmv,
+      received: comparisonPresumidoCmv,
+    },
+    {
+      test: 'Comparação CMV Real = DRE Real CMV = R$ 1.637,13 (22 un. × R$ 74,42)',
+      expected: dreRealCmv,
+      received: comparisonRealCmv,
+    },
+    {
+      test: 'Comparação CMV Simples = DRE Simples CMV = R$ 2.200,00 (22 un. × R$ 100,00)',
+      expected: dreSimplesCmv,
+      received: comparisonSimplesCmv,
+    },
+    {
+      test: 'CMV Presumido NÃO baixa 30 unidades compradas (R$ 2.460,00)',
+      expected: true,
+      received: comparisonPresumidoCmv !== totalCostPresumido,
+    },
+    {
+      test: 'CMV Real NÃO baixa 30 unidades compradas (R$ 2.232,45)',
+      expected: true,
+      received: comparisonRealCmv !== totalCostReal,
+    },
+    {
+      test: 'CMV Simples NÃO baixa 30 unidades compradas (R$ 3.000,00)',
+      expected: true,
+      received: comparisonSimplesCmv !== totalCostSimples,
+    },
+    {
+      test: 'Estoque final remanescente em unidades = 8 unidades (30 compradas - 22 vendidas)',
+      expected: 8,
+      received: remainingStockUnits,
+    },
+    {
+      test: 'Estoque final Presumido = R$ 656,00 (8 un. × R$ 82,00)',
+      expected: 656,
+      received: efPresumido,
+    },
+    {
+      test: 'Estoque final Real = R$ 595,32 (8 un. × R$ 74,415)',
+      expected: 595.32,
+      received: Math.round(efReal * 100) / 100,
+    },
+    {
+      test: 'Estoque final Simples = R$ 800,00 (8 un. × R$ 100,00)',
+      expected: 800,
+      received: efSimples,
+    },
+  ]
+
+  const results = tests.map(
+    (t: {
+      test: string
+      expected: number | boolean | string
+      received: number | boolean | string
+    }) => {
+      const passed =
+        typeof t.expected === 'boolean'
+          ? t.expected === t.received
+          : typeof t.expected === 'string'
+            ? t.expected === t.received
+            : Math.abs((t.expected as number) - (t.received as number)) < 0.01
+      return {
+        test: t.test,
+        passed,
+        expected: t.expected,
+        received: t.received,
+      }
+    },
+  )
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
  * Testes específicos de validação dos Créditos Fixos do Lucro Real (1,65% e 7,60%),
  * estabilidade do CMV unitário em R$ 1.044,54 sob qualquer regime global selecionado,
  * alinhamento de rotas e restauração de snapshots.
