@@ -34,7 +34,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { ShieldAlert, Compass, ChevronRight, SlidersHorizontal } from 'lucide-react'
+import { ShieldAlert, Compass, ChevronRight, SlidersHorizontal, Truck, Receipt } from 'lucide-react'
 import { calculateInterstateOperation } from '@/lib/specialOperationsCalculations'
 
 // Subcomponente de Cartão de Item de Compra com digitação blindada
@@ -576,9 +576,25 @@ export default function PurchasesPage() {
     interstateSubsystem,
   } = useTaxContext()
 
-  // Estados dos modais em camadas para ST e DIFAL
+  // Estados dos modais em camadas para ST, DIFAL, Frete e Deduções
   const [isStDialogOpen, setIsStDialogOpen] = useState(false)
   const [isInterstateDialogOpen, setIsInterstateDialogOpen] = useState(false)
+  const [isFreightDialogOpen, setIsFreightDialogOpen] = useState(false)
+  const [isDeductionsDialogOpen, setIsDeductionsDialogOpen] = useState(false)
+
+  // Totais e contagens de encargos e deduções para badges dinâmicos em tempo real
+  const totalAdditionalCostsValue = additionalCosts.reduce((acc, c) => acc + (c.value || 0), 0)
+  const activeAdditionalCostsCount = additionalCosts.filter(
+    (c) => (c.value || 0) > 0 || (c.description && c.description.trim() !== ''),
+  ).length
+  const hasAdditionalCosts =
+    totalAdditionalCostsValue > 0 || additionalCosts.some((c) => (c.value || 0) > 0)
+
+  const totalDeductionsValue = deductionCosts.reduce((acc, d) => acc + (d.value || 0), 0)
+  const activeDeductionsCount = deductionCosts.filter(
+    (d) => (d.value || 0) > 0 || (d.description && d.description.trim() !== ''),
+  ).length
+  const hasDeductions = totalDeductionsValue > 0 || deductionCosts.some((d) => (d.value || 0) > 0)
 
   // Resumo em tempo real do DIFAL na compra
   const purchasesTotalBase =
@@ -958,127 +974,286 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            {/* Custos Adicionais Globais (Frete e Seguro rateados, outros) */}
-            <div className="space-y-2 pt-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-semibold uppercase text-slate-300">
-                  Frete e encargos adicionais rateados na compra
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addAdditionalCost('Novo encargo', 0)}
-                  className="h-7 text-xs bg-slate-950/40 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  Adicionar encargo
-                </Button>
-              </div>
+            {/* Encargos e Deduções em Camadas (Chips Compactos com Modais) */}
+            <div className="pt-2 border-t border-slate-800/60">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <div className="space-y-0.5">
+                  <span className="text-xs font-mono font-semibold uppercase text-slate-300 block">
+                    Encargos e Deduções da Compra (Camadas)
+                  </span>
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Configure fretes rateados e deduções do custo (devoluções/abatimentos) em
+                    camadas compactas.
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                {additionalCosts.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-2 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/80"
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {/* Chip 1: Frete e Encargos */}
+                  <button
+                    type="button"
+                    onClick={() => setIsFreightDialogOpen(true)}
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
+                      hasAdditionalCosts
+                        ? 'bg-amber-500/20 border-amber-400/70 text-amber-200 hover:bg-amber-500/30 hover:border-amber-400 shadow-sm shadow-amber-500/20'
+                        : 'bg-slate-900/90 border-slate-700/80 text-slate-300 hover:text-white hover:border-orange-500/50 hover:bg-slate-800/80'
+                    }`}
+                    title="Abrir camada de Frete e Encargos Adicionais Rateados na Compra"
                   >
-                    <Input
-                      type="text"
-                      value={item.description}
-                      onChange={(e) => updateAdditionalCost(item.id, 'description', e.target.value)}
-                      placeholder="Descrição do encargo"
-                      className="text-xs font-semibold h-8 flex-1 field-input-interactive"
+                    <Truck
+                      className={`w-3.5 h-3.5 ${
+                        hasAdditionalCosts ? 'text-amber-300' : 'text-slate-400'
+                      }`}
                     />
-                    <div className="relative w-36 sm:w-44">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                        R$
-                      </span>
-                      <Input
-                        type="text"
-                        defaultValue={item.value > 0 ? formatNumberBR(item.value) : ''}
-                        key={`cost-${item.id}-${item.value}`}
-                        onBlur={(e) => {
-                          const parsed = parseBRNumber(e.target.value)
-                          updateAdditionalCost(item.id, 'value', parsed)
-                          e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                        }}
-                        placeholder="0,00"
-                        className="pl-7 text-right text-xs font-mono h-8 w-28 field-input-interactive"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeAdditionalCost(item.id)}
-                      className="p-2 text-slate-500 hover:text-rose-400 transition-colors"
-                      title="Remover"
+                    <span className="font-semibold">Frete e Encargos</span>
+                    <Badge
+                      className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
+                        hasAdditionalCosts
+                          ? 'bg-amber-500/30 text-amber-200'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                      {hasAdditionalCosts
+                        ? `${formatBRL(totalAdditionalCostsValue)} · ${activeAdditionalCostsCount} ${
+                            activeAdditionalCostsCount === 1 ? 'item' : 'itens'
+                          }`
+                        : 'Inativo'}
+                    </Badge>
+                    <ChevronRight className="w-3 h-3 opacity-70 ml-0.5" />
+                  </button>
+
+                  {/* Chip 2: Deduções do Custo */}
+                  <button
+                    type="button"
+                    onClick={() => setIsDeductionsDialogOpen(true)}
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
+                      hasDeductions
+                        ? 'bg-emerald-500/20 border-emerald-400/70 text-emerald-200 hover:bg-emerald-500/30 hover:border-emerald-400 shadow-sm shadow-emerald-500/20'
+                        : 'bg-slate-900/90 border-slate-700/80 text-slate-300 hover:text-white hover:border-orange-500/50 hover:bg-slate-800/80'
+                    }`}
+                    title="Abrir camada de Deduções do Custo (Devoluções / Abatimentos / Descontos)"
+                  >
+                    <Receipt
+                      className={`w-3.5 h-3.5 ${
+                        hasDeductions ? 'text-emerald-300' : 'text-slate-400'
+                      }`}
+                    />
+                    <span className="font-semibold">Deduções do Custo</span>
+                    <Badge
+                      className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
+                        hasDeductions
+                          ? 'bg-emerald-500/30 text-emerald-200'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {hasDeductions
+                        ? `${formatBRL(totalDeductionsValue)} · ${activeDeductionsCount} ${
+                            activeDeductionsCount === 1 ? 'item' : 'itens'
+                          }`
+                        : 'Inativo'}
+                    </Badge>
+                    <ChevronRight className="w-3 h-3 opacity-70 ml-0.5" />
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Deduções Globais do Custo (Devoluções / Abatimentos) */}
-            <div className="space-y-2 pt-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-semibold uppercase text-slate-300">
-                  Deduções do custo (Devoluções / Abatimentos / Descontos incondicionais)
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addDeductionCost('Nova dedução', 0)}
-                  className="h-7 text-xs bg-slate-950/40 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  Adicionar dedução
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                {deductionCosts.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-2 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/80"
-                  >
-                    <Input
-                      type="text"
-                      value={item.description}
-                      onChange={(e) => updateDeductionCost(item.id, 'description', e.target.value)}
-                      placeholder="Descrição da dedução"
-                      className="flex-1 bg-slate-900/80 border-slate-800 text-xs font-mono text-slate-200"
-                    />
-                    <div className="relative w-36 sm:w-44">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                        R$
+            {/* Diálogo / Camada Completa: Frete e Encargos Adicionais Rateados na Compra */}
+            <Dialog open={isFreightDialogOpen} onOpenChange={setIsFreightDialogOpen}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-slate-800 p-6 text-slate-100 shadow-2xl">
+                <DialogHeader className="border-b border-slate-800 pb-3">
+                  <div className="flex items-center justify-between gap-2 pr-6">
+                    <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                      <Truck className="w-5 h-5 text-amber-400" />
+                      Frete e Encargos Adicionais Rateados na Compra
+                    </DialogTitle>
+                    {hasAdditionalCosts && (
+                      <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 shrink-0">
+                        Total: {formatBRL(totalAdditionalCostsValue)}
                       </span>
-                      <Input
-                        type="text"
-                        defaultValue={item.value > 0 ? formatNumberBR(item.value) : ''}
-                        key={`ded-${item.id}-${item.value}`}
-                        onBlur={(e) => {
-                          const parsed = parseBRNumber(e.target.value)
-                          updateDeductionCost(item.id, 'value', parsed)
-                          e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                        }}
-                        placeholder="0,00"
-                        className="pl-8 text-right text-xs font-mono field-input-interactive"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeDeductionCost(item.id)}
-                      className="p-2 text-slate-500 hover:text-rose-400 transition-colors"
-                      title="Remover"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    )}
                   </div>
-                ))}
-              </div>
-            </div>
+                  <DialogDescription className="text-xs text-slate-400">
+                    Cadastre os custos globais de frete, seguro e outros encargos que são somados e
+                    rateados proporcionalmente no custo de aquisição da compra.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="pt-3 space-y-3">
+                  <div className="flex items-center justify-between pb-1">
+                    <span className="text-xs font-mono text-slate-300">
+                      Itens de encargo ({additionalCosts.length})
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addAdditionalCost('Novo encargo', 0)}
+                      className="h-7 text-xs bg-slate-900 border-slate-700 text-slate-200 hover:border-amber-400 hover:text-amber-300 hover:bg-slate-800 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Adicionar encargo
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                    {additionalCosts.length === 0 ? (
+                      <div className="text-center py-8 text-xs font-mono text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                        Nenhum encargo adicional lançado. Clique em "Adicionar encargo" para incluir
+                        frete ou seguro rateado.
+                      </div>
+                    ) : (
+                      additionalCosts.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-2 bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/80 hover:border-slate-700 transition-colors"
+                        >
+                          <Input
+                            type="text"
+                            value={item.description}
+                            onChange={(e) =>
+                              updateAdditionalCost(item.id, 'description', e.target.value)
+                            }
+                            placeholder="Descrição do encargo"
+                            className="text-xs font-semibold h-8 flex-1 field-input-interactive"
+                          />
+                          <div className="relative w-36 sm:w-44">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
+                              R$
+                            </span>
+                            <Input
+                              type="text"
+                              defaultValue={item.value > 0 ? formatNumberBR(item.value) : ''}
+                              key={`cost-modal-${item.id}-${item.value}`}
+                              onBlur={(e) => {
+                                const parsed = parseBRNumber(e.target.value)
+                                updateAdditionalCost(item.id, 'value', parsed)
+                                e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                              }}
+                              placeholder="0,00"
+                              className="pl-7 text-right text-xs font-mono h-8 w-full field-input-interactive"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeAdditionalCost(item.id)}
+                            className="p-2 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
+                            title="Remover encargo"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
+                    <span className="text-slate-400">Total somado na base da compra:</span>
+                    <strong className="text-amber-300 font-bold text-sm">
+                      {formatBRL(totalAdditionalCostsValue)}
+                    </strong>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Diálogo / Camada Completa: Deduções do Custo (Devoluções / Abatimentos / Descontos) */}
+            <Dialog open={isDeductionsDialogOpen} onOpenChange={setIsDeductionsDialogOpen}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-slate-800 p-6 text-slate-100 shadow-2xl">
+                <DialogHeader className="border-b border-slate-800 pb-3">
+                  <div className="flex items-center justify-between gap-2 pr-6">
+                    <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                      <Receipt className="w-5 h-5 text-emerald-400" />
+                      Deduções do Custo (Devoluções / Abatimentos / Descontos Incondicionais)
+                    </DialogTitle>
+                    {hasDeductions && (
+                      <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 shrink-0">
+                        Total: {formatBRL(totalDeductionsValue)}
+                      </span>
+                    )}
+                  </div>
+                  <DialogDescription className="text-xs text-slate-400">
+                    Cadastre os valores de devoluções de compras, abatimentos obtidos ou descontos
+                    comerciais incondicionais que abatem o custo de aquisição da compra.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="pt-3 space-y-3">
+                  <div className="flex items-center justify-between pb-1">
+                    <span className="text-xs font-mono text-slate-300">
+                      Itens de dedução ({deductionCosts.length})
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addDeductionCost('Nova dedução', 0)}
+                      className="h-7 text-xs bg-slate-900 border-slate-700 text-slate-200 hover:border-emerald-400 hover:text-emerald-300 hover:bg-slate-800 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Adicionar dedução
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
+                    {deductionCosts.length === 0 ? (
+                      <div className="text-center py-8 text-xs font-mono text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                        Nenhuma dedução lançada. Clique em "Adicionar dedução" para registrar
+                        devoluções ou abatimentos.
+                      </div>
+                    ) : (
+                      deductionCosts.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-2 bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/80 hover:border-slate-700 transition-colors"
+                        >
+                          <Input
+                            type="text"
+                            value={item.description}
+                            onChange={(e) =>
+                              updateDeductionCost(item.id, 'description', e.target.value)
+                            }
+                            placeholder="Descrição da dedução"
+                            className="text-xs font-semibold h-8 flex-1 field-input-interactive"
+                          />
+                          <div className="relative w-36 sm:w-44">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
+                              R$
+                            </span>
+                            <Input
+                              type="text"
+                              defaultValue={item.value > 0 ? formatNumberBR(item.value) : ''}
+                              key={`ded-modal-${item.id}-${item.value}`}
+                              onBlur={(e) => {
+                                const parsed = parseBRNumber(e.target.value)
+                                updateDeductionCost(item.id, 'value', parsed)
+                                e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                              }}
+                              placeholder="0,00"
+                              className="pl-7 text-right text-xs font-mono h-8 w-full field-input-interactive"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeDeductionCost(item.id)}
+                            className="p-2 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
+                            title="Remover dedução"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
+                    <span className="text-slate-400">Total deduzido do custo da compra:</span>
+                    <strong className="text-emerald-300 font-bold text-sm">
+                      {formatBRL(totalDeductionsValue)}
+                    </strong>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {/* SE REGIME REAL: Ajustes de PIS/COFINS sobre frete e tese do século se desejado */}
             {regime === 'real' && (
