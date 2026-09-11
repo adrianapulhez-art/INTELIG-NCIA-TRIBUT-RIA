@@ -76,11 +76,15 @@ export interface PurchaseItemTaxCalculationInput {
   quantity: number
   unitPrice: number
   merchandiseValue?: number
-  icmsRate?: number
-  calculatedIcms?: number
   freightValue?: number
   icmsFreightRate?: number
   icmsFreightValue?: number
+  ipiRate?: number
+  calculatedIpi?: number
+  hasSt?: boolean
+  stValue?: number
+  icmsRate?: number
+  calculatedIcms?: number
   calculatedPis?: number
   calculatedCofins?: number
 }
@@ -103,47 +107,70 @@ export function calculatePurchaseItemGrossTotal(
   return 0
 }
 
+/**
+ * Apuração do Custo Total / Compras Líquidas do item de compra conforme regime:
+ * Base bruta de aquisição = Mercadoria + Frete (+ IPI não recuperável + ST na entrada).
+ * O frete compõe o custo total de aquisição nos 3 regimes (art. 289 do RIR/2018).
+ * Deduções de tributos recuperáveis conforme o regime:
+ * - Lucro Presumido: Base Bruta − ICMS mercadoria − ICMS frete
+ * - Lucro Real: Base Bruta − ICMS mercadoria − ICMS frete − PIS (1,65%) − COFINS (7,60%)
+ * - Simples Nacional: Base Bruta integral (nada recuperável — art. 23 LC 123/2006)
+ */
 export function calculatePurchaseItemNetPurchases(
   item: PurchaseItemTaxCalculationInput,
   regime: 'presumido' | 'real' | 'simples',
 ): number {
-  const grossTotal = calculatePurchaseItemGrossTotal(item)
-  if (grossTotal <= 0) return 0
+  const merchGross = calculatePurchaseItemGrossTotal(item)
+  const freight = Math.max(0, Number.isFinite(item.freightValue) ? (item.freightValue ?? 0) : 0)
+  const ipi =
+    item.calculatedIpi !== undefined && Number.isFinite(item.calculatedIpi)
+      ? Math.max(0, item.calculatedIpi)
+      : Math.max(0, (merchGross * Math.max(0, item.ipiRate ?? 0)) / 100)
+  const st =
+    item.hasSt && item.stValue !== undefined && Number.isFinite(item.stValue)
+      ? Math.max(0, item.stValue)
+      : 0
+
+  // Base bruta de aquisição: mercadoria + frete + IPI não recuperável + ST
+  const acquisitionGross = merchGross + freight + ipi + st
+  if (acquisitionGross <= 0) return 0
 
   if (regime === 'simples') {
-    // Simples Nacional: nada é recuperável -> valor bruto integral
-    return grossTotal
+    // Simples Nacional: nada é recuperável -> custo bruto integral
+    return Math.round(acquisitionGross * 100) / 100
   }
 
   // ICMS destacado sobre a mercadoria do item
   const icms =
     item.calculatedIcms !== undefined && Number.isFinite(item.calculatedIcms)
       ? Math.max(0, item.calculatedIcms)
-      : Math.max(0, (grossTotal * Math.max(0, item.icmsRate ?? 0)) / 100)
+      : Math.max(0, (merchGross * Math.max(0, item.icmsRate ?? 0)) / 100)
 
   // ICMS sobre frete do item se houver
   const icmsFreight =
     item.icmsFreightValue !== undefined && Number.isFinite(item.icmsFreightValue)
       ? Math.max(0, item.icmsFreightValue)
-      : Math.max(0, ((item.freightValue ?? 0) * Math.max(0, item.icmsFreightRate ?? 0)) / 100)
+      : Math.max(0, (freight * Math.max(0, item.icmsFreightRate ?? 0)) / 100)
 
   if (regime === 'presumido') {
-    // Lucro Presumido: deduz ICMS destacado e ICMS sobre frete
-    return Math.max(0, Math.round((grossTotal - icms - icmsFreight) * 100) / 100)
+    // Lucro Presumido: mercadoria + frete (+ ipi + st) - ICMS mercadoria - ICMS frete
+    return Math.max(0, Math.round((acquisitionGross - icms - icmsFreight) * 100) / 100)
   }
 
   // Lucro Real: deduz ICMS, ICMS s/ frete, PIS (1,65%) e COFINS (7,60%)
+  // Tese do Século: Base PIS/COFINS = mercadoria − ICMS
+  const pisBase = Math.max(0, merchGross - icms)
   const pis =
     item.calculatedPis !== undefined && Number.isFinite(item.calculatedPis)
       ? Math.max(0, item.calculatedPis)
-      : Math.max(0, (Math.max(0, grossTotal - icms) * 1.65) / 100)
+      : Math.max(0, (pisBase * 1.65) / 100)
 
   const cofins =
     item.calculatedCofins !== undefined && Number.isFinite(item.calculatedCofins)
       ? Math.max(0, item.calculatedCofins)
-      : Math.max(0, (Math.max(0, grossTotal - icms) * 7.6) / 100)
+      : Math.max(0, (pisBase * 7.6) / 100)
 
-  return Math.max(0, Math.round((grossTotal - icms - icmsFreight - pis - cofins) * 100) / 100)
+  return Math.max(0, Math.round((acquisitionGross - icms - icmsFreight - pis - cofins) * 100) / 100)
 }
 
 export function parseBRNumber(input: string | number | null | undefined): number {
