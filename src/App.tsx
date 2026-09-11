@@ -40,6 +40,22 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/app" element={<Navigate to="/demo" replace />} />
             <Route
+              path="/demo"
+              element={
+                <ProtectedRoute>
+                  <DemoDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/demo/markup"
+              element={
+                <ProtectedRoute>
+                  <MarkupPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/demo/compras"
               element={
                 <ProtectedRoute>
@@ -62,28 +78,12 @@ const App = () => (
                   <DrePresumidoPage />
                 </ProtectedRoute>
               }
-            />{' '}
-            <Route
-              path="/demo/compras"
-              element={
-                <ProtectedRoute>
-                  <PurchasesPage />
-                </ProtectedRoute>
-              }
             />
             <Route
               path="/demo/simples"
               element={
                 <ProtectedRoute>
                   <DreSimplesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/demo/dre-presumido"
-              element={
-                <ProtectedRoute>
-                  <DrePresumidoPage />
                 </ProtectedRoute>
               }
             />
