@@ -7,7 +7,7 @@ import React, {
   useRef,
   useCallback,
 } from 'react'
-import { parseBRNumber } from '@/lib/taxCalculations'
+import { parseBRNumber, calculatePurchaseItemNetPurchases } from '@/lib/taxCalculations'
 import {
   StSubsystemState,
   INITIAL_ST_SUBSYSTEM,
@@ -50,6 +50,8 @@ export interface MarkupProductItem {
   cost: number // Custo base (quando mode === 'cost_margin')
   margin: number // Margem de lucro % (quando mode === 'cost_margin' ou margem adicional)
   quantity: number // Quantidade vendida
+  // Vínculo opcional com item da Calculadora de Compras
+  purchaseItemId?: string
   // Subsistema de Composição do Custo (modo cost_margin)
   costComposition?: CostComposition
   // Resultados calculados individualmente ao clicar em Simular:
@@ -219,13 +221,22 @@ export interface TaxContextType {
   // Múltiplos Produtos no Markup
   markupProducts: MarkupProductItem[]
   addMarkupProduct: (name?: string, mode?: MarkupMode) => void
+  importPurchaseItemToMarkup: (
+    purchaseItemOrId: string | PurchaseItem,
+    targetRegime?: TaxRegime,
+  ) => { success: boolean; productId?: string; message: string; alreadyImported?: boolean }
+  importAllPurchasesToMarkup: (targetRegime?: TaxRegime) => {
+    importedCount: number
+    skippedCount: number
+    message: string
+  }
   updateMarkupProduct: (
     id: string,
     field: keyof Omit<
       MarkupProductItem,
       'id' | 'salePrice' | 'taxFactor' | 'completeFactor' | 'totalRevenue' | 'totalCost'
     >,
-    value: string | number | MarkupMode | CostComposition,
+    value: string | number | MarkupMode | CostComposition | undefined,
   ) => void
   removeMarkupProduct: (id: string) => void
   // Composição de custos no produto
@@ -1332,7 +1343,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return { ...item, mode: value as MarkupMode }
         }
         if (field === 'name') {
-          return { ...item, name: String(value) }
+          return { ...item, name: String(value ?? '') }
+        }
+        if (field === 'purchaseItemId') {
+          return { ...item, purchaseItemId: value ? String(value) : undefined }
         }
         if (field === 'quantity') {
           const parsed = typeof value === 'number' ? value : parseInt(String(value), 10)
@@ -1342,7 +1356,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return { ...item, costComposition: value as CostComposition }
         }
         // Campos numéricos (desiredNetRevenue, cost, margin)
-        const numVal = typeof value === 'number' ? value : parseBRNumber(String(value))
+        const numVal = typeof value === 'number' ? value : parseBRNumber(String(value ?? 0))
         return {
           ...item,
           [field]: numVal,
@@ -1539,6 +1553,241 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return prev.filter((p) => p.id !== id)
     })
+  }
+
+  /**
+   * Helper para apurar o custo unitário líquido de um item de compra no regime escolhido.
+   * Utiliza calculatePurchaseItemNetPurchases para respeitar a apuração fiscal estrita do projeto.
+   */
+  const getPurchaseItemUnitNetCost = (
+    item: PurchaseItem,
+    targetRegime: TaxRegime = regime,
+  ): number => {
+    const qty = Math.max(0, Number.isFinite(item.quantity) ? item.quantity : 0)
+    const netPurchases = calculatePurchaseItemNetPurchases(item, targetRegime)
+    if (qty > 0 && netPurchases > 0) {
+      return Math.round((netPurchases / qty) * 100) / 100
+    }
+    // Fallback de custos fiscais apurados do item
+    if (targetRegime === 'simples' && item.unitCostSimples > 0) return item.unitCostSimples
+    if (targetRegime === 'real' && item.unitCostReal > 0) return item.unitCostReal
+    if (targetRegime === 'presumido' && item.unitCostPresumido > 0) return item.unitCostPresumido
+    if (item.unitPrice > 0) return item.unitPrice
+    if (qty > 0 && item.merchandiseValue > 0)
+      return Math.round((item.merchandiseValue / qty) * 100) / 100
+    return 0
+  }
+
+  /**
+   * Importa um item da Calculadora de Compras para o cadastro de Produtos do Markup.
+   * - Preenche modo como 'cost_margin'
+   * - Custo = custo líquido unitário da compra no regime ativo
+   * - Quantidade sugerida = quantidade da compra
+   * - Previne duplicação vinculando purchaseItemId e verificando o nome
+   */
+  const importPurchaseItemToMarkup = (
+    purchaseItemOrId: string | PurchaseItem,
+    targetRegime: TaxRegime = regime,
+  ): { success: boolean; productId?: string; message: string; alreadyImported?: boolean } => {
+    const targetItem: PurchaseItem | undefined =
+      typeof purchaseItemOrId === 'string'
+        ? computedPurchasesItems.find((p) => p.id === purchaseItemOrId) ||
+          purchasesItems.find((p) => p.id === purchaseItemOrId)
+        : purchaseItemOrId
+
+    if (!targetItem) {
+      return { success: false, message: 'Item de compra não encontrado.' }
+    }
+
+    const itemName = (targetItem.name || '').trim()
+    const itemId = targetItem.id
+
+    // Verifica se já existe um produto com o mesmo purchaseItemId ou mesmo nome
+    const existingIndex = markupProducts.findIndex(
+      (p) =>
+        p.purchaseItemId === itemId ||
+        (itemName.length > 0 && p.name.trim().toLowerCase() === itemName.toLowerCase()),
+    )
+
+    if (existingIndex >= 0) {
+      const existingProduct = markupProducts[existingIndex]
+      return {
+        success: false,
+        alreadyImported: true,
+        productId: existingProduct.id,
+        message: `O item "${itemName || 'Item'}" já está cadastrado no Markup como "${existingProduct.name}".`,
+      }
+    }
+
+    const unitNetCost = getPurchaseItemUnitNetCost(targetItem, targetRegime)
+    const qtyPurchased = Math.max(0, Number.isFinite(targetItem.quantity) ? targetItem.quantity : 0)
+
+    recordUndoSnapshot()
+
+    const newProdId = `prod-purch-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+    const newProduct: MarkupProductItem = {
+      id: newProdId,
+      purchaseItemId: itemId,
+      name: itemName || `Produto importado (${targetItem.id})`,
+      mode: 'cost_margin',
+      desiredNetRevenue: 0,
+      cost: unitNetCost,
+      margin: 0,
+      quantity: qtyPurchased,
+      costComposition: {
+        directCosts:
+          unitNetCost > 0
+            ? [
+                {
+                  id: `cost-dir-${Date.now()}`,
+                  description: `Custo líquido de aquisição (${targetRegime.toUpperCase()})`,
+                  value: unitNetCost,
+                },
+              ]
+            : [],
+        indirectCosts: [],
+        fixedCosts: [],
+      },
+      salePrice: 0,
+      taxFactor: 0,
+      completeFactor: 0,
+      totalRevenue: 0,
+      totalCost: unitNetCost * qtyPurchased,
+    }
+
+    setMarkupProducts((prev) => {
+      // Se tiver apenas 1 produto padrão inicial totalmente zerado, substitui-o
+      const isFirstDefaultEmpty =
+        prev.length === 1 &&
+        prev[0].desiredNetRevenue === 0 &&
+        prev[0].cost === 0 &&
+        prev[0].quantity === 0 &&
+        !prev[0].purchaseItemId &&
+        (prev[0].name === 'Produto 1' || prev[0].name === '')
+
+      if (isFirstDefaultEmpty) {
+        return [newProduct]
+      }
+      return [...prev, newProduct]
+    })
+
+    return {
+      success: true,
+      productId: newProdId,
+      message: `Item "${targetItem.name || 'Item'}" importado com sucesso para a Calculadora de Markup.`,
+    }
+  }
+
+  /**
+   * Importa todos os itens da Calculadora de Compras para o Markup,
+   * ignorando os já importados para não duplicar.
+   */
+  const importAllPurchasesToMarkup = (
+    targetRegime: TaxRegime = regime,
+  ): { importedCount: number; skippedCount: number; message: string } => {
+    const validPurchases = (
+      computedPurchasesItems.length > 0 ? computedPurchasesItems : purchasesItems
+    ).filter(
+      (item) =>
+        (item.name && item.name.trim().length > 0) ||
+        item.merchandiseValue > 0 ||
+        item.quantity > 0,
+    )
+
+    if (validPurchases.length === 0) {
+      return {
+        importedCount: 0,
+        skippedCount: 0,
+        message: 'Nenhum item disponível na Calculadora de Compras para importar.',
+      }
+    }
+
+    recordUndoSnapshot()
+
+    let importedCount = 0
+    let skippedCount = 0
+
+    setMarkupProducts((prev) => {
+      const isFirstDefaultEmpty =
+        prev.length === 1 &&
+        prev[0].desiredNetRevenue === 0 &&
+        prev[0].cost === 0 &&
+        prev[0].quantity === 0 &&
+        !prev[0].purchaseItemId &&
+        (prev[0].name === 'Produto 1' || prev[0].name === '')
+
+      const baseList = isFirstDefaultEmpty ? [] : [...prev]
+      const toAdd: MarkupProductItem[] = []
+
+      validPurchases.forEach((item, idx) => {
+        const itemName = (item.name || `Item ${idx + 1}`).trim()
+        const itemId = item.id
+
+        const alreadyExists =
+          baseList.some(
+            (p) =>
+              p.purchaseItemId === itemId ||
+              (itemName.length > 0 && p.name.trim().toLowerCase() === itemName.toLowerCase()),
+          ) ||
+          toAdd.some(
+            (p) =>
+              p.purchaseItemId === itemId ||
+              (itemName.length > 0 && p.name.trim().toLowerCase() === itemName.toLowerCase()),
+          )
+
+        if (alreadyExists) {
+          skippedCount++
+        } else {
+          importedCount++
+          const unitNetCost = getPurchaseItemUnitNetCost(item, targetRegime)
+          const qty = Math.max(0, Number.isFinite(item.quantity) ? item.quantity : 0)
+          toAdd.push({
+            id: `prod-purch-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+            purchaseItemId: itemId,
+            name: itemName,
+            mode: 'cost_margin',
+            desiredNetRevenue: 0,
+            cost: unitNetCost,
+            margin: 0,
+            quantity: qty,
+            costComposition: {
+              directCosts:
+                unitNetCost > 0
+                  ? [
+                      {
+                        id: `cost-dir-${Date.now()}-${idx}`,
+                        description: `Custo líquido de aquisição (${targetRegime.toUpperCase()})`,
+                        value: unitNetCost,
+                      },
+                    ]
+                  : [],
+              indirectCosts: [],
+              fixedCosts: [],
+            },
+            salePrice: 0,
+            taxFactor: 0,
+            completeFactor: 0,
+            totalRevenue: 0,
+            totalCost: unitNetCost * qty,
+          })
+        }
+      })
+
+      if (toAdd.length === 0 && baseList.length === 0) {
+        return prev
+      }
+
+      return [...baseList, ...toAdd]
+    })
+
+    return {
+      importedCount,
+      skippedCount,
+      message:
+        importedCount > 0
+          ? `${importedCount} item(ns) importado(s) com sucesso para o Markup.${skippedCount > 0 ? ` (${skippedCount} já estavam cadastrados)` : ''}`
+          : 'Todos os itens de compra já estão cadastrados na Calculadora de Markup.',
+    }
   }
 
   const addAdditionalCost = (description = 'Novo acréscimo', value = 0) => {
@@ -3178,6 +3427,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         removeCustomTaxMarkup,
         markupProducts,
         addMarkupProduct,
+        importPurchaseItemToMarkup,
+        importAllPurchasesToMarkup,
         updateMarkupProduct,
         removeMarkupProduct,
         addCostCompositionItem,

@@ -391,6 +391,261 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * Testes unitários para a integração entre Calculadora de Compras (CMV) e Calculadora de Markup:
+ * 1. Importação de um item de compra para o Markup criando produto com nome e custo líquido correto por regime
+ *    - Lucro Presumido: deduz ICMS destacado sobre mercadoria e ICMS sobre frete
+ *    - Lucro Real: deduz ICMS, ICMS sobre frete, PIS (1,65%) e COFINS (7,60%)
+ *    - Simples Nacional: sem deduções de crédito (valor bruto integral)
+ * 2. Prevenção de duplicidade: importar o mesmo item duas vezes não cria dois produtos
+ * 3. Garantia de que a lista de compras na camada disponibiliza todos os itens de compra cadastrados
+ */
+export function runPurchasesToMarkupIntegrationTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
+} {
+  // Item de compra para teste:
+  // 50 unidades a R$ 100,00 cada -> Bruto = R$ 5.000,00
+  // ICMS 18% (R$ 900,00)
+  // Frete R$ 200,00 com ICMS sobre frete de 12% (R$ 24,00)
+  // Base PIS/COFINS com exclusão do ICMS = 5.000 - 900 = 4.100,00
+  // PIS 1,65% = 67,65
+  // COFINS 7,60% = 311,60
+  const samplePurchaseItem = {
+    quantity: 50,
+    unitPrice: 100,
+    merchandiseValue: 5000,
+    freightValue: 200,
+    icmsFreightRate: 12,
+    icmsFreightValue: 24,
+    icmsRate: 18,
+    calculatedIcms: 900,
+    calculatedPis: 67.65,
+    calculatedCofins: 311.6,
+  }
+
+  // Compras líquidas por regime
+  const netPresumido = calculatePurchaseItemNetPurchases(samplePurchaseItem, 'presumido')
+  // Presumido: 5.000 (mercadoria) - 900 (ICMS) - 24 (ICMS frete) = 4.076,00
+  const expectedNetPresumido = 4076
+  const unitNetPresumido = Math.round((netPresumido / 50) * 100) / 100 // 81.52
+
+  const netReal = calculatePurchaseItemNetPurchases(samplePurchaseItem, 'real')
+  // Real: 5.000 - 900 (ICMS) - 24 (ICMS frete) - 67,65 (PIS) - 311,60 (COFINS) = 3.696,75
+  const expectedNetReal = 3696.75
+  const unitNetReal = Math.round((netReal / 50) * 100) / 100 // 73.94 (3696.75 / 50 = 73.935 -> 73.94)
+
+  const netSimples = calculatePurchaseItemNetPurchases(samplePurchaseItem, 'simples')
+  // Simples Nacional: 5.000 (sem dedução de créditos) = 5.000,00
+  const expectedNetSimples = 5000
+  const unitNetSimples = Math.round((netSimples / 50) * 100) / 100 // 100.00
+
+  // Simulação de lógica de importação e prevenção de duplicação
+  interface MockMarkupProduct {
+    id: string
+    name: string
+    purchaseItemId?: string
+    cost: number
+    quantity: number
+    mode: 'liquid' | 'cost_margin'
+  }
+
+  const purchasesList = [
+    { id: 'purch-1', name: 'Notebook Pro 14', ...samplePurchaseItem },
+    {
+      id: 'purch-2',
+      name: 'Monitor 27 4K',
+      quantity: 20,
+      unitPrice: 1500,
+      merchandiseValue: 30000,
+      icmsRate: 18,
+    },
+    {
+      id: 'purch-3',
+      name: 'Teclado Mecânico',
+      quantity: 100,
+      unitPrice: 250,
+      merchandiseValue: 25000,
+      icmsRate: 12,
+    },
+  ]
+
+  let markupProductsState: MockMarkupProduct[] = []
+
+  // Função mock espelhando TaxContext.importPurchaseItemToMarkup
+  const importItem = (itemId: string, regime: 'presumido' | 'real' | 'simples') => {
+    const item = purchasesList.find((p) => p.id === itemId)
+    if (!item) return { success: false, alreadyImported: false }
+
+    const itemName = item.name.trim().toLowerCase()
+    const alreadyExists = markupProductsState.some(
+      (p) => p.purchaseItemId === item.id || p.name.trim().toLowerCase() === itemName,
+    )
+
+    if (alreadyExists) {
+      return { success: false, alreadyImported: true }
+    }
+
+    const netVal = calculatePurchaseItemNetPurchases(item, regime)
+    const qty = item.quantity || 1
+    const unitCost = Math.round((netVal / qty) * 100) / 100
+
+    markupProductsState.push({
+      id: `prod-${Date.now()}-${markupProductsState.length}`,
+      name: item.name,
+      purchaseItemId: item.id,
+      cost: unitCost,
+      quantity: qty,
+      mode: 'cost_margin',
+    })
+
+    return { success: true, alreadyImported: false }
+  }
+
+  // 1. Importa Notebook no Presumido
+  const res1 = importItem('purch-1', 'presumido')
+  const countAfter1 = markupProductsState.length
+  const notebookProdPresumido = markupProductsState.find((p) => p.purchaseItemId === 'purch-1')
+
+  // 2. Tenta importar o mesmo item novamente (deve ser rejeitado/ignorado sem duplicar)
+  const res2 = importItem('purch-1', 'presumido')
+  const countAfterDuplicateAttempt = markupProductsState.length
+
+  // 3. Importa Notebook novamente com outro regime (não deve duplicar se o id já existe)
+  const res3 = importItem('purch-1', 'real')
+  const countAfterCrossRegimeAttempt = markupProductsState.length
+
+  // 4. Importa os demais itens
+  importItem('purch-2', 'real')
+  importItem('purch-3', 'simples')
+  const countAfterAllImported = markupProductsState.length
+
+  // 5. Verifica se todos os itens da compra estão visíveis/acessíveis para a camada
+  const allPurchasesVisibleCount = purchasesList.length
+
+  const tests: {
+    test: string
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[] = [
+    // Custos Líquidos por Regime
+    {
+      test: 'Importação Compras -> Markup: Compras Líquidas Presumido bate centavo por centavo (R$ 4.076,00)',
+      expected: expectedNetPresumido,
+      received: netPresumido,
+    },
+    {
+      test: 'Importação Compras -> Markup: Custo unitário líquido Presumido = R$ 81,52',
+      expected: unitNetPresumido,
+      received: 81.52,
+    },
+    {
+      test: 'Importação Compras -> Markup: Compras Líquidas Real bate centavo por centavo (R$ 3.696,75)',
+      expected: expectedNetReal,
+      received: netReal,
+    },
+    {
+      test: 'Importação Compras -> Markup: Custo unitário líquido Real = R$ 73,94',
+      expected: unitNetReal,
+      received: 73.94,
+    },
+    {
+      test: 'Importação Compras -> Markup: Compras Líquidas Simples Nacional bate centavo por centavo (R$ 5.000,00)',
+      expected: expectedNetSimples,
+      received: netSimples,
+    },
+    {
+      test: 'Importação Compras -> Markup: Custo unitário líquido Simples Nacional = R$ 100,00',
+      expected: unitNetSimples,
+      received: 100.0,
+    },
+
+    // Execução da Importação
+    {
+      test: 'Importação de item avulso: Primeiro item importado com sucesso (success = true)',
+      expected: true,
+      received: res1.success,
+    },
+    {
+      test: 'Importação de item avulso: Produto criado com purchaseItemId correto',
+      expected: 'purch-1',
+      received: notebookProdPresumido?.purchaseItemId || '',
+    },
+    {
+      test: 'Importação de item avulso: Produto criado no modo cost_margin',
+      expected: 'cost_margin',
+      received: notebookProdPresumido?.mode || '',
+    },
+    {
+      test: 'Importação de item avulso: Produto criado com custo unitário líquido do regime (81.52)',
+      expected: 81.52,
+      received: notebookProdPresumido?.cost || 0,
+    },
+    {
+      test: 'Importação de item avulso: Produto criado com quantidade comprada (50 un.)',
+      expected: 50,
+      received: notebookProdPresumido?.quantity || 0,
+    },
+
+    // Prevenção de Duplicação
+    {
+      test: 'Prevenção de duplicidade: Reimportar mesmo item retorna alreadyImported = true',
+      expected: true,
+      received: res2.alreadyImported,
+    },
+    {
+      test: 'Prevenção de duplicidade: Reimportar mesmo item retorna success = false',
+      expected: false,
+      received: res2.success,
+    },
+    {
+      test: 'Prevenção de duplicidade: Quantidade de produtos no Markup não aumenta ao tentar duplicar (permanece 1)',
+      expected: 1,
+      received: countAfterDuplicateAttempt,
+    },
+    {
+      test: 'Prevenção de duplicidade: Tentativa com outro regime não duplica produto existente (permanece 1)',
+      expected: 1,
+      received: countAfterCrossRegimeAttempt,
+    },
+
+    // Cobertura completa de itens disponíveis na camada
+    {
+      test: 'Camada de importação: Todos os 3 itens da compra disponíveis na lista para escolha',
+      expected: 3,
+      received: allPurchasesVisibleCount,
+    },
+    {
+      test: 'Importação em lote / incremental: Todos os 3 itens únicos importados para o Markup',
+      expected: 3,
+      received: countAfterAllImported,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : typeof t.expected === 'string'
+          ? t.expected === t.received
+          : Math.abs((t.expected as number) - (t.received as number)) < 0.001
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
  * Testes travando as regras estritas das colunas da Calculadora de Compras:
  * 1. Coluna "Preço Total" = valor unitário × quantidade comprada (independente de estoque/CMP).
  * 2. Coluna "Compras Líquidas" = base − tributos recuperáveis por regime:

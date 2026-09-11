@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge'
 import { CostCompositionSection } from '@/components/demo/CostCompositionSection'
 import { SubstituicaoTributariaSection } from '@/components/demo/SubstituicaoTributariaSection'
 import { OperacoesInterestaduaisSection } from '@/components/demo/OperacoesInterestaduaisSection'
+import { ImportPurchasesModal } from '@/components/demo/ImportPurchasesModal'
 import { PageHero } from '@/components/demo/PageHero'
 import {
   Dialog,
@@ -37,7 +38,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { ShieldAlert, Compass, ChevronRight, SlidersHorizontal } from 'lucide-react'
+import {
+  ShieldAlert,
+  Compass,
+  ChevronRight,
+  SlidersHorizontal,
+  Boxes,
+  Download,
+} from 'lucide-react'
 import {
   calculateSaleIcmsSt,
   calculateInterstateOperation,
@@ -197,11 +205,26 @@ export default function MarkupPage() {
     simplesIsInicioAtividade,
     stSubsystem,
     interstateSubsystem,
+    purchasesItems,
   } = useTaxContext()
 
-  // Estados dos modais em camadas para ST e DIFAL
+  // Estados dos modais em camadas para ST, DIFAL e Importação de Compras
   const [isStDialogOpen, setIsStDialogOpen] = useState(false)
   const [isInterstateDialogOpen, setIsInterstateDialogOpen] = useState(false)
+  const [isImportPurchasesDialogOpen, setIsImportPurchasesDialogOpen] = useState(false)
+
+  // Quantidade de itens de compras e quantos já foram importados
+  const totalPurchasesAvailableCount = purchasesItems.length
+  const importedPurchasesCount = useMemo(() => {
+    return purchasesItems.filter((item) => {
+      const itemName = (item.name || '').trim().toLowerCase()
+      return markupProducts.some(
+        (p) =>
+          p.purchaseItemId === item.id ||
+          (itemName.length > 0 && p.name.trim().toLowerCase() === itemName),
+      )
+    }).length
+  }, [purchasesItems, markupProducts])
 
   // Resumos em tempo real para os chips de status
   const markupEffectiveSaleValue = totalConsolidatedRevenue || simulatedSalePrice || 0
@@ -771,12 +794,28 @@ export default function MarkupPage() {
 
           {/* ÁREA DE LISTA / TABELA DE PRODUTOS */}
           <div className="space-y-3 pt-2 border-t border-slate-800/80">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4 text-emerald-400" />
                 <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
                   Produtos / Serviços Cadastrados
                 </h3>
+                {/* Chip Compacto em Camada: Puxar itens da Compra (CMV) */}
+                <button
+                  type="button"
+                  onClick={() => setIsImportPurchasesDialogOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-emerald-500/[0.16] border-emerald-400/80 text-emerald-100 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-sm shadow-emerald-500/15 ring-1 ring-emerald-500/30 ml-1"
+                  title="Abrir camada para puxar itens da Calculadora de Compras (CMV)"
+                >
+                  <Boxes className="w-3.5 h-3.5 text-emerald-300" />
+                  <span className="font-semibold text-emerald-100">Puxar itens da Compra</span>
+                  <Badge className="text-[9px] px-1.5 py-0 border-0 font-normal bg-emerald-500/35 text-emerald-100">
+                    {importedPurchasesCount > 0
+                      ? `${importedPurchasesCount}/${totalPurchasesAvailableCount}`
+                      : `${totalPurchasesAvailableCount} disp.`}
+                  </Badge>
+                  <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
+                </button>
               </div>
               <span className="text-[11px] font-mono text-emerald-400">
                 Atualização em tempo real · clique em <strong>Simular</strong> ou navegue livremente
@@ -945,8 +984,8 @@ export default function MarkupPage() {
               })}{' '}
             </div>
 
-            {/* Botão para adicionar mais produtos */}
-            <div className="flex justify-start">
+            {/* Botão para adicionar mais produtos e chip secundário para importar compras */}
+            <div className="flex flex-wrap items-center gap-2 justify-start">
               <Button
                 type="button"
                 variant="outline"
@@ -955,6 +994,16 @@ export default function MarkupPage() {
                 className="h-8 text-xs bg-slate-950/40 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" />+ Adicionar outro produto
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsImportPurchasesDialogOpen(true)}
+                className="h-8 text-xs bg-emerald-500/10 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-200 cursor-pointer font-medium"
+              >
+                <Boxes className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                Puxar itens da Compra ({totalPurchasesAvailableCount})
               </Button>
             </div>
           </div>
@@ -1101,6 +1150,12 @@ export default function MarkupPage() {
                 </div>
               </DialogContent>
             </Dialog>
+
+            {/* Diálogo / Camada Completa: Importar Itens da Calculadora de Compras */}
+            <ImportPurchasesModal
+              open={isImportPurchasesDialogOpen}
+              onOpenChange={setIsImportPurchasesDialogOpen}
+            />
           </div>
 
           {/* Botão Simular à Direita na Base */}
