@@ -405,10 +405,13 @@ export function runAutoStockDeductionTests(): {
  *    Deduções:
  *    - ICMS mercadoria: 42.000 × 18% = 7.560,00
  *    - ICMS frete: 400 × 18% = 72,00
- *    - PIS (1,65% s/ 42.000 - 7.560 = 34.440): 34.440 × 1,65% = 568,26
- *    - COFINS (7,60% s/ 42.000 - 7.560 = 34.440): 34.440 × 7,60% = 2.617,44
- *    Total Compras Líquidas Real na fórmula = 42.400 − 7.560 − 72 − 568,26 − 2.617,44 = R$ 31.582,30.
- *    O valor exato produzido pelas fórmulas existentes do sistema bate R$ 31.582,30 centavo a centavo.
+ *    - Posição B (Padrão): Base PIS/COFINS = (42.000 - 7.560) + (400 - 72) = 34.440 + 328 = 34.768,00
+ *      PIS 1,65% = 573,67 | COFINS 7,60% = 2.642,37
+ *      Total Compras Líquidas Real = 42.400 − 7.560 − 72 − 573,67 − 2.642,37 = R$ 31.551,96.
+ *    - Posição A (Camada Opcional - Retenção 4,65%):
+ *      PIS 1,65% s/ 34.440 = 568,26 | COFINS 7,60% s/ 34.440 = 2.617,44 | Crédito frete 4,65% s/ 328 = 15,25
+ *      Total Compras Líquidas Real = R$ 31.567,05.
+ *    - Valor legado rejeitado: R$ 31.582,30.
  *
  * 3. Simples Nacional:
  *    Bruto integral (nada recuperável — art. 23 LC 123/2006):
@@ -438,19 +441,36 @@ export function runSamsungPhoneOfficialScenarioTests(): {
     calculatedIcms: 7560, // 42000 * 18% = 7560
     hasSt: false,
     stValue: 0,
-    calculatedPis: 568.26, // (42000 - 7560) * 1.65% = 34440 * 1.65% = 568.26
-    calculatedCofins: 2617.44, // (42000 - 7560) * 7.60% = 34440 * 7.60% = 2617.44
+    calculatedPis: 573.67, // Posição B padrão: 34.768 * 1.65% = 573.67
+    calculatedCofins: 2642.37, // Posição B padrão: 34.768 * 7.60% = 2642.37
     costPresumido: 34768.0,
-    costReal: 31582.3,
+    costReal: 31551.96,
     costSimples: 42400.0,
     unitCostPresumido: 34768.0 / 30,
-    unitCostReal: 31582.3 / 30,
+    unitCostReal: 31551.96 / 30,
     unitCostSimples: 42400.0 / 30,
+  }
+
+  // Item configurado explicitamente na Posição B (padrão)
+  const itemSamsungPosB = {
+    ...itemSamsung,
+    calculatedPis: undefined,
+    calculatedCofins: undefined,
+    freightPisCofinsMethod: 'position_b' as const,
+  }
+
+  // Item configurado explicitamente na Posição A (retenção 4,65%)
+  const itemSamsungPosA = {
+    ...itemSamsung,
+    calculatedPis: undefined,
+    calculatedCofins: undefined,
+    freightPisCofinsMethod: 'position_a' as const,
   }
 
   const grossVal = calculatePurchaseItemGrossTotal(itemSamsung)
   const netPresumido = calculatePurchaseItemNetPurchases(itemSamsung, 'presumido')
-  const netReal = calculatePurchaseItemNetPurchases(itemSamsung, 'real')
+  const netRealDefault = calculatePurchaseItemNetPurchases(itemSamsungPosB, 'real')
+  const netRealPosA = calculatePurchaseItemNetPurchases(itemSamsungPosA, 'real')
   const netSimples = calculatePurchaseItemNetPurchases(itemSamsung, 'simples')
 
   const tests: {
@@ -476,13 +496,25 @@ export function runSamsungPhoneOfficialScenarioTests(): {
       expected: true,
       received: netPresumido !== 34368.0,
     },
-    // 2. Real === 31.582,30
+    // 2. Real Posição B (padrão) === 31.551,96
     {
-      test: 'Samsung Phone Real: Compras Líquidas = 42.400 - 7.560 - 72 - 568,26 - 2.617,44 = R$ 31.582,30',
-      expected: 31582.3,
-      received: netReal,
+      test: 'Samsung Phone Real (Posição B padrão): Compras Líquidas = 42.400 - 7.560 - 72 - 573,67 - 2.642,37 = R$ 31.551,96',
+      expected: 31551.96,
+      received: netRealDefault,
     },
-    // 3. Simples === 42.400,00
+    // Rejeição explícita do antigo valor R$ 31.582,30
+    {
+      test: 'Samsung Phone Real (Posição B): REJEITA explicitamente antigo valor R$ 31.582,30',
+      expected: true,
+      received: netRealDefault !== 31582.3,
+    },
+    // 3. Real Posição A (retenção 4,65%) === 31.567,05
+    {
+      test: 'Samsung Phone Real (Posição A retenção 4,65%): Compras Líquidas = R$ 31.567,05',
+      expected: 31567.05,
+      received: netRealPosA,
+    },
+    // 4. Simples === 42.400,00
     {
       test: 'Samsung Phone Simples: Compras Líquidas = 42.000 + 400 (bruto integral sem créditos) = R$ 42.400,00',
       expected: 42400.0,

@@ -384,19 +384,27 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
 
     let net = 0
     if (regime === 'presumido') {
-      net = gross + freight + (item.stValue || 0) + (item.calculatedIpi || 0) - icmsM - icmsF
+      net =
+        item.costPresumido !== undefined && Number.isFinite(item.costPresumido)
+          ? item.costPresumido
+          : gross + freight + (item.stValue || 0) + (item.calculatedIpi || 0) - icmsM - icmsF
     } else if (regime === 'real') {
       net =
-        gross +
-        freight +
-        (item.stValue || 0) +
-        (item.calculatedIpi || 0) -
-        icmsM -
-        icmsF -
-        pisM -
-        cofM
+        item.costReal !== undefined && Number.isFinite(item.costReal)
+          ? item.costReal
+          : gross +
+            freight +
+            (item.stValue || 0) +
+            (item.calculatedIpi || 0) -
+            icmsM -
+            icmsF -
+            pisM -
+            cofM
     } else {
-      net = gross + freight + (item.stValue || 0) + (item.calculatedIpi || 0)
+      net =
+        item.costSimples !== undefined && Number.isFinite(item.costSimples)
+          ? item.costSimples
+          : gross + freight + (item.stValue || 0) + (item.calculatedIpi || 0)
     }
 
     return {

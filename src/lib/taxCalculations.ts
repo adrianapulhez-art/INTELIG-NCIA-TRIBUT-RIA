@@ -87,6 +87,7 @@ export interface PurchaseItemTaxCalculationInput {
   calculatedIcms?: number
   calculatedPis?: number
   calculatedCofins?: number
+  freightPisCofinsMethod?: 'position_b' | 'position_a'
 }
 
 export function calculatePurchaseItemGrossTotal(
@@ -157,18 +158,40 @@ export function calculatePurchaseItemNetPurchases(
     return Math.max(0, Math.round((acquisitionGross - icms - icmsFreight) * 100) / 100)
   }
 
-  // Lucro Real: deduz ICMS, ICMS s/ frete, PIS (1,65%) e COFINS (7,60%)
-  // Tese do Século: Base PIS/COFINS = mercadoria − ICMS
-  const pisBase = Math.max(0, merchGross - icms)
+  // Lucro Real: deduz ICMS, ICMS s/ frete, PIS e COFINS (conforme método da tese / frete)
+  const method = item.freightPisCofinsMethod || 'position_b'
+  const freightNetIcms = Math.max(0, freight - icmsFreight)
+  const mercNetIcms = Math.max(0, merchGross - icms)
+
+  if (method === 'position_a') {
+    // Posição A: PIS 1,65% s/ mercNetIcms + COFINS 7,60% s/ mercNetIcms + Crédito sobre frete 4,65% s/ freightNetIcms
+    const pis =
+      item.calculatedPis !== undefined && Number.isFinite(item.calculatedPis)
+        ? Math.max(0, item.calculatedPis)
+        : Math.round(mercNetIcms * 0.0165 * 100) / 100
+    const cofins =
+      item.calculatedCofins !== undefined && Number.isFinite(item.calculatedCofins)
+        ? Math.max(0, item.calculatedCofins)
+        : Math.round(mercNetIcms * 0.076 * 100) / 100
+    const freightCredit = Math.round(freightNetIcms * 0.0465 * 100) / 100
+
+    return Math.max(
+      0,
+      Math.round((acquisitionGross - icms - icmsFreight - pis - cofins - freightCredit) * 100) /
+        100,
+    )
+  }
+
+  // Posição B (padrão): base PIS/COFINS = mercadoria líquida + frete líquido de ICMS
+  const combinedBase = mercNetIcms + freightNetIcms
   const pis =
     item.calculatedPis !== undefined && Number.isFinite(item.calculatedPis)
       ? Math.max(0, item.calculatedPis)
-      : Math.max(0, (pisBase * 1.65) / 100)
-
+      : Math.round(combinedBase * 0.0165 * 100) / 100
   const cofins =
     item.calculatedCofins !== undefined && Number.isFinite(item.calculatedCofins)
       ? Math.max(0, item.calculatedCofins)
-      : Math.max(0, (pisBase * 7.6) / 100)
+      : Math.round(combinedBase * 0.076 * 100) / 100
 
   return Math.max(0, Math.round((acquisitionGross - icms - icmsFreight - pis - cofins) * 100) / 100)
 }

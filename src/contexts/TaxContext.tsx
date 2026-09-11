@@ -7,7 +7,11 @@ import React, {
   useRef,
   useCallback,
 } from 'react'
-import { parseBRNumber, calculatePurchaseItemNetPurchases } from '@/lib/taxCalculations'
+import {
+  parseBRNumber,
+  calculatePurchaseItemNetPurchases,
+  type PurchaseItemTaxCalculationInput,
+} from '@/lib/taxCalculations'
 import {
   StSubsystemState,
   INITIAL_ST_SUBSYSTEM,
@@ -216,6 +220,8 @@ export interface TaxStateSnapshot {
   reformaState?: ReformaState
   // Subsistema de Controle de Estoque por Produto
   productStockState?: ProductStockState
+  // Método de PIS/COFINS sobre frete no Lucro Real (Posição B padrão, Posição A opcional)
+  realFreightPisCofinsMethod?: 'position_b' | 'position_a'
 }
 
 export interface TaxContextType {
@@ -226,6 +232,10 @@ export interface TaxContextType {
   // Regime compartilhado entre Markup, Compras e DREs
   regime: TaxRegime
   setRegime: (regime: TaxRegime) => void
+
+  // Método de cálculo PIS/COFINS sobre frete no Lucro Real ('position_b' padrão, 'position_a' opcional)
+  realFreightPisCofinsMethod: 'position_b' | 'position_a'
+  setRealFreightPisCofinsMethod: (method: 'position_b' | 'position_a') => void
 
   // MARKUP STATE
   markupMode: MarkupMode
@@ -610,6 +620,16 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // REGIME
   const [regime, setRegime] = useState<TaxRegime>('presumido')
+
+  // Método PIS/COFINS sobre frete no Lucro Real (default 'position_b')
+  const [realFreightPisCofinsMethod, setRealFreightPisCofinsMethodState] = useState<
+    'position_b' | 'position_a'
+  >('position_b')
+
+  const setRealFreightPisCofinsMethod = useCallback((method: 'position_b' | 'position_a') => {
+    recordUndoSnapshot()
+    setRealFreightPisCofinsMethodState(method)
+  }, [])
 
   // MARKUP
   const [markupMode, setMarkupMode] = useState<MarkupMode>('liquid')
@@ -1738,7 +1758,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     targetRegime: TaxRegime = regime,
   ): number => {
     const qty = Math.max(0, Number.isFinite(item.quantity) ? item.quantity : 0)
-    const netPurchases = calculatePurchaseItemNetPurchases(item, targetRegime)
+    const netPurchases = calculatePurchaseItemNetPurchases(
+      { ...item, freightPisCofinsMethod: realFreightPisCofinsMethod },
+      targetRegime,
+    )
     if (qty > 0 && netPurchases > 0) {
       return Math.round((netPurchases / qty) * 100) / 100
     }
@@ -2301,35 +2324,40 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const calculatedIpi = (merch * ipiR) / 100
       const calculatedIcms = (merch * icmsR) / 100
 
-      // Base PIS/COFINS com exclusão do ICMS por item (Tese do Século)
-      const pisBase = Math.max(0, merch - calculatedIcms)
-      const cofinsBase = Math.max(0, merch - calculatedIcms)
+      // Apuração de Compras Líquidas delegada para calculatePurchaseItemNetPurchases
+      // respeitando a metodologia ativa de PIS/COFINS sobre frete (Posição B ou A)
+      const itemInputWithMethod: PurchaseItemTaxCalculationInput = {
+        ...item,
+        quantity: qty,
+        unitPrice: item.unitPrice || (qty > 0 ? merch / qty : 0),
+        merchandiseValue: merch,
+        freightValue: freightVal,
+        icmsFreightRate: freightRate,
+        icmsFreightValue: freightIcms,
+        ipiRate: ipiR,
+        calculatedIpi,
+        icmsRate: icmsR,
+        calculatedIcms,
+        hasSt: item.hasSt,
+        stValue: itemSt,
+        freightPisCofinsMethod: realFreightPisCofinsMethod,
+      }
 
-      // Créditos fiscais fixos do Lucro Real (alíquotas legais 1,65% e 7,60%)
-      const calculatedPis = (pisBase * PIS_RATE_REAL) / 100
-      const calculatedCofins = (cofinsBase * COFINS_RATE_REAL) / 100
+      const costPresumido = calculatePurchaseItemNetPurchases(itemInputWithMethod, 'presumido')
+      const costReal = calculatePurchaseItemNetPurchases(itemInputWithMethod, 'real')
+      const costSimples = calculatePurchaseItemNetPurchases(itemInputWithMethod, 'simples')
 
-      // Custos totais apropriados do item conforme regime:
-      // Frete integra o custo de aquisição em todos os regimes.
-      // Presumido: mercadoria + frete + IPI + ST - ICMS - ICMS_frete
-      const costPresumido = Math.max(
-        0,
-        merch + freightVal + calculatedIpi + itemSt - calculatedIcms - freightIcms,
-      )
-      // Real: mercadoria + frete + IPI + ST - ICMS - ICMS_frete - PIS (1,65%) - COFINS (7,60%)
-      const costReal = Math.max(
-        0,
-        merch +
-          freightVal +
-          calculatedIpi +
-          itemSt -
-          calculatedIcms -
-          freightIcms -
-          calculatedPis -
-          calculatedCofins,
-      )
-      // Simples: não recupera ICMS/PIS/COFINS (tudo integra custo)
-      const costSimples = Math.max(0, merch + freightVal + calculatedIpi + itemSt)
+      // Créditos fiscais de PIS e COFINS do item conforme método ativo
+      const mercNetIcms = Math.max(0, merch - calculatedIcms)
+      const freightNetIcms = Math.max(0, freightVal - freightIcms)
+      const calculatedPis =
+        realFreightPisCofinsMethod === 'position_a'
+          ? Math.round(mercNetIcms * 0.0165 * 100) / 100
+          : Math.round((mercNetIcms + freightNetIcms) * 0.0165 * 100) / 100
+      const calculatedCofins =
+        realFreightPisCofinsMethod === 'position_a'
+          ? Math.round(mercNetIcms * 0.076 * 100) / 100
+          : Math.round((mercNetIcms + freightNetIcms) * 0.076 * 100) / 100
 
       const unitCostPresumido = qty > 0 ? costPresumido / qty : 0
       const unitCostReal = qty > 0 ? costReal / qty : 0
@@ -2358,7 +2386,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         unitCostSimples: Number.isFinite(unitCostSimples) ? unitCostSimples : 0,
       }
     })
-  }, [purchasesItems])
+  }, [purchasesItems, realFreightPisCofinsMethod])
 
   // Somatórios dos itens
   const totalPurchasesQuantity = computedPurchasesItems.reduce(
@@ -3366,6 +3394,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else {
       setProductStockState(INITIAL_PRODUCT_STOCK_STATE)
     }
+
+    setRealFreightPisCofinsMethodState(snapshot.realFreightPisCofinsMethod || 'position_b')
   }, [])
 
   // Obter snapshot completo do estado atual para salvar no banco
@@ -3437,6 +3467,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       interstateSubsystem,
       reformaState,
       productStockState,
+      realFreightPisCofinsMethod,
     }
   }, [
     regime,
@@ -3505,6 +3536,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     interstateSubsystem,
     reformaState,
     productStockState,
+    realFreightPisCofinsMethod,
   ])
 
   // MECANISMO DE UNDO / REDO EM MEMÓRIA (Ctrl+Z)
@@ -3619,6 +3651,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         regime,
         setRegime,
+        realFreightPisCofinsMethod,
+        setRealFreightPisCofinsMethod,
         markupMode,
         setMarkupMode,
         desiredNetRevenue,
