@@ -2489,7 +2489,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   // Carregar snapshot vindo do banco ou undo/redo e sobrescrever todos os campos
-  function loadSnapshot(snapshot: TaxStateSnapshot) {
+  const loadSnapshot = useCallback((snapshot: TaxStateSnapshot) => {
     if (!snapshot) return
 
     if (snapshot.regime) {
@@ -2768,10 +2768,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else {
       setProductStockState(INITIAL_PRODUCT_STOCK_STATE)
     }
-  }
+  }, [])
 
   // Obter snapshot completo do estado atual para salvar no banco
-  function getSnapshot(): TaxStateSnapshot {
+  const getSnapshot = useCallback((): TaxStateSnapshot => {
     return {
       regime,
       markupMode,
@@ -2838,7 +2838,72 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       reformaState,
       productStockState,
     }
-  }
+  }, [
+    regime,
+    markupMode,
+    desiredNetRevenue,
+    additionalMargin,
+    icmsRateMarkup,
+    customTaxesMarkup,
+    markupProducts,
+    simulatedSalePrice,
+    simulatedTaxFactorTotal,
+    simulatedCompleteFactor,
+    isMarkupSimulated,
+    totalConsolidatedRevenue,
+    totalConsolidatedQuantity,
+    totalConsolidatedCost,
+    computedPurchasesItems,
+    totalPurchasesQuantity,
+    initialInventory,
+    finalInventory,
+    autoInventoryDeduction,
+    initialInventoryUnits,
+    additionalCosts,
+    nonRecoverableTaxBase,
+    nonRecoverableTaxRate,
+    deductionCosts,
+    icmsPurchasesBase,
+    icmsPurchasesRate,
+    icmsFreightPurchasesBase,
+    icmsFreightPurchasesRate,
+    pisPurchasesBase,
+    pisExcludedIcmsManual,
+    cofinsPurchasesBase,
+    cofinsExcludedIcmsManual,
+    pisFreightPurchasesBase,
+    cofinsFreightPurchasesBase,
+    presumidoActivity,
+    presumidoIssRate,
+    presumidoQuantitySold,
+    presumidoExpenses,
+    isPresumidoSimulated,
+    realActivity,
+    realIssRate,
+    realAdditions,
+    realExclusions,
+    realLalurEntries,
+    realQuantitySold,
+    realExpenses,
+    isRealSimulated,
+    simplesAnexo,
+    effectiveSimplesRbt12,
+    simplesPayroll12m,
+    simplesQuantitySold,
+    simplesExpenses,
+    isSimplesSimulated,
+    simplesIsInicioAtividade,
+    simplesMonthlyRevenues,
+    payrollSalaries,
+    payrollProLabore,
+    payrollInssRate,
+    payrollRatRate,
+    payrollTerceirosRate,
+    stSubsystem,
+    interstateSubsystem,
+    reformaState,
+    productStockState,
+  ])
 
   // MECANISMO DE UNDO / REDO EM MEMÓRIA (Ctrl+Z)
   // Pilhas de snapshots com limite de 50 passos
@@ -2908,7 +2973,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       redo: redoStackRef.current.length,
     })
     return true
-  }, [])
+  }, [loadSnapshot])
 
   // Refazer (Ctrl+Y / Cmd+Shift+Z)
   const redo = useCallback((): boolean => {
@@ -2943,7 +3008,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       redo: redoStackRef.current.length,
     })
     return true
-  }, [])
+  }, [loadSnapshot])
 
   // Fim do bloco de undo/redo
 
