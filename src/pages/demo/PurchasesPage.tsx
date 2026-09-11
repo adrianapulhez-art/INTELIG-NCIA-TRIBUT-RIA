@@ -100,6 +100,7 @@ export default function PurchasesPage() {
     resetAll,
     stSubsystem,
     interstateSubsystem,
+    realFreightPisCofinsMethod,
   } = useTaxContext()
 
   // Estados dos modais em camadas para ST, DIFAL, Frete, Deduções e Composição do CMV
@@ -390,16 +391,18 @@ export default function PurchasesPage() {
 
                       // Preço médio por produto: se o produto tiver movimentações no subsistema de estoque e currentAverageCost > 0, usa CMP;
                       // caso contrário, o custo unitário apropriado do item para o regime ativo (ou unitPrice/merchandiseValue)
-                      const activeItemUnitCost =
-                        regime === 'simples'
-                          ? item.unitCostSimples
-                          : regime === 'real'
-                            ? item.unitCostReal
-                            : item.unitCostPresumido
+                      const itemNetForUnit = calculatePurchaseItemNetPurchases(
+                        { ...item, freightPisCofinsMethod: realFreightPisCofinsMethod },
+                        regime,
+                      )
+                      const derivedUnitCost =
+                        item.quantity > 0
+                          ? Math.round((itemNetForUnit / item.quantity) * 100) / 100
+                          : 0
 
                       const fallbackUnitCost =
-                        activeItemUnitCost > 0
-                          ? activeItemUnitCost
+                        derivedUnitCost > 0
+                          ? derivedUnitCost
                           : item.unitPrice > 0
                             ? item.unitPrice
                             : item.quantity > 0

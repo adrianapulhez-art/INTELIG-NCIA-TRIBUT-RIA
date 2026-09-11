@@ -473,6 +473,8 @@ export function runSamsungPhoneOfficialScenarioTests(): {
   const netRealPosA = calculatePurchaseItemNetPurchases(itemSamsungPosA, 'real')
   const netSimples = calculatePurchaseItemNetPurchases(itemSamsung, 'simples')
 
+  const unitRealPosB = Math.round((netRealDefault / 30) * 100) / 100
+
   const tests: {
     test: string
     expected: number | boolean
@@ -519,6 +521,17 @@ export function runSamsungPhoneOfficialScenarioTests(): {
       test: 'Samsung Phone Simples: Compras Líquidas = 42.000 + 400 (bruto integral sem créditos) = R$ 42.400,00',
       expected: 42400.0,
       received: netSimples,
+    },
+    // 5. Custo Unitário Líquido Real Posição B === 1.051,73 (REJEITA 1.158,93)
+    {
+      test: 'Samsung Phone Real (Posição B): Custo Unitário Líquido = 31.551,96 ÷ 30 = R$ 1.051,73',
+      expected: 1051.73,
+      received: unitRealPosB,
+    },
+    {
+      test: 'Samsung Phone Real (Posição B): REJEITA explicitamente custo unitário do Lucro Presumido R$ 1.158,93',
+      expected: true,
+      received: unitRealPosB !== 1158.93,
     },
   ]
 

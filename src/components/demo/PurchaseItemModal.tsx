@@ -166,16 +166,13 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
 
   if (!item) return null
 
-  // Custo unitário e total conforme regime ativo
-  const activeCost =
-    regime === 'simples' ? item.costSimples : regime === 'real' ? item.costReal : item.costPresumido
-
+  const activeNetPurchases = calculatePurchaseItemNetPurchases(
+    { ...item, freightPisCofinsMethod: realFreightPisCofinsMethod },
+    regime,
+  )
   const activeUnitCost =
-    regime === 'simples'
-      ? item.unitCostSimples
-      : regime === 'real'
-        ? item.unitCostReal
-        : item.unitCostPresumido
+    item.quantity > 0 ? Math.round((activeNetPurchases / item.quantity) * 100) / 100 : 0
+  const activeCost = activeNetPurchases
 
   // Créditos calculados no Lucro Real
   const totalItemCredits =
