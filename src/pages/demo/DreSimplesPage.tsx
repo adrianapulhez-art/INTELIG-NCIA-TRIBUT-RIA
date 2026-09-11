@@ -140,45 +140,30 @@ export default function DreSimplesPage() {
   const effectiveQuantity = automaticQuantity
   const qty = effectiveQuantity
 
-  // RECEITA BRUTA:
-  // 1. Receita bruta UNITÁRIA (preço de venda unitário por unidade, SEMPRE valor por unidade)
-  const unitGrossRevenue =
-    Math.round(
-      (totalConsolidatedQuantity > 0 && totalConsolidatedRevenue > 0
-        ? totalConsolidatedRevenue / totalConsolidatedQuantity
-        : simulatedSalePrice || 0) * 100,
-    ) / 100
-
-  // 2. Receita bruta CONSOLIDADA (total consolidado dos produtos do Markup ou unitário × quantidade)
+  // RECEITA BRUTA E CMV:
   const hasConsolidated = totalConsolidatedRevenue > 0
-  const activeGrossRevenue =
-    hasConsolidated && (qty === totalConsolidatedQuantity || qty === 0)
-      ? totalConsolidatedRevenue
-      : Math.round(unitGrossRevenue * (qty > 0 ? qty : 1) * 100) / 100
-
-  // CMV via Compras (Simples Nacional: sem recuperação de tributos):
-  // IDENTIDADE ESTRITA:
-  // - CMV unitário = SEMPRE o custo unitário líquido do regime apurado via Compras com 2 casas decimais.
   const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-  const rawUnitSimples =
-    calculatedPurchases.unitCostSimplesEffective > 0
-      ? calculatedPurchases.unitCostSimplesEffective
-      : (totalPurchasesQuantity || 0) > 0
-        ? (calculatedPurchases.cmvSimples || 0) / totalPurchasesQuantity
-        : calculatedPurchases.cmvSimples || 0
-  const unitCMV = Math.round(rawUnitSimples * 100) / 100
-
-  // 4. CMV CONSOLIDADO:
-  // Regra de ouro: total = round(unitário arredondado × quantidade efetiva) centavo a centavo
   const effectiveSoldQtyForCmv = isAutoInventory
     ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
     : qty
+
+  const totalGross = hasConsolidated
+    ? totalConsolidatedRevenue
+    : Math.round((simulatedSalePrice || 0) * (qty > 0 ? qty : 0) * 100) / 100
+  const activeGrossRevenue = totalGross
+  const unitGrossRevenue =
+    qty > 0 ? Math.round((totalGross / qty) * 100) / 100 : simulatedSalePrice || 0
+
   const consolidatedCMV =
-    unitCMV > 0
-      ? Math.round(unitCMV * effectiveSoldQtyForCmv * 100) / 100
+    calculatedPurchases.cmvSimples > 0
+      ? calculatedPurchases.cmvSimples
       : totalConsolidatedCost > 0
         ? totalConsolidatedCost
         : 0
+  const unitCMV =
+    effectiveSoldQtyForCmv > 0
+      ? Math.round((consolidatedCMV / effectiveSoldQtyForCmv) * 100) / 100
+      : calculatedPurchases.unitCostSimplesEffective || 0
 
   // Cálculo de início de atividade detalhado
   const inicioAtividadeCalc = useMemo(
@@ -239,13 +224,7 @@ export default function DreSimplesPage() {
   // Lucro Líquido unitário
   const unitNetProfit = Math.round((unitGrossProfit - unitExpenses) * 100) / 100
 
-  // CÁLCULOS TOTAIS DA DRE (Regra de ouro: total = round(unitário arredondado × quantidade), batendo centavo a centavo)
-  const totalGross =
-    hasConsolidated &&
-    (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
-      ? totalConsolidatedRevenue
-      : Math.round(unitGross * (qty > 0 ? qty : 0) * 100) / 100
-
+  // CÁLCULOS TOTAIS DA DRE (totalGross já definido estritamente pela soma consolidada sem multiplicação por média unitária)
   const totalDasTotal = Math.round(unitDasTotal * (qty > 0 ? qty : 0) * 100) / 100
   const totalIrpj = Math.round(unitIrpj * (qty > 0 ? qty : 0) * 100) / 100
   const totalCsll = Math.round(unitCsll * (qty > 0 ? qty : 0) * 100) / 100

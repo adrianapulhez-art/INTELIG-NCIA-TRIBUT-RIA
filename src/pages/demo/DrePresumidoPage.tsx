@@ -119,45 +119,30 @@ export default function DrePresumidoPage() {
   const effectiveQuantity = automaticQuantity
   const qty = effectiveQuantity
 
-  // RECEITA BRUTA:
-  // 1. Receita bruta UNITÁRIA (preço de venda unitário por unidade, SEMPRE valor por unidade)
-  const unitGrossRevenue =
-    Math.round(
-      (totalConsolidatedQuantity > 0 && totalConsolidatedRevenue > 0
-        ? totalConsolidatedRevenue / totalConsolidatedQuantity
-        : simulatedSalePrice || 0) * 100,
-    ) / 100
-
-  // 2. Receita bruta CONSOLIDADA (total = unitário arredondado × quantidade, respeitando totalConsolidatedRevenue se casar)
+  // RECEITA BRUTA E CMV:
   const hasConsolidated = totalConsolidatedRevenue > 0
-  const activeGrossRevenue =
-    hasConsolidated && (qty === totalConsolidatedQuantity || qty === 0)
-      ? totalConsolidatedRevenue
-      : Math.round(unitGrossRevenue * (qty > 0 ? qty : 1) * 100) / 100
-
-  // CMV via Compras (Presumido):
-  // IDENTIDADE ESTRITA:
-  // - CMV unitário = SEMPRE o custo unitário líquido do regime apurado a 2 casas decimais.
   const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-  const rawUnitPresumido =
-    calculatedPurchases.unitCostPresumidoEffective > 0
-      ? calculatedPurchases.unitCostPresumidoEffective
-      : (totalPurchasesQuantity || 0) > 0
-        ? (calculatedPurchases.cmvPresumido || 0) / totalPurchasesQuantity
-        : calculatedPurchases.cmvPresumido || 0
-  const unitCMV = Math.round(rawUnitPresumido * 100) / 100
-
-  // CMV CONSOLIDADO:
-  // Regra de ouro: total = round(unitário arredondado × quantidade efetiva) centavo a centavo
   const effectiveSoldQtyForCmv = isAutoInventory
     ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
     : qty
+
+  const totalGross = hasConsolidated
+    ? totalConsolidatedRevenue
+    : Math.round((simulatedSalePrice || 0) * (qty > 0 ? qty : 0) * 100) / 100
+  const activeGrossRevenue = totalGross
+  const unitGrossRevenue =
+    qty > 0 ? Math.round((totalGross / qty) * 100) / 100 : simulatedSalePrice || 0
+
   const consolidatedCMV =
-    unitCMV > 0
-      ? Math.round(unitCMV * effectiveSoldQtyForCmv * 100) / 100
+    calculatedPurchases.cmvPresumido > 0
+      ? calculatedPurchases.cmvPresumido
       : totalConsolidatedCost > 0
         ? totalConsolidatedCost
         : 0
+  const unitCMV =
+    effectiveSoldQtyForCmv > 0
+      ? Math.round((consolidatedCMV / effectiveSoldQtyForCmv) * 100) / 100
+      : calculatedPurchases.unitCostPresumidoEffective || 0
 
   // Atividade e alíquotas de presunção (Lei 9.249/95 art. 15 e 20)
   // Comércio: IRPJ 8%, CSLL 12%
@@ -221,12 +206,7 @@ export default function DrePresumidoPage() {
   const unitResultBeforeTax = Math.round((unitGrossProfit - unitExpenses) * 100) / 100
 
   // CÁLCULOS TOTAIS:
-  // Regra de ouro: total = round(unitário arredondado × quantidade), batendo centavo a centavo
-  const totalGross =
-    hasConsolidated &&
-    (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
-      ? totalConsolidatedRevenue
-      : Math.round(unitGross * (qty > 0 ? qty : 0) * 100) / 100
+  // totalGross já definido estritamente pela soma consolidada sem multiplicação por média unitária
 
   const totalMunicipalStateTax = Math.round(unitMunicipalStateTax * (qty > 0 ? qty : 0) * 100) / 100
   const totalPisCofinsBase = Math.round(unitPisCofinsBase * (qty > 0 ? qty : 0) * 100) / 100

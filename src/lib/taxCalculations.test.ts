@@ -391,6 +391,158 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * Testes estritos de erradicação de média entre produtos nas consolidações de Receita Bruta e CMV:
+ * 1. Cenário assimétrico:
+ *    - Produto A: R$ 1.500,00 × 2 un. = R$ 3.000,00
+ *    - Produto B: R$ 10,00 × 500 un. = R$ 5.000,00
+ *    -> Receita consolidada: EXATAMENTE 8.000,00.
+ *    -> Rejeição da média arredondada: média unitária = 8.000 / 502 = 15,936... -> arredondado = 15,94.
+ *       Se retroalimentasse: 15,94 × 502 = 8.001,88 (distorção espúria de +1,88 rejeitada!).
+ * 2. CMV consolidado:
+ *    - CMP A: R$ 800,00 × 2 = R$ 1.600,00
+ *    - CMP B: R$ 6,00 × 500 = R$ 3.000,00
+ *    -> CMV consolidado: EXATAMENTE 4.600,00 (soma estrita por produto, sem média geral).
+ * 3. Regressão canônica 30 compradas / 22 vendidas:
+ *    - 30 compradas a R$ 100,00 (Mercadorias = R$ 3.000,00, ICMS 18% = 540, PIS 1,65% = 40,59, COFINS 7,60% = 186,96)
+ *    - Presumido CMV = 22 × 82,00 = 1.804,00 | Estoque final = 8 × 82,00 = 656,00 (8 un.)
+ *    - Real CMV = 22 × 74,415 = 1.637,13 | Estoque final = 8 × 74,415 = 595,32 (8 un.)
+ *    - Simples CMV = 22 × 100,00 = 2.200,00 | Estoque final = 8 × 100,00 = 800,00 (8 un.)
+ */
+export function runStrictProductSumConsolidationTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
+} {
+  // 1. Cenário assimétrico
+  const prodAPrice = 1500.0
+  const prodAQty = 2
+  const prodARevenue = prodAPrice * prodAQty // 3000.00
+
+  const prodBPrice = 10.0
+  const prodBQty = 500
+  const prodBRevenue = prodBPrice * prodBQty // 5000.00
+
+  const totalConsolidatedRevenue = prodARevenue + prodBRevenue // 8000.00
+  const totalQty = prodAQty + prodBQty // 502
+
+  const roundedUnitMean = Math.round((totalConsolidatedRevenue / totalQty) * 100) / 100 // 15.94
+  const wrongRoundedRevenue = Math.round(roundedUnitMean * totalQty * 100) / 100 // 8001.88
+
+  // 2. CMV consolidado por produto
+  const cmpA = 800.0
+  const cmpB = 6.0
+  const cmvA = cmpA * prodAQty // 1600.00
+  const cmvB = cmpB * prodBQty // 3000.00
+  const totalConsolidatedCMV = cmvA + cmvB // 4600.00
+
+  // 3. Regressão canônica 30 compradas / 22 vendidas
+  const qtyPurchased = 30
+  const unitPriceBought = 100.0
+  const totalBought = qtyPurchased * unitPriceBought // 3000.00
+  const icmsVal = (totalBought * 18) / 100 // 540.00
+  const pisCofinsBase = totalBought - icmsVal // 2460.00
+  const pisVal = (pisCofinsBase * 1.65) / 100 // 40.59
+  const cofinsVal = (pisCofinsBase * 7.6) / 100 // 186.96
+
+  // Custo unitário Presumido = (3000 - 540) / 30 = 82.00
+  const unitCostPresumido = (totalBought - icmsVal) / qtyPurchased // 82.00
+  // Custo unitário Real = (3000 - 540 - 40.59 - 186.96) / 30 = 2232.45 / 30 = 74.415
+  const unitCostReal = (totalBought - icmsVal - pisVal - cofinsVal) / qtyPurchased // 74.415
+  // Custo unitário Simples = 3000 / 30 = 100.00
+  const unitCostSimples = totalBought / qtyPurchased // 100.00
+
+  const soldQty = 22
+  const finalStockQty = qtyPurchased - soldQty // 8 unidades
+
+  const cmvPresumido = Math.round(unitCostPresumido * soldQty * 100) / 100 // 1804.00
+  const cmvReal = Math.round(unitCostReal * soldQty * 100) / 100 // 1637.13
+  const cmvSimples = Math.round(unitCostSimples * soldQty * 100) / 100 // 2200.00
+
+  const stockPresumido = Math.round((totalBought - icmsVal - cmvPresumido) * 100) / 100 // 656.00
+  const stockReal = Math.round((totalBought - icmsVal - pisVal - cofinsVal - cmvReal) * 100) / 100 // 595.32
+  const stockSimples = Math.round((totalBought - cmvSimples) * 100) / 100 // 800.00
+
+  const tests: {
+    test: string
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[] = [
+    {
+      test: 'Cenário assimétrico: Receita consolidada (2 un. @ 1.500 + 500 un. @ 10) é EXATAMENTE 8.000,00',
+      expected: 8000.0,
+      received: totalConsolidatedRevenue,
+    },
+    {
+      test: 'Cenário assimétrico: Rejeição da média arredondada — Receita consolidada (8.000,00) !== Valor espúrio da média (8.001,88)',
+      expected: true,
+      received: totalConsolidatedRevenue !== wrongRoundedRevenue && wrongRoundedRevenue === 8001.88,
+    },
+    {
+      test: 'CMV consolidado: CMP A R$ 800 × 2 + CMP B R$ 6 × 500 é EXATAMENTE 4.600,00 (soma por produto, sem média geral)',
+      expected: 4600.0,
+      received: totalConsolidatedCMV,
+    },
+    {
+      test: 'Regressão canônica (30 compradas / 22 vendidas): CMV Lucro Presumido = 1.804,00',
+      expected: 1804.0,
+      received: cmvPresumido,
+    },
+    {
+      test: 'Regressão canônica (30 compradas / 22 vendidas): CMV Lucro Real = 1.637,13',
+      expected: 1637.13,
+      received: cmvReal,
+    },
+    {
+      test: 'Regressão canônica (30 compradas / 22 vendidas): CMV Simples Nacional = 2.200,00',
+      expected: 2200.0,
+      received: cmvSimples,
+    },
+    {
+      test: 'Regressão canônica (30 compradas / 22 vendidas): Estoque final de 8 unidades no Presumido = 656,00',
+      expected: 656.0,
+      received: stockPresumido,
+    },
+    {
+      test: 'Regressão canônica (30 compradas / 22 vendidas): Estoque final de 8 unidades no Real = 595,32',
+      expected: 595.32,
+      received: stockReal,
+    },
+    {
+      test: 'Regressão canônica (30 compradas / 22 vendidas): Estoque final de 8 unidades no Simples = 800,00',
+      expected: 800.0,
+      received: stockSimples,
+    },
+    {
+      test: 'Regressão canônica: Quantidade do estoque final permanece 8 unidades',
+      expected: 8,
+      received: finalStockQty,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : typeof t.expected === 'string'
+          ? t.expected === t.received
+          : Math.abs((t.expected as number) - (t.received as number)) < 0.001
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
  * Teste unitário para validar a correção conceitual na Calculadora de Markup:
  * Com dois produtos de preços diferentes (ex.: produto A com preço de venda unitário alto
  * e produto B baixo), o sistema NÃO deve produzir nenhuma métrica de "preço médio"

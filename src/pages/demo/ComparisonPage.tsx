@@ -161,15 +161,14 @@ export default function ComparisonPage() {
   }, [presumidoExpenses])
 
   // Preço de venda unitário e receita consolidada (Markup)
-  // Regra de ouro: unitGrossRevenue = valor por unidade (arredondado a 2 casas decimais)
+  // Regra de ouro: total = valor consolidado direto do contexto; unitário = derivado só para exibição
   const hasConsolidated = totalConsolidatedRevenue > 0
+  const activeGrossRevenue =
+    totalConsolidatedRevenue > 0
+      ? totalConsolidatedRevenue
+      : Math.round((simulatedSalePrice || 0) * (qty > 0 ? qty : 0) * 100) / 100
   const unitGrossRevenue =
-    Math.round(
-      (totalConsolidatedQuantity > 0 && totalConsolidatedRevenue > 0
-        ? totalConsolidatedRevenue / totalConsolidatedQuantity
-        : simulatedSalePrice || 0) * 100,
-    ) / 100
-  const activeGrossRevenue = Math.round(unitGrossRevenue * (qty > 0 ? qty : 0) * 100) / 100
+    qty > 0 ? Math.round((activeGrossRevenue / qty) * 100) / 100 : simulatedSalePrice || 0
 
   // -------------------------------------------------------------
   // 1. CÁLCULO LUCRO PRESUMIDO
@@ -212,16 +211,13 @@ export default function ComparisonPage() {
     const unitCmv = Math.round(rawUnitPresumido * 100) / 100
     const unitGrossProfit = Math.round((unitNetRevenue - unitCmv) * 100) / 100
 
-    // Totais com a quantidade (Regra de ouro: total = round(unitário arredondado × quantidade))
-    const totalGross = Math.round(unitGross * qty * 100) / 100
+    // Totais direto do contexto (sem multiplicar unitário por quantidade)
+    const totalGross = activeGrossRevenue
     const totalMunicipalStateTax = Math.round(unitMunicipalStateTax * qty * 100) / 100
     const totalPis = Math.round(unitPis * qty * 100) / 100
     const totalCofins = Math.round(unitCofins * qty * 100) / 100
     const totalNetRevenue = Math.round(unitNetRevenue * qty * 100) / 100
-    const effectiveSoldQtyForCmv = isAutoInventory
-      ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
-      : qty
-    const totalCmv = Math.round(unitCmv * effectiveSoldQtyForCmv * 100) / 100
+    const totalCmv = calculatedPurchases.cmvPresumido
     const totalGrossProfit = Math.round((totalNetRevenue - totalCmv) * 100) / 100
 
     // No Lucro Presumido: despesas = outras despesas + folha/pró-labore + encargos patronais
@@ -326,16 +322,13 @@ export default function ComparisonPage() {
     const unitCmv = Math.round(rawUnitReal * 100) / 100
     const unitGrossProfit = Math.round((unitNetRevenue - unitCmv) * 100) / 100
 
-    // Totais com a quantidade (Regra de ouro: total = round(unitário arredondado × quantidade))
-    const totalGross = Math.round(unitGross * qty * 100) / 100
+    // Totais direto do contexto (sem multiplicar unitário por quantidade)
+    const totalGross = activeGrossRevenue
     const totalMunicipalStateTax = Math.round(unitMunicipalStateTax * qty * 100) / 100
     const totalPis = Math.round(unitPis * qty * 100) / 100
     const totalCofins = Math.round(unitCofins * qty * 100) / 100
     const totalNetRevenue = Math.round(unitNetRevenue * qty * 100) / 100
-    const effectiveSoldQtyForCmv = isAutoInventory
-      ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
-      : qty
-    const totalCmv = Math.round(unitCmv * effectiveSoldQtyForCmv * 100) / 100
+    const totalCmv = calculatedPurchases.cmvReal
     const totalGrossProfit = Math.round((totalNetRevenue - totalCmv) * 100) / 100
 
     // No Lucro Real: folha, pró-labore e encargos são despesas dedutíveis
@@ -446,8 +439,8 @@ export default function ComparisonPage() {
     const unitCmv = Math.round(rawUnitSimples * 100) / 100
     const unitGrossProfit = Math.round((unitNetRevenue - unitCmv) * 100) / 100
 
-    // Totais com a quantidade (Regra de ouro: total = round(unitário arredondado × quantidade))
-    const totalGross = Math.round(unitGross * qty * 100) / 100
+    // Totais direto do contexto (sem multiplicar unitário por quantidade)
+    const totalGross = activeGrossRevenue
     const totalDasTotal = Math.round(unitDasTotal * qty * 100) / 100
     const totalIrpj = Math.round(unitIrpj * qty * 100) / 100
     const totalCsll = Math.round(unitCsll * qty * 100) / 100
@@ -458,10 +451,7 @@ export default function ComparisonPage() {
     const totalIpi = Math.round(unitIpi * qty * 100) / 100
     const totalIss = Math.round(unitIss * qty * 100) / 100
     const totalNetRevenue = Math.round(unitNetRevenue * qty * 100) / 100
-    const effectiveSoldQtyForCmv = isAutoInventory
-      ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
-      : qty
-    const totalCmv = Math.round(unitCmv * effectiveSoldQtyForCmv * 100) / 100
+    const totalCmv = calculatedPurchases.cmvSimples
     const totalGrossProfit = Math.round((totalNetRevenue - totalCmv) * 100) / 100
 
     // No Simples Nacional:

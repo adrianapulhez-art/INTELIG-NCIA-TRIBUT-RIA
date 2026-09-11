@@ -126,45 +126,32 @@ export default function DreRealPage() {
   // Quantidade de referência
   const initialQtyVal = automaticQuantity
 
-  // RECEITA BRUTA:
-  // 1. Receita bruta UNITÁRIA (preço de venda unitário por unidade, SEMPRE valor por unidade)
-  const unitGrossRevenue =
-    Math.round(
-      (totalConsolidatedQuantity > 0 && totalConsolidatedRevenue > 0
-        ? totalConsolidatedRevenue / totalConsolidatedQuantity
-        : simulatedSalePrice || 0) * 100,
-    ) / 100
-
-  // 2. Receita bruta CONSOLIDADA (total consolidado dos produtos do Markup ou unitário × quantidade)
+  // RECEITA BRUTA E CMV:
   const hasConsolidated = totalConsolidatedRevenue > 0
-  const activeGrossRevenue =
-    hasConsolidated && (initialQtyVal === totalConsolidatedQuantity || initialQtyVal === 0)
-      ? totalConsolidatedRevenue
-      : Math.round(unitGrossRevenue * (initialQtyVal > 0 ? initialQtyVal : 1) * 100) / 100
-
-  // CMV via Compras (Lucro Real):
-  // IDENTIDADE ESTRITA:
-  // - CMV unitário = SEMPRE o custo unitário líquido do regime apurado via Compras com 2 casas decimais.
   const isAutoInventory = calculatedPurchases.autoInventoryDeductionActive
-  const rawUnitReal =
-    calculatedPurchases.unitCostRealEffective > 0
-      ? calculatedPurchases.unitCostRealEffective
-      : (totalPurchasesQuantity || 0) > 0
-        ? (calculatedPurchases.cmvReal || 0) / totalPurchasesQuantity
-        : calculatedPurchases.cmvReal || 0
-  const unitCMV = Math.round(rawUnitReal * 100) / 100
-
-  // 4. CMV CONSOLIDADO:
-  // Regra de ouro: total = round(unitário arredondado × quantidade efetiva) centavo a centavo
   const effectiveSoldQtyForCmv = isAutoInventory
     ? Math.min(initialQtyVal, calculatedPurchases.totalAvailableUnits)
     : initialQtyVal
+
+  const totalGross = hasConsolidated
+    ? totalConsolidatedRevenue
+    : Math.round((simulatedSalePrice || 0) * (initialQtyVal > 0 ? initialQtyVal : 0) * 100) / 100
+  const activeGrossRevenue = totalGross
+  const unitGrossRevenue =
+    initialQtyVal > 0
+      ? Math.round((totalGross / initialQtyVal) * 100) / 100
+      : simulatedSalePrice || 0
+
   const consolidatedCMV =
-    unitCMV > 0
-      ? Math.round(unitCMV * effectiveSoldQtyForCmv * 100) / 100
+    calculatedPurchases.cmvReal > 0
+      ? calculatedPurchases.cmvReal
       : totalConsolidatedCost > 0
         ? totalConsolidatedCost
         : 0
+  const unitCMV =
+    effectiveSoldQtyForCmv > 0
+      ? Math.round((consolidatedCMV / effectiveSoldQtyForCmv) * 100) / 100
+      : calculatedPurchases.unitCostRealEffective || 0
 
   // Alíquotas fixas do Lucro Real
   const icmsRate = icmsRateMarkup || 0
@@ -228,13 +215,7 @@ export default function DreRealPage() {
   // 10. Resultado antes IRPJ/CSLL
   const unitResultBeforeTax = Math.round((unitGrossProfit - unitExpenses) * 100) / 100
 
-  // CÁLCULOS TOTAIS (Regra de ouro: total = round(unitário arredondado × quantidade), batendo centavo a centavo)
-  const totalGross =
-    hasConsolidated &&
-    (qty === totalConsolidatedQuantity || (qty === 1 && totalConsolidatedQuantity <= 1))
-      ? totalConsolidatedRevenue
-      : Math.round(unitGross * (qty > 0 ? qty : 0) * 100) / 100
-
+  // CÁLCULOS TOTAIS (totalGross já definido estritamente pela soma consolidada sem multiplicação por média unitária)
   const totalMunicipalStateTax = Math.round(unitMunicipalStateTax * (qty > 0 ? qty : 0) * 100) / 100
   const totalPisCofinsBase = Math.round(unitPisCofinsBase * (qty > 0 ? qty : 0) * 100) / 100
   const totalPis = Math.round(unitPis * (qty > 0 ? qty : 0) * 100) / 100
