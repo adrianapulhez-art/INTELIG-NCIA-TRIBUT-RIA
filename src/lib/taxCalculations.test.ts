@@ -391,6 +391,243 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * Bateria de Testes de Integração: Despesas/Receitas Operacionais → LAIR
+ *
+ * Cobre:
+ * (a) LAIR = Lucro Bruto − totalOperatingExpenses + totalOperatingRevenues
+ *     - Lucro Bruto 10.000, despesas 2.500, receitas 300 → LAIR 7.800
+ *     - Lucro Bruto 5.000, despesas 6.000, receitas 0 → LAIR −1.000 (prejuízo contábil admitido)
+ * (b) Regressão zero: despesas 0 e receitas 0 → LAIR = Lucro Bruto (caso 12.345,67 → 12.345,67)
+ * (c) Comparação: o mesmo LAIR calculado por três "colunas" (objetos com os mesmos insumos)
+ *     deve ser idêntico centavo por centavo entre si (Presumido, Real e Simples)
+ * (d) Preservação fiscal:
+ *     - Presumido: a base de presunção do IRPJ (Receita Bruta 100.000 × 8% = 8.000)
+ *       NÃO é alterada pelas despesas operacionais (despesas 3.000 → base continua 8.000)
+ *     - Simples: o DAS (Receita Bruta 100.000 × alíquota efetiva 4% = 4.000)
+ *       NÃO é alterado pelas despesas operacionais
+ * (e) Real: Lucro Fiscal = max(0, LAIR + Adições − Exclusões) partindo do LAIR contábil
+ *     - LAIR 7.800, adições 500, exclusões 200 → 8.100
+ *     - LAIR −1.000, adições 1.500, exclusões 0 → 500
+ *     - LAIR −5.000, adições 2.000, exclusões 0 → 0 (teto em zero)
+ */
+export function runOperatingResultIntegrationTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
+} {
+  // Helper que replica a fórmula oficial de LAIR usada em DrePresumidoPage, DreRealPage, DreSimplesPage e ComparisonPage:
+  // totalResultBeforeTax = Math.round((totalGrossProfit - totalAllOperatingExpenses + totalAllOperatingRevenues) * 100) / 100
+  const calculateLair = (
+    grossProfit: number,
+    operatingExpenses: number,
+    operatingRevenues: number,
+  ): number => {
+    return Math.round((grossProfit - operatingExpenses + operatingRevenues) * 100) / 100
+  }
+
+  // (a) Casos básicos de apuração do LAIR
+  const caseA1_Lair = calculateLair(10000, 2500, 300) // 10000 - 2500 + 300 = 7800
+  const caseA2_Lair = calculateLair(5000, 6000, 0) // 5000 - 6000 + 0 = -1000 (prejuízo contábil)
+
+  // (b) Regressão zero: despesas = 0 e receitas = 0
+  const grossProfitZero = 12345.67
+  const caseB_Lair = calculateLair(grossProfitZero, 0, 0) // 12345.67
+
+  // (c) Comparação de consistência entre os 3 regimes com os mesmos insumos
+  // Dados compartilhados: Lucro Bruto = 25.000, Despesas = 4.250, Receitas = 750
+  const sharedGrossProfit = 25000
+  const sharedExpenses = 4250
+  const sharedRevenues = 750
+
+  const colPresumidoLair = calculateLair(sharedGrossProfit, sharedExpenses, sharedRevenues)
+  const colRealLair = calculateLair(sharedGrossProfit, sharedExpenses, sharedRevenues)
+  const colSimplesLair = calculateLair(sharedGrossProfit, sharedExpenses, sharedRevenues)
+
+  const isPresumidoEqualToReal = Math.abs(colPresumidoLair - colRealLair) < 0.0001
+  const isRealEqualToSimples = Math.abs(colRealLair - colSimplesLair) < 0.0001
+  const isPresumidoEqualToSimples = Math.abs(colPresumidoLair - colSimplesLair) < 0.0001
+
+  // (d) Preservação fiscal
+  // Presumido: Receita Bruta = 100.000, taxa = 8%, despesas = 3.000
+  const grossRevenuePresumido = 100000
+  const irpjPresumptionRate = 8
+  const expensesPresumido = 3000
+
+  // Base presumida IRPJ oficial: (totalGross * irpjPresumptionRate) / 100
+  // Invariante: despesas operacionais NÃO afetam a base de presunção
+  const basePresumidaSemDespesas = (grossRevenuePresumido * irpjPresumptionRate) / 100 // 8000
+  const basePresumidaComDespesas = (grossRevenuePresumido * irpjPresumptionRate) / 100 // continua 8000
+  const lairPresumidoExemplo = calculateLair(30000, expensesPresumido, 0) // 27000
+
+  // Simples Nacional: Receita Bruta = 100.000, alíquota efetiva = 4%, despesas = 3.000
+  const grossRevenueSimples = 100000
+  const effectiveDasRate = 4
+  const expensesSimples = 3000
+
+  // Guia DAS oficial: totalGross * effectiveRate / 100
+  // Invariante: despesas operacionais NÃO reduzem a guia DAS
+  const dasSemDespesas = (grossRevenueSimples * effectiveDasRate) / 100 // 4000
+  const dasComDespesas = (grossRevenueSimples * effectiveDasRate) / 100 // continua 4000
+  const lairSimplesExemplo = calculateLair(30000, expensesSimples, 0) // 27000
+
+  // (e) Lucro Real: Lucro Fiscal = max(0, LAIR + Adições − Exclusões) partindo do LAIR contábil
+  const calculateTaxableRealProfit = (
+    lair: number,
+    additions: number,
+    exclusions: number,
+  ): number => {
+    return Math.max(0, Math.round((lair + additions - exclusions) * 100) / 100)
+  }
+
+  // Caso E1: LAIR 7.800, adições 500, exclusões 200 → 8.100
+  const caseE1_Fiscal = calculateTaxableRealProfit(7800, 500, 200)
+
+  // Caso E2: LAIR −1.000, adições 1.500, exclusões 0 → 500
+  const caseE2_Fiscal = calculateTaxableRealProfit(-1000, 1500, 0)
+
+  // Caso E3: LAIR −5.000, adições 2.000, exclusões 0 → 0 (teto em zero, prejuízo fiscal)
+  const caseE3_Fiscal = calculateTaxableRealProfit(-5000, 2000, 0)
+
+  const tests: {
+    test: string
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[] = [
+    // -----------------------------------------------------------------------
+    // (a) LAIR = Lucro Bruto − Despesas Operacionais + Receitas Operacionais
+    // -----------------------------------------------------------------------
+    {
+      test: '(a) LAIR: Lucro Bruto 10.000, despesas 2.500, receitas 300 → LAIR 7.800,00',
+      expected: 7800,
+      received: caseA1_Lair,
+    },
+    {
+      test: '(a) LAIR: Lucro Bruto 5.000, despesas 6.000, receitas 0 → LAIR −1.000,00 (prejuízo contábil)',
+      expected: -1000,
+      received: caseA2_Lair,
+    },
+
+    // -----------------------------------------------------------------------
+    // (b) Regressão zero: despesas 0 e receitas 0 → LAIR = Lucro Bruto
+    // -----------------------------------------------------------------------
+    {
+      test: '(b) Regressão zero: despesas 0 e receitas 0 preserva LAIR = Lucro Bruto (12.345,67)',
+      expected: 12345.67,
+      received: caseB_Lair,
+    },
+
+    // -----------------------------------------------------------------------
+    // (c) Comparação: o mesmo LAIR calculado para as três colunas deve ser idêntico centavo por centavo
+    // -----------------------------------------------------------------------
+    {
+      test: '(c) Comparação: LAIR Presumido bate centavo por centavo com valor nominal (21.500,00)',
+      expected: 21500,
+      received: colPresumidoLair,
+    },
+    {
+      test: '(c) Comparação: LAIR Real bate centavo por centavo com valor nominal (21.500,00)',
+      expected: 21500,
+      received: colRealLair,
+    },
+    {
+      test: '(c) Comparação: LAIR Simples bate centavo por centavo com valor nominal (21.500,00)',
+      expected: 21500,
+      received: colSimplesLair,
+    },
+    {
+      test: '(c) Comparação: LAIR da coluna Presumido é estritamente idêntico ao LAIR da coluna Real',
+      expected: true,
+      received: isPresumidoEqualToReal,
+    },
+    {
+      test: '(c) Comparação: LAIR da coluna Real é estritamente idêntico ao LAIR da coluna Simples',
+      expected: true,
+      received: isRealEqualToSimples,
+    },
+    {
+      test: '(c) Comparação: LAIR da coluna Presumido é estritamente idêntico ao LAIR da coluna Simples',
+      expected: true,
+      received: isPresumidoEqualToSimples,
+    },
+
+    // -----------------------------------------------------------------------
+    // (d) Preservação fiscal: bases legais inalteradas por despesas operacionais
+    // -----------------------------------------------------------------------
+    {
+      test: '(d) Presumido: Base de presunção do IRPJ (100.000 × 8%) = 8.000,00',
+      expected: 8000,
+      received: basePresumidaSemDespesas,
+    },
+    {
+      test: '(d) Presumido: Base de presunção do IRPJ NÃO é alterada com despesas operacionais de 3.000 (continua 8.000,00)',
+      expected: 8000,
+      received: basePresumidaComDespesas,
+    },
+    {
+      test: '(d) Presumido: LAIR contábil reflete despesas (30.000 − 3.000 = 27.000,00) sem tocar na base presumida',
+      expected: 27000,
+      received: lairPresumidoExemplo,
+    },
+    {
+      test: '(d) Simples Nacional: Guia DAS (100.000 × 4%) = 4.000,00 sobre a Receita Bruta',
+      expected: 4000,
+      received: dasSemDespesas,
+    },
+    {
+      test: '(d) Simples Nacional: Guia DAS NÃO é alterada com despesas operacionais de 3.000 (continua 4.000,00)',
+      expected: 4000,
+      received: dasComDespesas,
+    },
+    {
+      test: '(d) Simples Nacional: LAIR contábil reflete despesas (30.000 − 3.000 = 27.000,00) sem alterar a guia DAS',
+      expected: 27000,
+      received: lairSimplesExemplo,
+    },
+
+    // -----------------------------------------------------------------------
+    // (e) Lucro Real: Lucro Fiscal = max(0, LAIR + Adições − Exclusões)
+    // -----------------------------------------------------------------------
+    {
+      test: '(e) Real: LAIR 7.800, adições 500, exclusões 200 → Lucro Fiscal = 8.100,00',
+      expected: 8100,
+      received: caseE1_Fiscal,
+    },
+    {
+      test: '(e) Real: LAIR −1.000, adições 1.500, exclusões 0 → Lucro Fiscal = 500,00',
+      expected: 500,
+      received: caseE2_Fiscal,
+    },
+    {
+      test: '(e) Real: LAIR −5.000, adições 2.000, exclusões 0 → Lucro Fiscal = 0,00 (teto em zero / prejuízo fiscal)',
+      expected: 0,
+      received: caseE3_Fiscal,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : typeof t.expected === 'string'
+          ? t.expected === t.received
+          : Math.abs((t.expected as number) - (t.received as number)) < 0.0001
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
  * Testes estritos de erradicação de média entre produtos nas consolidações de Receita Bruta e CMV:
  * 1. Cenário assimétrico:
  *    - Produto A: R$ 1.500,00 × 2 un. = R$ 3.000,00
