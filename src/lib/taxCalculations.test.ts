@@ -1,3 +1,4 @@
+import type { PurchaseItem } from '@/contexts/TaxContext'
 import {
   parseBRNumber,
   formatBRL,
@@ -378,6 +379,122 @@ export function runAutoStockDeductionTests(): {
       typeof t.expected === 'boolean'
         ? t.expected === t.received
         : Math.abs((t.expected as number) - (t.received as number)) < 0.0001
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
+ * CENÁRIO EXATO DE REFERÊNCIA (validado pelo usuário, valores oficiais):
+ * Item 1: Celular Samsung, 30 un., mercadoria total R$ 42.000,00 (unitário R$ 1.400,00),
+ * frete atribuído ao item R$ 400,00, ICMS 18% (sobre mercadoria e sobre frete).
+ *
+ * 1. Presumido:
+ *    42.000 + 400 − 7.560 (ICMS mercadoria: 42.000×0,18) − 72 (ICMS frete: 400×0,18) = R$ 34.768,00.
+ *    O valor R$ 34.368,00 (deduzir o crédito do frete sem somar o frete na base) está ERRADO e deve ser rejeitado.
+ *
+ * 2. Real:
+ *    Aquisição bruta: 42.000 + 400 = 42.400,00.
+ *    Deduções:
+ *    - ICMS mercadoria: 42.000 × 18% = 7.560,00
+ *    - ICMS frete: 400 × 18% = 72,00
+ *    - PIS (1,65% s/ 42.000 - 7.560 = 34.440): 34.440 × 1,65% = 568,26
+ *    - COFINS (7,60% s/ 42.000 - 7.560 = 34.440): 34.440 × 7,60% = 2.617,44
+ *    Total Compras Líquidas Real na fórmula = 42.400 − 7.560 − 72 − 568,26 − 2.617,44 = R$ 31.582,30.
+ *    O valor exato produzido pelas fórmulas existentes do sistema bate R$ 31.582,30 centavo a centavo.
+ *
+ * 3. Simples Nacional:
+ *    Bruto integral (nada recuperável — art. 23 LC 123/2006):
+ *    42.000 + 400 = R$ 42.400,00.
+ */
+export function runSamsungPhoneOfficialScenarioTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
+} {
+  const itemSamsung: PurchaseItem = {
+    id: 'item-celular-samsung',
+    name: 'Celular Samsung',
+    quantity: 30,
+    unitPrice: 1400,
+    merchandiseValue: 42000,
+    freightValue: 400,
+    icmsFreightRate: 18,
+    icmsFreightValue: 72, // 400 * 18% = 72
+    ipiRate: 0,
+    calculatedIpi: 0,
+    icmsRate: 18,
+    calculatedIcms: 7560, // 42000 * 18% = 7560
+    hasSt: false,
+    stValue: 0,
+    calculatedPis: 568.26, // (42000 - 7560) * 1.65% = 34440 * 1.65% = 568.26
+    calculatedCofins: 2617.44, // (42000 - 7560) * 7.60% = 34440 * 7.60% = 2617.44
+    costPresumido: 34768.0,
+    costReal: 31582.3,
+    costSimples: 42400.0,
+    unitCostPresumido: 34768.0 / 30,
+    unitCostReal: 31582.3 / 30,
+    unitCostSimples: 42400.0 / 30,
+  }
+
+  const grossVal = calculatePurchaseItemGrossTotal(itemSamsung)
+  const netPresumido = calculatePurchaseItemNetPurchases(itemSamsung, 'presumido')
+  const netReal = calculatePurchaseItemNetPurchases(itemSamsung, 'real')
+  const netSimples = calculatePurchaseItemNetPurchases(itemSamsung, 'simples')
+
+  const tests: {
+    test: string
+    expected: number | boolean
+    received: number | boolean
+  }[] = [
+    // Preço bruto da mercadoria
+    {
+      test: 'Samsung Phone: Preço total da mercadoria (30 un x R$ 1.400,00) = R$ 42.000,00',
+      expected: 42000,
+      received: grossVal,
+    },
+    // 1. Presumido === 34.768,00
+    {
+      test: 'Samsung Phone Presumido: Compras Líquidas = 42.000 + 400 - 7.560 - 72 = R$ 34.768,00',
+      expected: 34768.0,
+      received: netPresumido,
+    },
+    // Rejeição explícita de 34.368,00
+    {
+      test: 'Samsung Phone Presumido: REJEITA explicitamente R$ 34.368,00 (frete deduzido sem compor a base)',
+      expected: true,
+      received: netPresumido !== 34368.0,
+    },
+    // 2. Real === 31.582,30
+    {
+      test: 'Samsung Phone Real: Compras Líquidas = 42.400 - 7.560 - 72 - 568,26 - 2.617,44 = R$ 31.582,30',
+      expected: 31582.3,
+      received: netReal,
+    },
+    // 3. Simples === 42.400,00
+    {
+      test: 'Samsung Phone Simples: Compras Líquidas = 42.000 + 400 (bruto integral sem créditos) = R$ 42.400,00',
+      expected: 42400.0,
+      received: netSimples,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : Math.abs((t.expected as number) - (t.received as number)) < 0.001
     return {
       test: t.test,
       passed,

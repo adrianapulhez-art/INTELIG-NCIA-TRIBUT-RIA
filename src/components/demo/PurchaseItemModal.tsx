@@ -12,8 +12,10 @@ import { Input } from '@/components/ui/input'
 import {
   formatBRL,
   formatNumberBR,
+  formatPercentBR,
   parseBRNumber,
   calculatePurchaseItemGrossTotal,
+  calculatePurchaseItemNetPurchases,
 } from '@/lib/taxCalculations'
 import {
   Package,
@@ -25,6 +27,7 @@ import {
   ShieldAlert,
   Info,
   CheckCircle2,
+  Calculator,
 } from 'lucide-react'
 
 export interface PurchaseItemModalProps {
@@ -173,6 +176,39 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
   // Créditos calculados no Lucro Real
   const totalItemCredits =
     item.calculatedIcms + (item.icmsFreightValue || 0) + item.calculatedPis + item.calculatedCofins
+
+  // Memória de Cálculo do CMV / Compras Líquidas do regime ativo
+  const merchGross = calculatePurchaseItemGrossTotal(item)
+  const freightVal = item.freightValue ?? 0
+  const ipiValCalc =
+    item.calculatedIpi !== undefined && Number.isFinite(item.calculatedIpi)
+      ? item.calculatedIpi
+      : (merchGross * Math.max(0, item.ipiRate ?? 0)) / 100
+  const stValCalc = item.hasSt ? (item.stValue ?? 0) : 0
+  const grossAcquisitionBase = merchGross + freightVal + ipiValCalc + stValCalc
+
+  const icmsMerchVal =
+    item.calculatedIcms !== undefined && Number.isFinite(item.calculatedIcms)
+      ? item.calculatedIcms
+      : (merchGross * Math.max(0, item.icmsRate ?? 0)) / 100
+
+  const icmsFreightVal =
+    item.icmsFreightValue !== undefined && Number.isFinite(item.icmsFreightValue)
+      ? item.icmsFreightValue
+      : (freightVal * Math.max(0, item.icmsFreightRate ?? 0)) / 100
+
+  const pisBaseCalc = Math.max(0, merchGross - icmsMerchVal)
+  const pisValCalc =
+    item.calculatedPis !== undefined && Number.isFinite(item.calculatedPis)
+      ? item.calculatedPis
+      : (pisBaseCalc * 1.65) / 100
+
+  const cofinsValCalc =
+    item.calculatedCofins !== undefined && Number.isFinite(item.calculatedCofins)
+      ? item.calculatedCofins
+      : (pisBaseCalc * 7.6) / 100
+
+  const netPurchasesFromFormula = calculatePurchaseItemNetPurchases(item, regime)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -589,6 +625,184 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Seção 3: Memória de Cálculo Expressa do CMV / Compras Líquidas (Regime Ativo) */}
+          <div className="p-4 rounded-xl bg-slate-900/60 border border-emerald-500/25 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-semibold uppercase text-emerald-400 flex items-center gap-1.5">
+                <Calculator className="w-3.5 h-3.5" />
+                Memória de Cálculo do CMV (Compras Líquidas)
+              </span>
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold">
+                {regime === 'presumido'
+                  ? 'Lucro Presumido'
+                  : regime === 'real'
+                    ? 'Lucro Real'
+                    : 'Simples Nacional'}
+              </span>
+            </div>
+
+            <div className="rounded-lg bg-slate-950/80 border border-slate-800 p-3 space-y-2 text-xs font-mono">
+              {/* Linha (+) Mercadorias */}
+              <div className="flex items-center justify-between text-slate-200">
+                <span className="flex items-center gap-1.5">
+                  <span className="text-emerald-400 font-bold">(+)</span>
+                  <span>
+                    Mercadorias
+                    {item.quantity > 0 && item.unitPrice > 0 && (
+                      <span className="text-slate-400 text-[11px] ml-1">
+                        ({item.quantity} un. × {formatBRL(item.unitPrice)})
+                      </span>
+                    )}
+                  </span>
+                </span>
+                <span className="font-semibold text-white">{formatBRL(merchGross)}</span>
+              </div>
+
+              {/* Linha (+) Frete sobre compras */}
+              <div className="flex items-center justify-between text-slate-200">
+                <span className="flex items-center gap-1.5">
+                  <span className="text-emerald-400 font-bold">(+)</span>
+                  <span>Frete sobre compras</span>
+                </span>
+                <span className="font-semibold text-white">{formatBRL(freightVal)}</span>
+              </div>
+
+              {/* Linha (+) IPI se houver */}
+              {ipiValCalc > 0 && (
+                <div className="flex items-center justify-between text-slate-200">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-emerald-400 font-bold">(+)</span>
+                    <span>
+                      IPI / Tributos não recuperáveis
+                      {item.ipiRate > 0 && (
+                        <span className="text-slate-400 text-[11px] ml-1">
+                          ({formatPercentBR(item.ipiRate)})
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                  <span className="font-semibold text-white">{formatBRL(ipiValCalc)}</span>
+                </div>
+              )}
+
+              {/* Linha (+) ST se houver */}
+              {stValCalc > 0 && (
+                <div className="flex items-center justify-between text-slate-200">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-amber-400 font-bold">(+)</span>
+                    <span>ICMS-ST na Entrada (custo)</span>
+                  </span>
+                  <span className="font-semibold text-amber-300">{formatBRL(stValCalc)}</span>
+                </div>
+              )}
+
+              {/* DEDUÇÕES CONFORME O REGIME */}
+              {regime === 'simples' ? (
+                <div className="py-2 px-2.5 rounded bg-slate-900/60 border border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>Deduções de tributos recuperáveis (art. 23 LC 123/2006):</span>
+                  </span>
+                  <span className="text-amber-300 font-semibold">
+                    Sem deduções (bruto integral)
+                  </span>
+                </div>
+              ) : (
+                <>
+                  {/* Linha (−) ICMS sobre mercadorias */}
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-rose-400 font-bold">(−)</span>
+                      <span>
+                        ICMS sobre mercadorias
+                        {item.icmsRate > 0 && (
+                          <span className="text-slate-400 text-[11px] ml-1">
+                            ({formatPercentBR(item.icmsRate)} × {formatBRL(merchGross)})
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                    <span className="font-semibold text-rose-400">-{formatBRL(icmsMerchVal)}</span>
+                  </div>
+
+                  {/* Linha (−) ICMS sobre fretes */}
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-rose-400 font-bold">(−)</span>
+                      <span>
+                        ICMS sobre fretes
+                        {(item.icmsFreightRate ?? 0) > 0 && (
+                          <span className="text-slate-400 text-[11px] ml-1">
+                            ({formatPercentBR(item.icmsFreightRate ?? 0)} × {formatBRL(freightVal)})
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                    <span className="font-semibold text-rose-400">
+                      -{formatBRL(icmsFreightVal)}
+                    </span>
+                  </div>
+
+                  {/* Linhas exclusivas do Lucro Real: PIS e COFINS */}
+                  {regime === 'real' && (
+                    <>
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-rose-400 font-bold">(−)</span>
+                          <span>
+                            PIS (1,65%)
+                            <span className="text-slate-400 text-[11px] ml-1">
+                              (1,65% × {formatBRL(pisBaseCalc)})
+                            </span>
+                          </span>
+                        </span>
+                        <span className="font-semibold text-rose-400">
+                          -{formatBRL(pisValCalc)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-rose-400 font-bold">(−)</span>
+                          <span>
+                            COFINS (7,60%)
+                            <span className="text-slate-400 text-[11px] ml-1">
+                              (7,60% × {formatBRL(pisBaseCalc)})
+                            </span>
+                          </span>
+                        </span>
+                        <span className="font-semibold text-rose-400">
+                          -{formatBRL(cofinsValCalc)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Linha (=) Compras Líquidas (Resultado) */}
+              <div className="pt-2 border-t border-slate-700/80 flex items-center justify-between text-sm">
+                <span className="flex items-center gap-1.5 font-bold text-white">
+                  <span className="text-emerald-400">(=)</span>
+                  <span>Compras Líquidas / Custo Total:</span>
+                </span>
+                <span className="font-bold text-emerald-400 text-base">
+                  {formatBRL(netPurchasesFromFormula)}
+                </span>
+              </div>
+
+              {/* Custo Unitário Líquido correspondente */}
+              {item.quantity > 0 && (
+                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
+                  <span>Custo Unitário Líquido ({item.quantity} un.):</span>
+                  <span className="text-emerald-300 font-semibold">
+                    {formatBRL(netPurchasesFromFormula / item.quantity)} / un.
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Rodapé do Modal com Botão Fechar / Salvar */}
