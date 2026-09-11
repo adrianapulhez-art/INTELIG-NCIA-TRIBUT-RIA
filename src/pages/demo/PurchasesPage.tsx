@@ -169,15 +169,19 @@ export default function PurchasesPage() {
         ? calculatedPurchases.cmvRealNetPurchases
         : calculatedPurchases.cmvPresumidoNetPurchases
 
-  const activeUnitCMV = autoInventoryDeduction
-    ? regime === 'simples'
-      ? calculatedPurchases.unitCostSimplesEffective
-      : regime === 'real'
-        ? calculatedPurchases.unitCostRealEffective
-        : calculatedPurchases.unitCostPresumidoEffective
-    : (totalPurchasesQuantity || 0) > 0
-      ? activeCmv / totalPurchasesQuantity
-      : activeCmv
+  const isMultiProduct = purchasesItems && purchasesItems.length > 1
+
+  const activeUnitCMV = isMultiProduct
+    ? null
+    : autoInventoryDeduction
+      ? regime === 'simples'
+        ? calculatedPurchases.unitCostSimplesEffective
+        : regime === 'real'
+          ? calculatedPurchases.unitCostRealEffective
+          : calculatedPurchases.unitCostPresumidoEffective
+      : (totalPurchasesQuantity || 0) > 0
+        ? activeCmv / totalPurchasesQuantity
+        : activeCmv
 
   const activeAutoEF =
     regime === 'simples'
@@ -1290,16 +1294,22 @@ export default function PurchasesPage() {
                   {formatBRL(calculatedPurchases.cmvPresumido)}
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono mt-1">
-                  Unitário médio ponderado:{' '}
-                  <strong className="text-slate-200">
-                    {formatBRL(
-                      autoInventoryDeduction
-                        ? calculatedPurchases.unitCostPresumidoEffective
-                        : (totalPurchasesQuantity || 0) > 0
-                          ? calculatedPurchases.cmvPresumido / totalPurchasesQuantity
-                          : calculatedPurchases.cmvPresumido,
-                    )}
-                  </strong>
+                  {isMultiProduct ? (
+                    <span className="text-slate-400 italic">Ver detalhamento por produto</span>
+                  ) : (
+                    <>
+                      Unitário médio ponderado:{' '}
+                      <strong className="text-slate-200">
+                        {formatBRL(
+                          autoInventoryDeduction
+                            ? calculatedPurchases.unitCostPresumidoEffective
+                            : (totalPurchasesQuantity || 0) > 0
+                              ? calculatedPurchases.cmvPresumido / totalPurchasesQuantity
+                              : calculatedPurchases.cmvPresumido,
+                        )}
+                      </strong>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1322,16 +1332,22 @@ export default function PurchasesPage() {
                   {formatBRL(calculatedPurchases.cmvReal)}
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono mt-1">
-                  Unitário médio ponderado:{' '}
-                  <strong className="text-slate-200">
-                    {formatBRL(
-                      autoInventoryDeduction
-                        ? calculatedPurchases.unitCostRealEffective
-                        : (totalPurchasesQuantity || 0) > 0
-                          ? calculatedPurchases.cmvReal / totalPurchasesQuantity
-                          : calculatedPurchases.cmvReal,
-                    )}
-                  </strong>
+                  {isMultiProduct ? (
+                    <span className="text-slate-400 italic">Ver detalhamento por produto</span>
+                  ) : (
+                    <>
+                      Unitário médio ponderado:{' '}
+                      <strong className="text-slate-200">
+                        {formatBRL(
+                          autoInventoryDeduction
+                            ? calculatedPurchases.unitCostRealEffective
+                            : (totalPurchasesQuantity || 0) > 0
+                              ? calculatedPurchases.cmvReal / totalPurchasesQuantity
+                              : calculatedPurchases.cmvReal,
+                        )}
+                      </strong>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1356,16 +1372,22 @@ export default function PurchasesPage() {
                   {formatBRL(calculatedPurchases.cmvSimples)}
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono mt-1">
-                  Unitário médio ponderado:{' '}
-                  <strong className="text-slate-200">
-                    {formatBRL(
-                      autoInventoryDeduction
-                        ? calculatedPurchases.unitCostSimplesEffective
-                        : (totalPurchasesQuantity || 0) > 0
-                          ? calculatedPurchases.cmvSimples / totalPurchasesQuantity
-                          : calculatedPurchases.cmvSimples,
-                    )}
-                  </strong>
+                  {isMultiProduct ? (
+                    <span className="text-slate-400 italic">Ver detalhamento por produto</span>
+                  ) : (
+                    <>
+                      Unitário médio ponderado:{' '}
+                      <strong className="text-slate-200">
+                        {formatBRL(
+                          autoInventoryDeduction
+                            ? calculatedPurchases.unitCostSimplesEffective
+                            : (totalPurchasesQuantity || 0) > 0
+                              ? calculatedPurchases.cmvSimples / totalPurchasesQuantity
+                              : calculatedPurchases.cmvSimples,
+                        )}
+                      </strong>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

@@ -391,6 +391,295 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * BATERIA DE TESTES OBRIGATÓRIOS — CONSOLIDAÇÃO SEM MÉDIA ENTRE PRODUTOS DIFERENTES
+ *
+ * REGRA DO USUÁRIO: "As tratativas consolidadas não podem fazer média, e sim considerar
+ * o resultado consolidado de cada item, e aí sim gerar a soma consolidada."
+ * Proibido em todo o sistema: dividir total consolidado pela quantidade total quando há produtos diferentes.
+ *
+ * Cenário exigido:
+ * - Produto A: R$ 1.500 × 2 un. (Mercadoria = R$ 3.000,00)
+ * - Produto B: R$ 10 × 500 un. (Mercadoria = R$ 5.000,00)
+ * Total mercadorias: R$ 8.000,00 | Total quantidade: 502 un.
+ * Média aritmética distorcida que JAMAIS pode aparecer: 8.000 / 502 = R$ 15,936...
+ */
+export function runNoAverageBetweenDifferentProductsTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string | null
+    received: number | boolean | string | null
+  }[]
+} {
+  const itemA: PurchaseItem = {
+    id: 'item-prod-a',
+    name: 'Produto A',
+    quantity: 2,
+    unitPrice: 1500,
+    merchandiseValue: 3000,
+    ipiRate: 0,
+    calculatedIpi: 0,
+    icmsRate: 18,
+    calculatedIcms: 540,
+    freightValue: 0,
+    icmsFreightRate: 0,
+    icmsFreightValue: 0,
+    hasSt: false,
+    stValue: 0,
+    calculatedPis: 40.59,
+    calculatedCofins: 186.96,
+    costPresumido: 3000 - 540, // 2460
+    costReal: 3000 - 540 - 40.59 - 186.96, // 2232.45
+    costSimples: 3000,
+    unitCostPresumido: 1230,
+    unitCostReal: 1116.225,
+    unitCostSimples: 1500,
+  }
+
+  const itemB: PurchaseItem = {
+    id: 'item-prod-b',
+    name: 'Produto B',
+    quantity: 500,
+    unitPrice: 10,
+    merchandiseValue: 5000,
+    ipiRate: 0,
+    calculatedIpi: 0,
+    icmsRate: 18,
+    calculatedIcms: 900,
+    freightValue: 0,
+    icmsFreightRate: 0,
+    icmsFreightValue: 0,
+    hasSt: false,
+    stValue: 0,
+    calculatedPis: 67.65,
+    calculatedCofins: 311.6,
+    costPresumido: 5000 - 900, // 4100
+    costReal: 5000 - 900 - 67.65 - 311.6, // 3720.75
+    costSimples: 5000,
+    unitCostPresumido: 8.2,
+    unitCostReal: 7.4415,
+    unitCostSimples: 10,
+  }
+
+  const multiItems = [itemA, itemB]
+  const totalQty = 2 + 500 // 502
+  const totalMerch = 3000 + 5000 // 8000
+  const wrongAveragePrice = totalMerch / totalQty // 15.936...
+
+  const inputMulti = {
+    purchasesItems: multiItems,
+    additionalCosts: [],
+    deductionCosts: [],
+    initialInventory: 0,
+    finalInventory: 0,
+    autoInventoryDeduction: false,
+    initialInventoryUnits: 0,
+    nonRecoverableTaxBase: 0,
+    nonRecoverableTaxRate: 0,
+    icmsPurchasesBase: 8000,
+    icmsPurchasesRate: 18,
+    icmsFreightPurchasesBase: 0,
+    icmsFreightPurchasesRate: 0,
+    pisPurchasesBase: 8000,
+    pisRatePurchases: 1.65,
+    cofinsPurchasesBase: 8000,
+    cofinsRatePurchases: 7.6,
+    pisFreightPurchasesBase: 0,
+    cofinsFreightPurchasesBase: 0,
+    pisExcludedIcmsManual: null,
+    cofinsExcludedIcmsManual: null,
+    stSubsystemEnabled: false,
+    stSubsystemPurchasesPaid: 0,
+    quantitySold: totalQty,
+    cmvPresumidoNetPurchasesContext: 2460 + 4100, // 6560
+    cmvPresumidoContext: 2460 + 4100,
+    cmvRealNetPurchasesContext: 2232.45 + 3720.75, // 5953.20
+    cmvRealContext: 2232.45 + 3720.75,
+    cmvSimplesNetPurchasesContext: 8000,
+    cmvSimplesContext: 8000,
+    unitCostPresumidoContext: 0,
+    unitCostRealContext: 0,
+    unitCostSimplesContext: 0,
+  }
+
+  const breakdownMultiPresumido = calculateCmvDetailedBreakdown({
+    ...inputMulti,
+    regime: 'presumido',
+  })
+
+  const breakdownMultiReal = calculateCmvDetailedBreakdown({
+    ...inputMulti,
+    regime: 'real',
+  })
+
+  const breakdownMultiSimples = calculateCmvDetailedBreakdown({
+    ...inputMulti,
+    regime: 'simples',
+  })
+
+  // Linhas CL e CMV
+  const clLinePresumido = breakdownMultiPresumido.lines.find((l) => l.id === 'net_purchases')
+  const cmvLinePresumido = breakdownMultiPresumido.lines.find((l) => l.id === 'cmv_total')
+  const clLineReal = breakdownMultiReal.lines.find((l) => l.id === 'net_purchases')
+  const cmvLineReal = breakdownMultiReal.lines.find((l) => l.id === 'cmv_total')
+  const clLineSimples = breakdownMultiSimples.lines.find((l) => l.id === 'net_purchases')
+  const cmvLineSimples = breakdownMultiSimples.lines.find((l) => l.id === 'cmv_total')
+
+  // Verificação de que NENHUM unitário é igual à média distorcida (15.936...)
+  const allUnitValuesPresumido = breakdownMultiPresumido.lines
+    .map((l) => l.unitValue)
+    .filter((v): v is number => v !== null)
+
+  const hasAnyWrongAveragePresumido = allUnitValuesPresumido.some(
+    (v) => Math.abs(v - wrongAveragePrice) < 0.1,
+  )
+
+  // CMV por soma estrita de cada produto:
+  // Produto A vendendo 2 un × CMP_A + Produto B vendendo 100 un × CMP_B
+  const soldA = 2
+  const soldB = 100
+  const expectedCmvPresumidoStrict =
+    soldA * itemA.unitCostPresumido + soldB * itemB.unitCostPresumido
+  const expectedCmvRealStrict = soldA * itemA.unitCostReal + soldB * itemB.unitCostReal
+  const expectedCmvSimplesStrict = soldA * itemA.unitCostSimples + soldB * itemB.unitCostSimples
+
+  const tests: {
+    test: string
+    expected: number | boolean | string | null
+    received: number | boolean | string | null
+  }[] = [
+    // (1) NENHUM valor unitário da composição pode ser igual a (totalA+totalB)/(qtdA+qtdB)
+    {
+      test: 'Multi-itens: Flag isMultiProduct deve ser true',
+      expected: true,
+      received: breakdownMultiPresumido.isMultiProduct,
+    },
+    {
+      test: 'Multi-itens: NENHUM valor unitário da composição é igual à média agregada distorcida (8000/502 = 15,94)',
+      expected: false,
+      received: hasAnyWrongAveragePresumido,
+    },
+    {
+      test: 'Multi-itens Presumido: unitCmv geral no breakdown é NULL (não faz média)',
+      expected: null,
+      received: breakdownMultiPresumido.unitCmv,
+    },
+    {
+      test: 'Multi-itens Real: unitCmv geral no breakdown é NULL (não faz média)',
+      expected: null,
+      received: breakdownMultiReal.unitCmv,
+    },
+    {
+      test: 'Multi-itens Simples: unitCmv geral no breakdown é NULL (não faz média)',
+      expected: null,
+      received: breakdownMultiSimples.unitCmv,
+    },
+
+    // (2) Linhas consolidadas CL e CMV em multi-itens têm unitário nulo
+    {
+      test: 'Multi-itens: Linha CL (Compras Líquidas) possui unitValue === null',
+      expected: null,
+      received: clLinePresumido ? clLinePresumido.unitValue : -1,
+    },
+    {
+      test: 'Multi-itens: Linha CMV consolidado possui unitValue === null',
+      expected: null,
+      received: cmvLinePresumido ? cmvLinePresumido.unitValue : -1,
+    },
+    {
+      test: 'Multi-itens Real: Linhas CL e CMV possuem unitValue === null',
+      expected: true,
+      received: clLineReal?.unitValue === null && cmvLineReal?.unitValue === null,
+    },
+    {
+      test: 'Multi-itens Simples: Linhas CL e CMV possuem unitValue === null',
+      expected: true,
+      received: clLineSimples?.unitValue === null && cmvLineSimples?.unitValue === null,
+    },
+
+    // (3) Detalhamento por produto preserva unitários legítimos de CADA produto individualmente
+    {
+      test: 'Multi-itens: productBreakdowns contém os 2 produtos',
+      expected: 2,
+      received: breakdownMultiPresumido.productBreakdowns?.length || 0,
+    },
+    {
+      test: 'Multi-itens: Produto A unitGross = R$ 1.500,00 real do item',
+      expected: 1500,
+      received: breakdownMultiPresumido.productBreakdowns?.[0]?.unitGross || 0,
+    },
+    {
+      test: 'Multi-itens: Produto B unitGross = R$ 10,00 real do item',
+      expected: 10,
+      received: breakdownMultiPresumido.productBreakdowns?.[1]?.unitGross || 0,
+    },
+    {
+      test: 'Multi-itens Presumido: Produto A CL unitária = R$ 1.230,00',
+      expected: 1230,
+      received: breakdownMultiPresumido.productBreakdowns?.[0]?.unitNetPurchases || 0,
+    },
+    {
+      test: 'Multi-itens Presumido: Produto B CL unitária = R$ 8,20',
+      expected: 8.2,
+      received: breakdownMultiPresumido.productBreakdowns?.[1]?.unitNetPurchases || 0,
+    },
+
+    // (4) CMV consolidado = Σ (CMP_i × qtdVendida_i) exatamente (soma estrita)
+    {
+      test: 'Multi-itens: CMV Presumido com 2 un de A + 100 un de B = (2 × 1.230) + (100 × 8,20) = R$ 3.280,00',
+      expected: 3280,
+      received: expectedCmvPresumidoStrict,
+    },
+    {
+      test: 'Multi-itens: CMV Real com 2 un de A + 100 un de B = (2 × 1.116,225) + (100 × 7,4415) = R$ 2.976,60',
+      expected: 2976.6,
+      received: expectedCmvRealStrict,
+    },
+    {
+      test: 'Multi-itens: CMV Simples com 2 un de A + 100 un de B = (2 × 1.500) + (100 × 10) = R$ 4.000,00',
+      expected: 4000,
+      received: expectedCmvSimplesStrict,
+    },
+    {
+      test: 'Multi-itens: Total Compras Líquidas Presumido bate a soma estrita (2.460 + 4.100 = R$ 6.560,00)',
+      expected: 6560,
+      received: breakdownMultiPresumido.netPurchases,
+    },
+    {
+      test: 'Multi-itens: Total Compras Líquidas Real bate a soma estrita (2.232,45 + 3.720,75 = R$ 5.953,20)',
+      expected: 5953.2,
+      received: breakdownMultiReal.netPurchases,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    let passed = false
+    if (t.expected === null) {
+      passed = t.received === null
+    } else if (typeof t.expected === 'boolean') {
+      passed = t.expected === t.received
+    } else if (typeof t.expected === 'string') {
+      passed = t.expected === t.received
+    } else if (typeof t.expected === 'number' && typeof t.received === 'number') {
+      passed = Math.abs(t.expected - t.received) < 0.01
+    } else {
+      passed = t.expected === t.received
+    }
+
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
  * Bateria de Testes de Integração: Despesas/Receitas Operacionais → LAIR
  *
  * Cobre:

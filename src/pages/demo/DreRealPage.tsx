@@ -62,6 +62,7 @@ export default function DreRealPage() {
     setPayrollTerceirosRate,
     stSubsystem,
     interstateSubsystem,
+    purchasesItems,
   } = useTaxContext()
 
   const { totalPurchasesQuantity } = useTaxContext()
@@ -133,14 +134,18 @@ export default function DreRealPage() {
       ? Math.round((totalGross / initialQtyVal) * 100) / 100
       : simulatedSalePrice || 0
 
+  const isMultiProduct =
+    (purchasesItems && purchasesItems.length > 1) || (markupProducts && markupProducts.length > 1)
+
   const consolidatedCMV =
     calculatedPurchases.cmvReal > 0
       ? calculatedPurchases.cmvReal
       : totalConsolidatedCost > 0
         ? totalConsolidatedCost
         : 0
-  const unitCMV =
-    effectiveSoldQtyForCmv > 0
+  const unitCMV = isMultiProduct
+    ? null
+    : effectiveSoldQtyForCmv > 0
       ? Math.round((consolidatedCMV / effectiveSoldQtyForCmv) * 100) / 100
       : calculatedPurchases.unitCostRealEffective || 0
 
@@ -204,7 +209,8 @@ export default function DreRealPage() {
   // 7. CMV unitário (líquido de créditos)
   const unitCmvVal = unitCMV
   // 8. Lucro bruto unitário
-  const unitGrossProfit = Math.round((unitNetRevenue - unitCmvVal) * 100) / 100
+  const unitGrossProfit =
+    unitCmvVal !== null ? Math.round((unitNetRevenue - unitCmvVal) * 100) / 100 : null
 
   // 9. Despesas operacionais e receitas operacionais unitárias
   const unitOperatingExpenses =
@@ -213,7 +219,9 @@ export default function DreRealPage() {
     qty > 0 ? Math.round((totalAllOperatingRevenues / qty) * 100) / 100 : 0
   // 10. Lucro antes do IR (LAIR) unitário
   const unitResultBeforeTax =
-    Math.round((unitGrossProfit - unitOperatingExpenses + unitOperatingRevenues) * 100) / 100
+    unitGrossProfit !== null
+      ? Math.round((unitGrossProfit - unitOperatingExpenses + unitOperatingRevenues) * 100) / 100
+      : null
 
   // CÁLCULOS TOTAIS (totalGross já definido estritamente pela soma consolidada sem multiplicação por média unitária)
   const totalMunicipalStateTax = Math.round(unitMunicipalStateTax * (qty > 0 ? qty : 0) * 100) / 100
@@ -250,7 +258,7 @@ export default function DreRealPage() {
   const totalNetProfit = totalResultBeforeTax - totalIrpj - totalIrpjAdditional - totalCsll
 
   // Lucro líquido unitário
-  const unitNetProfit = qty > 0 ? totalNetProfit / qty : unitResultBeforeTax
+  const unitNetProfit = isMultiProduct ? null : qty > 0 ? totalNetProfit / qty : unitResultBeforeTax
 
   // Cards de resumo
   // Carga tributária total = Tributo Municipal/Estadual + PIS + COFINS + IRPJ + Adicional IRPJ + CSLL + Encargos Patronais
@@ -502,10 +510,14 @@ export default function DreRealPage() {
                 </div>
                 <div className="h-11 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
                   <span className="text-slate-500 text-xs">R$</span>
-                  <span className="font-bold text-emerald-400">{formatNumberBR(unitCMV)}</span>
+                  <span className="font-bold text-emerald-400">
+                    {unitCMV !== null ? formatNumberBR(unitCMV) : '—'}
+                  </span>
                 </div>
                 <p className="text-[10px] font-mono text-slate-400 px-1">
-                  Custo líquido unitário apurado
+                  {isMultiProduct
+                    ? 'Multi-itens (sem média global)'
+                    : 'Custo líquido unitário apurado'}
                 </p>
               </div>
 
@@ -525,9 +537,15 @@ export default function DreRealPage() {
                 </div>
                 <p
                   className="text-[10px] font-mono text-slate-400 px-1 truncate"
-                  title={`${formatBRL(unitCMV)} × ${effectiveSoldQtyForCmv} un.`}
+                  title={
+                    unitCMV !== null
+                      ? `${formatBRL(unitCMV)} × ${effectiveSoldQtyForCmv} un.`
+                      : 'Soma do resultado individual por item'
+                  }
                 >
-                  {formatBRL(unitCMV)} × {effectiveSoldQtyForCmv} un.
+                  {unitCMV !== null
+                    ? `${formatBRL(unitCMV)} × ${effectiveSoldQtyForCmv} un.`
+                    : 'Soma do resultado individual por item'}
                 </p>
               </div>
             </div>
@@ -814,7 +832,7 @@ export default function DreRealPage() {
                       </div>
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(unitCmvVal)}
+                      {unitCmvVal === null ? '—' : `-${formatBRL(unitCmvVal)}`}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
                   </tr>
@@ -835,7 +853,7 @@ export default function DreRealPage() {
                   <tr className="bg-slate-950/40 font-bold text-slate-100">
                     <td className="py-2.5 text-left">= Lucro bruto</td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
-                      {formatBRL(unitGrossProfit)}
+                      {unitGrossProfit !== null ? formatBRL(unitGrossProfit) : '—'}
                     </td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
                       {formatBRL(totalGrossProfit)}
@@ -947,7 +965,7 @@ export default function DreRealPage() {
                       = Lucro antes do imposto de renda (LAIR / Base contábil LALUR)
                     </td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
-                      {formatBRL(unitResultBeforeTax)}
+                      {unitResultBeforeTax !== null ? formatBRL(unitResultBeforeTax) : '—'}
                     </td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
                       {formatBRL(totalResultBeforeTax)}
@@ -1008,7 +1026,7 @@ export default function DreRealPage() {
                   <tr className="bg-emerald-950/40 text-emerald-400 font-extrabold border-t-2 border-emerald-500/40">
                     <td className="py-3 px-2 text-left text-sm">= Lucro líquido</td>
                     <td className="py-3 px-3 text-right text-sm text-emerald-400">
-                      {formatBRL(unitNetProfit)}
+                      {unitNetProfit !== null ? formatBRL(unitNetProfit) : '—'}
                     </td>
                     <td className="py-3 px-3 text-right text-sm text-emerald-400">
                       {formatBRL(totalNetProfit)}
@@ -1115,12 +1133,12 @@ export default function DreRealPage() {
                     },
                     {
                       description: '(−) CMV (líquido de créditos)',
-                      unitValue: -unitCmvVal,
+                      unitValue: unitCmvVal !== null ? -unitCmvVal : '—',
                       totalValue: -totalCmv,
                     },
                     {
                       description: '(=) Lucro bruto',
-                      unitValue: unitGrossProfit,
+                      unitValue: unitGrossProfit !== null ? unitGrossProfit : '—',
                       totalValue: totalGrossProfit,
                       isSubtotal: true,
                     },
@@ -1180,7 +1198,7 @@ export default function DreRealPage() {
                       : []),
                     {
                       description: '(=) Lucro antes do imposto de renda (LAIR / LALUR)',
-                      unitValue: unitResultBeforeTax,
+                      unitValue: unitResultBeforeTax !== null ? unitResultBeforeTax : '—',
                       totalValue: totalResultBeforeTax,
                       isSubtotal: true,
                     },

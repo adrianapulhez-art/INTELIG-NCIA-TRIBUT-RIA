@@ -68,6 +68,7 @@ export default function DreSimplesPage() {
     simulateSimples,
     stSubsystem,
     interstateSubsystem,
+    purchasesItems,
   } = useTaxContext()
 
   // Rastreamento local de quais meses foram preenchidos via Markup
@@ -154,14 +155,18 @@ export default function DreSimplesPage() {
   const unitGrossRevenue =
     qty > 0 ? Math.round((totalGross / qty) * 100) / 100 : simulatedSalePrice || 0
 
+  const isMultiProduct =
+    (purchasesItems && purchasesItems.length > 1) || (markupProducts && markupProducts.length > 1)
+
   const consolidatedCMV =
     calculatedPurchases.cmvSimples > 0
       ? calculatedPurchases.cmvSimples
       : totalConsolidatedCost > 0
         ? totalConsolidatedCost
         : 0
-  const unitCMV =
-    effectiveSoldQtyForCmv > 0
+  const unitCMV = isMultiProduct
+    ? null
+    : effectiveSoldQtyForCmv > 0
       ? Math.round((consolidatedCMV / effectiveSoldQtyForCmv) * 100) / 100
       : calculatedPurchases.unitCostSimplesEffective || 0
 
@@ -215,7 +220,8 @@ export default function DreSimplesPage() {
   const unitCmvVal = unitCMV
 
   // Lucro Bruto unitário
-  const unitGrossProfit = Math.round((unitNetRevenue - unitCmvVal) * 100) / 100
+  const unitGrossProfit =
+    unitCmvVal !== null ? Math.round((unitNetRevenue - unitCmvVal) * 100) / 100 : null
 
   // DESPESAS E RECEITAS OPERACIONAIS GLOBAIS (vindas do TaxContext)
   const { totalOperatingExpenses, totalOperatingRevenues } = useTaxContext()
@@ -237,7 +243,9 @@ export default function DreSimplesPage() {
   // No Simples Nacional, os tributos já estão deduzidos na guia DAS (Receita Líquida);
   // LAIR = Lucro Bruto - Despesas Operacionais + Receitas Operacionais
   const unitLair =
-    Math.round((unitGrossProfit - unitOperatingExpenses + unitOperatingRevenues) * 100) / 100
+    unitGrossProfit !== null
+      ? Math.round((unitGrossProfit - unitOperatingExpenses + unitOperatingRevenues) * 100) / 100
+      : null
   const unitNetProfit = unitLair
 
   // CÁLCULOS TOTAIS DA DRE (totalGross já definido estritamente pela soma consolidada sem multiplicação por média unitária)
@@ -956,10 +964,14 @@ export default function DreSimplesPage() {
                 </div>
                 <div className="h-11 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
                   <span className="text-slate-500 text-xs">R$</span>
-                  <span className="font-bold text-emerald-400">{formatNumberBR(unitCMV)}</span>
+                  <span className="font-bold text-emerald-400">
+                    {unitCMV !== null ? formatNumberBR(unitCMV) : '—'}
+                  </span>
                 </div>
                 <p className="text-[10px] font-mono text-slate-400 px-1">
-                  Custo líquido unitário apurado
+                  {isMultiProduct
+                    ? 'Multi-itens (sem média global)'
+                    : 'Custo líquido unitário apurado'}
                 </p>
               </div>
 
@@ -979,9 +991,15 @@ export default function DreSimplesPage() {
                 </div>
                 <p
                   className="text-[10px] font-mono text-slate-400 px-1 truncate"
-                  title={`${formatBRL(unitCMV)} × ${effectiveSoldQtyForCmv} un.`}
+                  title={
+                    unitCMV !== null
+                      ? `${formatBRL(unitCMV)} × ${effectiveSoldQtyForCmv} un.`
+                      : 'Soma do resultado individual por item'
+                  }
                 >
-                  {formatBRL(unitCMV)} × {effectiveSoldQtyForCmv} un.
+                  {unitCMV !== null
+                    ? `${formatBRL(unitCMV)} × ${effectiveSoldQtyForCmv} un.`
+                    : 'Soma do resultado individual por item'}
                 </p>
               </div>
             </div>
@@ -1187,7 +1205,7 @@ export default function DreSimplesPage() {
                       </div>
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(unitCmvVal)}
+                      {unitCmvVal === null ? '—' : `-${formatBRL(unitCmvVal)}`}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
                   </tr>
@@ -1208,7 +1226,7 @@ export default function DreSimplesPage() {
                   <tr className="bg-slate-950/40 font-bold text-slate-100">
                     <td className="py-2.5 text-left">= Lucro bruto</td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
-                      {formatBRL(unitGrossProfit)}
+                      {unitGrossProfit !== null ? formatBRL(unitGrossProfit) : '—'}
                     </td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
                       {formatBRL(totalGrossProfit)}
@@ -1275,7 +1293,9 @@ export default function DreSimplesPage() {
                   {/* 6d. = Lucro antes do IR (LAIR) */}
                   <tr className="bg-slate-950/40 font-bold text-slate-100">
                     <td className="py-2 text-left">= Lucro antes do imposto de renda (LAIR)</td>
-                    <td className="py-2 px-3 text-right text-slate-100">{formatBRL(unitLair)}</td>
+                    <td className="py-2 px-3 text-right text-slate-100">
+                      {unitLair !== null ? formatBRL(unitLair) : '—'}
+                    </td>
                     <td className="py-2 px-3 text-right text-slate-100">{formatBRL(totalLair)}</td>
                   </tr>
 
@@ -1283,7 +1303,7 @@ export default function DreSimplesPage() {
                   <tr className="bg-emerald-950/40 text-emerald-400 font-extrabold border-t-2 border-emerald-500/40">
                     <td className="py-3 px-2 text-left text-sm">= Lucro líquido</td>
                     <td className="py-3 px-3 text-right text-sm text-emerald-400">
-                      {formatBRL(unitNetProfit)}
+                      {unitNetProfit !== null ? formatBRL(unitNetProfit) : '—'}
                     </td>
                     <td className="py-3 px-3 text-right text-sm text-emerald-400">
                       {formatBRL(totalNetProfit)}
@@ -1444,12 +1464,12 @@ export default function DreSimplesPage() {
                     },
                     {
                       description: '(−) CMV (custo não creditável)',
-                      unitValue: -unitCmvVal,
+                      unitValue: unitCmvVal !== null ? -unitCmvVal : '—',
                       totalValue: -totalCmv,
                     },
                     {
                       description: '(=) Lucro bruto',
-                      unitValue: unitGrossProfit,
+                      unitValue: unitGrossProfit !== null ? unitGrossProfit : '—',
                       totalValue: totalGrossProfit,
                       isSubtotal: true,
                     },
@@ -1482,13 +1502,13 @@ export default function DreSimplesPage() {
                       : []),
                     {
                       description: '(=) Lucro antes do imposto de renda (LAIR)',
-                      unitValue: unitLair,
+                      unitValue: unitLair !== null ? unitLair : '—',
                       totalValue: totalLair,
                       isSubtotal: true,
                     },
                     {
                       description: '(=) Lucro líquido',
-                      unitValue: unitNetProfit,
+                      unitValue: unitNetProfit !== null ? unitNetProfit : '—',
                       totalValue: totalNetProfit,
                       isTotal: true,
                     },
@@ -1628,12 +1648,12 @@ export default function DreSimplesPage() {
                     },
                     {
                       description: '(−) CMV (custo não creditável)',
-                      unitValue: -unitCmvVal,
+                      unitValue: unitCmvVal !== null ? -unitCmvVal : '—',
                       totalValue: -totalCmv,
                     },
                     {
                       description: '(=) Lucro bruto',
-                      unitValue: unitGrossProfit,
+                      unitValue: unitGrossProfit !== null ? unitGrossProfit : '—',
                       totalValue: totalGrossProfit,
                     },
                     ...(totalOperatingExpenses > 0
@@ -1665,12 +1685,12 @@ export default function DreSimplesPage() {
                       : []),
                     {
                       description: '(=) Lucro antes do imposto de renda (LAIR)',
-                      unitValue: unitLair,
+                      unitValue: unitLair !== null ? unitLair : '—',
                       totalValue: totalLair,
                     },
                     {
                       description: '(=) Lucro líquido',
-                      unitValue: unitNetProfit,
+                      unitValue: unitNetProfit !== null ? unitNetProfit : '—',
                       totalValue: totalNetProfit,
                     },
                   ],

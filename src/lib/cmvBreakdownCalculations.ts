@@ -1,11 +1,31 @@
 import { formatBRL, formatNumberBR } from './taxCalculations'
 import type { PurchaseItem, AdditionalCostItem, DeductionCostItem } from '../contexts/TaxContext'
 
+export interface ProductCmvBreakdownItem {
+  id: string
+  name: string
+  quantity: number
+  unitGross: number
+  totalGross: number
+  unitFreight: number
+  totalFreight: number
+  unitIcmsMerch: number
+  totalIcmsMerch: number
+  unitIcmsFreight: number
+  totalIcmsFreight: number
+  unitPisMerch?: number
+  totalPisMerch?: number
+  unitCofinsMerch?: number
+  totalCofinsMerch?: number
+  unitNetPurchases: number
+  totalNetPurchases: number
+}
+
 export interface CmvBreakdownLine {
   id: string
   label: string
   type: 'addition' | 'deduction' | 'subtotal' | 'total' | 'info'
-  unitValue: number
+  unitValue: number | null
   totalValue: number
   description?: string
 }
@@ -13,8 +33,10 @@ export interface CmvBreakdownLine {
 export interface RegimeCmvBreakdown {
   regime: 'presumido' | 'real' | 'simples'
   regimeLabel: string
-  unitCmv: number
+  unitCmv: number | null
   totalCmv: number
+  isMultiProduct: boolean
+  productBreakdowns?: ProductCmvBreakdownItem[]
   // Componentes totais de compras / aquisição
   merchandiseTotal: number
   freightTotal: number
@@ -344,10 +366,64 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
     effectiveFinalInventory = autoInventoryDeduction ? autoFinalInventorySimples : finalInventory
   }
 
+  // Regra conceitual de tratamento consolidado:
+  // "As tratativas consolidadas não podem fazer média, e sim considerar o resultado consolidado
+  // de cada item, e aí sim gerar a soma consolidada."
+  // Proibido dividir total consolidado pela quantidade total quando há produtos diferentes.
+  const isMultiProduct = purchasesItems.length > 1
+
+  // Detalhamento individual por produto (quando houver itens)
+  const productBreakdowns: ProductCmvBreakdownItem[] = purchasesItems.map((item, idx) => {
+    const qty = item.quantity && item.quantity > 0 ? item.quantity : 1
+    const gross = item.merchandiseValue || 0
+    const freight = item.freightValue || 0
+    const icmsM = item.calculatedIcms || 0
+    const icmsF = item.icmsFreightValue || 0
+    const pisM = item.calculatedPis || 0
+    const cofM = item.calculatedCofins || 0
+
+    let net = 0
+    if (regime === 'presumido') {
+      net = gross + freight + (item.stValue || 0) + (item.calculatedIpi || 0) - icmsM - icmsF
+    } else if (regime === 'real') {
+      net =
+        gross +
+        freight +
+        (item.stValue || 0) +
+        (item.calculatedIpi || 0) -
+        icmsM -
+        icmsF -
+        pisM -
+        cofM
+    } else {
+      net = gross + freight + (item.stValue || 0) + (item.calculatedIpi || 0)
+    }
+
+    return {
+      id: item.id || `item-${idx}`,
+      name: item.name || `Produto ${idx + 1}`,
+      quantity: item.quantity || 0,
+      unitGross: qty > 0 ? gross / qty : 0,
+      totalGross: gross,
+      unitFreight: qty > 0 ? freight / qty : 0,
+      totalFreight: freight,
+      unitIcmsMerch: qty > 0 ? icmsM / qty : 0,
+      totalIcmsMerch: icmsM,
+      unitIcmsFreight: qty > 0 ? icmsF / qty : 0,
+      totalIcmsFreight: icmsF,
+      unitPisMerch: qty > 0 ? pisM / qty : 0,
+      totalPisMerch: pisM,
+      unitCofinsMerch: qty > 0 ? cofM / qty : 0,
+      totalCofinsMerch: cofM,
+      unitNetPurchases: qty > 0 ? net / qty : 0,
+      totalNetPurchases: net,
+    }
+  })
+
   // Divisor para os componentes unitários:
-  // Se houver purchasedUnits > 0, dividimos pelos itens comprados.
-  // Se não houver itens cadastrados (compra via custos adicionais), o unitário = total.
-  const divisor = purchasedUnits > 0 ? purchasedUnits : 1
+  // Se for produto único (purchasesItems.length <= 1) com quantidade > 0, unitários são legítimos daquele produto.
+  // Se for multi-produto, NUNCA dividimos o total agregado pela quantidade acumulada de produtos distintos.
+  const divisor = !isMultiProduct && purchasedUnits > 0 ? purchasedUnits : 1
 
   const regimeLabel =
     regime === 'presumido'
@@ -364,11 +440,13 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
     id: 'merchandise',
     label: '(+) Mercadorias adquiridas',
     type: 'addition',
-    unitValue: merchandiseTotal / divisor,
+    unitValue: isMultiProduct ? null : merchandiseTotal / divisor,
     totalValue: merchandiseTotal,
     description:
       purchasedUnits > 0
-        ? `${purchasedUnits} un. compradas em multi-itens`
+        ? isMultiProduct
+          ? `${purchasedUnits} un. compradas em multi-itens`
+          : `${purchasedUnits} un. compradas`
         : 'Valor base de mercadorias',
   })
 
@@ -378,7 +456,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
       id: 'freight',
       label: '(+) Frete sobre compras',
       type: 'addition',
-      unitValue: freightTotal / divisor,
+      unitValue: isMultiProduct ? null : freightTotal / divisor,
       totalValue: freightTotal,
       description: 'Integra o custo de aquisição nos 3 regimes (art. 289 RIR/18)',
     })
@@ -390,7 +468,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
       id: 'other_costs',
       label: '(+) Outros custos adicionais',
       type: 'addition',
-      unitValue: otherCostsTotal / divisor,
+      unitValue: isMultiProduct ? null : otherCostsTotal / divisor,
       totalValue: otherCostsTotal,
       description: 'Seguros, armazenagem e encargos rateados',
     })
@@ -402,7 +480,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
       id: 'ipi',
       label: '(+) IPI não recuperável',
       type: 'addition',
-      unitValue: ipiTotal / divisor,
+      unitValue: isMultiProduct ? null : ipiTotal / divisor,
       totalValue: ipiTotal,
       description: 'Integra o custo quando a empresa não for indústria contribuinte',
     })
@@ -414,7 +492,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
       id: 'st',
       label: '(+) ICMS-ST pago na compra',
       type: 'addition',
-      unitValue: stTotal / divisor,
+      unitValue: isMultiProduct ? null : stTotal / divisor,
       totalValue: stTotal,
       description: 'Integra o custo de aquisição (tributação concentrada na entrada)',
     })
@@ -426,7 +504,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
       id: 'deductions_base',
       label: '(−) Devoluções / Abatimentos / Descontos',
       type: 'deduction',
-      unitValue: -deductionsBaseTotal / divisor,
+      unitValue: isMultiProduct ? null : -deductionsBaseTotal / divisor,
       totalValue: -deductionsBaseTotal,
       description: 'Deduções comerciais obtidas na aquisição',
     })
@@ -440,7 +518,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
         id: 'icms_merch',
         label: '(−) ICMS sobre mercadoria recuperável',
         type: 'deduction',
-        unitValue: -icmsMerchandise / divisor,
+        unitValue: isMultiProduct ? null : -icmsMerchandise / divisor,
         totalValue: -icmsMerchandise,
         description: 'Crédito básico de ICMS destacado na nota de aquisição',
       })
@@ -450,7 +528,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
         id: 'icms_freight',
         label: '(−) ICMS sobre frete recuperável',
         type: 'deduction',
-        unitValue: -icmsFreight / divisor,
+        unitValue: isMultiProduct ? null : -icmsFreight / divisor,
         totalValue: -icmsFreight,
         description: 'Crédito de ICMS relativo ao Conhecimento de Transporte (CT-e)',
       })
@@ -462,7 +540,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
         id: 'icms_merch',
         label: '(−) ICMS sobre mercadoria recuperável',
         type: 'deduction',
-        unitValue: -icmsMerchandise / divisor,
+        unitValue: isMultiProduct ? null : -icmsMerchandise / divisor,
         totalValue: -icmsMerchandise,
         description: 'Crédito de ICMS destacado na nota fiscal de entrada',
       })
@@ -472,7 +550,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
         id: 'icms_freight',
         label: '(−) ICMS sobre frete recuperável',
         type: 'deduction',
-        unitValue: -icmsFreight / divisor,
+        unitValue: isMultiProduct ? null : -icmsFreight / divisor,
         totalValue: -icmsFreight,
         description: 'Crédito de ICMS sobre o serviço de transporte da compra',
       })
@@ -482,7 +560,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
         id: 'pis',
         label: `(−) PIS recuperável (${formatNumberBR(pisRatePurchases)}%)`,
         type: 'deduction',
-        unitValue: -totalPis / divisor,
+        unitValue: isMultiProduct ? null : -totalPis / divisor,
         totalValue: -totalPis,
         description:
           pisFreight > 0
@@ -495,7 +573,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
         id: 'cofins',
         label: `(−) COFINS recuperável (${formatNumberBR(cofinsRatePurchases)}%)`,
         type: 'deduction',
-        unitValue: -totalCofins / divisor,
+        unitValue: isMultiProduct ? null : -totalCofins / divisor,
         totalValue: -totalCofins,
         description:
           cofinsFreight > 0
@@ -509,7 +587,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
       id: 'simples_info',
       label: '(i) Tributos sobre compras (ICMS, PIS, COFINS, ST)',
       type: 'info',
-      unitValue: 0,
+      unitValue: null,
       totalValue: 0,
       description:
         'No Simples Nacional todos os tributos incidentes na compra integram o custo do estoque (art. 23 da LC 123/2006 — sem apropriação de créditos fiscais).',
@@ -521,7 +599,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
     id: 'net_purchases',
     label: '(=) Compras Líquidas apropriadas (CL)',
     type: 'subtotal',
-    unitValue: divisor > 0 ? netPurchases / divisor : netPurchases,
+    unitValue: isMultiProduct ? null : divisor > 0 ? netPurchases / divisor : netPurchases,
     totalValue: netPurchases,
     description: 'Custo efetivo de aquisição das mercadorias no período',
   })
@@ -534,7 +612,11 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
         id: 'initial_inventory',
         label: '(+) Estoque inicial (EI)',
         type: 'addition',
-        unitValue: divisor > 0 ? initialInventory / divisor : initialInventory,
+        unitValue: isMultiProduct
+          ? null
+          : divisor > 0
+            ? initialInventory / divisor
+            : initialInventory,
         totalValue: initialInventory,
         description: 'Saldo contábil em estoque no início do período',
       })
@@ -544,7 +626,11 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
         id: 'final_inventory',
         label: '(−) Estoque final (EF manual)',
         type: 'deduction',
-        unitValue: divisor > 0 ? -effectiveFinalInventory / divisor : -effectiveFinalInventory,
+        unitValue: isMultiProduct
+          ? null
+          : divisor > 0
+            ? -effectiveFinalInventory / divisor
+            : -effectiveFinalInventory,
         totalValue: -effectiveFinalInventory,
         description: 'Inventário apurado no fim do período',
       })
@@ -553,9 +639,11 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
     // Baixa automática ativa
     lines.push({
       id: 'auto_units_info',
-      label: `Baixa por unidades vendidas (${cappedSoldUnits} un. × ${formatBRL(unitCmv)})`,
+      label: isMultiProduct
+        ? `Baixa por unidades vendidas (${cappedSoldUnits} un. em multi-produtos)`
+        : `Baixa por unidades vendidas (${cappedSoldUnits} un. × ${formatBRL(unitCmv)})`,
       type: 'info',
-      unitValue: unitCmv,
+      unitValue: isMultiProduct ? null : unitCmv,
       totalValue: totalCmv,
       description: isQuantityCapped
         ? `Venda total (${generalSoldUnits} un.) limitada ao estoque disponível (${availableUnits} un.)`
@@ -570,7 +658,7 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
       ? '(=) CMV consolidado do período'
       : '(=) CMV consolidado (EI + CL − EF)',
     type: 'total',
-    unitValue: unitCmv,
+    unitValue: isMultiProduct ? null : unitCmv,
     totalValue: totalCmv,
     description: `Custo total apurado para o regime ${regimeLabel}`,
   })
@@ -578,8 +666,10 @@ export function calculateCmvDetailedBreakdown(input: CmvBreakdownInput): RegimeC
   return {
     regime,
     regimeLabel,
-    unitCmv,
+    unitCmv: isMultiProduct ? null : unitCmv,
     totalCmv,
+    isMultiProduct,
+    productBreakdowns,
     merchandiseTotal,
     freightTotal,
     otherCostsTotal,

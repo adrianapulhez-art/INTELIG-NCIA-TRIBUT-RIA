@@ -126,7 +126,9 @@ export const CmvDetailedBreakdown: React.FC<CmvDetailedBreakdownProps> = ({
             {title || `Discriminação da Composição do CMV — ${breakdown.regimeLabel}`}
           </span>
           <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded font-mono">
-            {formatBRL(breakdown.unitCmv)} / un.
+            {breakdown.isMultiProduct || breakdown.unitCmv === null
+              ? formatBRL(breakdown.totalCmv)
+              : `${formatBRL(breakdown.unitCmv)} / un.`}
           </span>
           {breakdown.isAutoInventory && (
             <span className="text-[10px] text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded font-mono hidden sm:inline-block">
@@ -283,7 +285,7 @@ export const CmvDetailedBreakdown: React.FC<CmvDetailedBreakdownProps> = ({
                                 : 'text-slate-300'
                         }`}
                       >
-                        {isInfo ? '—' : formatBRL(line.unitValue)}
+                        {isInfo || line.unitValue === null ? '—' : formatBRL(line.unitValue)}
                       </td>
 
                       <td
@@ -305,6 +307,110 @@ export const CmvDetailedBreakdown: React.FC<CmvDetailedBreakdownProps> = ({
               </tbody>
             </table>
           </div>
+
+          {/* Quando houver múltiplos produtos, renderizar detalhamento de UMA LINHA POR PRODUTO */}
+          {breakdown.isMultiProduct &&
+            breakdown.productBreakdowns &&
+            breakdown.productBreakdowns.length > 0 && (
+              <div className="rounded-lg border border-slate-800/80 bg-slate-950/80 p-3 space-y-2">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wide">
+                    Detalhamento Item a Item por Produto (Unitário e Total por Item)
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    {breakdown.productBreakdowns.length} produtos · soma consolidada sem média
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left font-mono">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 text-[10px] uppercase">
+                        <th className="py-1.5 px-2">Produto</th>
+                        <th className="py-1.5 px-2 text-right">Qtd</th>
+                        <th className="py-1.5 px-2 text-right">Mercadoria (Un.)</th>
+                        <th className="py-1.5 px-2 text-right">Mercadoria (Total)</th>
+                        <th className="py-1.5 px-2 text-right">Frete (Total)</th>
+                        <th className="py-1.5 px-2 text-right">ICMS Ded.</th>
+                        {activeRegime === 'real' && (
+                          <th className="py-1.5 px-2 text-right">PIS/COF Ded.</th>
+                        )}
+                        <th className="py-1.5 px-2 text-right text-emerald-300 font-semibold">
+                          CL Unit.
+                        </th>
+                        <th className="py-1.5 px-2 text-right text-emerald-400 font-bold">
+                          CL Total
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {breakdown.productBreakdowns.map((prod) => (
+                        <tr key={prod.id} className="hover:bg-slate-900/40 transition-colors">
+                          <td className="py-1.5 px-2 text-slate-200 font-medium">{prod.name}</td>
+                          <td className="py-1.5 px-2 text-right text-slate-400">
+                            {prod.quantity} un.
+                          </td>
+                          <td className="py-1.5 px-2 text-right text-slate-300">
+                            {formatBRL(prod.unitGross)}
+                          </td>
+                          <td className="py-1.5 px-2 text-right text-slate-300">
+                            {formatBRL(prod.totalGross)}
+                          </td>
+                          <td className="py-1.5 px-2 text-right text-slate-400">
+                            {prod.totalFreight > 0 ? formatBRL(prod.totalFreight) : '—'}
+                          </td>
+                          <td className="py-1.5 px-2 text-right text-emerald-400">
+                            {prod.totalIcmsMerch + prod.totalIcmsFreight > 0
+                              ? `-${formatBRL(prod.totalIcmsMerch + prod.totalIcmsFreight)}`
+                              : '—'}
+                          </td>
+                          {activeRegime === 'real' && (
+                            <td className="py-1.5 px-2 text-right text-emerald-400">
+                              {(prod.totalPisMerch || 0) + (prod.totalCofinsMerch || 0) > 0
+                                ? `-${formatBRL((prod.totalPisMerch || 0) + (prod.totalCofinsMerch || 0))}`
+                                : '—'}
+                            </td>
+                          )}
+                          <td className="py-1.5 px-2 text-right text-emerald-300 font-semibold">
+                            {formatBRL(prod.unitNetPurchases)}
+                          </td>
+                          <td className="py-1.5 px-2 text-right text-emerald-400 font-bold">
+                            {formatBRL(prod.totalNetPurchases)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t border-slate-700 font-bold bg-slate-900/50 text-[11px]">
+                      <tr>
+                        <td className="py-2 px-2 text-slate-200" colSpan={2}>
+                          SOMA CONSOLIDADA
+                        </td>
+                        <td className="py-2 px-2 text-right text-slate-400">—</td>
+                        <td className="py-2 px-2 text-right text-slate-200">
+                          {formatBRL(breakdown.merchandiseTotal)}
+                        </td>
+                        <td className="py-2 px-2 text-right text-slate-300">
+                          {formatBRL(breakdown.freightTotal)}
+                        </td>
+                        <td className="py-2 px-2 text-right text-emerald-400">
+                          {breakdown.totalIcms > 0 ? `-${formatBRL(breakdown.totalIcms)}` : '—'}
+                        </td>
+                        {activeRegime === 'real' && (
+                          <td className="py-2 px-2 text-right text-emerald-400">
+                            {breakdown.totalPis + breakdown.totalCofins > 0
+                              ? `-${formatBRL(breakdown.totalPis + breakdown.totalCofins)}`
+                              : '—'}
+                          </td>
+                        )}
+                        <td className="py-2 px-2 text-right text-slate-400">—</td>
+                        <td className="py-2 px-2 text-right text-emerald-400">
+                          {formatBRL(breakdown.netPurchases)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
 
           {/* Rodapé explicativo com notas legais da dedução específica */}
           <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-800/80 text-[11px] text-slate-400 space-y-1">
