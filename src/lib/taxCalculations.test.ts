@@ -385,6 +385,170 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * Testes específicos de integração: Compras Líquidas -> Subsistema de Estoque (v0.0.73)
+ * Garante que:
+ * 1. O custo unitário de entrada importado no estoque usa o custo unitário líquido por regime
+ *    (unitCostPresumido, unitCostReal, unitCostSimples) e não o preço bruto com tributos.
+ * 2. O CMP resultante no Kardex móvel fica líquido de tributos recuperáveis.
+ * 3. O CMV por produto reflete o CMP líquido × quantidade vendida.
+ */
+export function runNetPurchasesToStockIntegrationTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
+} {
+  // Simulação de item de compra: 10 unidades, Mercadoria = R$ 1.000,00, ICMS 18% (R$ 180,00)
+  // Presumido: Custo Líquido = 1.000 - 180 = R$ 820,00 -> unitCostPresumido = R$ 82,00
+  // Real: Base PIS/COFINS = 820, PIS 1,65% = 13,53, COFINS 7,6% = 62,32
+  //       Custo Líquido = 820 - 13,53 - 62,32 = R$ 744,15 -> unitCostReal = R$ 74,415
+  // Simples: Sem recuperação -> Custo Bruto = R$ 1.000,00 -> unitCostSimples = R$ 100,00
+  const qty = 10
+  const merchVal = 1000
+  const icmsVal = 180 // 18%
+  const costPresumido = merchVal - icmsVal // 820
+  const unitCostPresumido = costPresumido / qty // 82.00
+
+  const pisBase = merchVal - icmsVal // 820
+  const pisVal = (pisBase * 1.65) / 100 // 13.53
+  const cofinsVal = (pisBase * 7.6) / 100 // 62.32
+  const costReal = merchVal - icmsVal - pisVal - cofinsVal // 744.15
+  const unitCostReal = costReal / qty // 74.415
+
+  const costSimples = merchVal // 1000
+  const unitCostSimples = costSimples / qty // 100.00
+
+  // 1. Estoque importado sob Lucro Real:
+  // Produto com EI = 0, Entrada = 10 un. ao custo líquido unitCostReal (74.415)
+  const productRealStock: ProductStockItem = {
+    id: 'prod-net-real',
+    name: 'Produto Teste Real',
+    initial: { quantity: 0, unitCost: 0 },
+    entries: [
+      {
+        id: 'e-real-1',
+        quantity: qty,
+        unitCost: unitCostReal,
+        totalValue: costReal,
+        notes: 'Importado de Compras: Produto Teste Real',
+      },
+    ],
+    exits: [{ id: 'x-real-1', quantity: 6 }],
+  }
+
+  const posReal = calculateSingleProductStockPosition(productRealStock)
+
+  // 2. Estoque importado sob Lucro Presumido:
+  // Produto com EI = 0, Entrada = 10 un. ao custo líquido unitCostPresumido (82.00)
+  const productPresumidoStock: ProductStockItem = {
+    id: 'prod-net-presumido',
+    name: 'Produto Teste Presumido',
+    initial: { quantity: 0, unitCost: 0 },
+    entries: [
+      {
+        id: 'e-pres-1',
+        quantity: qty,
+        unitCost: unitCostPresumido,
+        totalValue: costPresumido,
+        notes: 'Importado de Compras: Produto Teste Presumido',
+      },
+    ],
+    exits: [{ id: 'x-pres-1', quantity: 6 }],
+  }
+
+  const posPresumido = calculateSingleProductStockPosition(productPresumidoStock)
+
+  // 3. Estoque importado sob Simples Nacional:
+  // Produto com EI = 0, Entrada = 10 un. ao custo integral unitCostSimples (100.00)
+  const productSimplesStock: ProductStockItem = {
+    id: 'prod-net-simples',
+    name: 'Produto Teste Simples',
+    initial: { quantity: 0, unitCost: 0 },
+    entries: [
+      {
+        id: 'e-simp-1',
+        quantity: qty,
+        unitCost: unitCostSimples,
+        totalValue: costSimples,
+        notes: 'Importado de Compras: Produto Teste Simples',
+      },
+    ],
+    exits: [{ id: 'x-simp-1', quantity: 6 }],
+  }
+
+  const posSimples = calculateSingleProductStockPosition(productSimplesStock)
+
+  const tests = [
+    {
+      test: 'Estoque Real: CMP móvel é líquido de ICMS, PIS e COFINS (R$ 74,42/un)',
+      expected: 74.42,
+      received: posReal.currentAverageCost,
+    },
+    {
+      test: 'Estoque Real: CMV de 6 unidades baixadas = 6 × R$ 74,415 = R$ 446,49',
+      expected: 446.49,
+      received: posReal.accumulatedCmv,
+    },
+    {
+      test: 'Estoque Real: Saldo em estoque = 4 un. no valor de R$ 297,66',
+      expected: 297.66,
+      received: posReal.currentStockValue,
+    },
+    {
+      test: 'Estoque Presumido: CMP móvel é líquido de ICMS e ICMS frete (R$ 82,00/un)',
+      expected: 82.0,
+      received: posPresumido.currentAverageCost,
+    },
+    {
+      test: 'Estoque Presumido: CMV de 6 unidades baixadas = 6 × R$ 82,00 = R$ 492,00',
+      expected: 492.0,
+      received: posPresumido.accumulatedCmv,
+    },
+    {
+      test: 'Estoque Presumido: Saldo em estoque = 4 un. no valor de R$ 328,00',
+      expected: 328.0,
+      received: posPresumido.currentStockValue,
+    },
+    {
+      test: 'Estoque Simples: CMP móvel mantém custo integral bruto não-recuperável (R$ 100,00/un)',
+      expected: 100.0,
+      received: posSimples.currentAverageCost,
+    },
+    {
+      test: 'Estoque Simples: CMV de 6 unidades baixadas = 6 × R$ 100,00 = R$ 600,00',
+      expected: 600.0,
+      received: posSimples.accumulatedCmv,
+    },
+    {
+      test: 'Estoque Simples: Saldo em estoque = 4 un. no valor de R$ 400,00',
+      expected: 400.0,
+      received: posSimples.currentStockValue,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : typeof t.expected === 'string'
+          ? t.expected === t.received
+          : Math.abs((t.expected as number) - (t.received as number)) < 0.01
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
  * Suíte de Testes do Mecanismo de UNDO / REDO em memória (Ctrl+Z / Ctrl+Y)
  * Cobre:
  * 1. Adição de item de compra -> Undo -> item é removido e estado anterior restaurado

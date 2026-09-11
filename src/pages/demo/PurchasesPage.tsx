@@ -16,7 +16,6 @@ import {
   RotateCcw,
   Boxes,
   HelpCircle,
-  FileSpreadsheet,
 } from 'lucide-react'
 import { formatBRL, formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
 import { Badge } from '@/components/ui/badge'
@@ -353,6 +352,7 @@ export default function PurchasesPage() {
                       <th className="py-3 px-4 font-semibold text-right">Qtd em Estoque</th>
                       <th className="py-3 px-4 font-semibold text-right">Preço Médio / un.</th>
                       <th className="py-3 px-4 font-semibold text-right">Preço Total</th>
+                      <th className="py-3 px-4 font-semibold text-right">Compras Líquidas</th>
                       <th className="py-3 px-4 font-semibold text-center w-24">Camada</th>
                     </tr>
                   </thead>
@@ -471,6 +471,20 @@ export default function PurchasesPage() {
                           <td className="py-3 px-4 text-right">
                             <span className="text-emerald-300 font-bold">
                               {formatBRL(totalPrice)}
+                            </span>
+                          </td>
+
+                          {/* 5. Compras Líquidas (Custo Líquido no Regime Ativo) */}
+                          <td className="py-3 px-4 text-right">
+                            <span className="text-emerald-400 font-bold">
+                              {formatBRL(
+                                (item.quantity || 0) *
+                                  (regime === 'simples'
+                                    ? item.unitCostSimples || 0
+                                    : regime === 'real'
+                                      ? item.unitCostReal || 0
+                                      : item.unitCostPresumido || 0),
+                              )}
                             </span>
                           </td>
 
@@ -1254,16 +1268,6 @@ export default function PurchasesPage() {
                   Simples) e a Comparação.
                 </p>
               </div>
-
-              {/* Botão de abrir modal da Composição do CMV */}
-              <button
-                type="button"
-                onClick={() => setIsCmvCompositionDialogOpen(true)}
-                className="text-xs font-mono text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 cursor-pointer underline"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5" />
-                <span>Abrir composição detalhada do CMV</span>
-              </button>
             </div>
 
             {/* Quadro com os 3 cards comparativos de CMV por regime */}
