@@ -3,7 +3,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTaxContext } from '@/contexts/TaxContext'
 import { Button } from '@/components/ui/button'
-import { LogOut, RotateCcw, Sparkles, Bot } from 'lucide-react'
+import { LogOut, RotateCcw, Sparkles, Bot, Undo2, Redo2 } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { toast } from 'sonner'
 import { AssistantChatDrawer } from './AssistantChatDrawer'
 import { AssistantFloatingButton } from './AssistantFloatingButton'
 import { getAssistantForTab } from '@/services/tableAssistantsConfig'
@@ -27,8 +29,70 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
-  const { resetAll } = useTaxContext()
+  const { resetAll, undo, redo, canUndo, canRedo, undoCount, redoCount } = useTaxContext()
   const [isAssistantOpen, setIsAssistantOpen] = React.useState(false)
+
+  const handleUndo = React.useCallback(() => {
+    if (undo()) {
+      toast.success('Ação desfeita', {
+        duration: 2000,
+        className: 'bg-emerald-950 border-emerald-500/30 text-emerald-200 text-xs',
+      })
+    }
+  }, [undo])
+
+  const handleRedo = React.useCallback(() => {
+    if (redo()) {
+      toast.success('Ação refeita', {
+        duration: 2000,
+        className: 'bg-emerald-950 border-emerald-500/30 text-emerald-200 text-xs',
+      })
+    }
+  }, [redo])
+
+  // Listener de atalhos globais de teclado (Ctrl+Z / Cmd+Z e Ctrl+Y / Cmd+Shift+Z)
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignora quando o foco estiver em inputs de texto ou elementos editáveis
+      const target = e.target as HTMLElement | null
+      const tagName = target?.tagName?.toLowerCase()
+      const isEditable =
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        target?.isContentEditable ||
+        target?.getAttribute('role') === 'textbox'
+
+      if (isEditable) {
+        return
+      }
+
+      const isMac =
+        typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform)
+      const modifier = isMac ? e.metaKey : e.ctrlKey
+
+      if (!modifier) return
+
+      // Redo: Ctrl+Y ou Cmd+Shift+Z ou Ctrl+Shift+Z
+      if (
+        (e.key.toLowerCase() === 'y' && !e.shiftKey) ||
+        (e.key.toLowerCase() === 'z' && e.shiftKey)
+      ) {
+        e.preventDefault()
+        handleRedo()
+        return
+      }
+
+      // Undo: Ctrl+Z ou Cmd+Z (sem shift)
+      if (e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        handleUndo()
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleUndo, handleRedo])
 
   const currentAssistant = React.useMemo(() => getAssistantForTab(currentTab), [currentTab])
 
@@ -86,6 +150,63 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
         </Link>
 
         <div className="flex items-center gap-3">
+          {/* Botões de Desfazer e Refazer (Undo/Redo) */}
+          <div className="flex items-center gap-1 bg-[#091511]/90 border border-emerald-500/20 rounded-lg p-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleUndo}
+                  disabled={!canUndo}
+                  aria-label="Desfazer última ação (Ctrl+Z)"
+                  className="text-xs h-7 px-2 text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-500 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Undo2 className="w-3.5 h-3.5" />
+                  <span className="hidden xl:inline text-[11px] font-medium">Desfazer</span>
+                  {undoCount > 0 && (
+                    <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      {undoCount}
+                    </span>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                className="text-xs bg-slate-900 border-slate-700 text-slate-200"
+              >
+                <span>Desfazer última ação (Ctrl+Z)</span>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRedo}
+                  disabled={!canRedo}
+                  aria-label="Refazer ação (Ctrl+Y ou Cmd+Shift+Z)"
+                  className="text-xs h-7 px-2 text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-500 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Redo2 className="w-3.5 h-3.5" />
+                  <span className="hidden xl:inline text-[11px] font-medium">Refazer</span>
+                  {redoCount > 0 && (
+                    <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      {redoCount}
+                    </span>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                className="text-xs bg-slate-900 border-slate-700 text-slate-200"
+              >
+                <span>Refazer ação (Ctrl+Y / Cmd+Shift+Z)</span>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
           {/* Botão de Atalho para o Assistente da Tabela no Header */}
           <Button
             variant="outline"
