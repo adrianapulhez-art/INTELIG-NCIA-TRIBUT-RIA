@@ -606,6 +606,25 @@ export function runOperatingResultIntegrationTests(): {
       expected: 0,
       received: caseE3_Fiscal,
     },
+
+    // -----------------------------------------------------------------------
+    // (f) Exemplos do dia a dia por porte (pequeno, médio, grande)
+    // -----------------------------------------------------------------------
+    {
+      test: '(f) Pequeno porte: LAIR com receitas de balcão (14.500) − aluguel (3.200) − contabilidade (1.400) = 9.900,00',
+      expected: 9900,
+      received: calculateLair(0, 3200 + 1400, 14500),
+    },
+    {
+      test: '(f) Médio porte: LAIR com receitas de manutenção recorrente (12.400) − ERP (3.200) − consultoria (5.500) = 3.700,00',
+      expected: 3700,
+      received: calculateLair(0, 3200 + 5500, 12400),
+    },
+    {
+      test: '(f) Grande porte: LAIR com licenciamento tech (54.000) − nuvem (27.000) − auditoria (22.000) = 5.000,00',
+      expected: 5000,
+      received: calculateLair(0, 27000 + 22000, 54000),
+    },
   ]
 
   const results = tests.map((t) => {
