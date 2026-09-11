@@ -217,12 +217,28 @@ export default function DreSimplesPage() {
   // Lucro Bruto unitário
   const unitGrossProfit = Math.round((unitNetRevenue - unitCmvVal) * 100) / 100
 
-  // Despesas operacionais totais e unitárias
-  const totalExpenses = simplesExpenses.reduce((acc, exp) => acc + (exp.value || 0), 0)
-  const unitExpenses = qty > 0 ? Math.round((totalExpenses / qty) * 100) / 100 : 0
+  // DESPESAS E RECEITAS OPERACIONAIS GLOBAIS (vindas do TaxContext)
+  const { totalOperatingExpenses, totalOperatingRevenues } = useTaxContext()
 
-  // Lucro Líquido unitário
-  const unitNetProfit = Math.round((unitGrossProfit - unitExpenses) * 100) / 100
+  // Despesas operacionais locais cadastradas na aba do Simples
+  const totalLocalExpenses = simplesExpenses.reduce((acc, exp) => acc + (exp.value || 0), 0)
+  // Total consolidado de Despesas Operacionais: Tabela específica + Despesas locais
+  const totalAllOperatingExpenses = totalOperatingExpenses + totalLocalExpenses
+  const totalAllOperatingRevenues = totalOperatingRevenues
+
+  const totalExpenses = totalAllOperatingExpenses
+  const unitOperatingExpenses =
+    qty > 0 ? Math.round((totalAllOperatingExpenses / qty) * 100) / 100 : 0
+  const unitOperatingRevenues =
+    qty > 0 ? Math.round((totalAllOperatingRevenues / qty) * 100) / 100 : 0
+  const unitExpenses = unitOperatingExpenses
+
+  // Lucro antes do IR (LAIR) / Lucro Líquido unitário
+  // No Simples Nacional, os tributos já estão deduzidos na guia DAS (Receita Líquida);
+  // LAIR = Lucro Bruto - Despesas Operacionais + Receitas Operacionais
+  const unitLair =
+    Math.round((unitGrossProfit - unitOperatingExpenses + unitOperatingRevenues) * 100) / 100
+  const unitNetProfit = unitLair
 
   // CÁLCULOS TOTAIS DA DRE (totalGross já definido estritamente pela soma consolidada sem multiplicação por média unitária)
   const totalDasTotal = Math.round(unitDasTotal * (qty > 0 ? qty : 0) * 100) / 100
@@ -241,7 +257,11 @@ export default function DreSimplesPage() {
     qty > calculatedPurchases.totalAvailableUnits
   const totalCmv = consolidatedCMV
   const totalGrossProfit = Math.round((totalNetRevenue - totalCmv) * 100) / 100
-  const totalNetProfit = Math.round((totalGrossProfit - totalExpenses) * 100) / 100
+  // LAIR = Lucro Bruto - Despesas Operacionais + Receitas Operacionais
+  const totalLair =
+    Math.round((totalGrossProfit - totalAllOperatingExpenses + totalAllOperatingRevenues) * 100) /
+    100
+  const totalNetProfit = totalLair
 
   // Cards de Resumo
   const totalTaxBurden = totalGross > 0 ? totalDasTotal : 0
@@ -1262,15 +1282,68 @@ export default function DreSimplesPage() {
                     </td>
                   </tr>
 
-                  {/* 6. (-) Despesas operacionais */}
-                  <tr>
-                    <td className="py-2 text-left text-slate-400">(−) Despesas operacionais</td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(unitExpenses)}
+                  {/* 6. (-) Despesas operacionais centrais */}
+                  {totalOperatingExpenses > 0 && (
+                    <tr className="text-rose-300/90 bg-rose-500/[0.03]">
+                      <td className="py-2 text-left">
+                        (−) Despesas operacionais (vendas, adm, financeiras)
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        -{formatBRL(qty > 0 ? totalOperatingExpenses / qty : 0)}
+                      </td>
+                      <td className="py-2 px-3 text-right">-{formatBRL(totalOperatingExpenses)}</td>
+                    </tr>
+                  )}
+
+                  {/* 6b. (-) Despesas operacionais locais */}
+                  {totalLocalExpenses > 0 && (
+                    <tr>
+                      <td className="py-2 text-left text-slate-400">
+                        (−) Despesas operacionais locais (aba Simples)
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-400">
+                        -{formatBRL(qty > 0 ? totalLocalExpenses / qty : 0)}
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-400">
+                        -{formatBRL(totalLocalExpenses)}
+                      </td>
+                    </tr>
+                  )}
+
+                  {totalAllOperatingExpenses === 0 && (
+                    <tr>
+                      <td className="py-2 text-left text-slate-500 italic">
+                        (−) Despesas operacionais
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-500">R$ 0,00</td>
+                      <td className="py-2 px-3 text-right text-slate-500">R$ 0,00</td>
+                    </tr>
+                  )}
+
+                  {/* 6c. (+) Receitas operacionais */}
+                  <tr
+                    className={
+                      totalAllOperatingRevenues > 0
+                        ? 'text-emerald-300/90 bg-emerald-500/[0.03]'
+                        : ''
+                    }
+                  >
+                    <td className="py-2 text-left text-slate-400">
+                      (+) Receitas operacionais (financeiras e outras)
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(totalExpenses)}
+                      +{formatBRL(unitOperatingRevenues)}
                     </td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      +{formatBRL(totalAllOperatingRevenues)}
+                    </td>
+                  </tr>
+
+                  {/* 6d. = Lucro antes do IR (LAIR) */}
+                  <tr className="bg-slate-950/40 font-bold text-slate-100">
+                    <td className="py-2 text-left">= Lucro antes do imposto de renda (LAIR)</td>
+                    <td className="py-2 px-3 text-right text-slate-100">{formatBRL(unitLair)}</td>
+                    <td className="py-2 px-3 text-right text-slate-100">{formatBRL(totalLair)}</td>
                   </tr>
 
                   {/* 7. = Lucro líquido [fundo verde escuro, valores verde brilhante] */}
@@ -1447,10 +1520,38 @@ export default function DreSimplesPage() {
                       totalValue: totalGrossProfit,
                       isSubtotal: true,
                     },
+                    ...(totalOperatingExpenses > 0
+                      ? [
+                          {
+                            description: '(−) Despesas operacionais (vendas, adm, financeiras)',
+                            unitValue: qty > 0 ? -(totalOperatingExpenses / qty) : 0,
+                            totalValue: -totalOperatingExpenses,
+                          },
+                        ]
+                      : []),
+                    ...(totalLocalExpenses > 0
+                      ? [
+                          {
+                            description: '(−) Despesas operacionais locais',
+                            unitValue: qty > 0 ? -(totalLocalExpenses / qty) : 0,
+                            totalValue: -totalLocalExpenses,
+                          },
+                        ]
+                      : []),
+                    ...(totalAllOperatingRevenues > 0
+                      ? [
+                          {
+                            description: '(+) Receitas operacionais (financeiras e outras)',
+                            unitValue: qty > 0 ? totalAllOperatingRevenues / qty : 0,
+                            totalValue: totalAllOperatingRevenues,
+                          },
+                        ]
+                      : []),
                     {
-                      description: '(−) Despesas operacionais do período',
-                      unitValue: -unitExpenses,
-                      totalValue: -totalExpenses,
+                      description: '(=) Lucro antes do imposto de renda (LAIR)',
+                      unitValue: unitLair,
+                      totalValue: totalLair,
+                      isSubtotal: true,
                     },
                     {
                       description: '(=) Lucro líquido',
@@ -1602,10 +1703,37 @@ export default function DreSimplesPage() {
                       unitValue: unitGrossProfit,
                       totalValue: totalGrossProfit,
                     },
+                    ...(totalOperatingExpenses > 0
+                      ? [
+                          {
+                            description: '(−) Despesas operacionais (vendas, adm, financeiras)',
+                            unitValue: qty > 0 ? -(totalOperatingExpenses / qty) : 0,
+                            totalValue: -totalOperatingExpenses,
+                          },
+                        ]
+                      : []),
+                    ...(totalLocalExpenses > 0
+                      ? [
+                          {
+                            description: '(−) Despesas operacionais locais',
+                            unitValue: qty > 0 ? -(totalLocalExpenses / qty) : 0,
+                            totalValue: -totalLocalExpenses,
+                          },
+                        ]
+                      : []),
+                    ...(totalAllOperatingRevenues > 0
+                      ? [
+                          {
+                            description: '(+) Receitas operacionais (financeiras e outras)',
+                            unitValue: qty > 0 ? totalAllOperatingRevenues / qty : 0,
+                            totalValue: totalAllOperatingRevenues,
+                          },
+                        ]
+                      : []),
                     {
-                      description: '(−) Despesas operacionais do período',
-                      unitValue: -unitExpenses,
-                      totalValue: -totalExpenses,
+                      description: '(=) Lucro antes do imposto de renda (LAIR)',
+                      unitValue: unitLair,
+                      totalValue: totalLair,
                     },
                     {
                       description: '(=) Lucro líquido',

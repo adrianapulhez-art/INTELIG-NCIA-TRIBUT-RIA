@@ -11,15 +11,15 @@ import { AssistantFloatingButton } from './AssistantFloatingButton'
 import { getAssistantForTab } from '@/services/tableAssistantsConfig'
 export type TabKey =
   | 'home'
-  | 'markup'
   | 'compras'
-  | 'simples'
+  | 'markup'
+  | 'despesas-operacionais'
   | 'dre-presumido'
   | 'dre-real'
+  | 'simples'
   | 'comparacao'
   | 'reforma'
   | 'clientes'
-
 interface DemoLayoutProps {
   currentTab: TabKey
   children: React.ReactNode
@@ -114,6 +114,11 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
     { key: 'home', label: 'Início', path: '/demo' },
     { key: 'compras', label: 'Calculadora de Compras', path: '/demo/compras' },
     { key: 'markup', label: 'Calculadora Markup', path: '/demo/markup' },
+    {
+      key: 'despesas-operacionais',
+      label: 'Despesas e Receitas Op.',
+      path: '/demo/despesas-operacionais',
+    },
     { key: 'dre-presumido', label: 'DRE Lucro Presumido', path: '/demo/dre-presumido' },
     { key: 'dre-real', label: 'DRE Lucro Real', path: '/demo/dre-real' },
     { key: 'simples', label: 'DRE Simples Nacional', path: '/demo/simples' },

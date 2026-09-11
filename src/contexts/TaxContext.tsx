@@ -109,6 +109,24 @@ export interface ExpenseItem {
   value: number
 }
 
+export type OperatingExpenseCategory = 'vendas' | 'administrativas' | 'financeiras' | 'outras'
+
+export type OperatingRevenueCategory = 'financeiras' | 'outras'
+
+export interface OperatingExpenseItem {
+  id: string
+  description: string
+  value: number
+  category: OperatingExpenseCategory
+}
+
+export interface OperatingRevenueItem {
+  id: string
+  description: string
+  value: number
+  category: OperatingRevenueCategory
+}
+
 export type LalurEntryType = 'addition' | 'exclusion'
 
 export interface LalurEntryItem {
@@ -188,6 +206,9 @@ export interface TaxStateSnapshot {
   payrollInssRate: number
   payrollRatRate: number
   payrollTerceirosRate: number
+  // DESPESAS E RECEITAS OPERACIONAIS
+  operatingExpenses?: OperatingExpenseItem[]
+  operatingRevenues?: OperatingRevenueItem[]
   // Subsistemas Especializados (Opt-in)
   stSubsystem?: StSubsystemState
   interstateSubsystem?: InterstateSubsystemState
@@ -483,6 +504,35 @@ export interface TaxContextType {
   setPayrollRatRate: (val: number) => void
   payrollTerceirosRate: number
   setPayrollTerceirosRate: (val: number) => void
+
+  // DESPESAS E RECEITAS OPERACIONAIS
+  operatingExpenses: OperatingExpenseItem[]
+  operatingRevenues: OperatingRevenueItem[]
+  addOperatingExpense: (
+    description?: string,
+    value?: number,
+    category?: OperatingExpenseCategory,
+  ) => void
+  updateOperatingExpense: (
+    id: string,
+    field: 'description' | 'value' | 'category',
+    value: string | number | OperatingExpenseCategory,
+  ) => void
+  removeOperatingExpense: (id: string) => void
+  addOperatingRevenue: (
+    description?: string,
+    value?: number,
+    category?: OperatingRevenueCategory,
+  ) => void
+  updateOperatingRevenue: (
+    id: string,
+    field: 'description' | 'value' | 'category',
+    value: string | number | OperatingRevenueCategory,
+  ) => void
+  removeOperatingRevenue: (id: string) => void
+  totalOperatingExpenses: number
+  totalOperatingRevenues: number
+  netOperatingResult: number // totalOperatingRevenues - totalOperatingExpenses
 
   // SUBSISTEMA 1: SUBSTITUIÇÃO TRIBUTÁRIA (ICMS-ST)
   stSubsystem: StSubsystemState
@@ -841,6 +891,130 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return prev.filter((_, i) => i !== index)
     })
   }
+
+  // DESPESAS E RECEITAS OPERACIONAIS (Iniciadas zeradas)
+  const [operatingExpenses, setOperatingExpenses] = useState<OperatingExpenseItem[]>([])
+  const [operatingRevenues, setOperatingRevenues] = useState<OperatingRevenueItem[]>([])
+
+  const addOperatingExpense = (
+    description = 'Nova despesa operacional',
+    value = 0,
+    category: OperatingExpenseCategory = 'administrativas',
+  ) => {
+    recordUndoSnapshot()
+    const cleanVal = Math.max(0, typeof value === 'number' && Number.isFinite(value) ? value : 0)
+    setOperatingExpenses((prev) => [
+      ...prev,
+      {
+        id: `opex-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        description,
+        value: cleanVal,
+        category,
+      },
+    ])
+  }
+
+  const updateOperatingExpense = (
+    id: string,
+    field: 'description' | 'value' | 'category',
+    value: string | number | OperatingExpenseCategory,
+  ) => {
+    recordUndoSnapshot()
+    setOperatingExpenses((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item
+        if (field === 'value') {
+          return {
+            ...item,
+            value:
+              typeof value === 'number'
+                ? Math.max(0, Number.isFinite(value) ? value : 0)
+                : Math.max(0, parseBRNumber(String(value))),
+          }
+        }
+        if (field === 'category') {
+          return { ...item, category: value as OperatingExpenseCategory }
+        }
+        if (field === 'description') {
+          return { ...item, description: String(value) }
+        }
+        return item
+      }),
+    )
+  }
+
+  const removeOperatingExpense = (id: string) => {
+    recordUndoSnapshot()
+    setOperatingExpenses((prev) => prev.filter((item) => item.id !== id))
+  }
+
+  const addOperatingRevenue = (
+    description = 'Nova receita operacional',
+    value = 0,
+    category: OperatingRevenueCategory = 'outras',
+  ) => {
+    recordUndoSnapshot()
+    const cleanVal = Math.max(0, typeof value === 'number' && Number.isFinite(value) ? value : 0)
+    setOperatingRevenues((prev) => [
+      ...prev,
+      {
+        id: `oprev-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        description,
+        value: cleanVal,
+        category,
+      },
+    ])
+  }
+
+  const updateOperatingRevenue = (
+    id: string,
+    field: 'description' | 'value' | 'category',
+    value: string | number | OperatingRevenueCategory,
+  ) => {
+    recordUndoSnapshot()
+    setOperatingRevenues((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item
+        if (field === 'value') {
+          return {
+            ...item,
+            value:
+              typeof value === 'number'
+                ? Math.max(0, Number.isFinite(value) ? value : 0)
+                : Math.max(0, parseBRNumber(String(value))),
+          }
+        }
+        if (field === 'category') {
+          return { ...item, category: value as OperatingRevenueCategory }
+        }
+        if (field === 'description') {
+          return { ...item, description: String(value) }
+        }
+        return item
+      }),
+    )
+  }
+
+  const removeOperatingRevenue = (id: string) => {
+    recordUndoSnapshot()
+    setOperatingRevenues((prev) => prev.filter((item) => item.id !== id))
+  }
+
+  const totalOperatingExpenses = useMemo(() => {
+    return operatingExpenses.reduce(
+      (acc, curr) => acc + (Number.isFinite(curr.value) && curr.value > 0 ? curr.value : 0),
+      0,
+    )
+  }, [operatingExpenses])
+
+  const totalOperatingRevenues = useMemo(() => {
+    return operatingRevenues.reduce(
+      (acc, curr) => acc + (Number.isFinite(curr.value) && curr.value > 0 ? curr.value : 0),
+      0,
+    )
+  }, [operatingRevenues])
+
+  const netOperatingResult = totalOperatingRevenues - totalOperatingExpenses
 
   // FOLHA E PRÓ-LABORE (Iniciados ZERADOS nos valores monetários; alíquotas com padrão legal e editáveis)
   const [payrollSalaries, setPayrollSalaries] = useState<number>(0)
@@ -2852,6 +3026,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPayrollRatRate(3.0)
     setPayrollTerceirosRate(5.8)
 
+    setOperatingExpenses([])
+    setOperatingRevenues([])
+
     setStSubsystem(INITIAL_ST_SUBSYSTEM)
     setInterstateSubsystem(INITIAL_INTERSTATE_SUBSYSTEM)
     setReformaState(INITIAL_REFORMA_STATE)
@@ -3133,6 +3310,30 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPayrollRatRate(snapshot.payrollRatRate ?? 3.0)
     setPayrollTerceirosRate(snapshot.payrollTerceirosRate ?? 5.8)
 
+    if (Array.isArray(snapshot.operatingExpenses)) {
+      setOperatingExpenses(
+        snapshot.operatingExpenses.map((e) => ({
+          ...e,
+          value: typeof e.value === 'number' && Number.isFinite(e.value) ? Math.max(0, e.value) : 0,
+          category: e.category || 'administrativas',
+        })),
+      )
+    } else {
+      setOperatingExpenses([])
+    }
+
+    if (Array.isArray(snapshot.operatingRevenues)) {
+      setOperatingRevenues(
+        snapshot.operatingRevenues.map((r) => ({
+          ...r,
+          value: typeof r.value === 'number' && Number.isFinite(r.value) ? Math.max(0, r.value) : 0,
+          category: r.category || 'outras',
+        })),
+      )
+    } else {
+      setOperatingRevenues([])
+    }
+
     if (snapshot.stSubsystem) {
       setStSubsystem({ ...INITIAL_ST_SUBSYSTEM, ...snapshot.stSubsystem })
     } else {
@@ -3230,6 +3431,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       payrollInssRate,
       payrollRatRate,
       payrollTerceirosRate,
+      operatingExpenses,
+      operatingRevenues,
       stSubsystem,
       interstateSubsystem,
       reformaState,
@@ -3296,6 +3499,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     payrollInssRate,
     payrollRatRate,
     payrollTerceirosRate,
+    operatingExpenses,
+    operatingRevenues,
     stSubsystem,
     interstateSubsystem,
     reformaState,
@@ -3563,6 +3768,18 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setPayrollRatRate,
         payrollTerceirosRate,
         setPayrollTerceirosRate,
+
+        operatingExpenses,
+        operatingRevenues,
+        addOperatingExpense,
+        updateOperatingExpense,
+        removeOperatingExpense,
+        addOperatingRevenue,
+        updateOperatingRevenue,
+        removeOperatingRevenue,
+        totalOperatingExpenses,
+        totalOperatingRevenues,
+        netOperatingResult,
 
         stSubsystem,
         setStSubsystem,

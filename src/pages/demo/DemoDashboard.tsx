@@ -47,16 +47,29 @@ export default function DemoDashboard() {
     },
     {
       id: 'markup',
-      tag: 'PRECIFICAÇÃO INTELIGENTE',
+      tag: 'CALCULADORA DE VENDA',
       title: 'Calculadora de Markup',
-      subtitle: 'Multi-Produtos & Margens',
+      subtitle: 'Formação de Preço & Múltiplos Produtos',
       description:
-        'Cálculo fracionado de preço de venda a partir da receita líquida ou custo + margem com simulação instantânea.',
+        'Precificação inteligente por dentro e por fora, alíquotas personalizadas e múltiplos produtos em simultâneo.',
       path: '/demo/markup',
-      gradient: 'from-[#0c3125]/90 via-[#0a231b]/80 to-[#061410]/95',
+      gradient: 'from-[#143329]/90 via-[#0d261e]/80 to-[#071612]/95',
       borderAccent: 'border-emerald-500/30 hover:border-emerald-400/60',
       accentColor: 'text-emerald-400',
       icon: Calculator,
+    },
+    {
+      id: 'despesas-operacionais',
+      tag: 'ESTRUTURA DRE · APÓS LUCRO BRUTO',
+      title: 'Despesas e Receitas Operacionais',
+      subtitle: 'Alimentação Integrada para DREs',
+      description:
+        'Tabela específica de despesas com vendas, administrativas, financeiras e receitas operacionais para apuração exata do LAIR em todos os regimes.',
+      path: '/demo/despesas-operacionais',
+      gradient: 'from-[#2c1d0c]/90 via-[#1f1508]/80 to-[#120c04]/95',
+      borderAccent: 'border-orange-500/30 hover:border-orange-400/60',
+      accentColor: 'text-orange-400',
+      icon: Receipt,
     },
     {
       id: 'dre-presumido',

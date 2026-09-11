@@ -87,6 +87,10 @@ export default function ComparisonPage() {
     setPayrollRatRate,
     payrollTerceirosRate,
     setPayrollTerceirosRate,
+    operatingExpenses,
+    operatingRevenues,
+    totalOperatingExpenses,
+    totalOperatingRevenues,
     stSubsystem,
     interstateSubsystem,
   } = useTaxContext()
@@ -155,10 +159,15 @@ export default function ComparisonPage() {
   // Encargos patronais (INSS 20% + RAT + terceiros), incidem apenas fora do Simples (Presumido e Real)
   const patronalCharges = payrollResult.patronalChargesTotal
 
-  // Outras despesas compartilhadas: usa as despesas de Lucro Presumido como mestre
+  // Despesas operacionais centrais (da nova tabela de Despesas Operacionais)
+  // + Outras despesas locais compartilhadas
   const totalOtherExpenses = useMemo(() => {
     return presumidoExpenses.reduce((acc, exp) => acc + (exp.value || 0), 0)
   }, [presumidoExpenses])
+
+  // Despesas operacionais consolidadas: tabela específica + despesas locais
+  const totalGlobalOperatingExpenses = totalOperatingExpenses + totalOtherExpenses
+  const totalGlobalOperatingRevenues = totalOperatingRevenues
 
   // Preço de venda unitário e receita consolidada (Markup)
   // Regra de ouro: total = valor consolidado direto do contexto; unitário = derivado só para exibição
@@ -220,9 +229,9 @@ export default function ComparisonPage() {
     const totalCmv = calculatedPurchases.cmvPresumido
     const totalGrossProfit = Math.round((totalNetRevenue - totalCmv) * 100) / 100
 
-    // No Lucro Presumido: despesas = outras despesas + folha/pró-labore + encargos patronais
-    const totalExpenses = totalOtherExpenses + directPayrollExpenses + patronalCharges
-    const totalResultBeforeTax = totalGrossProfit - totalExpenses
+    // No Lucro Presumido: despesas = despesas operacionais da tabela central + outras despesas + folha/pró-labore + encargos patronais
+    const totalExpenses = totalGlobalOperatingExpenses + directPayrollExpenses + patronalCharges
+    const totalResultBeforeTax = totalGrossProfit - totalExpenses + totalGlobalOperatingRevenues
 
     // Bases presumidas
     const totalIrpjBase = (totalGross * irpjPresumptionRate) / 100
@@ -278,7 +287,8 @@ export default function ComparisonPage() {
     calculatedPurchases.unitCostPresumidoEffective,
     calculatedPurchases.totalAvailableUnits,
     qty,
-    totalOtherExpenses,
+    totalGlobalOperatingExpenses,
+    totalGlobalOperatingRevenues,
     directPayrollExpenses,
     patronalCharges,
   ])
@@ -331,11 +341,11 @@ export default function ComparisonPage() {
     const totalCmv = calculatedPurchases.cmvReal
     const totalGrossProfit = Math.round((totalNetRevenue - totalCmv) * 100) / 100
 
-    // No Lucro Real: folha, pró-labore e encargos são despesas dedutíveis
-    const totalExpenses = totalOtherExpenses + directPayrollExpenses + patronalCharges
-    const totalResultBeforeTax = totalGrossProfit - totalExpenses
+    // No Lucro Real: folha, pró-labore, encargos e despesas operacionais dedutíveis
+    const totalExpenses = totalGlobalOperatingExpenses + directPayrollExpenses + patronalCharges
+    const totalResultBeforeTax = totalGrossProfit - totalExpenses + totalGlobalOperatingRevenues
 
-    // LALUR: Lucro Real tributável
+    // LALUR: Lucro Real tributável (parte do LAIR que agora inclui despesas e receitas operacionais)
     const totalAdditions = realAdditions || 0
     const totalExclusions = realExclusions || 0
     const taxableRealProfit = Math.max(0, totalResultBeforeTax + totalAdditions - totalExclusions)
@@ -390,7 +400,8 @@ export default function ComparisonPage() {
     calculatedPurchases.unitCostRealEffective,
     calculatedPurchases.totalAvailableUnits,
     qty,
-    totalOtherExpenses,
+    totalGlobalOperatingExpenses,
+    totalGlobalOperatingRevenues,
     directPayrollExpenses,
     patronalCharges,
     realAdditions,
@@ -457,9 +468,10 @@ export default function ComparisonPage() {
     // No Simples Nacional:
     // A folha em si (salários + pró-labore) é despesa dedutível igual aos outros regimes.
     // A CPP patronal já está incluída no DAS (não se soma encargo patronal adicional).
-    const totalExpenses = totalOtherExpenses + directPayrollExpenses
-    const totalResultBeforeTax = totalGrossProfit - totalExpenses
-    const totalNetProfit = totalGrossProfit - totalExpenses
+    // As despesas e receitas operacionais entram na apuração do resultado / LAIR.
+    const totalExpenses = totalGlobalOperatingExpenses + directPayrollExpenses
+    const totalResultBeforeTax = totalGrossProfit - totalExpenses + totalGlobalOperatingRevenues
+    const totalNetProfit = totalResultBeforeTax
     const totalTaxBurden = totalGross > 0 ? totalDasTotal : 0
     const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
     const effectiveTaxRate = pgdas.aliquotaEfetiva
@@ -493,7 +505,8 @@ export default function ComparisonPage() {
     calculatedPurchases.unitCostSimplesEffective,
     calculatedPurchases.totalAvailableUnits,
     qty,
-    totalOtherExpenses,
+    totalGlobalOperatingExpenses,
+    totalGlobalOperatingRevenues,
     directPayrollExpenses,
   ])
 
@@ -1512,76 +1525,153 @@ export default function ComparisonPage() {
                   </td>
                 </tr>
 
-                {/* 9. Despesas Operacionais */}
-                <tr>
-                  <td className="py-2.5 px-3 text-left text-slate-400">
-                    (−) Folha de Salários e Pró-labore
-                  </td>
-                  <td
-                    className={`py-2.5 px-3 text-right text-slate-400 ${
-                      bestRegimeKey === 'presumido'
-                        ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
-                        : ''
-                    }`}
-                  >
-                    -{formatBRL(directPayrollExpenses)}
-                  </td>
-                  <td
-                    className={`py-2.5 px-3 text-right text-slate-400 ${
-                      bestRegimeKey === 'real'
-                        ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
-                        : ''
-                    }`}
-                  >
-                    -{formatBRL(directPayrollExpenses)}
-                  </td>
-                  <td
-                    className={`py-2.5 px-3 text-right text-slate-400 ${
-                      bestRegimeKey === 'simples'
-                        ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
-                        : ''
-                    }`}
-                  >
-                    -{formatBRL(directPayrollExpenses)}
-                  </td>
-                </tr>
+                {/* 9. Despesas Operacionais Centrais */}
+                {totalOperatingExpenses > 0 && (
+                  <tr className="text-rose-300/90 bg-rose-500/[0.03]">
+                    <td className="py-2.5 px-3 text-left">
+                      (−) Despesas Operacionais (vendas, adm, financeiras)
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right ${
+                        bestRegimeKey === 'presumido'
+                          ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                          : ''
+                      }`}
+                    >
+                      -{formatBRL(totalOperatingExpenses)}
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right ${
+                        bestRegimeKey === 'real'
+                          ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                          : ''
+                      }`}
+                    >
+                      -{formatBRL(totalOperatingExpenses)}
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right ${
+                        bestRegimeKey === 'simples'
+                          ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                          : ''
+                      }`}
+                    >
+                      -{formatBRL(totalOperatingExpenses)}
+                    </td>
+                  </tr>
+                )}
 
-                <tr>
-                  <td className="py-2.5 px-3 text-left text-slate-400">
-                    (−) Outras Despesas Operacionais
-                  </td>
-                  <td
-                    className={`py-2.5 px-3 text-right text-slate-400 ${
-                      bestRegimeKey === 'presumido'
-                        ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
-                        : ''
-                    }`}
-                  >
-                    -{formatBRL(totalOtherExpenses)}
-                  </td>
-                  <td
-                    className={`py-2.5 px-3 text-right text-slate-400 ${
-                      bestRegimeKey === 'real'
-                        ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
-                        : ''
-                    }`}
-                  >
-                    -{formatBRL(totalOtherExpenses)}
-                  </td>
-                  <td
-                    className={`py-2.5 px-3 text-right text-slate-400 ${
-                      bestRegimeKey === 'simples'
-                        ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
-                        : ''
-                    }`}
-                  >
-                    -{formatBRL(totalOtherExpenses)}
-                  </td>
-                </tr>
+                {/* 9b. Folha de Salários e Pró-labore */}
+                {directPayrollExpenses > 0 && (
+                  <tr>
+                    <td className="py-2.5 px-3 text-left text-slate-400">
+                      (−) Folha de Salários e Pró-labore
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right text-slate-400 ${
+                        bestRegimeKey === 'presumido'
+                          ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                          : ''
+                      }`}
+                    >
+                      -{formatBRL(directPayrollExpenses)}
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right text-slate-400 ${
+                        bestRegimeKey === 'real'
+                          ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                          : ''
+                      }`}
+                    >
+                      -{formatBRL(directPayrollExpenses)}
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right text-slate-400 ${
+                        bestRegimeKey === 'simples'
+                          ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                          : ''
+                      }`}
+                    >
+                      -{formatBRL(directPayrollExpenses)}
+                    </td>
+                  </tr>
+                )}
 
-                {/* 10. Resultado antes IRPJ/CSLL */}
+                {/* 9c. Outras Despesas Operacionais Locais */}
+                {totalOtherExpenses > 0 && (
+                  <tr>
+                    <td className="py-2.5 px-3 text-left text-slate-400">
+                      (−) Outras Despesas Operacionais (locais)
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right text-slate-400 ${
+                        bestRegimeKey === 'presumido'
+                          ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                          : ''
+                      }`}
+                    >
+                      -{formatBRL(totalOtherExpenses)}
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right text-slate-400 ${
+                        bestRegimeKey === 'real'
+                          ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                          : ''
+                      }`}
+                    >
+                      -{formatBRL(totalOtherExpenses)}
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right text-slate-400 ${
+                        bestRegimeKey === 'simples'
+                          ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                          : ''
+                      }`}
+                    >
+                      -{formatBRL(totalOtherExpenses)}
+                    </td>
+                  </tr>
+                )}
+
+                {/* 9d. Receitas Operacionais */}
+                {totalGlobalOperatingRevenues > 0 && (
+                  <tr className="text-emerald-300/90 bg-emerald-500/[0.03]">
+                    <td className="py-2.5 px-3 text-left">
+                      (+) Receitas Operacionais (financeiras e outras)
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right ${
+                        bestRegimeKey === 'presumido'
+                          ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                          : ''
+                      }`}
+                    >
+                      +{formatBRL(totalGlobalOperatingRevenues)}
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right ${
+                        bestRegimeKey === 'real'
+                          ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                          : ''
+                      }`}
+                    >
+                      +{formatBRL(totalGlobalOperatingRevenues)}
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right ${
+                        bestRegimeKey === 'simples'
+                          ? 'bg-emerald-500/5 border-l border-r border-emerald-500/30'
+                          : ''
+                      }`}
+                    >
+                      +{formatBRL(totalGlobalOperatingRevenues)}
+                    </td>
+                  </tr>
+                )}
+
+                {/* 10. Resultado antes IRPJ/CSLL (LAIR) */}
                 <tr className="bg-slate-950/40 font-bold text-slate-200">
-                  <td className="py-2.5 px-3 text-left">= Resultado antes de IRPJ / CSLL</td>
+                  <td className="py-2.5 px-3 text-left">= Lucro antes do IR (LAIR)</td>
                   <td
                     className={`py-2.5 px-3 text-right ${
                       bestRegimeKey === 'presumido'
@@ -1923,20 +2013,48 @@ export default function ComparisonPage() {
                     simples: simplesData.totalGrossProfit,
                     isHighlight: true,
                   },
+                  ...(totalOperatingExpenses > 0
+                    ? [
+                        {
+                          line: '(−) Despesas Operacionais (vendas, adm, financeiras)',
+                          presumido: -totalOperatingExpenses,
+                          real: -totalOperatingExpenses,
+                          simples: -totalOperatingExpenses,
+                        },
+                      ]
+                    : []),
+                  ...(directPayrollExpenses > 0
+                    ? [
+                        {
+                          line: '(−) Folha de Salários e Pró-labore',
+                          presumido: -directPayrollExpenses,
+                          real: -directPayrollExpenses,
+                          simples: -directPayrollExpenses,
+                        },
+                      ]
+                    : []),
+                  ...(totalOtherExpenses > 0
+                    ? [
+                        {
+                          line: '(−) Outras Despesas Operacionais locais',
+                          presumido: -totalOtherExpenses,
+                          real: -totalOtherExpenses,
+                          simples: -totalOtherExpenses,
+                        },
+                      ]
+                    : []),
+                  ...(totalGlobalOperatingRevenues > 0
+                    ? [
+                        {
+                          line: '(+) Receitas Operacionais (financeiras e outras)',
+                          presumido: totalGlobalOperatingRevenues,
+                          real: totalGlobalOperatingRevenues,
+                          simples: totalGlobalOperatingRevenues,
+                        },
+                      ]
+                    : []),
                   {
-                    line: '(−) Folha de Salários e Pró-labore',
-                    presumido: -directPayrollExpenses,
-                    real: -directPayrollExpenses,
-                    simples: -directPayrollExpenses,
-                  },
-                  {
-                    line: '(−) Outras Despesas Operacionais',
-                    presumido: -totalOtherExpenses,
-                    real: -totalOtherExpenses,
-                    simples: -totalOtherExpenses,
-                  },
-                  {
-                    line: '(=) Resultado antes de IRPJ / CSLL',
+                    line: '(=) Lucro antes de IRPJ / CSLL (LAIR)',
                     presumido: presumidoData.totalResultBeforeTax,
                     real: realData.totalResultBeforeTax,
                     simples: simplesData.totalResultBeforeTax,
@@ -2085,20 +2203,48 @@ export default function ComparisonPage() {
                     real: realData.totalGrossProfit,
                     simples: simplesData.totalGrossProfit,
                   },
+                  ...(totalOperatingExpenses > 0
+                    ? [
+                        {
+                          line: '(−) Despesas Operacionais (vendas, adm, financeiras)',
+                          presumido: -totalOperatingExpenses,
+                          real: -totalOperatingExpenses,
+                          simples: -totalOperatingExpenses,
+                        },
+                      ]
+                    : []),
+                  ...(directPayrollExpenses > 0
+                    ? [
+                        {
+                          line: '(−) Folha de Salários e Pró-labore',
+                          presumido: -directPayrollExpenses,
+                          real: -directPayrollExpenses,
+                          simples: -directPayrollExpenses,
+                        },
+                      ]
+                    : []),
+                  ...(totalOtherExpenses > 0
+                    ? [
+                        {
+                          line: '(−) Outras Despesas Operacionais locais',
+                          presumido: -totalOtherExpenses,
+                          real: -totalOtherExpenses,
+                          simples: -totalOtherExpenses,
+                        },
+                      ]
+                    : []),
+                  ...(totalGlobalOperatingRevenues > 0
+                    ? [
+                        {
+                          line: '(+) Receitas Operacionais (financeiras e outras)',
+                          presumido: totalGlobalOperatingRevenues,
+                          real: totalGlobalOperatingRevenues,
+                          simples: totalGlobalOperatingRevenues,
+                        },
+                      ]
+                    : []),
                   {
-                    line: '(−) Folha de Salários e Pró-labore',
-                    presumido: -directPayrollExpenses,
-                    real: -directPayrollExpenses,
-                    simples: -directPayrollExpenses,
-                  },
-                  {
-                    line: '(−) Outras Despesas Operacionais',
-                    presumido: -totalOtherExpenses,
-                    real: -totalOtherExpenses,
-                    simples: -totalOtherExpenses,
-                  },
-                  {
-                    line: '(=) Resultado antes de IRPJ / CSLL',
+                    line: '(=) Lucro antes de IRPJ / CSLL (LAIR)',
                     presumido: presumidoData.totalResultBeforeTax,
                     real: realData.totalResultBeforeTax,
                     simples: simplesData.totalResultBeforeTax,

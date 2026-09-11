@@ -147,6 +147,23 @@ export const TABLE_ASSISTANTS: Record<string, TableAssistantConfig> = {
     contextSummary:
       'Tabela ativa: Gestão de Clientes. Carteira de clientes, persistência de cenários tributários no banco e carregamento de simulações.',
   },
+  'despesas-operacionais': {
+    slug: 'it-despesas-operacionais-assistant',
+    name: 'Assistente de Despesas e Receitas Operacionais',
+    title: 'IA — Despesas e Receitas Operacionais',
+    pageName: 'Despesas e Receitas Operacionais',
+    tagline: 'Estrutura DRE após Lucro Bruto & Apuração do LAIR',
+    description:
+      'Tabela central para lançamento de despesas com vendas, administrativas, financeiras e receitas operacionais que alimentam as DREs dos 3 regimes.',
+    quickQuestions: [
+      'Como as despesas operacionais afetam a apuração do Lucro Real?',
+      'Quais tipos de despesas operacionais são dedutíveis no Real?',
+      'Como receitas financeiras influenciam o LAIR e as DREs?',
+      'Qual a relação entre Lucro Bruto, Despesas Operacionais e LAIR?',
+    ],
+    contextSummary:
+      'Tabela ativa: Despesas e Receitas Operacionais. Estrutura contábil após o Lucro Bruto alimentando Presumido, Real e Simples Nacional.',
+  },
   home: {
     slug: 'it-tax-assistant',
     name: 'Assistente Tributário IT',
@@ -162,7 +179,7 @@ export const TABLE_ASSISTANTS: Record<string, TableAssistantConfig> = {
       'Como simular a formação de preço e comparar com o custo de compras?',
     ],
     contextSummary:
-      'Tabela ativa: Dashboard Geral IT. Navegação entre Markup, Compras, DREs, Comparativo e Clientes.',
+      'Tabela ativa: Dashboard Geral IT. Navegação entre Markup, Compras, Despesas Operacionais, DREs, Comparativo e Clientes.',
   },
 }
 

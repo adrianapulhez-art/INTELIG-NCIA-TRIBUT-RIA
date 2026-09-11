@@ -170,12 +170,19 @@ export default function DrePresumidoPage() {
     terceirosRate: payrollTerceirosRate,
   })
 
+  // DESPESAS E RECEITAS OPERACIONAIS GLOBAIS (vindas do TaxContext)
+  const { totalOperatingExpenses, totalOperatingRevenues } = useTaxContext()
+
   // Despesas com pessoal e encargos patronais (Folha + Pró-labore + Encargos Patronais)
   const totalLaborExpenses = payrollResult.totalLaborExpense
-  // Outras despesas operacionais dinâmicas cadastradas
+  // Outras despesas operacionais dinâmicas específicas locais cadastradas nesta aba
   const totalOtherExpenses = presumidoExpenses.reduce((acc, exp) => acc + (exp.value || 0), 0)
-  // Despesas operacionais totais (incluindo folha e encargos)
-  const totalExpenses = totalOtherExpenses + totalLaborExpenses
+  // Total consolidado de Despesas Operacionais: Tabela específica + Folha/Encargos + Despesas locais da tela
+  const totalAllOperatingExpenses = totalOperatingExpenses + totalOtherExpenses + totalLaborExpenses
+  const totalAllOperatingRevenues = totalOperatingRevenues
+
+  // Despesas operacionais totais líquidas deduzidas no resultado
+  const totalExpenses = totalAllOperatingExpenses
 
   // CÁLCULOS UNITÁRIOS (PADRONIZADOS POR UNIDADE COM 2 CASAS DECIMAIS)
   // 1. Receita bruta unitária
@@ -201,9 +208,13 @@ export default function DrePresumidoPage() {
   const unitGrossProfit = Math.round((unitNetRevenue - unitCmvVal) * 100) / 100
 
   // 9. Despesas operacionais unitárias (se qtd > 0)
-  const unitExpenses = qty > 0 ? Math.round((totalExpenses / qty) * 100) / 100 : 0
-  // 10. Resultado antes IRPJ/CSLL unitário
-  const unitResultBeforeTax = Math.round((unitGrossProfit - unitExpenses) * 100) / 100
+  const unitOperatingExpenses =
+    qty > 0 ? Math.round((totalAllOperatingExpenses / qty) * 100) / 100 : 0
+  const unitOperatingRevenues =
+    qty > 0 ? Math.round((totalAllOperatingRevenues / qty) * 100) / 100 : 0
+  // 10. Lucro antes do IR (LAIR) unitário = Lucro Bruto − Despesas Op. + Receitas Op.
+  const unitResultBeforeTax =
+    Math.round((unitGrossProfit - unitOperatingExpenses + unitOperatingRevenues) * 100) / 100
 
   // CÁLCULOS TOTAIS:
   // totalGross já definido estritamente pela soma consolidada sem multiplicação por média unitária
@@ -220,7 +231,10 @@ export default function DrePresumidoPage() {
     qty > calculatedPurchases.totalAvailableUnits
   const totalCmv = consolidatedCMV
   const totalGrossProfit = Math.round((totalNetRevenue - totalCmv) * 100) / 100
-  const totalResultBeforeTax = Math.round((totalGrossProfit - totalExpenses) * 100) / 100
+  // Estrutura solicitada pelo usuário: Lucro bruto (-) Despesas operacionais (+) Receitas operacionais (=) Lucro antes do imposto de renda (LAIR)
+  const totalResultBeforeTax =
+    Math.round((totalGrossProfit - totalAllOperatingExpenses + totalAllOperatingRevenues) * 100) /
+    100
 
   // Base presumida IRPJ e CSLL (calculada sobre a Receita Bruta Total)
   const totalIrpjBase = (totalGross * irpjPresumptionRate) / 100
@@ -915,56 +929,107 @@ export default function DrePresumidoPage() {
                     </td>
                   </tr>
 
-                  {/* 9. Linhas de Folha e Encargos */}
-                  <tr>
-                    <td className="py-2 text-left text-slate-400">(−) Folha de salários</td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(qty > 0 ? payrollSalaries / qty : 0)}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(payrollSalaries)}
-                    </td>
-                  </tr>
+                  {/* 9. Despesas Operacionais (Tabela Central de Despesas Operacionais) */}
+                  {totalOperatingExpenses > 0 && (
+                    <tr className="text-rose-300/90 bg-rose-500/[0.03]">
+                      <td className="py-2 text-left">
+                        (−) Despesas operacionais (vendas, adm, financeiras)
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        -{formatBRL(qty > 0 ? totalOperatingExpenses / qty : 0)}
+                      </td>
+                      <td className="py-2 px-3 text-right">-{formatBRL(totalOperatingExpenses)}</td>
+                    </tr>
+                  )}
 
-                  <tr>
-                    <td className="py-2 text-left text-slate-400">(−) Pró-labore dos sócios</td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(qty > 0 ? payrollProLabore / qty : 0)}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(payrollProLabore)}
-                    </td>
-                  </tr>
+                  {/* 9b. Linhas de Folha e Encargos */}
+                  {payrollSalaries > 0 && (
+                    <tr>
+                      <td className="py-2 text-left text-slate-400">(−) Folha de salários</td>
+                      <td className="py-2 px-3 text-right text-slate-400">
+                        -{formatBRL(qty > 0 ? payrollSalaries / qty : 0)}
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-400">
+                        -{formatBRL(payrollSalaries)}
+                      </td>
+                    </tr>
+                  )}
 
-                  <tr>
+                  {payrollProLabore > 0 && (
+                    <tr>
+                      <td className="py-2 text-left text-slate-400">(−) Pró-labore dos sócios</td>
+                      <td className="py-2 px-3 text-right text-slate-400">
+                        -{formatBRL(qty > 0 ? payrollProLabore / qty : 0)}
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-400">
+                        -{formatBRL(payrollProLabore)}
+                      </td>
+                    </tr>
+                  )}
+
+                  {payrollResult.patronalChargesTotal > 0 && (
+                    <tr>
+                      <td className="py-2 text-left text-slate-400">
+                        (−) Encargos patronais (INSS {formatNumberBR(payrollInssRate)}% + RAT +
+                        Terceiros)
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-400">
+                        -{formatBRL(qty > 0 ? payrollResult.patronalChargesTotal / qty : 0)}
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-400">
+                        -{formatBRL(payrollResult.patronalChargesTotal)}
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* 9c. (-) Outras Despesas operacionais locais */}
+                  {totalOtherExpenses > 0 && (
+                    <tr>
+                      <td className="py-2 text-left text-slate-400">
+                        (−) Outras despesas operacionais (locais)
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-400">
+                        -{formatBRL(qty > 0 ? totalOtherExpenses / qty : 0)}
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-400">
+                        -{formatBRL(totalOtherExpenses)}
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* Total de Despesas Operacionais se vazio em detalhes */}
+                  {totalAllOperatingExpenses === 0 && (
+                    <tr>
+                      <td className="py-2 text-left text-slate-500 italic">
+                        (−) Despesas operacionais
+                      </td>
+                      <td className="py-2 px-3 text-right text-slate-500">R$ 0,00</td>
+                      <td className="py-2 px-3 text-right text-slate-500">R$ 0,00</td>
+                    </tr>
+                  )}
+
+                  {/* 10. (+) Receitas operacionais */}
+                  <tr
+                    className={
+                      totalAllOperatingRevenues > 0
+                        ? 'text-emerald-300/90 bg-emerald-500/[0.03]'
+                        : ''
+                    }
+                  >
                     <td className="py-2 text-left text-slate-400">
-                      (−) Encargos patronais (INSS {formatNumberBR(payrollInssRate)}% + RAT +
-                      Terceiros)
+                      (+) Receitas operacionais (financeiras e outras)
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(qty > 0 ? payrollResult.patronalChargesTotal / qty : 0)}
+                      +{formatBRL(unitOperatingRevenues)}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(payrollResult.patronalChargesTotal)}
+                      +{formatBRL(totalAllOperatingRevenues)}
                     </td>
                   </tr>
 
-                  {/* 10. (-) Outras Despesas operacionais */}
-                  <tr>
-                    <td className="py-2 text-left text-slate-400">
-                      (−) Outras despesas operacionais
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(qty > 0 ? totalOtherExpenses / qty : 0)}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(totalOtherExpenses)}
-                    </td>
-                  </tr>
-
-                  {/* 11. = Resultado antes do IRPJ/CSLL */}
+                  {/* 11. = Lucro antes do imposto de renda (LAIR) */}
                   <tr className="bg-slate-950/40 font-bold text-slate-100">
-                    <td className="py-2.5 text-left">= Resultado antes do IRPJ/CSLL</td>
+                    <td className="py-2.5 text-left">= Lucro antes do imposto de renda (LAIR)</td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
                       {formatBRL(unitResultBeforeTax)}
                     </td>
@@ -1133,28 +1198,62 @@ export default function DrePresumidoPage() {
                       totalValue: totalGrossProfit,
                       isSubtotal: true,
                     },
+                    ...(totalOperatingExpenses > 0
+                      ? [
+                          {
+                            description: '(−) Despesas operacionais (vendas, adm, financeiras)',
+                            unitValue: qty > 0 ? -(totalOperatingExpenses / qty) : 0,
+                            totalValue: -totalOperatingExpenses,
+                          },
+                        ]
+                      : []),
+                    ...(payrollSalaries > 0
+                      ? [
+                          {
+                            description: '(−) Folha de salários',
+                            unitValue: qty > 0 ? -(payrollSalaries / qty) : 0,
+                            totalValue: -payrollSalaries,
+                          },
+                        ]
+                      : []),
+                    ...(payrollProLabore > 0
+                      ? [
+                          {
+                            description: '(−) Pró-labore dos sócios',
+                            unitValue: qty > 0 ? -(payrollProLabore / qty) : 0,
+                            totalValue: -payrollProLabore,
+                          },
+                        ]
+                      : []),
+                    ...(payrollResult.patronalChargesTotal > 0
+                      ? [
+                          {
+                            description: `(−) Encargos patronais (INSS ${formatNumberBR(payrollInssRate)}% + RAT + Terceiros)`,
+                            unitValue: qty > 0 ? -(payrollResult.patronalChargesTotal / qty) : 0,
+                            totalValue: -payrollResult.patronalChargesTotal,
+                          },
+                        ]
+                      : []),
+                    ...(totalOtherExpenses > 0
+                      ? [
+                          {
+                            description: '(−) Outras despesas operacionais locais',
+                            unitValue: qty > 0 ? -(totalOtherExpenses / qty) : 0,
+                            totalValue: -totalOtherExpenses,
+                          },
+                        ]
+                      : []),
+                    ...(totalAllOperatingRevenues > 0
+                      ? [
+                          {
+                            description: '(+) Receitas operacionais (financeiras e outras)',
+                            unitValue: qty > 0 ? totalAllOperatingRevenues / qty : 0,
+                            totalValue: totalAllOperatingRevenues,
+                          },
+                        ]
+                      : []),
                     {
-                      description: '(−) Folha de salários',
-                      unitValue: qty > 0 ? -(payrollSalaries / qty) : 0,
-                      totalValue: -payrollSalaries,
-                    },
-                    {
-                      description: '(−) Pró-labore dos sócios',
-                      unitValue: qty > 0 ? -(payrollProLabore / qty) : 0,
-                      totalValue: -payrollProLabore,
-                    },
-                    {
-                      description: `(−) Encargos patronais (INSS ${formatNumberBR(payrollInssRate)}% + RAT + Terceiros)`,
-                      unitValue: qty > 0 ? -(payrollResult.patronalChargesTotal / qty) : 0,
-                      totalValue: -payrollResult.patronalChargesTotal,
-                    },
-                    {
-                      description: '(−) Outras despesas operacionais',
-                      unitValue: qty > 0 ? -(totalOtherExpenses / qty) : 0,
-                      totalValue: -totalOtherExpenses,
-                    },
-                    {
-                      description: '(=) Resultado antes do IRPJ/CSLL',
+                      description: '(=) Lucro antes do imposto de renda (LAIR)',
                       unitValue: unitResultBeforeTax,
                       totalValue: totalResultBeforeTax,
                       isSubtotal: true,
@@ -1292,28 +1391,62 @@ export default function DrePresumidoPage() {
                       unitValue: unitGrossProfit,
                       totalValue: totalGrossProfit,
                     },
+                    ...(totalOperatingExpenses > 0
+                      ? [
+                          {
+                            description: '(−) Despesas operacionais (vendas, adm, financeiras)',
+                            unitValue: qty > 0 ? -(totalOperatingExpenses / qty) : 0,
+                            totalValue: -totalOperatingExpenses,
+                          },
+                        ]
+                      : []),
+                    ...(payrollSalaries > 0
+                      ? [
+                          {
+                            description: '(−) Folha de salários',
+                            unitValue: qty > 0 ? -(payrollSalaries / qty) : 0,
+                            totalValue: -payrollSalaries,
+                          },
+                        ]
+                      : []),
+                    ...(payrollProLabore > 0
+                      ? [
+                          {
+                            description: '(−) Pró-labore dos sócios',
+                            unitValue: qty > 0 ? -(payrollProLabore / qty) : 0,
+                            totalValue: -payrollProLabore,
+                          },
+                        ]
+                      : []),
+                    ...(payrollResult.patronalChargesTotal > 0
+                      ? [
+                          {
+                            description: `(−) Encargos patronais (INSS ${formatNumberBR(payrollInssRate)}% + RAT + Terceiros)`,
+                            unitValue: qty > 0 ? -(payrollResult.patronalChargesTotal / qty) : 0,
+                            totalValue: -payrollResult.patronalChargesTotal,
+                          },
+                        ]
+                      : []),
+                    ...(totalOtherExpenses > 0
+                      ? [
+                          {
+                            description: '(−) Outras despesas operacionais locais',
+                            unitValue: qty > 0 ? -(totalOtherExpenses / qty) : 0,
+                            totalValue: -totalOtherExpenses,
+                          },
+                        ]
+                      : []),
+                    ...(totalAllOperatingRevenues > 0
+                      ? [
+                          {
+                            description: '(+) Receitas operacionais (financeiras e outras)',
+                            unitValue: qty > 0 ? totalAllOperatingRevenues / qty : 0,
+                            totalValue: totalAllOperatingRevenues,
+                          },
+                        ]
+                      : []),
                     {
-                      description: '(−) Folha de salários',
-                      unitValue: qty > 0 ? -(payrollSalaries / qty) : 0,
-                      totalValue: -payrollSalaries,
-                    },
-                    {
-                      description: '(−) Pró-labore dos sócios',
-                      unitValue: qty > 0 ? -(payrollProLabore / qty) : 0,
-                      totalValue: -payrollProLabore,
-                    },
-                    {
-                      description: `(−) Encargos patronais (INSS ${formatNumberBR(payrollInssRate)}% + RAT + Terceiros)`,
-                      unitValue: qty > 0 ? -(payrollResult.patronalChargesTotal / qty) : 0,
-                      totalValue: -payrollResult.patronalChargesTotal,
-                    },
-                    {
-                      description: '(−) Outras despesas operacionais',
-                      unitValue: qty > 0 ? -(totalOtherExpenses / qty) : 0,
-                      totalValue: -totalOtherExpenses,
-                    },
-                    {
-                      description: '(=) Resultado antes do IRPJ/CSLL',
+                      description: '(=) Lucro antes do imposto de renda (LAIR)',
                       unitValue: unitResultBeforeTax,
                       totalValue: totalResultBeforeTax,
                     },

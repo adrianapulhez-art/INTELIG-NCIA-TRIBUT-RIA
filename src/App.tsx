@@ -13,6 +13,7 @@ import { TaxProvider } from './contexts/TaxContext'
 import DemoDashboard from './pages/demo/DemoDashboard'
 import MarkupPage from './pages/demo/MarkupPage'
 import PurchasesPage from './pages/demo/PurchasesPage'
+import OperatingExpensesPage from './pages/demo/OperatingExpensesPage'
 import DrePresumidoPage from './pages/demo/DrePresumidoPage'
 import DreRealPage from './pages/demo/DreRealPage'
 import DreSimplesPage from './pages/demo/DreSimplesPage'
@@ -39,21 +40,29 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/app" element={<Navigate to="/demo" replace />} />
             <Route
-              path="/demo"
+              path="/demo/compras"
               element={
                 <ProtectedRoute>
-                  <DemoDashboard />
+                  <PurchasesPage />
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/demo/markup"
+              path="/demo/despesas-operacionais"
               element={
                 <ProtectedRoute>
-                  <MarkupPage />
+                  <OperatingExpensesPage />
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/demo/dre-presumido"
+              element={
+                <ProtectedRoute>
+                  <DrePresumidoPage />
+                </ProtectedRoute>
+              }
+            />{' '}
             <Route
               path="/demo/compras"
               element={
