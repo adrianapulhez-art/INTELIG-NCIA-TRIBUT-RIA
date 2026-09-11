@@ -17,7 +17,13 @@ import {
   Boxes,
   HelpCircle,
 } from 'lucide-react'
-import { formatBRL, formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
+import {
+  formatBRL,
+  formatNumberBR,
+  parseBRNumber,
+  calculatePurchaseItemGrossTotal,
+  calculatePurchaseItemNetPurchases,
+} from '@/lib/taxCalculations'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -400,22 +406,19 @@ export default function PurchasesPage() {
                           ? stockPos.currentAverageCost
                           : fallbackUnitCost
 
-                      // Preço total: quantidade em estoque × preço médio se houver estoque; ou custo total do item no regime ativo
-                      const activeItemTotalCost =
-                        regime === 'simples'
-                          ? item.costSimples
-                          : regime === 'real'
-                            ? item.costReal
-                            : item.costPresumido
+                      // Preço total (regra estrita da usuária):
+                      // Coluna "Preço Total" de cada item de compra = valor da compra (unitário) × quantidade comprada do item.
+                      // Valor bruto da compra daquele item, SEM passar pelo custo médio do estoque, SEM deduzir tributos.
+                      const itemGrossTotal = calculatePurchaseItemGrossTotal(item)
 
-                      const totalPrice =
-                        stockPos && stockPos.currentStockValue > 0
-                          ? stockPos.currentStockValue
-                          : stockQty > 0 && avgPrice > 0
-                            ? stockQty * avgPrice
-                            : activeItemTotalCost > 0
-                              ? activeItemTotalCost
-                              : item.merchandiseValue
+                      // Compras Líquidas (regra estrita da usuária):
+                      // Coluna "Compras Líquidas" de cada item = valor das compras (unitário × quantidade) MENOS os tributos
+                      // recuperáveis daquele item conforme regime ativo:
+                      // - Lucro Presumido: deduz ICMS destacado e ICMS s/ frete;
+                      // - Lucro Real: deduz ICMS, ICMS s/ frete, PIS (1,65%) e COFINS (7,60%);
+                      // - Simples Nacional: nada é recuperável -> valor bruto integral.
+                      // NÃO passa pelo custo médio do estoque.
+                      const itemNetPurchases = calculatePurchaseItemNetPurchases(item, regime)
 
                       return (
                         <tr
@@ -470,21 +473,14 @@ export default function PurchasesPage() {
                           {/* 4. Preço Total */}
                           <td className="py-3 px-4 text-right">
                             <span className="text-emerald-300 font-bold">
-                              {formatBRL(totalPrice)}
+                              {formatBRL(itemGrossTotal)}
                             </span>
                           </td>
 
-                          {/* 5. Compras Líquidas (Custo Líquido no Regime Ativo) */}
+                          {/* 5. Compras Líquidas (Valor da Compra Líquido de Tributos Recuperáveis) */}
                           <td className="py-3 px-4 text-right">
                             <span className="text-emerald-400 font-bold">
-                              {formatBRL(
-                                (item.quantity || 0) *
-                                  (regime === 'simples'
-                                    ? item.unitCostSimples || 0
-                                    : regime === 'real'
-                                      ? item.unitCostReal || 0
-                                      : item.unitCostPresumido || 0),
-                              )}
+                              {formatBRL(itemNetPurchases)}
                             </span>
                           </td>
 

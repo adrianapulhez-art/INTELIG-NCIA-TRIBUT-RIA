@@ -62,6 +62,90 @@ export function formatFactorBR(value: number | null | undefined, decimals = 4): 
  * - "R$ 1.400,00" -> 1400 (limpa símbolos)
  * Sempre retorna número finito; vazio, NaN e Infinity viram 0.
  */
+/**
+ * Apuração de item de compra conforme regras fiscais da Calculadora de Compras:
+ * 1. Preço Total = valor unitário da compra × quantidade comprada do item.
+ *    Valor bruto da compra, SEM passar pelo custo médio do estoque, SEM deduzir tributos.
+ * 2. Compras Líquidas = valor das compras (unitário × quantidade) MENOS tributos recuperáveis por regime:
+ *    - Lucro Presumido: deduz ICMS destacado sobre mercadoria e ICMS sobre frete do item;
+ *    - Lucro Real: deduz ICMS destacado, ICMS sobre frete, PIS (1,65%) e COFINS (7,60%);
+ *    - Simples Nacional: nada é recuperável -> valor bruto integral.
+ *    Também NÃO passa pelo custo médio do estoque nem pelo estoque inicial/final.
+ */
+export interface PurchaseItemTaxCalculationInput {
+  quantity: number
+  unitPrice: number
+  merchandiseValue?: number
+  icmsRate?: number
+  calculatedIcms?: number
+  freightValue?: number
+  icmsFreightRate?: number
+  icmsFreightValue?: number
+  calculatedPis?: number
+  calculatedCofins?: number
+}
+
+export function calculatePurchaseItemGrossTotal(
+  item: Pick<PurchaseItemTaxCalculationInput, 'quantity' | 'unitPrice' | 'merchandiseValue'>,
+): number {
+  const qty = Math.max(0, Number.isFinite(item.quantity) ? item.quantity : 0)
+  const unit = Math.max(0, Number.isFinite(item.unitPrice) ? item.unitPrice : 0)
+  if (qty > 0 && unit > 0) {
+    return Math.round(qty * unit * 100) / 100
+  }
+  const merch = Math.max(
+    0,
+    Number.isFinite(item.merchandiseValue) ? (item.merchandiseValue ?? 0) : 0,
+  )
+  if (merch > 0) {
+    return Math.round(merch * 100) / 100
+  }
+  return 0
+}
+
+export function calculatePurchaseItemNetPurchases(
+  item: PurchaseItemTaxCalculationInput,
+  regime: 'presumido' | 'real' | 'simples',
+): number {
+  const grossTotal = calculatePurchaseItemGrossTotal(item)
+  if (grossTotal <= 0) return 0
+
+  if (regime === 'simples') {
+    // Simples Nacional: nada é recuperável -> valor bruto integral
+    return grossTotal
+  }
+
+  // ICMS destacado sobre a mercadoria do item
+  const icms =
+    item.calculatedIcms !== undefined && Number.isFinite(item.calculatedIcms)
+      ? Math.max(0, item.calculatedIcms)
+      : Math.max(0, (grossTotal * Math.max(0, item.icmsRate ?? 0)) / 100)
+
+  // ICMS sobre frete do item se houver
+  const icmsFreight =
+    item.icmsFreightValue !== undefined && Number.isFinite(item.icmsFreightValue)
+      ? Math.max(0, item.icmsFreightValue)
+      : Math.max(0, ((item.freightValue ?? 0) * Math.max(0, item.icmsFreightRate ?? 0)) / 100)
+
+  if (regime === 'presumido') {
+    // Lucro Presumido: deduz ICMS destacado e ICMS sobre frete
+    return Math.max(0, Math.round((grossTotal - icms - icmsFreight) * 100) / 100)
+  }
+
+  // Lucro Real: deduz ICMS, ICMS s/ frete, PIS (1,65%) e COFINS (7,60%)
+  const pis =
+    item.calculatedPis !== undefined && Number.isFinite(item.calculatedPis)
+      ? Math.max(0, item.calculatedPis)
+      : Math.max(0, (Math.max(0, grossTotal - icms) * 1.65) / 100)
+
+  const cofins =
+    item.calculatedCofins !== undefined && Number.isFinite(item.calculatedCofins)
+      ? Math.max(0, item.calculatedCofins)
+      : Math.max(0, (Math.max(0, grossTotal - icms) * 7.6) / 100)
+
+  return Math.max(0, Math.round((grossTotal - icms - icmsFreight - pis - cofins) * 100) / 100)
+}
+
 export function parseBRNumber(input: string | number | null | undefined): number {
   if (typeof input === 'number') {
     return Number.isFinite(input) ? input : 0

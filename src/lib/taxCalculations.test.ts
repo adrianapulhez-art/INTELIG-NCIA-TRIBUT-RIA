@@ -1,4 +1,10 @@
-import { parseBRNumber, formatBRL, formatNumberBR } from './taxCalculations'
+import {
+  parseBRNumber,
+  formatBRL,
+  formatNumberBR,
+  calculatePurchaseItemGrossTotal,
+  calculatePurchaseItemNetPurchases,
+} from './taxCalculations'
 import { calculateCmvDetailedBreakdown } from './cmvBreakdownCalculations'
 import { calculateRbt12InicioAtividade } from './simplesCalculations'
 
@@ -379,6 +385,135 @@ export function runAutoStockDeductionTests(): {
       received: t.received,
     }
   })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
+ * Testes travando as regras estritas das colunas da Calculadora de Compras:
+ * 1. Coluna "Preço Total" = valor unitário × quantidade comprada (independente de estoque/CMP).
+ * 2. Coluna "Compras Líquidas" = base − tributos recuperáveis por regime:
+ *    - Presumido: deduz ICMS mercadoria e ICMS frete;
+ *    - Real: deduz ICMS, ICMS frete, PIS (1,65%) e COFINS (7,60%);
+ *    - Simples: nada recuperável (valor bruto integral).
+ * 3. Caso simples: 30 unidades a R$ 100,00 (sem ST/frete):
+ *    - Preço Total = R$ 3.000,00
+ *    - Compras Líquidas Presumido (ICMS 18%) = R$ 2.460,00 (3.000 - 540)
+ *    - Compras Líquidas Real (ICMS 18%, PIS 1,65%, COFINS 7,60%) = R$ 2.232,45 (3.000 - 540 - 40,59 - 186,96)
+ *    - Compras Líquidas Simples = R$ 3.000,00
+ * 4. Caso com frete e ICMS sobre frete (ex: 30 un a R$ 100, frete R$ 200 com ICMS frete 12% = R$ 24,00, ICMS 18%):
+ *    - Preço Total = R$ 3.000,00
+ *    - Compras Líquidas Presumido = 3.000 - 540 - 24 = R$ 2.436,00
+ */
+export function runPurchasesTableColumnsRulesTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
+} {
+  // Caso 1: 30 unidades a R$ 100,00 sem frete nem ST
+  const item30x100 = {
+    quantity: 30,
+    unitPrice: 100,
+    merchandiseValue: 3000,
+    icmsRate: 18,
+    calculatedIcms: 540,
+    freightValue: 0,
+    icmsFreightRate: 0,
+    icmsFreightValue: 0,
+    calculatedPis: 40.59, // (3000 - 540) * 1.65%
+    calculatedCofins: 186.96, // (3000 - 540) * 7.6%
+  }
+
+  const gross30x100 = calculatePurchaseItemGrossTotal(item30x100)
+  const netPresumido30x100 = calculatePurchaseItemNetPurchases(item30x100, 'presumido')
+  const netReal30x100 = calculatePurchaseItemNetPurchases(item30x100, 'real')
+  const netSimples30x100 = calculatePurchaseItemNetPurchases(item30x100, 'simples')
+
+  // Caso 2: Com frete e ICMS sobre frete
+  // 50 unidades a R$ 80,00 -> Preço total R$ 4.000,00
+  // ICMS 18% -> R$ 720,00
+  // Frete do item = R$ 300,00 com ICMS frete 12% -> R$ 36,00
+  // PIS (1,65% s/ 4000 - 720 = 3280) -> R$ 54,12
+  // COFINS (7,6% s/ 3280) -> R$ 249,28
+  const itemWithFreight = {
+    quantity: 50,
+    unitPrice: 80,
+    merchandiseValue: 4000,
+    icmsRate: 18,
+    calculatedIcms: 720,
+    freightValue: 300,
+    icmsFreightRate: 12,
+    icmsFreightValue: 36,
+    calculatedPis: 54.12,
+    calculatedCofins: 249.28,
+  }
+
+  const grossWithFreight = calculatePurchaseItemGrossTotal(itemWithFreight)
+  const netPresumidoWithFreight = calculatePurchaseItemNetPurchases(itemWithFreight, 'presumido')
+  const netRealWithFreight = calculatePurchaseItemNetPurchases(itemWithFreight, 'real')
+  const netSimplesWithFreight = calculatePurchaseItemNetPurchases(itemWithFreight, 'simples')
+
+  const tests: {
+    test: string
+    expected: number
+    received: number
+  }[] = [
+    // Caso 1: 30 unidades a R$ 100,00
+    {
+      test: 'Preço Total de 30 un x R$ 100,00 deve ser R$ 3.000,00',
+      expected: 3000,
+      received: gross30x100,
+    },
+    {
+      test: 'Compras Líquidas Presumido (30 un x R$ 100, ICMS 18%) = 3.000 - 540 = R$ 2.460,00',
+      expected: 2460,
+      received: netPresumido30x100,
+    },
+    {
+      test: 'Compras Líquidas Real (30 un x R$ 100, ICMS 18%, PIS 1,65%, COFINS 7,6%) = 3.000 - 540 - 40,59 - 186,96 = R$ 2.232,45',
+      expected: 2232.45,
+      received: netReal30x100,
+    },
+    {
+      test: 'Compras Líquidas Simples Nacional (nada recuperável) = R$ 3.000,00',
+      expected: 3000,
+      received: netSimples30x100,
+    },
+
+    // Caso 2: Com frete e ICMS sobre frete
+    {
+      test: 'Preço Total de 50 un x R$ 80,00 com frete separado deve ser estritamente R$ 4.000,00 (valor da compra)',
+      expected: 4000,
+      received: grossWithFreight,
+    },
+    {
+      test: 'Compras Líquidas Presumido com frete = 4.000 - 720 (ICMS) - 36 (ICMS frete) = R$ 3.244,00',
+      expected: 3244,
+      received: netPresumidoWithFreight,
+    },
+    {
+      test: 'Compras Líquidas Real com frete = 4.000 - 720 - 36 - 54,12 - 249,28 = R$ 2.940,60',
+      expected: 2940.6,
+      received: netRealWithFreight,
+    },
+    {
+      test: 'Compras Líquidas Simples com frete (nada recuperável) = R$ 4.000,00',
+      expected: 4000,
+      received: netSimplesWithFreight,
+    },
+  ]
+
+  const results = tests.map((t) => ({
+    test: t.test,
+    passed: Math.abs(t.expected - t.received) < 0.01,
+    expected: t.expected,
+    received: t.received,
+  }))
 
   const allPassed = results.every((r) => r.passed)
   return { allPassed, results }

@@ -9,7 +9,12 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { formatBRL, formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
+import {
+  formatBRL,
+  formatNumberBR,
+  parseBRNumber,
+  calculatePurchaseItemGrossTotal,
+} from '@/lib/taxCalculations'
 import {
   Package,
   Layers,
@@ -263,10 +268,14 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
 
             <div className="space-y-0.5">
               <span className="text-[10px] font-mono text-slate-400 uppercase block">
-                Preço / Custo Total
+                Preço Total (Bruto)
               </span>
               <strong className="text-sm font-mono text-emerald-400">
-                {formatBRL(totalValue !== undefined && totalValue > 0 ? totalValue : activeCost)}
+                {formatBRL(
+                  totalValue !== undefined && totalValue > 0
+                    ? totalValue
+                    : calculatePurchaseItemGrossTotal(item),
+                )}
               </strong>
             </div>
           </div>
