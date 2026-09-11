@@ -16,7 +16,7 @@ interface PayrollSectionProps {
   payrollTerceirosRate: number
   setPayrollTerceirosRate: (val: number) => void
   calculation: PayrollCalculationResult
-  regimeLabel: 'Lucro Presumido' | 'Lucro Real'
+  regimeLabel: 'Lucro Presumido' | 'Lucro Real' | string
 }
 
 export const PayrollSection: React.FC<PayrollSectionProps> = ({

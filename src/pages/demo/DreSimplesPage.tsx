@@ -5,14 +5,14 @@ import { useNavigate } from 'react-router-dom'
 import {
   Calculator,
   Link as LinkIcon,
-  Plus,
-  Trash2,
   CheckCircle2,
   AlertTriangle,
   Sparkles,
   ArrowLeft,
   ArrowRight,
   Info,
+  Plus,
+  Trash2,
 } from 'lucide-react'
 import { formatBRL, formatNumberBR, formatPercentBR, parseBRNumber } from '@/lib/taxCalculations'
 import {
@@ -984,73 +984,6 @@ export default function DreSimplesPage() {
                   {formatBRL(unitCMV)} × {effectiveSoldQtyForCmv} un.
                 </p>
               </div>
-            </div>
-          </div>
-
-          {/* Despesas Operacionais (valores totais) */}
-          <div className="space-y-3 pt-2 border-t border-slate-800/80">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs font-mono font-semibold uppercase text-slate-200">
-                  Despesas operacionais (valores totais)
-                </h3>
-                <p className="text-[11px] text-slate-400">
-                  Custos fixos e operacionais deduzidos globalmente do resultado.
-                </p>
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => addSimplesExpense('Nova despesa operacional', 0)}
-                className="h-7 text-xs bg-slate-950/40 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                Adicionar despesa
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              {simplesExpenses.map((exp) => (
-                <div
-                  key={exp.id}
-                  className="flex items-center gap-2 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/80"
-                >
-                  <Input
-                    type="text"
-                    value={exp.description}
-                    onChange={(e) => updateSimplesExpense(exp.id, 'description', e.target.value)}
-                    placeholder="Descrição da despesa"
-                    className="flex-1 text-xs font-mono field-input-interactive"
-                  />
-                  <div className="relative w-36 sm:w-44">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                      R$
-                    </span>
-                    <Input
-                      type="text"
-                      defaultValue={exp.value > 0 ? formatNumberBR(exp.value) : ''}
-                      key={`exp-${exp.id}-${exp.value}`}
-                      placeholder="0,00"
-                      onBlur={(e) => {
-                        const parsed = parseBRNumber(e.target.value)
-                        updateSimplesExpense(exp.id, 'value', parsed)
-                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                      }}
-                      className="pl-8 text-right text-xs font-mono field-input-interactive"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeSimplesExpense(exp.id)}
-                    className="p-2 text-slate-500 hover:text-rose-400 transition-colors"
-                    title="Remover"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
             </div>
           </div>
 

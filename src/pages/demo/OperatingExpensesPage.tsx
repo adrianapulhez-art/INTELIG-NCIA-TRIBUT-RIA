@@ -28,8 +28,11 @@ import {
   Tag,
   DollarSign,
   Info,
+  Users,
 } from 'lucide-react'
 import { formatBRL, formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
+import { calculatePayroll } from '@/lib/payrollCalculations'
+import { PayrollSection } from '@/components/demo/PayrollSection'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageHero } from '@/components/demo/PageHero'
@@ -67,10 +70,22 @@ export default function OperatingExpensesPage() {
     totalOperatingRevenues,
     netOperatingResult,
     resetAll,
+    payrollSalaries,
+    setPayrollSalaries,
+    payrollProLabore,
+    setPayrollProLabore,
+    payrollInssRate,
+    setPayrollInssRate,
+    payrollRatRate,
+    setPayrollRatRate,
+    payrollTerceirosRate,
+    setPayrollTerceirosRate,
   } = useTaxContext()
 
   // Modal para detalhamento / discriminação geral por tipo (camada analítica existente)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+  // Subcamada Modal: Folha e Pró-labore
+  const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false)
 
   // Camada Oculta: Adicionar Despesa com Discriminação e Exemplos
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false)
@@ -88,6 +103,16 @@ export default function OperatingExpensesPage() {
   const [revenueValueStr, setRevenueValueStr] = useState('')
   const [revenueCompanySize, setRevenueCompanySize] = useState<CompanySize>('small')
   const [revenueSuccessFeedback, setRevenueSuccessFeedback] = useState<string | null>(null)
+
+  // Cálculo de Folha e Encargos Patronais
+  const payrollResult = calculatePayroll({
+    payrollSalaries,
+    proLabore: payrollProLabore,
+    inssPatronalRate: payrollInssRate,
+    ratRate: payrollRatRate,
+    terceirosRate: payrollTerceirosRate,
+  })
+  const hasPayrollValues = (payrollSalaries || 0) > 0 || (payrollProLabore || 0) > 0
 
   // Totais por categoria de Despesas
   const expensesByCategory = React.useMemo(() => {
@@ -261,7 +286,32 @@ export default function OperatingExpensesPage() {
 
             {/* Chips em Camadas (padrão do sistema) */}
             <div className="flex flex-wrap items-center gap-2 shrink-0">
-              {/* Chip 1: Discriminação por Categoria */}
+              {/* Chip 1: Folha e Pró-labore (Subcamada Compacta) */}
+              <button
+                type="button"
+                onClick={() => setIsPayrollModalOpen(true)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer shadow-sm ${
+                  hasPayrollValues
+                    ? 'bg-emerald-500/[0.18] border-emerald-400/80 text-emerald-100 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-emerald-500/15 ring-1 ring-emerald-500/30'
+                    : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/50'
+                }`}
+                title="Abrir camada compacta de edição de Folha de Salários, Pró-labore e Encargos Patronais"
+              >
+                <Users className="w-3.5 h-3.5 text-emerald-300" />
+                <span className="font-semibold">Folha & Pró-labore</span>
+                <Badge
+                  className={`text-[10px] px-1.5 py-0 border-0 font-semibold ${
+                    hasPayrollValues
+                      ? 'bg-emerald-500/35 text-emerald-100'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  {hasPayrollValues ? formatBRL(payrollResult.totalLaborExpense) : 'Não preenchido'}
+                </Badge>
+                <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
+              </button>
+
+              {/* Chip 2: Discriminação por Categoria */}
               <button
                 type="button"
                 onClick={() => setIsCategoryModalOpen(true)}
@@ -276,7 +326,7 @@ export default function OperatingExpensesPage() {
                 <ChevronRight className="w-3 h-3 text-orange-300/70 ml-0.5" />
               </button>
 
-              {/* Chip 2: Adicionar Despesa (Camada Oculta) */}
+              {/* Chip 3: Adicionar Despesa (Camada Oculta) */}
               <button
                 type="button"
                 onClick={() => handleOpenAddExpense('small')}
@@ -291,7 +341,7 @@ export default function OperatingExpensesPage() {
                 <ChevronRight className="w-3 h-3 text-rose-300/70 ml-0.5" />
               </button>
 
-              {/* Chip 3: Adicionar Receita (Camada Oculta) */}
+              {/* Chip 4: Adicionar Receita (Camada Oculta) */}
               <button
                 type="button"
                 onClick={() => handleOpenAddRevenue('small')}
@@ -1251,6 +1301,72 @@ export default function OperatingExpensesPage() {
       {/* ===================================================================== */}
       {/* CAMADA OCULTA 3: DISCRIMINAÇÃO POR CATEGORIA E REGRAS FISCAIS */}
       {/* ===================================================================== */}
+      {/* ===================================================================== */}
+      {/* SUBCAMADA MODAL: FOLHA DE SALÁRIOS, PRÓ-LABORE E ENCARGOS PATRONAIS */}
+      {/* ===================================================================== */}
+      <Dialog open={isPayrollModalOpen} onOpenChange={setIsPayrollModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#07130f] border border-emerald-500/40 text-slate-100 shadow-2xl p-5 sm:p-7">
+          <DialogHeader className="border-b border-emerald-500/20 pb-3">
+            <div className="flex items-center justify-between gap-3 pr-6">
+              <DialogTitle className="text-base sm:text-lg font-bold text-white flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+                  <Users className="w-4 h-4" />
+                </div>
+                <span>Folha de Pagamento, Pró-labore e Encargos Patronais</span>
+              </DialogTitle>
+              <Badge
+                className={`text-[11px] font-mono ${
+                  hasPayrollValues
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-slate-800 text-slate-400 border border-slate-700'
+                }`}
+              >
+                {hasPayrollValues ? 'Valores Ativos' : 'Não preenchido'}
+              </Badge>
+            </div>
+            <DialogDescription className="text-xs text-slate-400">
+              Ajuste aqui a folha de salários mensal, o pró-labore dos sócios e as alíquotas de
+              encargos patronais (INSS 20%, RAT e Terceiros). Os dados alimentam diretamente os
+              encargos nas DREs e o Fator R do Simples Nacional.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="pt-2">
+            <PayrollSection
+              payrollSalaries={payrollSalaries}
+              setPayrollSalaries={setPayrollSalaries}
+              payrollProLabore={payrollProLabore}
+              setPayrollProLabore={setPayrollProLabore}
+              payrollInssRate={payrollInssRate}
+              setPayrollInssRate={setPayrollInssRate}
+              payrollRatRate={payrollRatRate}
+              setPayrollRatRate={setPayrollRatRate}
+              payrollTerceirosRate={payrollTerceirosRate}
+              setPayrollTerceirosRate={setPayrollTerceirosRate}
+              calculation={payrollResult}
+              regimeLabel="Despesas Operacionais"
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+            <span className="text-xs font-mono text-slate-400">
+              Total Pessoal + Encargos:{' '}
+              <strong className="text-emerald-400 font-bold">
+                {formatBRL(payrollResult.totalLaborExpense)}
+              </strong>
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setIsPayrollModalOpen(false)}
+              className="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20 cursor-pointer"
+            >
+              Concluir
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
         <DialogContent className="max-w-2xl bg-[#091511] border border-emerald-500/30 text-slate-100 shadow-2xl">
           <DialogHeader>

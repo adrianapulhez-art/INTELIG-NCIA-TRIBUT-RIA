@@ -2,18 +2,9 @@ import React, { useState } from 'react'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { useTaxContext, ActivityType } from '@/contexts/TaxContext'
 import { useNavigate } from 'react-router-dom'
-import {
-  Calculator,
-  Link as LinkIcon,
-  Plus,
-  Trash2,
-  CheckCircle2,
-  ArrowLeft,
-  ArrowRight,
-} from 'lucide-react'
+import { Calculator, Link as LinkIcon, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react'
 import { formatBRL, formatNumberBR, formatPercentBR, parseBRNumber } from '@/lib/taxCalculations'
 import { calculatePayroll } from '@/lib/payrollCalculations'
-import { PayrollSection } from '@/components/demo/PayrollSection'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
@@ -598,87 +589,6 @@ export default function DrePresumidoPage() {
                 <span className="text-[10px] text-slate-400 block">CSLL</span>
                 <span className="text-slate-200 font-semibold">{formatNumberBR(csllRate)}%</span>
               </div>
-            </div>
-          </div>
-
-          {/* NOVO BLOCO: Folha e Pró-labore */}
-          <PayrollSection
-            payrollSalaries={payrollSalaries}
-            setPayrollSalaries={setPayrollSalaries}
-            payrollProLabore={payrollProLabore}
-            setPayrollProLabore={setPayrollProLabore}
-            payrollInssRate={payrollInssRate}
-            setPayrollInssRate={setPayrollInssRate}
-            payrollRatRate={payrollRatRate}
-            setPayrollRatRate={setPayrollRatRate}
-            payrollTerceirosRate={payrollTerceirosRate}
-            setPayrollTerceirosRate={setPayrollTerceirosRate}
-            calculation={payrollResult}
-            regimeLabel="Lucro Presumido"
-          />
-
-          {/* Despesas Operacionais (valores totais) */}
-          <div className="space-y-3 pt-2 border-t border-slate-800/80">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xs font-mono font-semibold uppercase text-slate-200">
-                  Despesas operacionais (valores totais)
-                </h3>
-                <p className="text-[11px] text-slate-400">
-                  Despesas deduzidas globalmente no resultado do período.
-                </p>
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => addPresumidoExpense('Nova despesa operacional', 0)}
-                className="h-7 text-xs bg-slate-950/40 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" />
-                Adicionar despesa
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              {presumidoExpenses.map((exp) => (
-                <div
-                  key={exp.id}
-                  className="flex items-center gap-2 bg-slate-950/50 p-2.5 rounded-xl border border-slate-800/80"
-                >
-                  <Input
-                    type="text"
-                    value={exp.description}
-                    onChange={(e) => updatePresumidoExpense(exp.id, 'description', e.target.value)}
-                    placeholder="Descrição da despesa"
-                    className="flex-1 text-xs font-mono field-input-interactive"
-                  />
-                  <div className="relative w-36 sm:w-44">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                      R$
-                    </span>
-                    <Input
-                      type="text"
-                      defaultValue={exp.value > 0 ? formatNumberBR(exp.value) : ''}
-                      key={`exp-${exp.id}-${exp.value}`}
-                      onBlur={(e) =>
-                        updatePresumidoExpense(exp.id, 'value', parseBRNumber(e.target.value))
-                      }
-                      placeholder="0,00"
-                      className="pl-8 text-right text-xs font-mono field-input-interactive"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removePresumidoExpense(exp.id)}
-                    className="p-2 text-slate-500 hover:text-rose-400 transition-colors"
-                    title="Remover"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
             </div>
           </div>
 
