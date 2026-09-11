@@ -1280,9 +1280,12 @@ export default function MarkupPage() {
             {/* Discriminação por Produto (sem média entre mercadorias distintas) */}
             <div className="space-y-2 pt-1">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
-                  Preço de venda e receita por produto ({regime.toUpperCase()})
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-3.5 bg-amber-500 rounded-full" />
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-amber-200 font-semibold">
+                    Preço de venda e receita por produto ({regime.toUpperCase()})
+                  </span>
+                </div>
                 <span className="text-[10px] font-mono text-slate-500">
                   Sem média entre produtos distintos
                 </span>
@@ -1323,17 +1326,21 @@ export default function MarkupPage() {
                         </td>
                       </tr>
                     ))}
-                    <tr className="bg-emerald-500/[0.06] font-bold border-t border-emerald-500/30">
+                    {/* Linha consolidada Grupo 1 (Regime Ativo): Destaque Laranja/Âmbar com marcação reforçada */}
+                    <tr className="bg-amber-500/15 font-bold border-t-2 border-b-2 border-amber-500/60 shadow-[inset_0_0_12px_rgba(245,158,11,0.08)]">
                       <td
                         colSpan={4}
-                        className="py-2.5 px-3 text-left text-slate-200 uppercase tracking-wide"
+                        className="py-3 px-3 text-left text-amber-200 font-extrabold uppercase tracking-wide border-l-2 border-amber-500"
                       >
-                        Total Consolidado (Soma das receitas)
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                          <span>Total Consolidado (Soma das receitas)</span>
+                        </div>
                       </td>
-                      <td className="py-2.5 px-3 text-right text-slate-100">
+                      <td className="py-3 px-3 text-right text-amber-100 font-bold text-sm">
                         {totalConsolidatedQuantity} un.
                       </td>
-                      <td className="py-2.5 px-3 text-right text-emerald-400 text-sm">
+                      <td className="py-3 px-3 text-right text-amber-300 font-black text-base drop-shadow-[0_0_6px_rgba(251,191,36,0.35)] border-r-2 border-amber-500/60">
                         {formatBRL(totalConsolidatedRevenue)}
                       </td>
                     </tr>
@@ -1347,11 +1354,12 @@ export default function MarkupPage() {
               <div className="pt-4 mt-2 border-t border-slate-800/80 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-3.5 bg-emerald-400 rounded-full" />
                     <Scale className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-300">
                       Preço de venda simulado por regime
                     </h3>
-                    <Badge className="bg-slate-900 text-slate-400 border-slate-700 text-[10px] font-mono">
+                    <Badge className="bg-emerald-950/60 text-emerald-400 border-emerald-700/50 text-[10px] font-mono">
                       Comparativo discriminado por produto
                     </Badge>
                   </div>
@@ -1462,26 +1470,29 @@ export default function MarkupPage() {
                           </tr>
                         )
                       })}
-                      {/* Linha consolidada total (soma das receitas por regime, SEM média) */}
-                      <tr className="bg-slate-900/90 font-bold border-t border-slate-700">
-                        <td className="py-2.5 px-3 text-left text-slate-300 uppercase tracking-wide">
-                          Receita Consolidada (Σ)
+                      {/* Linha consolidada total Grupo 2 (Comparativo): Destaque Verde-Esmeralda com marcação reforçada */}
+                      <tr className="bg-emerald-500/15 font-bold border-t-2 border-b-2 border-emerald-500/60 shadow-[inset_0_0_12px_rgba(16,185,129,0.08)]">
+                        <td className="py-3 px-3 text-left text-emerald-200 font-extrabold uppercase tracking-wide border-l-2 border-emerald-400">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>Receita Consolidada (Σ)</span>
+                          </div>
                         </td>
-                        <td className="py-2.5 px-3 text-right text-slate-200">
+                        <td className="py-3 px-3 text-right text-emerald-100 font-bold text-sm">
                           {totalConsolidatedQuantity} un.
                         </td>
-                        <td className="py-2.5 px-3 text-right text-emerald-400">
+                        <td className="py-3 px-3 text-right text-emerald-300 font-black text-sm drop-shadow-[0_0_6px_rgba(52,211,153,0.35)]">
                           {formatBRL(regimeComparison.totalRevPresumido)}
                         </td>
-                        <td className="py-2.5 px-3 text-right text-emerald-400">
+                        <td className="py-3 px-3 text-right text-emerald-300 font-black text-sm drop-shadow-[0_0_6px_rgba(52,211,153,0.35)]">
                           {formatBRL(regimeComparison.totalRevReal)}
                         </td>
-                        <td className="py-2.5 px-3 text-right text-emerald-400">
+                        <td className="py-3 px-3 text-right text-emerald-300 font-black text-sm drop-shadow-[0_0_6px_rgba(52,211,153,0.35)]">
                           {regimeComparison.totalRevSimples !== null
                             ? formatBRL(regimeComparison.totalRevSimples)
                             : '—'}
                         </td>
-                        <td className="py-2.5 px-3 text-center text-slate-400 text-[10px]">
+                        <td className="py-3 px-3 text-center text-emerald-300 font-semibold text-[11px] border-r-2 border-emerald-500/60">
                           Soma por regime
                         </td>
                       </tr>
