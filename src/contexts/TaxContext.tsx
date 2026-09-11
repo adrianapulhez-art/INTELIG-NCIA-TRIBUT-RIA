@@ -447,6 +447,18 @@ export interface TaxContextType {
     autoFinalInventoryPresumido: number
     autoFinalInventoryReal: number
     autoFinalInventorySimples: number
+    // Apuração detalhada de CMP e CMV por produto
+    productCmvBreakdown: {
+      productId: string
+      name: string
+      soldQty: number
+      cmpPresumido: number
+      cmpReal: number
+      cmpSimples: number
+      cmvPresumido: number
+      cmvReal: number
+      cmvSimples: number
+    }[]
   }
 
   // FOLHA E PRÓ-LABORE STATE (Compartilhado entre as DREs e Comparação)
@@ -2059,15 +2071,6 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ? totalItemsCostSimples
     : cmvSimplesNetPurchases
 
-  // Custo unitário por regime = Σ custo do regime dos itens ÷ Σ quantidade comprada dos itens (protegendo divisão por zero)
-  // Permanece SEMPRE disponível (com ou sem toggle de baixa automática de estoque)
-  const unitCostPresumidoAuto =
-    totalPurchasesQuantity > 0 ? purchasesCostPresumido / totalPurchasesQuantity : 0
-  const unitCostRealAuto =
-    totalPurchasesQuantity > 0 ? purchasesCostReal / totalPurchasesQuantity : 0
-  const unitCostSimplesAuto =
-    totalPurchasesQuantity > 0 ? purchasesCostSimples / totalPurchasesQuantity : 0
-
   // Unidades disponíveis = Σ quantidade comprada + estoque inicial em unidades
   const totalAvailableUnits =
     (totalPurchasesQuantity || 0) + Math.max(0, initialInventoryUnits || 0)
@@ -2081,10 +2084,155 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const isQuantityExceededGeneral =
     totalAvailableUnits > 0 && generalSoldUnits > totalAvailableUnits
 
-  // CMV com toggle ligado
-  const autoCmvPresumido = unitCostPresumidoAuto * cappedSoldUnitsGeneral
-  const autoCmvReal = unitCostRealAuto * cappedSoldUnitsGeneral
-  const autoCmvSimples = unitCostSimplesAuto * cappedSoldUnitsGeneral
+  // =========================================================================
+  // CÁLCULO DO CMV POR PRODUTO (Média Ponderada Móvel CMP por Produto)
+  // Conforme exigência contábil:
+  // 1) Para cada item: se o subsistema de estoque por produto (calculatedProductStock.positions)
+  //    tiver movimentações, CMP_i = pos.currentAverageCost; senão fallback = custo unitário fiscal
+  //    do item no regime (unitCostPresumido / unitCostReal / unitCostSimples).
+  // 2) CMV_i = quantidade vendida daquele produto × CMP_i.
+  //    CMV consolidado = Σ CMV_i.
+  // 3) O custo unitário consolidado exibido é DERIVADO (consolidado ÷ total vendido) e nunca retroalimenta a baixa.
+  // =========================================================================
+
+  // Mapeamento e apuração detalhada por produto
+  const productCmvBreakdown = useMemo(() => {
+    // Lista de produtos comercializados com quantidade vendida
+    const productsWithSales = (markupProducts || []).map((prod, index) => {
+      const soldQty =
+        typeof prod.quantity === 'number' && Number.isFinite(prod.quantity)
+          ? Math.max(0, prod.quantity)
+          : 0
+      const prodName = (prod.name || `Produto ${index + 1}`).trim().toLowerCase()
+
+      // 1. Tenta correspondência no subsistema de estoque (calculatedProductStock)
+      const stockItem = (productStockState?.products || []).find(
+        (p) =>
+          (p.productId && p.productId === prod.id) ||
+          (p.name && p.name.trim().toLowerCase() === prodName),
+      )
+      const stockPos = stockItem
+        ? calculatedProductStock.positions.find((pos) => pos.id === stockItem.id)
+        : null
+
+      const hasStockMovements = !!stockPos && (stockPos.historyLedger?.length || 0) > 0
+
+      // 2. Tenta correspondência nos itens fiscais de compra (computedPurchasesItems)
+      const purchaseItem = computedPurchasesItems.find(
+        (it) => it.name && it.name.trim().toLowerCase() === prodName,
+      )
+
+      // Custo unitário fiscal de fallback do item de compras por regime
+      const itemUnitPresumido =
+        purchaseItem?.unitCostPresumido && purchaseItem.unitCostPresumido > 0
+          ? purchaseItem.unitCostPresumido
+          : (purchaseItem?.merchandiseValue || 0) > 0 && (purchaseItem?.quantity || 0) > 0
+            ? purchaseItem.merchandiseValue / purchaseItem.quantity
+            : purchaseItem?.unitPrice || 0
+
+      const itemUnitReal =
+        purchaseItem?.unitCostReal && purchaseItem.unitCostReal > 0
+          ? purchaseItem.unitCostReal
+          : itemUnitPresumido
+
+      const itemUnitSimples =
+        purchaseItem?.unitCostSimples && purchaseItem.unitCostSimples > 0
+          ? purchaseItem.unitCostSimples
+          : itemUnitPresumido
+
+      // CMP_i por regime:
+      // Se houver movimentações no subsistema de estoque, usa stockPos.currentAverageCost
+      // senão, fallback para o custo unitário fiscal do item de compras;
+      // se ainda não houver, fallback para o custo base cadastrado no produto do markup.
+      const baseCost = typeof prod.cost === 'number' && Number.isFinite(prod.cost) ? prod.cost : 0
+
+      const cmpPresumido =
+        hasStockMovements && stockPos && stockPos.currentAverageCost > 0
+          ? stockPos.currentAverageCost
+          : itemUnitPresumido > 0
+            ? itemUnitPresumido
+            : baseCost
+
+      const cmpReal =
+        hasStockMovements && stockPos && stockPos.currentAverageCost > 0
+          ? stockPos.currentAverageCost
+          : itemUnitReal > 0
+            ? itemUnitReal
+            : baseCost
+
+      const cmpSimples =
+        hasStockMovements && stockPos && stockPos.currentAverageCost > 0
+          ? stockPos.currentAverageCost
+          : itemUnitSimples > 0
+            ? itemUnitSimples
+            : baseCost
+
+      // CMV individual do produto = quantidade vendida × CMP_i
+      const cmvPresumido = Math.round(soldQty * cmpPresumido * 100) / 100
+      const cmvReal = Math.round(soldQty * cmpReal * 100) / 100
+      const cmvSimples = Math.round(soldQty * cmpSimples * 100) / 100
+
+      return {
+        productId: prod.id,
+        name: prod.name || `Produto ${index + 1}`,
+        soldQty,
+        cmpPresumido,
+        cmpReal,
+        cmpSimples,
+        cmvPresumido,
+        cmvReal,
+        cmvSimples,
+      }
+    })
+
+    return productsWithSales
+  }, [
+    markupProducts,
+    productStockState.products,
+    calculatedProductStock.positions,
+    computedPurchasesItems,
+  ])
+
+  // Se houver produtos cadastrados no Markup com vendas e custos por produto apurados
+  const hasPerProductSales = productCmvBreakdown.some((p) => p.soldQty > 0)
+
+  // CMV Consolidado por soma direta dos produtos (Σ CMV_i)
+  const sumPerProductCmvPresumido = productCmvBreakdown.reduce((acc, p) => acc + p.cmvPresumido, 0)
+  const sumPerProductCmvReal = productCmvBreakdown.reduce((acc, p) => acc + p.cmvReal, 0)
+  const sumPerProductCmvSimples = productCmvBreakdown.reduce((acc, p) => acc + p.cmvSimples, 0)
+
+  // Fallback geral (se não houver vendas por produto cadastradas no Markup)
+  const generalUnitCostPresumido =
+    totalPurchasesQuantity > 0 ? purchasesCostPresumido / totalPurchasesQuantity : 0
+  const generalUnitCostReal =
+    totalPurchasesQuantity > 0 ? purchasesCostReal / totalPurchasesQuantity : 0
+  const generalUnitCostSimples =
+    totalPurchasesQuantity > 0 ? purchasesCostSimples / totalPurchasesQuantity : 0
+
+  // CMV automático (sob baixa de estoque ligada):
+  // Prioriza rigorosamente a soma ponderada por produto quando há vendas de produtos
+  const autoCmvPresumido = hasPerProductSales
+    ? Math.round(sumPerProductCmvPresumido * 100) / 100
+    : Math.round(generalUnitCostPresumido * cappedSoldUnitsGeneral * 100) / 100
+
+  const autoCmvReal = hasPerProductSales
+    ? Math.round(sumPerProductCmvReal * 100) / 100
+    : Math.round(generalUnitCostReal * cappedSoldUnitsGeneral * 100) / 100
+
+  const autoCmvSimples = hasPerProductSales
+    ? Math.round(sumPerProductCmvSimples * 100) / 100
+    : Math.round(generalUnitCostSimples * cappedSoldUnitsGeneral * 100) / 100
+
+  // O unitário consolidado exibido é estritamente DERIVADO (consolidado ÷ total vendido)
+  // e NUNCA retroalimenta a baixa nem gera distorções na ponderação dos produtos
+  const unitCostPresumidoAuto =
+    generalSoldUnits > 0 ? autoCmvPresumido / generalSoldUnits : generalUnitCostPresumido
+
+  const unitCostRealAuto =
+    generalSoldUnits > 0 ? autoCmvReal / generalSoldUnits : generalUnitCostReal
+
+  const unitCostSimplesAuto =
+    generalSoldUnits > 0 ? autoCmvSimples / generalSoldUnits : generalUnitCostSimples
 
   // EF Automático = EI (R$) + custo total do regime das compras − CMV do regime
   const autoFinalInventoryPresumido = Math.max(
@@ -3233,6 +3381,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           autoFinalInventoryPresumido,
           autoFinalInventoryReal,
           autoFinalInventorySimples,
+          productCmvBreakdown,
         },
 
         resetAll,

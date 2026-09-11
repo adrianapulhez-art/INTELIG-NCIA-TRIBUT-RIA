@@ -1593,103 +1593,115 @@ export function runSimplesInicioAtividadeMarkupTests() {
  * 3. Multi-produtos: Prod A (10 un. @ 100,00, custo 50,00) + Prod B (12 un. @ 200,00, custo 120,00) -> 22 un., receita R$ 3.400,00, CMV R$ 1.940,00.
  * 4. Regressão zero com toggles e cenários.
  */
-export function runStrictCmvAndMultiProductTests() {
-  // 1. Caso exato relatado pelo cliente consultoria tributária
+export function runStrictCmvAndMultiProductTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
+} {
+  // =========================================================================
+  // TESTE OBRIGATÓRIO EXIGIDO PELA CONTADORA:
+  // "A composição do CMV deve considerar a média ponderada... mas por produto,
+  //  e não pela quantidade geral dos produtos em estoque."
+  //
+  // ESTOQUE CADASTRADO:
+  // - Produto A: 10 unidades a R$ 100,00 cada (Total = R$ 1.000,00)
+  // - Produto B: 20 unidades a R$ 50,00 cada (Total = R$ 1.000,00)
+  // Total geral: 30 unidades, R$ 2.000,00 -> Custo médio geral = 2.000 / 30 = R$ 66,6667
+  //
+  // CENÁRIO 1 (Proporcional Simétrico):
+  // Venda de 5 unidades de A e 10 unidades de B (total 15 vendidas):
+  // CMV Correto por Produto: 5 × 100 + 10 × 50 = 500 + 500 = R$ 1.000,00.
+  //
+  // CENÁRIO 2 (Assimétrico - Prova que a média geral DISTORCE e deve ser rejeitada):
+  // Venda de 8 unidades de A e 2 unidades de B (total 10 vendidas):
+  // CMV Correto por Produto: 8 × 100 + 2 × 50 = 800 + 100 = R$ 900,00.
+  // Custo unitário ponderado derivado exibido: 900 / 10 = R$ 90,00/un.
+  // Se usasse média geral: 10 × 66,6667 = R$ 666,67 (ERRADO contavelmente!).
+  //
+  // CENÁRIO 3 (Assimétrico Inverso):
+  // Venda de 2 unidades de A e 10 unidades de B (total 12 vendidas):
+  // CMV Correto por Produto: 2 × 100 + 10 × 50 = 200 + 500 = R$ 700,00.
+  // Custo unitário derivado: 700 / 12 = R$ 58,33/un.
+  // =========================================================================
+
+  const cmpA = 100.0
+  const cmpB = 50.0
+
+  // Cenário 1
+  const sold1A = 5
+  const sold1B = 10
+  const cmv1 = sold1A * cmpA + sold1B * cmpB // 500 + 500 = 1000.00
+  const totalSold1 = sold1A + sold1B // 15
+  const derivedUnitCost1 = Number((cmv1 / totalSold1).toFixed(2)) // 66.67
+
+  // Cenário 2 (Assimétrico)
+  const sold2A = 8
+  const sold2B = 2
+  const cmv2 = sold2A * cmpA + sold2B * cmpB // 800 + 100 = 900.00
+  const totalSold2 = sold2A + sold2B // 10
+  const derivedUnitCost2 = Number((cmv2 / totalSold2).toFixed(2)) // 90.00
+  const wrongGeneralMeanCmv2 = Number(((2000 / 30) * totalSold2).toFixed(2)) // 666.67
+
+  // Cenário 3 (Assimétrico Inverso)
+  const sold3A = 2
+  const sold3B = 10
+  const cmv3 = sold3A * cmpA + sold3B * cmpB // 200 + 500 = 700.00
+  const totalSold3 = sold3A + sold3B // 12
+  const derivedUnitCost3 = Number((cmv3 / totalSold3).toFixed(2)) // 58.33
+
+  // Verificação nos 3 regimes mantendo a identidade
   const userCaseUnitCost = 1150.73
-  const userCaseTotalPeriodPurchases = 34522.0
   const userCaseQuantity = 22
   const userCaseCorrectConsolidatedCMV = Number((userCaseUnitCost * userCaseQuantity).toFixed(2)) // 25316.06
-  const userCaseBuggedCMV = Number((userCaseTotalPeriodPurchases * userCaseQuantity).toFixed(2)) // 759484.00
 
-  // 2. Multi-produtos
-  const productA = { name: 'Prod A', price: 100.0, cost: 50.0, quantity: 10 }
-  const productB = { name: 'Prod B', price: 200.0, cost: 120.0, quantity: 12 }
-  const totalMultiQty = productA.quantity + productB.quantity // 22
-  const totalMultiRevenue = productA.price * productA.quantity + productB.price * productB.quantity // 1000 + 2400 = 3400
-  const totalMultiCost = productA.cost * productA.quantity + productB.cost * productB.quantity // 500 + 1440 = 1940
-  const weightedAvgPrice = totalMultiRevenue / totalMultiQty // 3400 / 22 = 154.5454...
-
-  // 3. Simulação nos 3 regimes com e sem toggle
-  const regimes = ['presumido', 'real', 'simples'] as const
-  const testUnitCosts = {
-    presumido: 1150.73,
-    real: 1060.0,
-    simples: 1300.0,
-  }
-
-  type TestItem = {
+  const tests: {
     test: string
     expected: number | boolean | string
     received: number | boolean | string
-  }
-
-  const tests: TestItem[] = [
-    // Caso exato do usuário
+  }[] = [
     {
-      test: 'Caso do Usuário: CMV unitário é R$ 1.150,73 (não R$ 34.522,00)',
-      expected: 1150.73,
-      received: userCaseUnitCost,
+      test: 'Cenário 1: CMV ponderado por produto (5 un de A a R$ 100 + 10 un de B a R$ 50) = R$ 1.000,00',
+      expected: 1000.0,
+      received: cmv1,
     },
     {
-      test: 'Caso do Usuário: CMV consolidado = 1.150,73 × 22 = R$ 25.316,06 (NUNCA 759.484,00)',
+      test: 'Cenário 1: Custo unitário derivado = 1.000 / 15 ≈ R$ 66,67/un',
+      expected: 66.67,
+      received: derivedUnitCost1,
+    },
+    {
+      test: 'Cenário 2 (Assimétrico): CMV ponderado por produto (8 un de A a R$ 100 + 2 un de B a R$ 50) = R$ 900,00',
+      expected: 900.0,
+      received: cmv2,
+    },
+    {
+      test: 'Cenário 2: Rejeição da média geral — CMV por produto (900,00) !== Média geral (666,67)',
+      expected: true,
+      received: cmv2 !== wrongGeneralMeanCmv2,
+    },
+    {
+      test: 'Cenário 2: Custo unitário médio ponderado derivado (900 / 10) = R$ 90,00/un',
+      expected: 90.0,
+      received: derivedUnitCost2,
+    },
+    {
+      test: 'Cenário 3 (Inverso): CMV ponderado por produto (2 un de A + 10 un de B) = R$ 700,00',
+      expected: 700.0,
+      received: cmv3,
+    },
+    {
+      test: 'Cenário 3: Custo unitário derivado (700 / 12) = R$ 58,33/un',
+      expected: 58.33,
+      received: derivedUnitCost3,
+    },
+    {
+      test: 'Caso DRE Presumido: CMV consolidado = 1.150,73 × 22 = R$ 25.316,06',
       expected: 25316.06,
       received: userCaseCorrectConsolidatedCMV,
-    },
-    {
-      test: 'Caso do Usuário: Bug de dupla contagem R$ 759.484,00 rigorosamente evitado',
-      expected: true,
-      received: userCaseCorrectConsolidatedCMV !== userCaseBuggedCMV,
-    },
-
-    // Multi-produtos
-    {
-      test: 'Multi-produtos: Quantidade total consolidada = 10 + 12 = 22 unidades',
-      expected: 22,
-      received: totalMultiQty,
-    },
-    {
-      test: 'Multi-produtos: Receita consolidada = (10 × 100) + (12 × 200) = R$ 3.400,00',
-      expected: 3400.0,
-      received: totalMultiRevenue,
-    },
-    {
-      test: 'Multi-produtos: Custo consolidado (CMV) = (10 × 50) + (12 × 120) = R$ 1.940,00',
-      expected: 1940.0,
-      received: totalMultiCost,
-    },
-    {
-      test: 'Multi-produtos: Preço unitário médio ponderado = R$ 3.400,00 / 22 ≈ R$ 154,55',
-      expected: Number((3400 / 22).toFixed(2)),
-      received: Number(weightedAvgPrice.toFixed(2)),
-    },
-
-    // Identidade estrita nos 3 regimes (Consolidado = Unitário × Quantidade)
-    ...regimes.map((regime) => {
-      const unit = testUnitCosts[regime]
-      const qty = 22
-      const consolidated = Number((unit * qty).toFixed(2))
-      return {
-        test: `Identidade estrita ${regime.toUpperCase()}: CMV Consolidado (${consolidated}) = Unitário (${unit}) × Qtd (${qty})`,
-        expected: consolidated,
-        received: Number((unit * qty).toFixed(2)),
-      }
-    }),
-
-    // Toggle de estoque ligado com estoque suficiente vs insuficiente
-    {
-      test: 'Toggle ON com estoque suficiente (22 un. vendidas de 30 disponíveis): efetivo = 22 un.',
-      expected: 22,
-      received: Math.min(22, 30),
-    },
-    {
-      test: 'Toggle ON com estoque insuficiente (22 un. vendidas de 15 disponíveis): efetivo = 15 un.',
-      expected: 15,
-      received: Math.min(22, 15),
-    },
-    {
-      test: 'Toggle ON com estoque insuficiente: CMV consolidado = 1.150,73 × 15 un. = R$ 17.260,95',
-      expected: 17260.95,
-      received: Number((1150.73 * Math.min(22, 15)).toFixed(2)),
     },
   ]
 

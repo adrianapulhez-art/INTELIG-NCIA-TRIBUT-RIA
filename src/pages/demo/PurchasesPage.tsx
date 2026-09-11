@@ -96,12 +96,13 @@ export default function PurchasesPage() {
     interstateSubsystem,
   } = useTaxContext()
 
-  // Estados dos modais em camadas para ST, DIFAL, Frete e Deduções
+  // Estados dos modais em camadas para ST, DIFAL, Frete, Deduções e Composição do CMV
   const [isStDialogOpen, setIsStDialogOpen] = useState(false)
   const [isInterstateDialogOpen, setIsInterstateDialogOpen] = useState(false)
   const [isFreightDialogOpen, setIsFreightDialogOpen] = useState(false)
   const [isDeductionsDialogOpen, setIsDeductionsDialogOpen] = useState(false)
   const [isProductStockDialogOpen, setIsProductStockDialogOpen] = useState(false)
+  const [isCmvCompositionDialogOpen, setIsCmvCompositionDialogOpen] = useState(false)
 
   // Estado da camada/modal de detalhe do item de compra
   const [selectedItemForModal, setSelectedItemForModal] = useState<PurchaseItem | null>(null)
@@ -178,9 +179,6 @@ export default function PurchasesPage() {
       : regime === 'real'
         ? calculatedPurchases.autoFinalInventoryReal
         : calculatedPurchases.autoFinalInventoryPresumido
-
-  // Controle de exibição de ajuda / memória de cálculo
-  const [showCalculationMemory, setShowCalculationMemory] = useState(true)
 
   return (
     <DemoLayout currentTab="compras">
@@ -803,6 +801,21 @@ export default function PurchasesPage() {
                     </Badge>
                     <ChevronRight className="w-3 h-3 text-orange-300/70 ml-0.5" />
                   </button>
+
+                  {/* Chip 4: Composição Detalhada do CMV */}
+                  <button
+                    type="button"
+                    onClick={() => setIsCmvCompositionDialogOpen(true)}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer shadow-sm bg-emerald-500/[0.22] border-emerald-400/90 text-emerald-100 hover:bg-emerald-500/35 hover:border-emerald-300 shadow-emerald-500/25 ring-1 ring-emerald-500/40"
+                    title="Abrir modal com a composição e memória analítica do CMV consolidado e por produto"
+                  >
+                    <Calculator className="w-3.5 h-3.5 text-emerald-200" />
+                    <span className="font-semibold text-emerald-100">Composição do CMV</span>
+                    <Badge className="text-[10px] px-1.5 py-0 border-0 font-semibold bg-emerald-500/35 text-emerald-100">
+                      {formatBRL(activeCmv)}
+                    </Badge>
+                    <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -1242,14 +1255,14 @@ export default function PurchasesPage() {
                 </p>
               </div>
 
-              {/* Botão de Memória de Cálculo */}
+              {/* Botão de abrir modal da Composição do CMV */}
               <button
                 type="button"
-                onClick={() => setShowCalculationMemory(!showCalculationMemory)}
+                onClick={() => setIsCmvCompositionDialogOpen(true)}
                 className="text-xs font-mono text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5 cursor-pointer underline"
               >
                 <FileSpreadsheet className="w-3.5 h-3.5" />
-                {showCalculationMemory ? 'Ocultar memória de cálculo' : 'Ver memória de cálculo'}
+                <span>Abrir composição detalhada do CMV</span>
               </button>
             </div>
 
@@ -1276,7 +1289,7 @@ export default function PurchasesPage() {
                   {formatBRL(calculatedPurchases.cmvPresumido)}
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono mt-1">
-                  Unitário:{' '}
+                  Unitário médio ponderado:{' '}
                   <strong className="text-slate-200">
                     {formatBRL(
                       autoInventoryDeduction
@@ -1308,7 +1321,7 @@ export default function PurchasesPage() {
                   {formatBRL(calculatedPurchases.cmvReal)}
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono mt-1">
-                  Unitário:{' '}
+                  Unitário médio ponderado:{' '}
                   <strong className="text-slate-200">
                     {formatBRL(
                       autoInventoryDeduction
@@ -1342,7 +1355,7 @@ export default function PurchasesPage() {
                   {formatBRL(calculatedPurchases.cmvSimples)}
                 </div>
                 <div className="text-[11px] text-slate-400 font-mono mt-1">
-                  Unitário:{' '}
+                  Unitário médio ponderado:{' '}
                   <strong className="text-slate-200">
                     {formatBRL(
                       autoInventoryDeduction
@@ -1356,24 +1369,102 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            {/* Detalhamento Passo-a-Passo da Memória de Cálculo (Fórmula Legal) */}
-            {showCalculationMemory && (
-              <div className="space-y-3">
-                <CmvDetailedBreakdown
-                  forcedRegime={regime}
-                  quantitySold={calculatedPurchases.totalSoldUnitsEffective}
-                  defaultExpanded={true}
-                  variant="card"
-                  title={`Discriminação Específica de Deduções do CMV — ${
-                    regime === 'presumido'
-                      ? 'Lucro Presumido'
-                      : regime === 'real'
-                        ? 'Lucro Real'
-                        : 'Simples Nacional'
-                  }`}
-                />
-              </div>
-            )}
+            {/* Modal / Dialog da Composição Detalhada do CMV */}
+            <Dialog open={isCmvCompositionDialogOpen} onOpenChange={setIsCmvCompositionDialogOpen}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-slate-800 p-6 text-slate-100 shadow-2xl">
+                <DialogHeader className="border-b border-slate-800 pb-3">
+                  <div className="flex items-center justify-between gap-2 pr-6">
+                    <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                      <Calculator className="w-5 h-5 text-emerald-400" />
+                      Composição Detalhada do CMV & Média Ponderada Móvel
+                    </DialogTitle>
+                    <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-xs font-mono">
+                      Consolidado: {formatBRL(activeCmv)}
+                    </Badge>
+                  </div>
+                  <DialogDescription className="text-xs text-slate-400">
+                    Memória analítica do Custo das Mercadorias Vendidas calculada por produto (CMP
+                    individual × quantidade vendida) com rateio de fretes, deduções e créditos
+                    tributários do regime.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="pt-3 space-y-4">
+                  {/* Apuração por produto */}
+                  {calculatedPurchases.productCmvBreakdown &&
+                    calculatedPurchases.productCmvBreakdown.length > 0 && (
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 space-y-2">
+                        <span className="text-xs font-mono font-semibold uppercase text-emerald-400 block">
+                          Apuração do CMV por Produto (CMP × Quantidade Vendida)
+                        </span>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left font-mono text-xs">
+                            <thead>
+                              <tr className="border-b border-slate-800 text-[11px] text-slate-400 uppercase">
+                                <th className="py-2 px-3">Produto</th>
+                                <th className="py-2 px-3 text-right">Qtd Vendida</th>
+                                <th className="py-2 px-3 text-right">CMP (Presumido)</th>
+                                <th className="py-2 px-3 text-right">CMP (Real)</th>
+                                <th className="py-2 px-3 text-right">CMP (Simples)</th>
+                                <th className="py-2 px-3 text-right font-bold text-emerald-400">
+                                  CMV ({regime.toUpperCase()})
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/60">
+                              {calculatedPurchases.productCmvBreakdown.map((prod) => {
+                                const activeProductCmv =
+                                  regime === 'simples'
+                                    ? prod.cmvSimples
+                                    : regime === 'real'
+                                      ? prod.cmvReal
+                                      : prod.cmvPresumido
+                                return (
+                                  <tr key={prod.productId} className="hover:bg-slate-800/40">
+                                    <td className="py-2 px-3 font-sans font-medium text-slate-200">
+                                      {prod.name}
+                                    </td>
+                                    <td className="py-2 px-3 text-right text-slate-300">
+                                      {prod.soldQty} un.
+                                    </td>
+                                    <td className="py-2 px-3 text-right text-slate-300">
+                                      {formatBRL(prod.cmpPresumido)}
+                                    </td>
+                                    <td className="py-2 px-3 text-right text-slate-300">
+                                      {formatBRL(prod.cmpReal)}
+                                    </td>
+                                    <td className="py-2 px-3 text-right text-slate-300">
+                                      {formatBRL(prod.cmpSimples)}
+                                    </td>
+                                    <td className="py-2 px-3 text-right font-bold text-emerald-400">
+                                      {formatBRL(activeProductCmv)}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Componente CmvDetailedBreakdown */}
+                  <CmvDetailedBreakdown
+                    forcedRegime={regime}
+                    quantitySold={calculatedPurchases.totalSoldUnitsEffective}
+                    defaultExpanded={true}
+                    variant="card"
+                    title={`Discriminação Específica de Deduções do CMV — ${
+                      regime === 'presumido'
+                        ? 'Lucro Presumido'
+                        : regime === 'real'
+                          ? 'Lucro Real'
+                          : 'Simples Nacional'
+                    }`}
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 
