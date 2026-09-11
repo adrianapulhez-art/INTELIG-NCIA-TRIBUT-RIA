@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from 'react'
 import { parseBRNumber } from '@/lib/taxCalculations'
 import {
   StSubsystemState,
@@ -509,6 +517,14 @@ export interface TaxContextType {
 
   // Limpar/Resetar tudo para zerado
   resetAll: () => void
+
+  // Mecanismo de Histórico em Memória (Undo / Redo)
+  undo: () => boolean
+  redo: () => boolean
+  canUndo: boolean
+  canRedo: boolean
+  undoCount: number
+  redoCount: number
 }
 
 const TaxContext = createContext<TaxContextType | undefined>(undefined)
@@ -808,6 +824,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     key: K,
     value: StSubsystemState[K],
   ) => {
+    recordUndoSnapshot()
     setStSubsystem((prev) => ({ ...prev, [key]: value }))
   }
 
@@ -819,15 +836,18 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     key: K,
     value: InterstateSubsystemState[K],
   ) => {
+    recordUndoSnapshot()
     setInterstateSubsystem((prev) => ({ ...prev, [key]: value }))
   }
 
   // SUBSISTEMA 3: REFORMA TRIBUTÁRIA — IBS/CBS (EC 132/23 e LC 214/25)
   const [reformaState, setReformaState] = useState<ReformaState>(INITIAL_REFORMA_STATE)
   const updateReformaState = <K extends keyof ReformaState>(key: K, value: ReformaState[K]) => {
+    recordUndoSnapshot()
     setReformaState((prev) => ({ ...prev, [key]: value }))
   }
   const setSelectedReformaYear = (year: ReformaYear) => {
+    recordUndoSnapshot()
     setReformaState((prev) => ({ ...prev, selectedYear: year }))
   }
 
@@ -842,6 +862,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     initialUnitCost = 0,
     productId?: string,
   ) => {
+    recordUndoSnapshot()
     setProductStockState((prev) => {
       const nextNum = (prev.products?.length || 0) + 1
       const newItem: ProductStockItem = {
@@ -867,6 +888,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     id: string,
     updates: Partial<Pick<ProductStockItem, 'name' | 'initial' | 'productId'>>,
   ) => {
+    recordUndoSnapshot()
     setProductStockState((prev) => ({
       ...prev,
       products: (prev.products || []).map((p) => {
@@ -886,6 +908,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const removeProductStockItem = (id: string) => {
+    recordUndoSnapshot()
     setProductStockState((prev) => ({
       ...prev,
       products: (prev.products || []).filter((p) => p.id !== id),
@@ -893,6 +916,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const addProductStockEntry = (productId: string, entry: Omit<ProductStockEntry, 'id'>) => {
+    recordUndoSnapshot()
     const q = Math.max(0, Number(entry.quantity) || 0)
     const u = Math.max(0, Number(entry.unitCost) || 0)
     const total =
@@ -924,6 +948,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     entryId: string,
     updates: Partial<Omit<ProductStockEntry, 'id'>>,
   ) => {
+    recordUndoSnapshot()
     setProductStockState((prev) => ({
       ...prev,
       products: (prev.products || []).map((p) => {
@@ -956,6 +981,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const removeProductStockEntry = (productId: string, entryId: string) => {
+    recordUndoSnapshot()
     setProductStockState((prev) => ({
       ...prev,
       products: (prev.products || []).map((p) => {
@@ -969,6 +995,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const addProductStockExit = (productId: string, exit: Omit<ProductStockExit, 'id'>) => {
+    recordUndoSnapshot()
     const q = Math.max(0, Number(exit.quantity) || 0)
     const newExit: ProductStockExit = {
       id: `exit-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -993,6 +1020,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     exitId: string,
     updates: Partial<Omit<ProductStockExit, 'id'>>,
   ) => {
+    recordUndoSnapshot()
     setProductStockState((prev) => ({
       ...prev,
       products: (prev.products || []).map((p) => {
@@ -1017,6 +1045,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const removeProductStockExit = (productId: string, exitId: string) => {
+    recordUndoSnapshot()
     setProductStockState((prev) => ({
       ...prev,
       products: (prev.products || []).map((p) => {
@@ -1033,6 +1062,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
    * Sincroniza produtos a partir do cadastro de Markup sem duplicar os já existentes.
    */
   const syncProductsFromMarkup = (): { addedCount: number } => {
+    recordUndoSnapshot()
     let addedCount = 0
     setProductStockState((prev) => {
       const currentList = prev.products || []
@@ -1082,6 +1112,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
+    recordUndoSnapshot()
     let importedCount = 0
 
     setProductStockState((prev) => {
@@ -2492,6 +2523,111 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }
 
+  // MECANISMO DE UNDO / REDO EM MEMÓRIA (Ctrl+Z)
+  // Pilhas de snapshots com limite de 50 passos
+  const MAX_HISTORY = 50
+  const undoStackRef = useRef<TaxStateSnapshot[]>([])
+  const redoStackRef = useRef<TaxStateSnapshot[]>([])
+  const [historyCounts, setHistoryCounts] = useState<{ undo: number; redo: number }>({
+    undo: 0,
+    redo: 0,
+  })
+
+  // Flag para evitar captura de snapshots durante a própria restauração de um undo/redo
+  const isApplyingHistoryRef = useRef<boolean>(false)
+
+  // Grava o estado atual na pilha de undo antes de qualquer mutação de dados
+  const recordUndoSnapshot = useCallback(() => {
+    if (isApplyingHistoryRef.current) return
+    const current = getSnapshot()
+    // Clona para garantir snapshot isolado
+    const cloned: TaxStateSnapshot = structuredClone
+      ? structuredClone(current)
+      : JSON.parse(JSON.stringify(current))
+
+    const newUndo = [...undoStackRef.current, cloned]
+    if (newUndo.length > MAX_HISTORY) {
+      newUndo.shift()
+    }
+    undoStackRef.current = newUndo
+    // Nova mutação esvazia o redo
+    redoStackRef.current = []
+    setHistoryCounts({
+      undo: undoStackRef.current.length,
+      redo: 0,
+    })
+  }, [getSnapshot])
+
+  // Desfazer (Ctrl+Z): desempilha o snapshot anterior e restaura
+  const undo = useCallback((): boolean => {
+    if (undoStackRef.current.length === 0) {
+      return false
+    }
+
+    const previousSnapshot = undoStackRef.current.pop()
+    if (!previousSnapshot) return false
+
+    // Salva o estado corrente na pilha de redo
+    const current = getSnapshot()
+    const clonedCurrent: TaxStateSnapshot = structuredClone
+      ? structuredClone(current)
+      : JSON.parse(JSON.stringify(current))
+
+    redoStackRef.current.push(clonedCurrent)
+    if (redoStackRef.current.length > MAX_HISTORY) {
+      redoStackRef.current.shift()
+    }
+
+    // Aplica o snapshot anterior
+    isApplyingHistoryRef.current = true
+    try {
+      loadSnapshot(previousSnapshot)
+    } finally {
+      isApplyingHistoryRef.current = false
+    }
+
+    setHistoryCounts({
+      undo: undoStackRef.current.length,
+      redo: redoStackRef.current.length,
+    })
+    return true
+  }, [getSnapshot, loadSnapshot])
+
+  // Refazer (Ctrl+Y / Cmd+Shift+Z)
+  const redo = useCallback((): boolean => {
+    if (redoStackRef.current.length === 0) {
+      return false
+    }
+
+    const nextSnapshot = redoStackRef.current.pop()
+    if (!nextSnapshot) return false
+
+    // Salva o estado corrente no undo
+    const current = getSnapshot()
+    const clonedCurrent: TaxStateSnapshot = structuredClone
+      ? structuredClone(current)
+      : JSON.parse(JSON.stringify(current))
+
+    undoStackRef.current.push(clonedCurrent)
+    if (undoStackRef.current.length > MAX_HISTORY) {
+      undoStackRef.current.shift()
+    }
+
+    // Aplica o snapshot
+    isApplyingHistoryRef.current = true
+    try {
+      loadSnapshot(nextSnapshot)
+    } finally {
+      isApplyingHistoryRef.current = false
+    }
+
+    setHistoryCounts({
+      undo: undoStackRef.current.length,
+      redo: redoStackRef.current.length,
+    })
+    return true
+  }, [getSnapshot, loadSnapshot])
+
   // Carregar snapshot vindo do banco e sobrescrever todos os campos
   const loadSnapshot = (snapshot: TaxStateSnapshot) => {
     if (!snapshot) return
@@ -2960,6 +3096,13 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         getSnapshot,
         loadSnapshot,
+
+        undo,
+        redo,
+        canUndo: historyCounts.undo > 0,
+        canRedo: historyCounts.redo > 0,
+        undoCount: historyCounts.undo,
+        redoCount: historyCounts.redo,
 
         calculatedPurchases: {
           totalAdditionalCosts,
