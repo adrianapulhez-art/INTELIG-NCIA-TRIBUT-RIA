@@ -329,7 +329,7 @@ export function ImportPurchasesModal({ open, onOpenChange }: ImportPurchasesModa
             variant="ghost"
             size="sm"
             onClick={() => onOpenChange(false)}
-            className="text-xs h-8 text-slate-400 hover:text-white"
+            className="text-xs h-8 text-slate-400 hover:text-white cursor-pointer"
           >
             Fechar
           </Button>

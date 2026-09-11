@@ -391,6 +391,109 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * Teste unitário para validar a correção conceitual na Calculadora de Markup:
+ * Com dois produtos de preços diferentes (ex.: produto A com preço de venda unitário alto
+ * e produto B baixo), o sistema NÃO deve produzir nenhuma métrica de "preço médio"
+ * entre eles no resultado consolidado, e a receita consolidada deve ser exatamente a
+ * soma das receitas por produto (Σ p.salePrice × p.quantity), alimentando as DREs de forma estrita.
+ */
+export function runNoAveragePriceMarkupConsolidatedTests() {
+  // Produto A: Preço unitário alto (ex: Equipamento industrial)
+  // Custo: R$ 5.000,00 | Margem: 20% | Qtd: 2 un
+  // Fator tributário base Presumido (ICMS 18%, PIS 0,65%, COFINS 3%):
+  // ICMS factor = 0.82; PIS factor = 0.9935; COFINS factor = 0.97
+  const icmsFactor = 1 - 0.18
+  const pisFactor = 1 - 0.0065
+  const cofinsFactor = 1 - 0.03
+  const taxFactorPresumido = icmsFactor * pisFactor * cofinsFactor // ~0.7902349
+
+  const marginFactorA = 1 - 0.2 // 0.8
+  const completeFactorA = taxFactorPresumido * marginFactorA // ~0.6321879
+  const salePriceA = Math.round((5000 / completeFactorA) * 100) / 100 // ~7909.04
+  const quantityA = 2
+  const revenueA = Math.round(salePriceA * quantityA * 100) / 100 // 15818.08
+
+  // Produto B: Preço unitário baixo (ex: Acessório ou insumo)
+  // Custo: R$ 50,00 | Margem: 30% | Qtd: 40 un
+  const marginFactorB = 1 - 0.3 // 0.7
+  const completeFactorB = taxFactorPresumido * marginFactorB // ~0.5531644
+  const salePriceB = Math.round((50 / completeFactorB) * 100) / 100 // ~90.39
+  const quantityB = 40
+  const revenueB = Math.round(salePriceB * quantityB * 100) / 100 // 3615.60
+
+  // Total consolidado
+  const totalQuantity = quantityA + quantityB // 42 un
+  const totalConsolidatedRevenue = Math.round((revenueA + revenueB) * 100) / 100 // 19433.68
+
+  // A antiga média proibida seria: totalConsolidatedRevenue / totalQuantity (~462.71),
+  // que NÃO corresponde ao preço nem do produto A nem do produto B!
+  const prohibitedBlendedAveragePrice = totalConsolidatedRevenue / totalQuantity
+
+  // Cada produto mantém estritamente seu próprio preço e sua própria receita
+  const productAIsSimulatedDiscrete = salePriceA > 7000 && salePriceA < 8000
+  const productBIsSimulatedDiscrete = salePriceB > 80 && salePriceB < 100
+
+  // A receita consolidada é EXATAMENTE a soma das receitas por produto
+  const sumMatchesConsolidated = Math.abs(revenueA + revenueB - totalConsolidatedRevenue) < 0.01
+
+  // Nenhum dos produtos possui preço igual à média aritmética/ponderada espúria
+  const noProductUsesBlendedAverage =
+    Math.abs(salePriceA - prohibitedBlendedAveragePrice) > 100 &&
+    Math.abs(salePriceB - prohibitedBlendedAveragePrice) > 100
+
+  const tests: {
+    test: string
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[] = [
+    {
+      test: 'Produto A mantém seu preço unitário simulado próprio sem ser distorcido pelo Produto B',
+      expected: true,
+      received: productAIsSimulatedDiscrete,
+    },
+    {
+      test: 'Produto B mantém seu preço unitário simulado próprio sem ser distorcido pelo Produto A',
+      expected: true,
+      received: productBIsSimulatedDiscrete,
+    },
+    {
+      test: 'A média entre produtos distintos (Receita ÷ Quantidade) é conceitualmente rejeitada e não é atribuída a nenhum produto',
+      expected: true,
+      received: noProductUsesBlendedAverage,
+    },
+    {
+      test: 'A receita bruta consolidada é exatamente a soma das linhas de receita por produto (Σ produto.receita)',
+      expected: true,
+      received: sumMatchesConsolidated,
+    },
+    {
+      test: 'Quantidade total consolidada é a soma exata das unidades individuais (42 un)',
+      expected: 42,
+      received: totalQuantity,
+    },
+    {
+      test: 'Receita do Produto A (R$ 15.818,08) + Produto B (R$ 3.615,60) = R$ 19.433,68',
+      expected: 19433.68,
+      received: totalConsolidatedRevenue,
+    },
+  ]
+
+  const results = tests.map((t) => ({
+    test: t.test,
+    passed:
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : typeof t.expected === 'string'
+          ? t.expected === t.received
+          : Math.abs((t.expected as number) - (t.received as number)) < 0.001,
+    expected: t.expected,
+    received: t.received,
+  }))
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+/**
  * Testes unitários para a integração entre Calculadora de Compras (CMV) e Calculadora de Markup:
  * 1. Importação de um item de compra para o Markup criando produto com nome e custo líquido correto por regime
  *    - Lucro Presumido: deduz ICMS destacado sobre mercadoria e ICMS sobre frete

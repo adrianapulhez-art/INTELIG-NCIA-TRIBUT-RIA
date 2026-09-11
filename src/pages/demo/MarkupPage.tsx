@@ -45,6 +45,7 @@ import {
   SlidersHorizontal,
   Boxes,
   Download,
+  Layers,
 } from 'lucide-react'
 import {
   calculateSaleIcmsSt,
@@ -208,10 +209,11 @@ export default function MarkupPage() {
     purchasesItems,
   } = useTaxContext()
 
-  // Estados dos modais em camadas para ST, DIFAL e Importação de Compras
+  // Estados dos modais em camadas para ST, DIFAL, Importação de Compras e Composição de Custo
   const [isStDialogOpen, setIsStDialogOpen] = useState(false)
   const [isInterstateDialogOpen, setIsInterstateDialogOpen] = useState(false)
   const [isImportPurchasesDialogOpen, setIsImportPurchasesDialogOpen] = useState(false)
+  const [compositionModalProductId, setCompositionModalProductId] = useState<string | null>(null)
 
   // Quantidade de itens de compras e quantos já foram importados
   const totalPurchasesAvailableCount = purchasesItems.length
@@ -383,13 +385,7 @@ export default function MarkupPage() {
           totalRevenue: rev,
         }
       })
-      const avgPrice =
-        totalQty > 0
-          ? Math.round((totalRev / totalQty) * 100) / 100
-          : prods.length > 0
-            ? prods[0].salePrice
-            : 0
-      return { prods, totalRev: Math.round(totalRev * 100) / 100, avgPrice, totalQty }
+      return { prods, totalRev: Math.round(totalRev * 100) / 100, totalQty }
     }
 
     const calcPresumido = calcForTaxFactor(baseTaxFactorPresumido)
@@ -397,62 +393,15 @@ export default function MarkupPage() {
     const calcSimples =
       baseTaxFactorSimples !== null ? calcForTaxFactor(baseTaxFactorSimples) : null
 
-    const isMultiProduct = markupProducts.length > 1
-    const hasQuantity = totalConsolidatedQuantity > 0
-
-    // Preços de exibição principal na linha (unitário médio se multi-produto/quantidade, ou do item único)
-    const pricePresumido = isMultiProduct
-      ? hasQuantity
-        ? calcPresumido.avgPrice
-        : calcPresumido.prods[0]?.salePrice || 0
-      : calcPresumido.prods[0]?.salePrice || 0
-
-    const priceReal = isMultiProduct
-      ? hasQuantity
-        ? calcReal.avgPrice
-        : calcReal.prods[0]?.salePrice || 0
-      : calcReal.prods[0]?.salePrice || 0
-
-    const priceSimples = calcSimples
-      ? isMultiProduct
-        ? hasQuantity
-          ? calcSimples.avgPrice
-          : calcSimples.prods[0]?.salePrice || 0
-        : calcSimples.prods[0]?.salePrice || 0
-      : null
-
-    // Encontrar o menor preço entre os regimes válidos (> 0)
-    const validPrices: { key: 'presumido' | 'real' | 'simples'; price: number }[] = [
-      { key: 'presumido', price: pricePresumido },
-      { key: 'real', price: priceReal },
-    ]
-    if (priceSimples !== null && priceSimples > 0) {
-      validPrices.push({ key: 'simples', price: priceSimples })
-    }
-
-    let lowestKey: 'presumido' | 'real' | 'simples' | null = null
-    if (validPrices.length > 0 && validPrices.some((p) => p.price > 0)) {
-      const minP = validPrices.filter((p) => p.price > 0).sort((a, b) => a.price - b.price)[0]
-      if (minP) {
-        lowestKey = minP.key
-      }
-    }
-
     return {
       hasSimplesData,
       effectiveSimplesRate,
-      isMultiProduct,
-      hasQuantity,
-      pricePresumido,
-      priceReal,
-      priceSimples,
       totalRevPresumido: calcPresumido.totalRev,
       totalRevReal: calcReal.totalRev,
       totalRevSimples: calcSimples ? calcSimples.totalRev : null,
       prodsPresumido: calcPresumido.prods,
       prodsReal: calcReal.prods,
       prodsSimples: calcSimples ? calcSimples.prods : null,
-      lowestKey,
     }
   }, [
     isMarkupSimulated,
@@ -970,15 +919,63 @@ export default function MarkupPage() {
                       </div>
                     )}
 
-                    {/* Subsistema de Composição do Custo: Condicional ao modo Custo + Margem */}
-                    {!isProdLiquid && (
-                      <CostCompositionSection
-                        productId={prod.id}
-                        productName={prod.name}
-                        composition={prod.costComposition}
-                        onApplyTotal={(tot) => updateMarkupProduct(prod.id, 'cost', tot)}
-                      />
-                    )}
+                    {/* Chip Compacto em Subcamada: Composição do Custo (modo Custo + Margem) */}
+                    {!isProdLiquid &&
+                      (() => {
+                        const comp = prod.costComposition
+                        const directSum = (comp?.directCosts || []).reduce(
+                          (a, b) => a + (b.value || 0),
+                          0,
+                        )
+                        const indirectSum = (comp?.indirectCosts || []).reduce(
+                          (a, b) => a + (b.value || 0),
+                          0,
+                        )
+                        const fixedSum = (comp?.fixedCosts || []).reduce(
+                          (a, b) => a + (b.value || 0),
+                          0,
+                        )
+                        const totalComp = directSum + indirectSum + fixedSum
+                        const itemsCount =
+                          (comp?.directCosts || []).length +
+                          (comp?.indirectCosts || []).length +
+                          (comp?.fixedCosts || []).length
+
+                        return (
+                          <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setCompositionModalProductId(prod.id)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer ${
+                                totalComp > 0
+                                  ? 'bg-emerald-500/[0.18] border-emerald-400/80 text-emerald-100 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-sm shadow-emerald-500/15 ring-1 ring-emerald-500/30'
+                                  : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/50'
+                              }`}
+                              title="Abrir camada de Composição do Custo deste produto"
+                            >
+                              <Layers className="w-3.5 h-3.5 text-emerald-300" />
+                              <span className="font-semibold">Composição do Custo</span>
+                              <Badge
+                                className={`text-[9px] px-1.5 py-0 border-0 font-normal ${
+                                  totalComp > 0
+                                    ? 'bg-emerald-500/35 text-emerald-100 font-semibold'
+                                    : 'bg-slate-800 text-slate-400'
+                                }`}
+                              >
+                                {totalComp > 0 ? formatBRL(totalComp) : `${itemsCount} itens`}
+                              </Badge>
+                              <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
+                            </button>
+
+                            {totalComp > 0 && (
+                              <span className="text-[10px] font-mono text-slate-400">
+                                Diretos {formatBRL(directSum)} · Indiretos {formatBRL(indirectSum)}{' '}
+                                · Fixos {formatBRL(fixedSum)}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })()}
                   </div>
                 )
               })}{' '}
@@ -1156,6 +1153,53 @@ export default function MarkupPage() {
               open={isImportPurchasesDialogOpen}
               onOpenChange={setIsImportPurchasesDialogOpen}
             />
+
+            {/* Diálogo / Subcamada: Composição do Custo do Produto */}
+            <Dialog
+              open={!!compositionModalProductId}
+              onOpenChange={(open) => {
+                if (!open) setCompositionModalProductId(null)
+              }}
+            >
+              <DialogContent className="max-w-4xl max-h-[88vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+                {compositionModalProductId &&
+                  (() => {
+                    const targetProd = markupProducts.find(
+                      (p) => p.id === compositionModalProductId,
+                    )
+                    if (!targetProd) return null
+                    return (
+                      <div className="space-y-4">
+                        <DialogHeader>
+                          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                            <Layers className="w-5 h-5 text-emerald-400" />
+                            <span>
+                              Composição Detalhada do Custo: {targetProd.name || 'Produto'}
+                            </span>
+                          </DialogTitle>
+                          <DialogDescription className="text-xs text-slate-400">
+                            Discrimine os custos diretos, custos indiretos (rateio) e despesas fixas
+                            deste item. O total apurado pode ser aplicado diretamente como base de
+                            custo unitário.
+                          </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="pt-2">
+                          <CostCompositionSection
+                            productId={targetProd.id}
+                            productName={targetProd.name}
+                            composition={targetProd.costComposition}
+                            onApplyTotal={(tot) => {
+                              updateMarkupProduct(targetProd.id, 'cost', tot)
+                              setCompositionModalProductId(null)
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })()}
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* Botão Simular à Direita na Base */}
@@ -1211,13 +1255,13 @@ export default function MarkupPage() {
               </div>
 
               <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-                <span className="text-[11px] text-slate-400 block mb-1">Preço unitário médio</span>
+                <span className="text-[11px] text-slate-400 block mb-1">Produtos simulados</span>
                 <span className="text-lg font-bold text-slate-200">
-                  {totalConsolidatedQuantity > 0
-                    ? formatBRL(totalConsolidatedRevenue / totalConsolidatedQuantity)
-                    : formatBRL(simulatedSalePrice)}
+                  {markupProducts.length} {markupProducts.length === 1 ? 'item' : 'itens'}
                 </span>
-                <span className="text-[10px] text-slate-500 block mt-1">Receita ÷ Quantidade</span>
+                <span className="text-[10px] text-slate-500 block mt-1">
+                  Cálculo individual por item
+                </span>
               </div>
 
               <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
@@ -1227,58 +1271,78 @@ export default function MarkupPage() {
                 <span className="text-xl sm:text-2xl font-black text-emerald-400">
                   {formatBRL(totalConsolidatedRevenue)}
                 </span>
-                <span className="text-[10px] text-emerald-400/80 block mt-1">Alimenta as DREs</span>
+                <span className="text-[10px] text-emerald-400/80 block mt-1">
+                  Alimenta as DREs (Σ produtos)
+                </span>
               </div>
             </div>
 
-            {/* Tabela de Produtos Simulados */}
-            <div className="overflow-x-auto pt-2">
-              <table className="w-full text-xs font-mono">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 text-right">
-                    <th className="py-2 text-left font-semibold text-slate-300">Produto</th>
-                    <th className="py-2 px-2 font-semibold text-slate-300">Modo</th>
-                    <th className="py-2 px-2 font-semibold text-slate-300">Fator Comp.</th>
-                    <th className="py-2 px-2 font-semibold text-slate-300">Preço Venda</th>
-                    <th className="py-2 px-2 font-semibold text-slate-300">Qtd.</th>
-                    <th className="py-2 px-2 font-semibold text-slate-300">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {markupProducts.map((p) => (
-                    <tr key={p.id}>
-                      <td className="py-2 text-left font-medium text-slate-200">{p.name}</td>
-                      <td className="py-2 px-2 text-right text-slate-400">
-                        {p.mode === 'liquid' ? 'Líquida' : 'Custo+Margem'}
+            {/* Discriminação por Produto (sem média entre mercadorias distintas) */}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-semibold">
+                  Preço de venda e receita por produto ({regime.toUpperCase()})
+                </span>
+                <span className="text-[10px] font-mono text-slate-500">
+                  Sem média entre produtos distintos
+                </span>
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-950/70">
+                <table className="w-full text-xs font-mono">
+                  <thead>
+                    <tr className="border-b border-slate-800 bg-slate-900/60 text-slate-400 text-right">
+                      <th className="py-2.5 px-3 text-left font-semibold text-slate-300">
+                        Produto
+                      </th>
+                      <th className="py-2.5 px-3 font-semibold text-slate-300">Modo</th>
+                      <th className="py-2.5 px-3 font-semibold text-slate-300">Fator Comp.</th>
+                      <th className="py-2.5 px-3 font-semibold text-emerald-400">Preço de Venda</th>
+                      <th className="py-2.5 px-3 font-semibold text-slate-300">Qtd.</th>
+                      <th className="py-2.5 px-3 font-semibold text-emerald-300">Receita Bruta</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {markupProducts.map((p, idx) => (
+                      <tr key={p.id} className="hover:bg-slate-900/40 transition-colors">
+                        <td className="py-2.5 px-3 text-left font-medium text-slate-200">
+                          <span className="text-slate-500 font-bold mr-1.5">#{idx + 1}</span>
+                          {p.name || `Produto ${idx + 1}`}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-slate-400">
+                          {p.mode === 'liquid' ? 'Líquida' : 'Custo+Margem'}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-slate-400">
+                          {formatFactorBR(p.completeFactor, 4)}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-bold text-emerald-400">
+                          {formatBRL(p.salePrice)}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-slate-200">{p.quantity} un.</td>
+                        <td className="py-2.5 px-3 text-right font-bold text-slate-100">
+                          {formatBRL(p.totalRevenue)}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="bg-emerald-500/[0.06] font-bold border-t border-emerald-500/30">
+                      <td
+                        colSpan={4}
+                        className="py-2.5 px-3 text-left text-slate-200 uppercase tracking-wide"
+                      >
+                        Total Consolidado (Soma das receitas)
                       </td>
-                      <td className="py-2 px-2 text-right text-slate-400">
-                        {formatFactorBR(p.completeFactor, 4)}
+                      <td className="py-2.5 px-3 text-right text-slate-100">
+                        {totalConsolidatedQuantity} un.
                       </td>
-                      <td className="py-2 px-2 text-right font-bold text-emerald-400">
-                        {formatBRL(p.salePrice)}
-                      </td>
-                      <td className="py-2 px-2 text-right text-slate-200">{p.quantity} un.</td>
-                      <td className="py-2 px-2 text-right font-bold text-slate-100">
-                        {formatBRL(p.totalRevenue)}
+                      <td className="py-2.5 px-3 text-right text-emerald-400 text-sm">
+                        {formatBRL(totalConsolidatedRevenue)}
                       </td>
                     </tr>
-                  ))}
-                  <tr className="bg-slate-950/60 font-bold border-t border-slate-700">
-                    <td colSpan={4} className="py-2.5 text-left text-slate-300 uppercase">
-                      Total Consolidado
-                    </td>
-                    <td className="py-2.5 px-2 text-right text-slate-200">
-                      {totalConsolidatedQuantity} un.
-                    </td>
-                    <td className="py-2.5 px-2 text-right text-emerald-400">
-                      {formatBRL(totalConsolidatedRevenue)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            {/* Bloco Comparativo Discreto: Preço de Venda Simulado por Regime */}
+            {/* Bloco Comparativo Discreto: Preço de Venda Simulado por Regime — Linha por Produto */}
             {regimeComparison && (
               <div className="pt-4 mt-2 border-t border-slate-800/80 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -1288,208 +1352,151 @@ export default function MarkupPage() {
                       Preço de venda simulado por regime
                     </h3>
                     <Badge className="bg-slate-900 text-slate-400 border-slate-700 text-[10px] font-mono">
-                      Comparativo em linha
+                      Comparativo discriminado por produto
                     </Badge>
                   </div>
                   <span className="text-[11px] font-mono text-slate-400">
-                    {regimeComparison.isMultiProduct
-                      ? regimeComparison.hasQuantity
-                        ? 'Valores exibidos em preço médio ponderado consolidado'
-                        : `Preço do produto em foco (${markupProducts[0]?.name || 'Item 1'})`
-                      : 'Preço unitário simulado para a mesma operação'}
+                    Valores específicos de cada produto em Lucro Presumido, Real e Simples Nacional
                   </span>
                 </div>
 
-                {/* Linha Comparativa: 3 Colunas lado a lado */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono">
-                  {/* Coluna 1: Lucro Presumido */}
-                  <div
-                    className={`p-3.5 rounded-xl border transition-all ${
-                      regimeComparison.lowestKey === 'presumido'
-                        ? 'bg-emerald-500/10 border-emerald-500/50 shadow-sm shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                        : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-xs font-bold text-slate-200 uppercase tracking-tight">
-                        Lucro Presumido
-                      </span>
-                      {regimeComparison.lowestKey === 'presumido' && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                          <Sparkles className="w-3 h-3" />
-                          Menor preço
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-lg sm:text-xl font-bold text-white tracking-tight my-1">
-                      {formatBRL(regimeComparison.pricePresumido)}
-                    </div>
-                    <div className="text-[10px] text-slate-400 space-y-0.5 border-t border-slate-800/80 pt-1.5 mt-1.5">
-                      <div className="flex justify-between">
-                        <span>PIS/COFINS (cumulativo):</span>
-                        <span className="text-slate-300 font-semibold">0,65% + 3,00%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>ICMS configurado:</span>
-                        <span className="text-slate-300 font-semibold">
-                          {formatPercentBR(icmsRateMarkup || 0)}
-                        </span>
-                      </div>
-                      {regimeComparison.isMultiProduct && regimeComparison.hasQuantity && (
-                        <div className="flex justify-between pt-0.5 text-slate-400">
-                          <span>Receita total:</span>
-                          <span className="text-emerald-300 font-semibold">
-                            {formatBRL(regimeComparison.totalRevPresumido)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                {/* Tabela Comparativa: Linha por Produto nos 3 regimes */}
+                <div className="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-950/70">
+                  <table className="w-full text-xs font-mono">
+                    <thead>
+                      <tr className="border-b border-slate-800 bg-slate-900/60 text-slate-400 text-right">
+                        <th className="py-2.5 px-3 text-left font-semibold text-slate-300">
+                          Produto
+                        </th>
+                        <th className="py-2.5 px-3 font-semibold text-slate-300">Qtd.</th>
+                        <th className="py-2.5 px-3 font-semibold text-slate-200">
+                          Lucro Presumido
+                        </th>
+                        <th className="py-2.5 px-3 font-semibold text-slate-200">Lucro Real</th>
+                        <th className="py-2.5 px-3 font-semibold text-slate-200">
+                          Simples Nacional
+                        </th>
+                        <th className="py-2.5 px-3 text-center font-semibold text-emerald-400">
+                          Menor Preço
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {regimeComparison.prodsPresumido.map((pPres, idx) => {
+                        const pReal = regimeComparison.prodsReal.find((x) => x.id === pPres.id)
+                        const pSimp = regimeComparison.prodsSimples?.find((x) => x.id === pPres.id)
+                        const origProd = markupProducts.find((x) => x.id === pPres.id)
+                        const qty = origProd?.quantity || 0
 
-                  {/* Coluna 2: Lucro Real */}
-                  <div
-                    className={`p-3.5 rounded-xl border transition-all ${
-                      regimeComparison.lowestKey === 'real'
-                        ? 'bg-emerald-500/10 border-emerald-500/50 shadow-sm shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                        : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-xs font-bold text-slate-200 uppercase tracking-tight">
-                        Lucro Real
-                      </span>
-                      {regimeComparison.lowestKey === 'real' && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                          <Sparkles className="w-3 h-3" />
-                          Menor preço
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-lg sm:text-xl font-bold text-white tracking-tight my-1">
-                      {formatBRL(regimeComparison.priceReal)}
-                    </div>
-                    <div className="text-[10px] text-slate-400 space-y-0.5 border-t border-slate-800/80 pt-1.5 mt-1.5">
-                      <div className="flex justify-between">
-                        <span>PIS/COFINS (não cumul.):</span>
-                        <span className="text-slate-300 font-semibold">1,65% + 7,60%</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>ICMS configurado:</span>
-                        <span className="text-slate-300 font-semibold">
-                          {formatPercentBR(icmsRateMarkup || 0)}
-                        </span>
-                      </div>
-                      {regimeComparison.isMultiProduct && regimeComparison.hasQuantity && (
-                        <div className="flex justify-between pt-0.5 text-slate-400">
-                          <span>Receita total:</span>
-                          <span className="text-emerald-300 font-semibold">
-                            {formatBRL(regimeComparison.totalRevReal)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                        // Menor preço unitário individual deste produto
+                        const cand: { regime: string; price: number }[] = [
+                          { regime: 'Presumido', price: pPres.salePrice },
+                          { regime: 'Real', price: pReal?.salePrice || 0 },
+                        ]
+                        if (pSimp && pSimp.salePrice > 0) {
+                          cand.push({ regime: 'Simples', price: pSimp.salePrice })
+                        }
+                        const validCand = cand
+                          .filter((c) => c.price > 0)
+                          .sort((a, b) => a.price - b.price)
+                        const best = validCand[0]
 
-                  {/* Coluna 3: Simples Nacional */}
-                  <div
-                    className={`p-3.5 rounded-xl border transition-all ${
-                      regimeComparison.lowestKey === 'simples'
-                        ? 'bg-emerald-500/10 border-emerald-500/50 shadow-sm shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                        : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-xs font-bold text-slate-200 uppercase tracking-tight">
-                        Simples Nacional
-                      </span>
-                      {regimeComparison.lowestKey === 'simples' && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                          <Sparkles className="w-3 h-3" />
-                          Menor preço
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-lg sm:text-xl font-bold text-white tracking-tight my-1">
-                      {regimeComparison.priceSimples !== null
-                        ? formatBRL(regimeComparison.priceSimples)
-                        : '—'}
-                    </div>
-                    <div className="text-[10px] text-slate-400 space-y-0.5 border-t border-slate-800/80 pt-1.5 mt-1.5">
-                      {regimeComparison.hasSimplesData ? (
-                        <>
-                          <div className="flex justify-between">
-                            <span>Alíquota efetiva PGDAS:</span>
-                            <span className="text-slate-300 font-semibold">
-                              {formatPercentBR(regimeComparison.effectiveSimplesRate)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Tributo único no DAS:</span>
-                            <span className="text-slate-300 font-semibold">Sem bi-tributação</span>
-                          </div>
-                          {regimeComparison.isMultiProduct &&
-                            regimeComparison.hasQuantity &&
-                            regimeComparison.totalRevSimples !== null && (
-                              <div className="flex justify-between pt-0.5 text-slate-400">
-                                <span>Receita total:</span>
-                                <span className="text-emerald-300 font-semibold">
-                                  {formatBRL(regimeComparison.totalRevSimples)}
-                                </span>
-                              </div>
-                            )}
-                        </>
-                      ) : (
-                        <div className="space-y-1.5 pt-0.5">
-                          <div className="flex items-start gap-1.5 text-amber-300/90">
-                            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
-                            <span className="leading-tight">
-                              {simplesIsInicioAtividade
-                                ? 'Empresa em início de atividade: informe as receitas mensais na DRE Simples Nacional para o sistema calcular a RBT12 proporcional'
-                                : 'Informe o RBT12 na DRE Simples Nacional para obter a alíquota efetiva do PGDAS.'}
-                            </span>
-                          </div>
-                          {simplesIsInicioAtividade && (
-                            <button
-                              type="button"
-                              onClick={() => navigate('/demo/simples')}
-                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 underline underline-offset-2 transition-colors cursor-pointer pl-5"
-                            >
-                              <span>Ir para DRE Simples Nacional</span>
-                              <ArrowRight className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Detalhe por produto se houver multi-produtos cadastrados */}
-                {regimeComparison.isMultiProduct && (
-                  <div className="p-2.5 rounded-lg bg-slate-950/40 border border-slate-800/70 text-[11px] font-mono text-slate-400 flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-slate-300">
-                      Discriminado por produto:{' '}
-                      <strong className="text-emerald-400">
-                        {markupProducts.length} itens simulados
-                      </strong>
-                    </span>
-                    <div className="flex flex-wrap items-center gap-3">
-                      {markupProducts.map((p, idx) => {
-                        const pPres = regimeComparison.prodsPresumido?.find((x) => x.id === p.id)
-                        const pReal = regimeComparison.prodsReal?.find((x) => x.id === p.id)
-                        const pSimp = regimeComparison.prodsSimples?.find((x) => x.id === p.id)
                         return (
-                          <span key={p.id} className="text-[10px] text-slate-400">
-                            <strong className="text-slate-200">
-                              #{idx + 1} {p.name || `Item ${idx + 1}`}:
-                            </strong>{' '}
-                            LP {pPres ? formatBRL(pPres.salePrice) : '—'} · LR{' '}
-                            {pReal ? formatBRL(pReal.salePrice) : '—'} · SN{' '}
-                            {pSimp ? formatBRL(pSimp.salePrice) : '—'}
-                          </span>
+                          <tr key={pPres.id} className="hover:bg-slate-900/40 transition-colors">
+                            <td className="py-2.5 px-3 text-left font-medium text-slate-200">
+                              <span className="text-slate-500 font-bold mr-1.5">#{idx + 1}</span>
+                              {pPres.name || `Produto ${idx + 1}`}
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-slate-400">{qty} un.</td>
+                            <td className="py-2.5 px-3 text-right">
+                              <span className="font-bold text-slate-100">
+                                {formatBRL(pPres.salePrice)}
+                              </span>
+                              {qty > 0 && (
+                                <span className="text-[10px] text-slate-500 block">
+                                  Tot: {formatBRL(pPres.totalRevenue)}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              <span className="font-bold text-slate-100">
+                                {pReal ? formatBRL(pReal.salePrice) : '—'}
+                              </span>
+                              {qty > 0 && pReal && (
+                                <span className="text-[10px] text-slate-500 block">
+                                  Tot: {formatBRL(pReal.totalRevenue)}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-right">
+                              {regimeComparison.hasSimplesData && pSimp ? (
+                                <>
+                                  <span className="font-bold text-slate-100">
+                                    {formatBRL(pSimp.salePrice)}
+                                  </span>
+                                  {qty > 0 && (
+                                    <span className="text-[10px] text-slate-500 block">
+                                      Tot: {formatBRL(pSimp.totalRevenue)}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <span
+                                  className="text-slate-500"
+                                  title="Informe RBT12 na DRE Simples"
+                                >
+                                  —
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              {best ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                  <Sparkles className="w-2.5 h-2.5" />
+                                  {best.regime} ({formatBRL(best.price)})
+                                </span>
+                              ) : (
+                                <span className="text-slate-500">—</span>
+                              )}
+                            </td>
+                          </tr>
                         )
                       })}
-                    </div>
+                      {/* Linha consolidada total (soma das receitas por regime, SEM média) */}
+                      <tr className="bg-slate-900/90 font-bold border-t border-slate-700">
+                        <td className="py-2.5 px-3 text-left text-slate-300 uppercase tracking-wide">
+                          Receita Consolidada (Σ)
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-slate-200">
+                          {totalConsolidatedQuantity} un.
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-emerald-400">
+                          {formatBRL(regimeComparison.totalRevPresumido)}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-emerald-400">
+                          {formatBRL(regimeComparison.totalRevReal)}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-emerald-400">
+                          {regimeComparison.totalRevSimples !== null
+                            ? formatBRL(regimeComparison.totalRevSimples)
+                            : '—'}
+                        </td>
+                        <td className="py-2.5 px-3 text-center text-slate-400 text-[10px]">
+                          Soma por regime
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {!regimeComparison.hasSimplesData && (
+                  <div className="flex items-start gap-1.5 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300/90 text-[11px] font-mono">
+                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                    <span>
+                      {simplesIsInicioAtividade
+                        ? 'Empresa em início de atividade: informe as receitas mensais na DRE Simples Nacional para calcular o preço no Simples Nacional.'
+                        : 'Informe o RBT12 na DRE Simples Nacional para obter a alíquota efetiva do PGDAS e calcular o preço no Simples Nacional.'}
+                    </span>
                   </div>
                 )}
               </div>
