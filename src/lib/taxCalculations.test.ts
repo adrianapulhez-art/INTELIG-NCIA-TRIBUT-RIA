@@ -609,6 +609,9 @@ export function runOperatingResultIntegrationTests(): {
 
     // -----------------------------------------------------------------------
     // (f) Exemplos do dia a dia por porte (pequeno, médio, grande)
+    // Valida o cálculo de LAIR com valores inseridos explicitamente pelo usuário,
+    // garantindo que os exemplos do catálogo com valores zerados possam receber
+    // quaisquer quantias sem afetar a regra LAIR = Lucro Bruto − Despesas + Receitas
     // -----------------------------------------------------------------------
     {
       test: '(f) Pequeno porte: LAIR com receitas de balcão (14.500) − aluguel (3.200) − contabilidade (1.400) = 9.900,00',
@@ -624,6 +627,11 @@ export function runOperatingResultIntegrationTests(): {
       test: '(f) Grande porte: LAIR com licenciamento tech (54.000) − nuvem (27.000) − auditoria (22.000) = 5.000,00',
       expected: 5000,
       received: calculateLair(0, 27000 + 22000, 54000),
+    },
+    {
+      test: '(f) Presets zerados: inserção de exemplos com valores zerados preserva LAIR = Lucro Bruto',
+      expected: 15000,
+      received: calculateLair(15000, 0, 0),
     },
   ]
 

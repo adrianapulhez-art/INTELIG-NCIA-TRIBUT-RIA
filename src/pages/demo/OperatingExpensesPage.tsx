@@ -148,7 +148,7 @@ export default function OperatingExpensesPage() {
     } else {
       setExpenseDescription(preset.description)
       setExpenseCategory(preset.category)
-      setExpenseValueStr(formatNumberBR(preset.suggestedValue))
+      setExpenseValueStr(preset.suggestedValue === 0 ? '' : formatNumberBR(preset.suggestedValue))
     }
   }
 
@@ -183,7 +183,7 @@ export default function OperatingExpensesPage() {
     } else {
       setRevenueDescription(preset.description)
       setRevenueCategory(preset.category)
-      setRevenueValueStr(formatNumberBR(preset.suggestedValue))
+      setRevenueValueStr(preset.suggestedValue === 0 ? '' : formatNumberBR(preset.suggestedValue))
     }
   }
 
