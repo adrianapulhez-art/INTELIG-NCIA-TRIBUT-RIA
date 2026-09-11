@@ -24,6 +24,7 @@ import {
   calculatePurchaseItemGrossTotal,
   calculatePurchaseItemNetPurchases,
 } from '@/lib/taxCalculations'
+import { roundTo2 } from '@/lib/productStockCalculations'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -1390,59 +1391,239 @@ export default function PurchasesPage() {
                 </DialogHeader>
 
                 <div className="pt-3 space-y-4">
-                  {/* Apuração por produto */}
+                  {/* Modelo Analítico Clássico de Estoques Completo por Produto:
+                      Estoque Inicial (EI) + Compras Brutas − Deduções − Créditos Fiscais por regime = Compras Líquidas (CL);
+                      CL − Estoque Final (EF) = CMV Consolidado
+                  */}
                   {calculatedPurchases.productCmvBreakdown &&
                     calculatedPurchases.productCmvBreakdown.length > 0 && (
-                      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 space-y-2">
-                        <span className="text-xs font-mono font-semibold uppercase text-emerald-400 block">
-                          Apuração do CMV por Produto (CMP × Quantidade Vendida)
-                        </span>
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3 space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-800/80 pb-2">
+                          <span className="text-xs font-mono font-semibold uppercase text-emerald-400 flex items-center gap-1.5">
+                            <Boxes className="w-3.5 h-3.5 text-emerald-400" />
+                            Modelo Analítico Clássico de Estoques por Produto (EI + CL − EF = CMV)
+                          </span>
+                          <span className="text-[11px] font-mono text-slate-400">
+                            Regime ativo:{' '}
+                            <strong className="text-emerald-300 uppercase">{regime}</strong> ·
+                            Deduções e créditos por regime
+                          </span>
+                        </div>
+
                         <div className="overflow-x-auto">
                           <table className="w-full text-left font-mono text-xs">
                             <thead>
-                              <tr className="border-b border-slate-800 text-[11px] text-slate-400 uppercase">
-                                <th className="py-2 px-3">Produto</th>
-                                <th className="py-2 px-3 text-right">Qtd Vendida</th>
-                                <th className="py-2 px-3 text-right">CMP (Presumido)</th>
-                                <th className="py-2 px-3 text-right">CMP (Real)</th>
-                                <th className="py-2 px-3 text-right">CMP (Simples)</th>
-                                <th className="py-2 px-3 text-right font-bold text-emerald-400">
-                                  CMV ({regime.toUpperCase()})
+                              <tr className="border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider">
+                                <th className="py-2 px-2.5">Produto</th>
+                                <th className="py-2 px-2 text-right">EI (R$)</th>
+                                <th className="py-2 px-2 text-right">Compras Brutas</th>
+                                <th className="py-2 px-2 text-right text-slate-400">
+                                  (−) Deduções
+                                </th>
+                                <th className="py-2 px-2 text-right text-slate-400">
+                                  {regime === 'real'
+                                    ? '(−) Créd. ICMS/PIS/COF'
+                                    : regime === 'presumido'
+                                      ? '(−) Créd. ICMS'
+                                      : '(−) Créditos'}
+                                </th>
+                                <th className="py-2 px-2 text-right text-emerald-300 font-semibold">
+                                  (=) Compras Líq. (CL)
+                                </th>
+                                <th className="py-2 px-2 text-right text-slate-400">(−) EF (R$)</th>
+                                <th className="py-2 px-2 text-right">Qtd Vend.</th>
+                                <th className="py-2 px-2.5 text-right font-bold text-emerald-400">
+                                  (=) CMV do Produto
                                 </th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-800/60">
                               {calculatedPurchases.productCmvBreakdown.map((prod) => {
+                                const prodNameNorm = prod.name.trim().toLowerCase()
+
+                                // 1. Item fiscal correspondente em purchasesItems
+                                const matchedPurchaseItem = purchasesItems.find(
+                                  (it) => it.name && it.name.trim().toLowerCase() === prodNameNorm,
+                                )
+
+                                // 2. Produto no subsistema de estoque
+                                const matchedStockProduct = (productStockState.products || []).find(
+                                  (p) =>
+                                    (p.productId && p.productId === prod.productId) ||
+                                    (p.name && p.name.trim().toLowerCase() === prodNameNorm),
+                                )
+                                const stockPosition = matchedStockProduct
+                                  ? calculatedProductStock.positions.find(
+                                      (pos) => pos.id === matchedStockProduct.id,
+                                    )
+                                  : null
+
+                                // Estoque Inicial do produto (R$)
+                                const prodEI = stockPosition
+                                  ? stockPosition.initialTotalValue
+                                  : matchedPurchaseItem
+                                    ? 0
+                                    : 0
+
+                                // Compras Brutas do produto: mercadoria + frete + IPI rateado/do item + ST
+                                const prodGrossPurchases = matchedPurchaseItem
+                                  ? calculatePurchaseItemGrossTotal(matchedPurchaseItem)
+                                  : 0
+
+                                // Deduções específicas do produto (devoluções/abatimentos proporcionais se houver)
+                                const totalPurchasesMerchSafe =
+                                  totalPurchasesMerchandise > 0 ? totalPurchasesMerchandise : 1
+                                const prodMerchShare = matchedPurchaseItem
+                                  ? matchedPurchaseItem.merchandiseValue / totalPurchasesMerchSafe
+                                  : 0
+                                const prodDeductions = roundTo2(
+                                  totalDeductionsValue * prodMerchShare,
+                                )
+
+                                // Créditos fiscais recuperáveis do produto conforme regime
+                                let prodTaxCredits = 0
+                                if (matchedPurchaseItem) {
+                                  if (regime === 'real') {
+                                    prodTaxCredits = roundTo2(
+                                      (matchedPurchaseItem.calculatedIcms || 0) +
+                                        (matchedPurchaseItem.icmsFreightValue || 0) +
+                                        (matchedPurchaseItem.calculatedPis || 0) +
+                                        (matchedPurchaseItem.calculatedCofins || 0),
+                                    )
+                                  } else if (regime === 'presumido') {
+                                    prodTaxCredits = roundTo2(
+                                      (matchedPurchaseItem.calculatedIcms || 0) +
+                                        (matchedPurchaseItem.icmsFreightValue || 0),
+                                    )
+                                  } else {
+                                    prodTaxCredits = 0 // Simples Nacional não recupera créditos
+                                  }
+                                }
+
+                                // Compras Líquidas (CL) do produto
+                                const prodNetPurchases = matchedPurchaseItem
+                                  ? calculatePurchaseItemNetPurchases(matchedPurchaseItem, regime)
+                                  : Math.max(
+                                      0,
+                                      roundTo2(
+                                        prodGrossPurchases - prodDeductions - prodTaxCredits,
+                                      ),
+                                    )
+
+                                // CMV apurado no TaxContext para o regime ativo
                                 const activeProductCmv =
                                   regime === 'simples'
                                     ? prod.cmvSimples
                                     : regime === 'real'
                                       ? prod.cmvReal
                                       : prod.cmvPresumido
+
+                                // Estoque Final (EF) = EI + CL − CMV (nunca negativo)
+                                const prodEF = roundTo2(
+                                  Math.max(0, prodEI + prodNetPurchases - activeProductCmv),
+                                )
+
                                 return (
-                                  <tr key={prod.productId} className="hover:bg-slate-800/40">
-                                    <td className="py-2 px-3 font-sans font-medium text-slate-200">
-                                      {prod.name}
+                                  <tr
+                                    key={prod.productId}
+                                    className="hover:bg-slate-800/40 transition-colors"
+                                  >
+                                    <td className="py-2 px-2.5 font-sans font-medium text-slate-200">
+                                      <div className="flex flex-col">
+                                        <span className="font-semibold text-slate-100">
+                                          {prod.name}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 font-mono">
+                                          CMP:{' '}
+                                          {formatBRL(
+                                            regime === 'simples'
+                                              ? prod.cmpSimples
+                                              : regime === 'real'
+                                                ? prod.cmpReal
+                                                : prod.cmpPresumido,
+                                          )}
+                                          /un.
+                                        </span>
+                                      </div>
                                     </td>
-                                    <td className="py-2 px-3 text-right text-slate-300">
-                                      {prod.soldQty} un.
+                                    <td className="py-2 px-2 text-right text-slate-300">
+                                      {formatBRL(prodEI)}
                                     </td>
-                                    <td className="py-2 px-3 text-right text-slate-300">
-                                      {formatBRL(prod.cmpPresumido)}
+                                    <td className="py-2 px-2 text-right text-slate-200">
+                                      {formatBRL(prodGrossPurchases)}
                                     </td>
-                                    <td className="py-2 px-3 text-right text-slate-300">
-                                      {formatBRL(prod.cmpReal)}
+                                    <td className="py-2 px-2 text-right text-slate-400">
+                                      {prodDeductions > 0
+                                        ? `-${formatBRL(prodDeductions)}`
+                                        : 'R$ 0,00'}
                                     </td>
-                                    <td className="py-2 px-3 text-right text-slate-300">
-                                      {formatBRL(prod.cmpSimples)}
+                                    <td className="py-2 px-2 text-right text-slate-400">
+                                      {prodTaxCredits > 0
+                                        ? `-${formatBRL(prodTaxCredits)}`
+                                        : 'R$ 0,00'}
                                     </td>
-                                    <td className="py-2 px-3 text-right font-bold text-emerald-400">
+                                    <td className="py-2 px-2 text-right font-semibold text-emerald-300">
+                                      {formatBRL(prodNetPurchases)}
+                                    </td>
+                                    <td className="py-2 px-2 text-right text-slate-300">
+                                      {formatBRL(prodEF)}
+                                    </td>
+                                    <td className="py-2 px-2 text-right text-slate-200">
+                                      {prod.soldQty}{' '}
+                                      <span className="text-slate-500 text-[10px]">un.</span>
+                                    </td>
+                                    <td className="py-2 px-2.5 text-right font-bold text-emerald-400">
                                       {formatBRL(activeProductCmv)}
                                     </td>
                                   </tr>
                                 )
                               })}
                             </tbody>
+                            <tfoot className="border-t-2 border-slate-700 bg-slate-950/80 font-bold text-xs">
+                              <tr>
+                                <td className="py-2.5 px-2.5 text-slate-200">TOTAL CONSOLIDADO</td>
+                                <td className="py-2.5 px-2 text-right text-slate-300">
+                                  {formatBRL(initialInventory)}
+                                </td>
+                                <td className="py-2.5 px-2 text-right text-slate-200">
+                                  {formatBRL(calculatedPurchases.totalAdditions)}
+                                </td>
+                                <td className="py-2.5 px-2 text-right text-slate-400">
+                                  -{formatBRL(calculatedPurchases.totalDeductionsBase)}
+                                </td>
+                                <td className="py-2.5 px-2 text-right text-slate-400">
+                                  -
+                                  {formatBRL(
+                                    regime === 'real'
+                                      ? calculatedPurchases.icmsResult +
+                                          calculatedPurchases.icmsFreightResult +
+                                          calculatedPurchases.pisResult +
+                                          calculatedPurchases.cofinsResult +
+                                          calculatedPurchases.pisFreightResult +
+                                          calculatedPurchases.cofinsFreightResult
+                                      : regime === 'presumido'
+                                        ? calculatedPurchases.icmsResult +
+                                          calculatedPurchases.icmsFreightResult
+                                        : 0,
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-2 text-right text-emerald-300">
+                                  {formatBRL(activeNetPurchases)}
+                                </td>
+                                <td className="py-2.5 px-2 text-right text-slate-300">
+                                  {formatBRL(
+                                    autoInventoryDeduction ? activeAutoEF : finalInventory,
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-2 text-right text-slate-200">
+                                  {calculatedPurchases.totalSoldUnitsEffective}{' '}
+                                  <span className="text-slate-500 text-[10px]">un.</span>
+                                </td>
+                                <td className="py-2.5 px-2.5 text-right text-emerald-400 text-sm">
+                                  {formatBRL(activeCmv)}
+                                </td>
+                              </tr>
+                            </tfoot>
                           </table>
                         </div>
                       </div>
