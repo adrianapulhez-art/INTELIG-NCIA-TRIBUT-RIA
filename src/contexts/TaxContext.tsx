@@ -1594,12 +1594,16 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         })
 
-        // Limpa quaisquer chaves que comecem com tax_ ou it_tax_ exceto as de auth
+        // Limpa quaisquer chaves que comecem com tax_ ou it_tax_ exceto as de auth, cenários e assistente
         try {
           for (let i = localStorage.length - 1; i >= 0; i--) {
             const key = localStorage.key(i)
             if (
               key &&
+              !key.startsWith('it_tax_scenarios') &&
+              !key.startsWith('it_tax_assistant') &&
+              !key.startsWith('it_tax_conv') &&
+              !key.startsWith('pocketbase_auth') &&
               (key.startsWith('it_tax') ||
                 key.startsWith('tax_state') ||
                 key.startsWith('tax_draft'))
@@ -1611,6 +1615,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const key = sessionStorage.key(i)
             if (
               key &&
+              !key.startsWith('it_tax_scenarios') &&
+              !key.startsWith('it_tax_assistant') &&
+              !key.startsWith('it_tax_conv') &&
+              !key.startsWith('pocketbase_auth') &&
               (key.startsWith('it_tax') ||
                 key.startsWith('tax_state') ||
                 key.startsWith('tax_draft'))
