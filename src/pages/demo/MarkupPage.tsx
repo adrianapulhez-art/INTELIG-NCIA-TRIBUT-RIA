@@ -293,6 +293,60 @@ export default function MarkupPage() {
     }
   }, [icmsRateMarkup, isIcmsFocused])
 
+  // Sincronização do Faturamento mensal projetado (Porta 1) com foco protegido
+  const [isProjectedRevenueFocused, setIsProjectedRevenueFocused] = useState(false)
+  const [projectedRevenueInput, setProjectedRevenueInput] = useState<string>(
+    simplesMonthlyProjectedRevenue > 0 ? formatNumberBR(simplesMonthlyProjectedRevenue) : '',
+  )
+
+  useEffect(() => {
+    if (!isProjectedRevenueFocused) {
+      setProjectedRevenueInput(
+        simplesMonthlyProjectedRevenue > 0 ? formatNumberBR(simplesMonthlyProjectedRevenue) : '',
+      )
+    }
+  }, [simplesMonthlyProjectedRevenue, isProjectedRevenueFocused])
+
+  const handleProjectedRevenueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setProjectedRevenueInput(val)
+    const num = parseBRNumber(val)
+    setSimplesMonthlyProjectedRevenue(num)
+  }
+
+  const handleProjectedRevenueBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    setIsProjectedRevenueFocused(false)
+    const num = parseBRNumber(e.target.value)
+    setProjectedRevenueInput(num > 0 ? formatNumberBR(num) : '')
+    setSimplesMonthlyProjectedRevenue(num)
+  }
+
+  // Sincronização da RBT12 Formada (Porta 2) com foco protegido
+  const [isSimplesRbt12Focused, setIsSimplesRbt12Focused] = useState(false)
+  const [simplesRbt12Input, setSimplesRbt12Input] = useState<string>(
+    simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : '',
+  )
+
+  useEffect(() => {
+    if (!isSimplesRbt12Focused) {
+      setSimplesRbt12Input(simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : '')
+    }
+  }, [simplesRbt12, isSimplesRbt12Focused])
+
+  const handleSimplesRbt12Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value
+    setSimplesRbt12Input(val)
+    const num = parseBRNumber(val)
+    setSimplesRbt12(num)
+  }
+
+  const handleSimplesRbt12Blur = (e: React.FocusEvent<HTMLInputElement>) => {
+    setIsSimplesRbt12Focused(false)
+    const num = parseBRNumber(e.target.value)
+    setSimplesRbt12Input(num > 0 ? formatNumberBR(num) : '')
+    setSimplesRbt12(num)
+  }
+
   // Estado para novo tributo customizado
   const [showAddCustomTax, setShowAddCustomTax] = useState(false)
   const [newTaxName, setNewTaxName] = useState('')
@@ -733,21 +787,15 @@ export default function MarkupPage() {
                         </span>
                         <Input
                           type="text"
-                          value={
-                            simplesMonthlyProjectedRevenue > 0
-                              ? formatNumberBR(simplesMonthlyProjectedRevenue)
-                              : ''
-                          }
+                          value={projectedRevenueInput}
+                          onFocus={() => setIsProjectedRevenueFocused(true)}
+                          onChange={handleProjectedRevenueChange}
+                          onBlur={handleProjectedRevenueBlur}
                           placeholder="20.000,00"
-                          onChange={(e) => {
-                            const val = parseBRNumber(e.target.value)
-                            setSimplesMonthlyProjectedRevenue(val)
-                          }}
                           className="pl-8 text-right font-mono text-xs h-8 field-input-interactive"
                         />
                       </div>
                     </div>
-
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
                         <label className="text-[11px] text-slate-300 font-semibold">
@@ -816,11 +864,10 @@ export default function MarkupPage() {
                       <Input
                         type="text"
                         placeholder="0,00"
-                        value={simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : ''}
-                        onChange={(e) => {
-                          const val = parseBRNumber(e.target.value)
-                          setSimplesRbt12(val)
-                        }}
+                        value={simplesRbt12Input}
+                        onFocus={() => setIsSimplesRbt12Focused(true)}
+                        onChange={handleSimplesRbt12Change}
+                        onBlur={handleSimplesRbt12Blur}
                         className="pl-8 text-right font-mono text-xs h-8 field-input-interactive"
                       />
                     </div>

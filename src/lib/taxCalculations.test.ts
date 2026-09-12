@@ -459,7 +459,53 @@ export function runMarkupSimplesNacionalTests(): {
   )
   const divisorComTributoNaoEhUm = divisorComTributo < 0.9999
 
+  // G. Testes específicos da tarefa: simulação de digitação/parse de faturamento mensal projetado Porta 1
+  // Digitar 20000 -> faturamento mensal = 20000, 1 mês de atividade -> RBT12 = 240.000, alíquota 4,83%
+  const input20000Parsed = parseBRNumber('20000') // 20000
+  const input2000PontoParsed = parseBRNumber('2.000') // 2000
+  const input2000Parsed = parseBRNumber('2000') // 2000
+  const input20000PontoParsed = parseBRNumber('20.000') // 20000
+  const input20000PontoVirgulaParsed = parseBRNumber('20.000,00') // 20000
+  const rbt12From20k = input20000Parsed * 12 // 240000
+  const pgdasFrom20k = calculatePgdas('anexo_1', rbt12From20k)
+  const efetivaFrom20k = Math.round(pgdasFrom20k.aliquotaEfetiva * 100) / 100 // 4.83%
+
   const tests = [
+    {
+      test: 'Porta 1 Digitação: parseBRNumber("20000") resulta exatamente em 20000',
+      expected: 20000,
+      received: input20000Parsed,
+    },
+    {
+      test: 'Porta 1 Digitação: parseBRNumber("2.000") resulta em 2000',
+      expected: 2000,
+      received: input2000PontoParsed,
+    },
+    {
+      test: 'Porta 1 Digitação: parseBRNumber("2000") resulta em 2000',
+      expected: 2000,
+      received: input2000Parsed,
+    },
+    {
+      test: 'Porta 1 Digitação: parseBRNumber("20.000") resulta em 20000',
+      expected: 20000,
+      received: input20000PontoParsed,
+    },
+    {
+      test: 'Porta 1 Digitação: parseBRNumber("20.000,00") resulta em 20000',
+      expected: 20000,
+      received: input20000PontoVirgulaParsed,
+    },
+    {
+      test: 'Porta 1 Digitação: faturamento 20000 × 12 resulta em RBT12 = 240.000',
+      expected: 240000,
+      received: rbt12From20k,
+    },
+    {
+      test: 'Porta 1 Digitação: RBT12 240.000 resulta em alíquota efetiva 4,83% (Faixa 2)',
+      expected: 4.83,
+      received: efetivaFrom20k,
+    },
     {
       test: 'Canônico: RBT12 360k Anexo I aliquotaEfetiva ~ 5.65%',
       expected: 5.65,
