@@ -3360,6 +3360,26 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCustomTaxesMarkup(
       Array.isArray(snapshot.customTaxesMarkup) ? snapshot.customTaxesMarkup : [],
     )
+    if (Array.isArray(snapshot.variableExpenses) && snapshot.variableExpenses.length > 0) {
+      setVariableExpenses(
+        snapshot.variableExpenses.map((dv) => ({
+          ...dv,
+          rate: typeof dv.rate === 'number' && Number.isFinite(dv.rate) ? Math.max(0, dv.rate) : 0,
+        })),
+      )
+    }
+    if (snapshot.simplesIsActiveMoreThan12m !== undefined) {
+      setSimplesIsActiveMoreThan12mState(Boolean(snapshot.simplesIsActiveMoreThan12m))
+    }
+    if (snapshot.simplesActivityMonths !== undefined) {
+      setSimplesActivityMonthsState(snapshot.simplesActivityMonths)
+    }
+    if (snapshot.simplesMonthlyProjectedRevenue !== undefined) {
+      setSimplesMonthlyProjectedRevenueState(snapshot.simplesMonthlyProjectedRevenue)
+    }
+    if (snapshot.simplesSelectedScenario !== undefined) {
+      setSimplesSelectedScenarioState(snapshot.simplesSelectedScenario)
+    }
 
     if (Array.isArray(snapshot.markupProducts) && snapshot.markupProducts.length > 0) {
       setMarkupProducts(
@@ -3661,6 +3681,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       additionalMargin,
       icmsRateMarkup,
       customTaxesMarkup,
+      variableExpenses,
+      simplesIsActiveMoreThan12m,
+      simplesActivityMonths,
+      simplesMonthlyProjectedRevenue,
+      simplesSelectedScenario,
       markupProducts,
       simulatedSalePrice,
       simulatedTaxFactorTotal,
@@ -3779,6 +3804,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isSimplesSimulated,
     simplesIsInicioAtividade,
     simplesMonthlyRevenues,
+    variableExpenses,
+    simplesIsActiveMoreThan12m,
+    simplesActivityMonths,
+    simplesMonthlyProjectedRevenue,
+    simplesSelectedScenario,
     payrollSalaries,
     payrollProLabore,
     payrollInssRate,
@@ -3918,6 +3948,19 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         customTaxesMarkup,
         addCustomTaxMarkup,
         removeCustomTaxMarkup,
+        variableExpenses,
+        addVariableExpense,
+        updateVariableExpense,
+        removeVariableExpense,
+        totalVariableExpenseRate,
+        simplesIsActiveMoreThan12m,
+        setSimplesIsActiveMoreThan12m,
+        simplesActivityMonths,
+        setSimplesActivityMonths,
+        simplesMonthlyProjectedRevenue,
+        setSimplesMonthlyProjectedRevenue,
+        simplesSelectedScenario,
+        setSimplesSelectedScenario,
         markupProducts,
         addMarkupProduct,
         importPurchaseItemToMarkup,
