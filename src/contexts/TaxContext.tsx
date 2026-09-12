@@ -1674,6 +1674,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     value: string | number | MarkupMode | CostComposition,
   ) => {
     recordUndoSnapshot()
+    if (field === 'mode' && (value === 'liquid' || value === 'cost_margin')) {
+      // Sincroniza concomitantemente o seletor global do modo predominante
+      // espelhando a escolha recém-feita pelo usuário no card individual
+      setMarkupModeState(value as MarkupMode)
+    }
     setMarkupProducts((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item

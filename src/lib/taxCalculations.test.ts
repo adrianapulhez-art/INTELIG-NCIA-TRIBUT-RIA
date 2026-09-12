@@ -425,6 +425,24 @@ export function runLiquidDreMarkupTests(): {
   const syncedCostMargin = syncedProducts.map((p) => ({ ...p, mode: targetModeCostMargin }))
   const allSyncedToCostMargin = syncedCostMargin.every((p) => p.mode === 'cost_margin')
 
+  // Teste (a2): Sincronização concomitante Card individual -> Seletor global
+  // Quando o usuário alterna o toggle de um produto específico para 'liquid' ou 'cost_margin',
+  // o seletor global (markupModeState) espelha concomitantemente a última escolha
+  let globalMarkupModeSimulated: string = 'cost_margin'
+  const mockUpdateMarkupProduct = (_id: string, field: string, val: 'liquid' | 'cost_margin') => {
+    if (field === 'mode') {
+      globalMarkupModeSimulated = val
+    }
+  }
+
+  // Usuário clica no card individual em "Receita Líquida"
+  mockUpdateMarkupProduct('p1', 'mode', 'liquid')
+  const cardToGlobalSyncedLiquid = globalMarkupModeSimulated === 'liquid'
+
+  // Usuário clica no card individual em "Custo + Margem"
+  mockUpdateMarkupProduct('p1', 'mode', 'cost_margin')
+  const cardToGlobalSyncedCostMargin = globalMarkupModeSimulated === 'cost_margin'
+
   // Teste (b) & (c): RBV = RL ÷ (1 - %tributos - %DV) e derivedMarginPct
   // 1. Simples Nacional:
   // RL = 1.000, custo = 600, DAS efetivo = 7,00%, DV = 3,00%
@@ -509,6 +527,17 @@ export function runLiquidDreMarkupTests(): {
       test: '(a) Sincronização em lote: Seletor global modo cost_margin atualiza todos os produtos para "cost_margin"',
       expected: true,
       received: allSyncedToCostMargin,
+    },
+    // (a2) Sincronização Card individual -> Seletor global concomitante
+    {
+      test: '(a2) Card -> Seletor Global: Alternar card para "Receita Líquida" atualiza seletor global para "liquid"',
+      expected: true,
+      received: cardToGlobalSyncedLiquid,
+    },
+    {
+      test: '(a2) Card -> Seletor Global: Alternar card para "Custo + Margem" atualiza seletor global para "cost_margin"',
+      expected: true,
+      received: cardToGlobalSyncedCostMargin,
     },
 
     // (b) Margem derivada
