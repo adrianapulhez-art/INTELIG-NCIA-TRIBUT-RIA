@@ -33,6 +33,7 @@ export function getLocalTaxScenarios(): TaxScenarioRecord[] {
         return parsed.map((item) => ({
           ...item,
           source: item.source || 'local',
+          data: sanitizeSnapshotForPersistence(item.data),
         }))
       }
     }
@@ -80,14 +81,72 @@ export function saveLocalTaxScenarios(scenarios: TaxScenarioRecord[]): void {
   }
 }
 
+/**
+ * Normaliza e sanitiza um TaxStateSnapshot para garantir isolamento e persistência
+ * explícita de desiredNetRevenue, cost, costOrigin, manualCostOverride, mode e margin.
+ * Migração retrocompatível sem descartar nenhum dado antigo existente.
+ */
+export function sanitizeSnapshotForPersistence(raw: TaxStateSnapshot | unknown): TaxStateSnapshot {
+  if (!raw || typeof raw !== 'object') {
+    return raw as TaxStateSnapshot
+  }
+  const snap = raw as Partial<TaxStateSnapshot>
+
+  let markupProducts = snap.markupProducts
+  if (Array.isArray(markupProducts)) {
+    markupProducts = markupProducts.map((p) => {
+      const mode =
+        p.mode === 'cost_margin' || p.mode === 'liquid' ? p.mode : snap.markupMode || 'liquid'
+      const cost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+      let desiredNetRevenue =
+        typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
+          ? p.desiredNetRevenue
+          : 0
+
+      // Se cenário legado não salvou desiredNetRevenue separadamente mas estava no modo liquid
+      if (
+        mode === 'liquid' &&
+        desiredNetRevenue === 0 &&
+        cost > 0 &&
+        (snap.desiredNetRevenue ?? 0) === 0
+      ) {
+        desiredNetRevenue = cost
+      } else if (
+        mode === 'liquid' &&
+        desiredNetRevenue === 0 &&
+        typeof snap.desiredNetRevenue === 'number' &&
+        snap.desiredNetRevenue > 0
+      ) {
+        desiredNetRevenue = snap.desiredNetRevenue
+      }
+
+      return {
+        ...p,
+        mode,
+        desiredNetRevenue,
+        cost,
+        costOrigin: p.costOrigin || (p.purchaseItemId ? 'purchases' : 'manual'),
+        manualCostOverride: p.manualCostOverride,
+        margin: typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0,
+      }
+    })
+  }
+
+  return {
+    ...snap,
+    markupProducts,
+  } as TaxStateSnapshot
+}
+
 function formatScenarioRecord(record: RecordModel): TaxScenarioRecord {
+  const parsedData = (
+    typeof record.data === 'string' ? JSON.parse(record.data) : record.data
+  ) as TaxStateSnapshot
   return {
     id: record.id,
     owner: record.owner,
     name: record.name,
-    data: (typeof record.data === 'string'
-      ? JSON.parse(record.data)
-      : record.data) as TaxStateSnapshot,
+    data: sanitizeSnapshotForPersistence(parsedData),
     created: record.created,
     updated: record.updated,
     source: 'cloud',
@@ -190,7 +249,7 @@ export async function createTaxScenario(
     id: `scen-local-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     owner: authUserId || 'local_user',
     name: cleanName,
-    data: snapshot,
+    data: sanitizeSnapshotForPersistence(snapshot),
     created: now,
     updated: now,
     source: 'local',
@@ -237,7 +296,8 @@ export async function updateTaxScenario(
     const localUpdated: TaxScenarioRecord = {
       ...existing,
       name: updates.name !== undefined ? updates.name.trim() : existing.name,
-      data: updates.data !== undefined ? updates.data : existing.data,
+      data:
+        updates.data !== undefined ? sanitizeSnapshotForPersistence(updates.data) : existing.data,
       updated: now,
     }
     localList[foundIndex] = localUpdated

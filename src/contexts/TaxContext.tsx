@@ -2958,8 +2958,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
 
     // Fator tributário aditivo para o modo líquido: (1 - Σ%tributos - %DV)
-    // No modo liquid: gross-up aditivo para tributos + DV, e multiplicativo APENAS para margem:
-    // completeFactor = Math.max(0.0001, 1 - (sumTaxesRatePct + dvRatePct) / 100) * (1 - margin / 100)
+    // No modo liquid: gross-up aditivo exclusivo para tributos + DV, SEM fator (1 - margem)
+    // porque a margem é derivada da Receita Líquida (âncora) e não entra no divisor
+    // Fórmula correta RBV: RL ÷ (1 − Σ%Tributos − %DV)
     const baseLiquidDivisorWithoutMargin = Math.max(0.0001, 1 - (sumTaxesRatePct + dvRatePct) / 100)
     if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
     // Se não há dados preenchidos, não ativa a simulação automaticamente
@@ -3000,7 +3001,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const isLiquidProd = p.mode === 'liquid'
       const productTaxFactor = isLiquidProd ? baseLiquidDivisorWithoutMargin : baseTaxFactor
 
-      let completeFactor = productTaxFactor * marginFactor
+      // No modo liquid, o divisor do gross-up é EXCLUSIVAMENTE (1 − Σ%Tributos − %DV), SEM fator (1 − margem)
+      let completeFactor = isLiquidProd ? productTaxFactor : productTaxFactor * marginFactor
       // Assert defensivo: se houver imposto aplicável e completeFactor >= 1, usa productTaxFactor sem margem
       if (productTaxFactor < 1 && completeFactor >= 1) {
         completeFactor = productTaxFactor
@@ -3194,7 +3196,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const isLiquidProd = p.mode === 'liquid'
       const productTaxFactor = isLiquidProd ? baseLiquidDivisorWithoutMargin : baseTaxFactor
 
-      let completeFactor = productTaxFactor * marginFactor
+      // No modo liquid, o divisor do gross-up é EXCLUSIVAMENTE (1 − Σ%Tributos − %DV), SEM fator (1 − margem)
+      let completeFactor = isLiquidProd ? productTaxFactor : productTaxFactor * marginFactor
       // Assert defensivo: se houver imposto aplicável e completeFactor >= 1, usa productTaxFactor sem margem
       if (productTaxFactor < 1 && completeFactor >= 1) {
         completeFactor = productTaxFactor
@@ -3462,24 +3465,54 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     if (Array.isArray(snapshot.markupProducts) && snapshot.markupProducts.length > 0) {
+      // Sanitização de cenários antigos/salvos:
+      // 1. Garantir que desiredNetRevenue e cost não se sobreponham ou invertam
+      // 2. Se o produto estiver no modo liquid, a margem residual não pode contaminar o cálculo do divisor
+      // 3. Se um produto legado tiver desiredNetRevenue === 0 mas cost > 0 e mode === 'liquid',
+      //    ou se vier de snapshot antigo com cost gravado na RL, preserva ambos claramente discriminados.
       setMarkupProducts(
-        snapshot.markupProducts.map((p) => ({
-          ...p,
-          costComposition: p.costComposition || {
-            directCosts: [],
-            indirectCosts: [],
-            fixedCosts: [],
-          },
-        })),
+        snapshot.markupProducts.map((p) => {
+          const prodMode: MarkupMode =
+            p.mode === 'cost_margin' || p.mode === 'liquid'
+              ? p.mode
+              : snapshot.markupMode || 'liquid'
+          const safeDesiredNetRevenue =
+            typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
+              ? p.desiredNetRevenue
+              : prodMode === 'liquid' &&
+                  typeof p.cost === 'number' &&
+                  p.cost > 0 &&
+                  (snapshot.desiredNetRevenue ?? 0) === 0
+                ? p.cost // fallback legado quando a RL estava salva no campo cost
+                : 0
+          const safeCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+          const safeMargin =
+            typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
+
+          return {
+            ...p,
+            mode: prodMode,
+            desiredNetRevenue: safeDesiredNetRevenue,
+            cost: safeCost,
+            margin: safeMargin,
+            costComposition: p.costComposition || {
+              directCosts: [],
+              indirectCosts: [],
+              fixedCosts: [],
+            },
+          }
+        }),
       )
     } else {
+      const defaultMode = snapshot.markupMode || 'liquid'
+      const legacyVal = snapshot.desiredNetRevenue || 0
       setMarkupProducts([
         {
           id: 'prod-1',
           name: 'Produto 1',
-          mode: snapshot.markupMode || 'liquid',
-          desiredNetRevenue: snapshot.desiredNetRevenue || 0,
-          cost: snapshot.markupMode === 'cost_margin' ? snapshot.desiredNetRevenue || 0 : 0,
+          mode: defaultMode,
+          desiredNetRevenue: defaultMode === 'liquid' ? legacyVal : 0,
+          cost: defaultMode === 'cost_margin' ? legacyVal : 0,
           margin: snapshot.additionalMargin || 0,
           quantity: 0,
           costComposition: {

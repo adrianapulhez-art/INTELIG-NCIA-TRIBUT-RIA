@@ -574,7 +574,7 @@ export default function MarkupPage() {
     const totalTaxesSimplesRate = effectiveSimplesRate + sumCustomTaxesPct
     const liquidDivisorSimplesBase = Math.max(0.0001, 1 - (totalTaxesSimplesRate + dvRate) / 100)
 
-    // Helper para calcular produtos por regime, respeitando o modo líquido (divisor aditivo tributos+DV) vs custo+margem
+    // Helper para calcular produtos por regime, respeitando o modo líquido (divisor aditivo tributos+DV sem fator margem) vs custo+margem
     const calcForTaxFactor = (taxFactorMultiplicative: number, liquidDivisorBase: number) => {
       let totalRev = 0
       let totalQty = 0
@@ -584,7 +584,12 @@ export default function MarkupPage() {
         const isLiquidProd = p.mode === 'liquid'
         const baseFactor = isLiquidProd ? liquidDivisorBase : taxFactorMultiplicative
 
-        let completeFactor = (Number.isFinite(baseFactor) ? baseFactor : 0) * marginFactor
+        // No modo liquid: divisor exclusivo do gross-up (1 - Σtributos - %DV), sem fator margem
+        let completeFactor = isLiquidProd
+          ? Number.isFinite(baseFactor)
+            ? baseFactor
+            : 0
+          : (Number.isFinite(baseFactor) ? baseFactor : 0) * marginFactor
         if (baseFactor < 1 && completeFactor >= 1) {
           completeFactor = baseFactor
         }

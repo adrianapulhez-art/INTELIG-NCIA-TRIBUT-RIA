@@ -27,6 +27,7 @@ import {
   CustomTaxItem,
   VariableExpenseItem,
   SimplesScenarioKey,
+  useTaxContext,
 } from '@/contexts/TaxContext'
 
 export interface MarkupCalculationMemoryModalProps {
@@ -67,6 +68,8 @@ export function MarkupCalculationMemoryModal({
   variableExpenses = [],
   totalVariableExpenseRate = 0,
 }: MarkupCalculationMemoryModalProps) {
+  const { purchasesItems, computedPurchasesItems, getPurchaseItemUnitNetCost } = useTaxContext()
+
   // Aba ativa de regime (padrão inicia no regime atual da empresa)
   const [activeTab, setActiveTab] = useState<TaxRegime>(currentRegime)
 
@@ -82,10 +85,34 @@ export function MarkupCalculationMemoryModal({
   // 1. Dados base do produto
   const isLiquid = product.mode === 'liquid'
 
+  // Determinar o custo real unitário do produto de acordo com o regime (presumido, real ou simples)
+  // Se o produto estiver vinculado a item de compras e não tiver override manual, busca o custo unitário líquido do regime
+  const resolveRegimeUnitCost = (targetRegime: TaxRegime): number => {
+    if (
+      product.costOrigin !== 'manual' &&
+      product.manualCostOverride === undefined &&
+      product.purchaseItemId
+    ) {
+      const itemsList =
+        computedPurchasesItems && computedPurchasesItems.length > 0
+          ? computedPurchasesItems
+          : purchasesItems
+      const matched = itemsList?.find((pi) => pi.id === product.purchaseItemId)
+      if (matched && getPurchaseItemUnitNetCost) {
+        const uCost = getPurchaseItemUnitNetCost(matched, targetRegime)
+        if (uCost > 0) return uCost
+      }
+    }
+    return typeof product.cost === 'number' && Number.isFinite(product.cost) ? product.cost : 0
+  }
+
+  const costSimples = resolveRegimeUnitCost('simples')
+  const costPresumido = resolveRegimeUnitCost('presumido')
+  const costReal = resolveRegimeUnitCost('real')
+
   // Motor da Cadeia da DRE Líquida (Item 5 do escopo)
   const customTaxesSum = customTaxesMarkup.reduce((acc, t) => acc + (t.rate || 0), 0)
-  const effectiveCostForLiquidChain =
-    typeof product.cost === 'number' && Number.isFinite(product.cost) ? product.cost : 0
+  const effectiveCostForLiquidChain = resolveRegimeUnitCost(currentRegime)
   const liquidChainSimples = isLiquid
     ? calculateLiquidDreChain({
         desiredNetRevenue: product.desiredNetRevenue || 0,
@@ -97,7 +124,7 @@ export function MarkupCalculationMemoryModal({
         icmsRate: icmsRateMarkup || 0,
         customTaxesRate: customTaxesSum,
         variableExpensesRate: totalVariableExpenseRate || 0,
-        unitCost: effectiveCostForLiquidChain,
+        unitCost: costSimples,
         operatingExpensesUnit: 0,
         presumidoActivity: 'comercio',
       })
@@ -111,7 +138,7 @@ export function MarkupCalculationMemoryModal({
         icmsRate: icmsRateMarkup || 0,
         customTaxesRate: customTaxesSum,
         variableExpensesRate: totalVariableExpenseRate || 0,
-        unitCost: effectiveCostForLiquidChain,
+        unitCost: costPresumido,
         operatingExpensesUnit: 0,
         presumidoActivity: 'comercio',
       })
@@ -125,7 +152,7 @@ export function MarkupCalculationMemoryModal({
         icmsRate: icmsRateMarkup || 0,
         customTaxesRate: customTaxesSum,
         variableExpensesRate: totalVariableExpenseRate || 0,
-        unitCost: effectiveCostForLiquidChain,
+        unitCost: costReal,
         operatingExpensesUnit: 0,
         presumidoActivity: 'comercio',
       })
@@ -216,12 +243,11 @@ export function MarkupCalculationMemoryModal({
   const sumCustomTaxesRate = customTaxesMarkup.reduce((acc, t) => acc + (t.rate || 0), 0)
 
   // Divisor Simples:
-  // Se modo liquid: fórmula gross-up aditiva para tributos + DV, multiplicativo apenas na margem:
-  // Divisor = (1 - %DAS - %customTaxes - %DV) * (1 - Margem)
+  // Se modo liquid: fórmula gross-up aditiva para tributos + DV, EXCLUSIVAMENTE (1 - %DAS - %customTaxes - %DV)
+  // SEM fator (1 - margem) pois a margem é derivada da Receita Líquida (âncora).
   // Se custo+margem: multiplicativo: (1 - DAS) * (1 - DV) * (1 - Margem) * customTaxesFactor
   const rawDivisorSimples = isLiquid
-    ? Math.max(0.0001, 1 - (effectiveSimplesRate + sumCustomTaxesRate + dvRate) / 100) *
-      marginFactor
+    ? Math.max(0.0001, 1 - (effectiveSimplesRate + sumCustomTaxesRate + dvRate) / 100)
     : dasTaxFactor * dvFactor * marginFactor * customTaxesFactor
   // Blindagem: se tributo aplicável (dasTaxFactor < 1), completeFactor nunca pode ser 1.0
   const divisorSimples = Math.max(0.0001, rawDivisorSimples)
@@ -233,8 +259,10 @@ export function MarkupCalculationMemoryModal({
   const pvSimples = salePriceSimples
   const valorDasSimples = Math.round(pvSimples * effectiveSimplesDecimal * 100) / 100
   const valorDvSimples = Math.round(pvSimples * dvDecimal * 100) / 100
-  const valorMargemSimples =
-    Math.round((pvSimples - baseValue - valorDasSimples - valorDvSimples) * 100) / 100
+  const valorMargemSimples = isLiquid
+    ? Math.round(Math.max(0, pvSimples - costSimples - valorDasSimples - valorDvSimples) * 100) /
+      100
+    : Math.round((pvSimples - baseValue - valorDasSimples - valorDvSimples) * 100) / 100
 
   // -------------------------------------------------------------
   // LUCRO PRESUMIDO — Cálculos
@@ -252,7 +280,7 @@ export function MarkupCalculationMemoryModal({
   const totalTaxesPresumidoRate =
     icmsRateClean + pisPresumidoRate + cofinsPresumidoRate + sumCustomTaxesRate
   const rawDivisorPresumido = isLiquid
-    ? Math.max(0.0001, 1 - (totalTaxesPresumidoRate + dvRate) / 100) * marginFactor
+    ? Math.max(0.0001, 1 - (totalTaxesPresumidoRate + dvRate) / 100)
     : taxFactorPresumidoDecomposto * dvFactor * marginFactor
   const divisorPresumido = Math.max(0.0001, rawDivisorPresumido)
   const salePricePresumido =
@@ -268,8 +296,11 @@ export function MarkupCalculationMemoryModal({
   const valorCofinsPresumido = Math.round(pvPresumido * (cofinsPresumidoRate / 100) * 100) / 100
   const valorTributosPresumido = valorIcmsPresumido + valorPisPresumido + valorCofinsPresumido
   const valorDvPresumido = Math.round(pvPresumido * dvDecimal * 100) / 100
-  const valorMargemPresumido =
-    Math.round((pvPresumido - baseValue - valorTributosPresumido - valorDvPresumido) * 100) / 100
+  const valorMargemPresumido = isLiquid
+    ? Math.round(
+        Math.max(0, pvPresumido - costPresumido - valorTributosPresumido - valorDvPresumido) * 100,
+      ) / 100
+    : Math.round((pvPresumido - baseValue - valorTributosPresumido - valorDvPresumido) * 100) / 100
 
   // -------------------------------------------------------------
   // LUCRO REAL — Cálculos
@@ -284,7 +315,7 @@ export function MarkupCalculationMemoryModal({
 
   const totalTaxesRealRate = icmsRateClean + pisRealRate + cofinsRealRate + sumCustomTaxesRate
   const rawDivisorReal = isLiquid
-    ? Math.max(0.0001, 1 - (totalTaxesRealRate + dvRate) / 100) * marginFactor
+    ? Math.max(0.0001, 1 - (totalTaxesRealRate + dvRate) / 100)
     : taxFactorRealDecomposto * dvFactor * marginFactor
   const divisorReal = Math.max(0.0001, rawDivisorReal)
   const salePriceReal =
@@ -298,8 +329,9 @@ export function MarkupCalculationMemoryModal({
   const valorCofinsReal = Math.round(pvReal * (cofinsRealRate / 100) * 100) / 100
   const valorTributosReal = valorIcmsReal + valorPisReal + valorCofinsReal
   const valorDvReal = Math.round(pvReal * dvDecimal * 100) / 100
-  const valorMargemReal =
-    Math.round((pvReal - baseValue - valorTributosReal - valorDvReal) * 100) / 100
+  const valorMargemReal = isLiquid
+    ? Math.round(Math.max(0, pvReal - costReal - valorTributosReal - valorDvReal) * 100) / 100
+    : Math.round((pvReal - baseValue - valorTributosReal - valorDvReal) * 100) / 100
 
   // Valores ativos do produto no regime corrente
   const activeSalePrice = product.salePrice || 0
@@ -351,10 +383,20 @@ export function MarkupCalculationMemoryModal({
           </div>
 
           <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80 font-mono">
-            <span className="text-[10px] text-slate-400 block uppercase">Margem Desejada</span>
-            <span className="text-sm font-bold text-amber-300">{formatPercentBR(marginPct)}</span>
+            <span className="text-[10px] text-slate-400 block uppercase">
+              {isLiquid ? 'Margem Derivada' : 'Margem Desejada'}
+            </span>
+            <span className="text-sm font-bold text-amber-300">
+              {isLiquid
+                ? activeRegimeChain
+                  ? `${formatNumberBR(activeRegimeChain.derivedMarginPct)}%`
+                  : formatPercentBR(marginPct)
+                : formatPercentBR(marginPct)}
+            </span>
             <span className="text-[10px] text-slate-500 block mt-0.5">
-              Fator: {formatFactorBR(marginFactor, 4)}
+              {isLiquid
+                ? 'Derivada da Receita Líquida'
+                : `Fator: ${formatFactorBR(marginFactor, 4)}`}
             </span>
           </div>
 
@@ -476,9 +518,19 @@ export function MarkupCalculationMemoryModal({
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 font-mono text-xs text-slate-200 overflow-x-auto">
                   <code className="text-emerald-400">
-                    Divisor = (1 − Alíquota Efetiva DAS) × (1 − DV Total) × (1 − Margem%)
-                    <br />
-                    Preço Sugerido = Custo Unitário ÷ Divisor
+                    {isLiquid ? (
+                      <>
+                        Divisor = (1 − Alíquota Efetiva DAS − %DV)
+                        <br />
+                        Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
+                      </>
+                    ) : (
+                      <>
+                        Divisor = (1 − Alíquota Efetiva DAS) × (1 − DV Total) × (1 − Margem%)
+                        <br />
+                        Preço Sugerido = Custo Unitário ÷ Divisor
+                      </>
+                    )}
                   </code>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed">
@@ -640,7 +692,9 @@ export function MarkupCalculationMemoryModal({
                         Origem: <strong className="text-slate-300">{costOriginLabel}</strong>
                       </span>
                     </div>
-                    <span className="font-bold text-slate-100 text-sm">{formatBRL(baseValue)}</span>
+                    <span className="font-bold text-slate-100 text-sm">
+                      {formatBRL(isLiquid ? costSimples : baseValue)}
+                    </span>
                   </div>
 
                   {/* ⑦ Despesas Variáveis */}
@@ -671,18 +725,25 @@ export function MarkupCalculationMemoryModal({
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-200 block">
-                        ⑧ Margem de Lucro Desejada (%)
+                        ⑧ Margem de Lucro{' '}
+                        {isLiquid ? 'Derivada da Receita Líquida' : 'Desejada (%)'}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Margem aplicada sobre a receita líquida
+                        {isLiquid
+                          ? 'Informativa (LLE ÷ RBV) — não entra no divisor no modo liquid'
+                          : 'Margem aplicada sobre a receita líquida'}
                       </span>
                     </div>
                     <div className="text-right">
                       <span className="font-bold text-amber-300 text-sm block">
-                        {formatPercentBR(marginPct)}
+                        {isLiquid && liquidChainSimples
+                          ? `${formatNumberBR(liquidChainSimples.derivedMarginPct)}%`
+                          : formatPercentBR(marginPct)}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator Margem: {formatFactorBR(marginFactor, 4)}
+                        {isLiquid
+                          ? 'Derivada (travada)'
+                          : `Fator Margem: ${formatFactorBR(marginFactor, 4)}`}
                       </span>
                     </div>
                   </div>
@@ -694,9 +755,9 @@ export function MarkupCalculationMemoryModal({
                         ⑨ Fator Divisor Multiplicativo
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        (1 − {formatPercentBR(effectiveSimplesRate, 4)}) × (1 −{' '}
-                        {formatPercentBR(dvRate)}) × (1 − {formatPercentBR(marginPct)}) = (1 − DAS)
-                        × (1 − DV) × (1 − Margem)
+                        {isLiquid
+                          ? `(1 − ${formatPercentBR(effectiveSimplesRate, 4)} − ${formatPercentBR(dvRate)}) = (1 − DAS − %DV)`
+                          : `(1 − ${formatPercentBR(effectiveSimplesRate, 4)}) × (1 − ${formatPercentBR(dvRate)}) × (1 − ${formatPercentBR(marginPct)}) = (1 − DAS) × (1 − DV) × (1 − Margem)`}
                       </span>
                     </div>
                     <span className="font-black text-emerald-300 text-base">
@@ -939,7 +1000,7 @@ export function MarkupCalculationMemoryModal({
                   <code className="text-emerald-400">
                     {isLiquid ? (
                       <>
-                        Divisor = (1 − Σ%Tributos − %DV) × (1 − Margem%)
+                        Divisor = (1 − Σ%Tributos − %DV)
                         <br />
                         Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
                       </>
@@ -1056,7 +1117,9 @@ export function MarkupCalculationMemoryModal({
                         Origem: <strong className="text-slate-300">{costOriginLabel}</strong>
                       </span>
                     </div>
-                    <span className="font-bold text-slate-100 text-sm">{formatBRL(baseValue)}</span>
+                    <span className="font-bold text-slate-100 text-sm">
+                      {formatBRL(isLiquid ? costPresumido : baseValue)}
+                    </span>
                   </div>
 
                   {/* ⑦ Despesas Variáveis */}
@@ -1087,18 +1150,25 @@ export function MarkupCalculationMemoryModal({
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-200 block">
-                        ⑧ Margem de Lucro Desejada (%)
+                        ⑧ Margem de Lucro{' '}
+                        {isLiquid ? 'Derivada da Receita Líquida' : 'Desejada (%)'}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Margem comercial sobre a receita líquida
+                        {isLiquid
+                          ? 'Informativa (LLE ÷ RBV) — não entra no divisor no modo liquid'
+                          : 'Margem comercial sobre a receita líquida'}
                       </span>
                     </div>
                     <div className="text-right">
                       <span className="font-bold text-amber-300 text-sm block">
-                        {formatPercentBR(marginPct)}
+                        {isLiquid && liquidChainPresumido
+                          ? `${formatNumberBR(liquidChainPresumido.derivedMarginPct)}%`
+                          : formatPercentBR(marginPct)}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator Margem: {formatFactorBR(marginFactor, 4)}
+                        {isLiquid
+                          ? 'Derivada (travada)'
+                          : `Fator Margem: ${formatFactorBR(marginFactor, 4)}`}
                       </span>
                     </div>
                   </div>
@@ -1111,7 +1181,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                       <span className="text-[10px] text-slate-400">
                         {isLiquid
-                          ? `(1 − ${formatPercentBR(totalTaxesPresumidoRate)} − ${formatPercentBR(dvRate)}) × (1 − ${formatPercentBR(marginPct)}) = (1 − Σ%Tributos − %DV) × (1 − Margem)`
+                          ? `(1 − ${formatPercentBR(totalTaxesPresumidoRate)} − ${formatPercentBR(dvRate)}) = (1 − Σ%Tributos − %DV)`
                           : '(1 − ICMS%) × (1 − PIS%) × (1 − COFINS%) × (1 − DV) × (1 − Margem)'}
                       </span>
                     </div>
@@ -1333,7 +1403,7 @@ export function MarkupCalculationMemoryModal({
                   <code className="text-emerald-400">
                     {isLiquid ? (
                       <>
-                        Divisor = (1 − Σ%Tributos − %DV) × (1 − Margem%)
+                        Divisor = (1 − Σ%Tributos − %DV)
                         <br />
                         Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
                       </>
@@ -1446,7 +1516,9 @@ export function MarkupCalculationMemoryModal({
                         Origem: <strong className="text-slate-300">{costOriginLabel}</strong>
                       </span>
                     </div>
-                    <span className="font-bold text-slate-100 text-sm">{formatBRL(baseValue)}</span>
+                    <span className="font-bold text-slate-100 text-sm">
+                      {formatBRL(isLiquid ? costReal : baseValue)}
+                    </span>
                   </div>
 
                   {/* ⑦ Despesas Variáveis */}
@@ -1477,18 +1549,25 @@ export function MarkupCalculationMemoryModal({
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-200 block">
-                        ⑧ Margem de Lucro Desejada (%)
+                        ⑧ Margem de Lucro{' '}
+                        {isLiquid ? 'Derivada da Receita Líquida' : 'Desejada (%)'}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Margem comercial sobre a receita líquida
+                        {isLiquid
+                          ? 'Informativa (LLE ÷ RBV) — não entra no divisor no modo liquid'
+                          : 'Margem comercial sobre a receita líquida'}
                       </span>
                     </div>
                     <div className="text-right">
                       <span className="font-bold text-amber-300 text-sm block">
-                        {formatPercentBR(marginPct)}
+                        {isLiquid && liquidChainReal
+                          ? `${formatNumberBR(liquidChainReal.derivedMarginPct)}%`
+                          : formatPercentBR(marginPct)}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator Margem: {formatFactorBR(marginFactor, 4)}
+                        {isLiquid
+                          ? 'Derivada (travada)'
+                          : `Fator Margem: ${formatFactorBR(marginFactor, 4)}`}
                       </span>
                     </div>
                   </div>
@@ -1501,7 +1580,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                       <span className="text-[10px] text-slate-400">
                         {isLiquid
-                          ? `(1 − ${formatPercentBR(totalTaxesRealRate)} − ${formatPercentBR(dvRate)}) × (1 − ${formatPercentBR(marginPct)}) = (1 − Σ%Tributos − %DV) × (1 − Margem)`
+                          ? `(1 − ${formatPercentBR(totalTaxesRealRate)} − ${formatPercentBR(dvRate)}) = (1 − Σ%Tributos − %DV)`
                           : '(1 − ICMS%) × (1 − PIS%) × (1 − COFINS%) × (1 − DV) × (1 − Margem)'}
                       </span>
                     </div>
