@@ -177,15 +177,6 @@ export function MarkupCalculationMemoryModal({
   const valorMargemSimples =
     Math.round((pvSimples - baseValue - valorDasSimples - valorDvSimples) * 100) / 100
 
-  // Comparação Aditiva vs Multiplicativa (Simples)
-  // Fórmula aditiva: Custo / (1 - (DAS% + DV% + Margem%))
-  const somaAliquotaSimplesAditiva = effectiveSimplesDecimal + dvDecimal + marginDecimal
-  const divisorAditivoSimples = Math.max(0.0001, 1 - somaAliquotaSimplesAditiva)
-  const salePriceAditivoSimples =
-    divisorAditivoSimples > 0 && baseValue > 0
-      ? Math.round((baseValue / divisorAditivoSimples) * 100) / 100
-      : 0
-
   // -------------------------------------------------------------
   // LUCRO PRESUMIDO — Cálculos
   // -------------------------------------------------------------
@@ -217,19 +208,6 @@ export function MarkupCalculationMemoryModal({
   const valorMargemPresumido =
     Math.round((pvPresumido - baseValue - valorTributosPresumido - valorDvPresumido) * 100) / 100
 
-  // Comparação Aditiva vs Multiplicativa (Presumido)
-  const somaAliquotaPresumidoAditiva =
-    icmsRateClean / 100 +
-    pisPresumidoRate / 100 +
-    cofinsPresumidoRate / 100 +
-    dvDecimal +
-    marginDecimal
-  const divisorAditivoPresumido = Math.max(0.0001, 1 - somaAliquotaPresumidoAditiva)
-  const salePriceAditivoPresumido =
-    divisorAditivoPresumido > 0 && baseValue > 0
-      ? Math.round((baseValue / divisorAditivoPresumido) * 100) / 100
-      : 0
-
   // -------------------------------------------------------------
   // LUCRO REAL — Cálculos
   // -------------------------------------------------------------
@@ -256,15 +234,6 @@ export function MarkupCalculationMemoryModal({
   const valorDvReal = Math.round(pvReal * dvDecimal * 100) / 100
   const valorMargemReal =
     Math.round((pvReal - baseValue - valorTributosReal - valorDvReal) * 100) / 100
-
-  // Comparação Aditiva vs Multiplicativa (Real)
-  const somaAliquotaRealAditiva =
-    icmsRateClean / 100 + pisRealRate / 100 + cofinsRealRate / 100 + dvDecimal + marginDecimal
-  const divisorAditivoReal = Math.max(0.0001, 1 - somaAliquotaRealAditiva)
-  const salePriceAditivoReal =
-    divisorAditivoReal > 0 && baseValue > 0
-      ? Math.round((baseValue / divisorAditivoReal) * 100) / 100
-      : 0
 
   // Valores ativos do produto no regime corrente
   const activeSalePrice = product.salePrice || 0
@@ -765,65 +734,6 @@ export function MarkupCalculationMemoryModal({
                   </div>
                 </div>
               </div>
-
-              {/* Seção Didática Aditiva x Multiplicativa */}
-              <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-4 space-y-3 font-mono text-xs">
-                <div className="flex items-center gap-2 text-slate-300 font-semibold border-b border-slate-800 pb-2">
-                  <span className="w-1.5 h-3.5 bg-cyan-400 rounded-full" />
-                  <span className="uppercase text-[11px] text-cyan-300">
-                    Comparação Didática: Aditiva × Multiplicativa
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-emerald-300 text-xs uppercase">
-                        Multiplicativa (Padrão IT)
-                      </span>
-                      <Badge className="bg-emerald-500/30 text-emerald-200 border-0 text-[9px]">
-                        Oficial
-                      </Badge>
-                    </div>
-                    <p className="text-[10px] text-slate-300">
-                      PV = Custo ÷ [(1 − DAS) × (1 − DV) × (1 − Margem)]
-                    </p>
-                    <div className="pt-1 flex items-baseline justify-between">
-                      <span className="text-slate-400 text-[10px]">Preço Resultante:</span>
-                      <span className="text-sm font-black text-emerald-300">
-                        {formatBRL(salePriceSimples)}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 pt-1 border-t border-emerald-500/20">
-                      Aplica a margem sobre a receita líquida de tributos e DV — coerente com as
-                      DREs e o LAIR.
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-300 text-xs uppercase">
-                        Aditiva (Referência Comercial)
-                      </span>
-                      <Badge className="bg-slate-800 text-slate-400 border-0 text-[9px]">
-                        Apenas Exibição
-                      </Badge>
-                    </div>
-                    <p className="text-[10px] text-slate-400">
-                      PV = Custo ÷ [1 − (DAS + DV + Margem)]
-                    </p>
-                    <div className="pt-1 flex items-baseline justify-between">
-                      <span className="text-slate-400 text-[10px]">Preço Resultante:</span>
-                      <span className="text-sm font-bold text-slate-200">
-                        {formatBRL(salePriceAditivoSimples)}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 pt-1 border-t border-slate-800">
-                      Aplica a margem sobre o preço bruto total e resulta em um preço ~7% maior que
-                      o multiplicativo.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
@@ -1081,44 +991,6 @@ export function MarkupCalculationMemoryModal({
                   </div>
                 </div>
               </div>
-
-              {/* Seção Didática Aditiva x Multiplicativa */}
-              <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-4 space-y-3 font-mono text-xs">
-                <div className="flex items-center gap-2 text-slate-300 font-semibold border-b border-slate-800 pb-2">
-                  <span className="w-1.5 h-3.5 bg-cyan-400 rounded-full" />
-                  <span className="uppercase text-[11px] text-cyan-300">
-                    Comparação Didática: Aditiva × Multiplicativa
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-1">
-                    <span className="font-bold text-emerald-300 text-xs uppercase block">
-                      Multiplicativa (Padrão IT)
-                    </span>
-                    <p className="text-[10px] text-slate-300">
-                      PV = Custo ÷ Divisor Multiplicativo
-                    </p>
-                    <div className="pt-1 flex items-baseline justify-between">
-                      <span className="text-slate-400 text-[10px]">Preço Resultante:</span>
-                      <span className="text-sm font-black text-emerald-300">
-                        {formatBRL(salePricePresumido)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 space-y-1">
-                    <span className="font-bold text-slate-300 text-xs uppercase block">
-                      Aditiva (Referência)
-                    </span>
-                    <p className="text-[10px] text-slate-400">PV = Custo ÷ [1 − Soma dos %]</p>
-                    <div className="pt-1 flex items-baseline justify-between">
-                      <span className="text-slate-400 text-[10px]">Preço Resultante:</span>
-                      <span className="text-sm font-bold text-slate-200">
-                        {formatBRL(salePriceAditivoPresumido)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
@@ -1366,44 +1238,6 @@ export function MarkupCalculationMemoryModal({
                       compras oscile, o preço praticado mantém a taxa de lucratividade pretendida na
                       venda.
                     </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Seção Didática Aditiva x Multiplicativa */}
-              <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-4 space-y-3 font-mono text-xs">
-                <div className="flex items-center gap-2 text-slate-300 font-semibold border-b border-slate-800 pb-2">
-                  <span className="w-1.5 h-3.5 bg-cyan-400 rounded-full" />
-                  <span className="uppercase text-[11px] text-cyan-300">
-                    Comparação Didática: Aditiva × Multiplicativa
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-1">
-                    <span className="font-bold text-emerald-300 text-xs uppercase block">
-                      Multiplicativa (Padrão IT)
-                    </span>
-                    <p className="text-[10px] text-slate-300">
-                      PV = Custo ÷ Divisor Multiplicativo
-                    </p>
-                    <div className="pt-1 flex items-baseline justify-between">
-                      <span className="text-slate-400 text-[10px]">Preço Resultante:</span>
-                      <span className="text-sm font-black text-emerald-300">
-                        {formatBRL(salePriceReal)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 space-y-1">
-                    <span className="font-bold text-slate-300 text-xs uppercase block">
-                      Aditiva (Referência)
-                    </span>
-                    <p className="text-[10px] text-slate-400">PV = Custo ÷ [1 − Soma dos %]</p>
-                    <div className="pt-1 flex items-baseline justify-between">
-                      <span className="text-slate-400 text-[10px]">Preço Resultante:</span>
-                      <span className="text-sm font-bold text-slate-200">
-                        {formatBRL(salePriceAditivoReal)}
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>
