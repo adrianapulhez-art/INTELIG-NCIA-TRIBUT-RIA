@@ -2014,6 +2014,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       totalCost: unitNetCost * qtyPurchased,
     }
 
+    // Sincroniza o modo global predominante do Markup com o modo dos itens importados ('cost_margin')
+    setMarkupModeState('cost_margin')
+
     setMarkupProducts((prev) => {
       // Se tiver apenas 1 produto padrão inicial totalmente zerado, substitui-o
       const isFirstDefaultEmpty =
@@ -2139,6 +2142,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       return [...baseList, ...toAdd]
     })
+
+    if (importedCount > 0) {
+      // Sincroniza o modo global predominante do Markup com o modo dos itens importados ('cost_margin')
+      setMarkupModeState('cost_margin')
+    }
 
     return {
       importedCount,

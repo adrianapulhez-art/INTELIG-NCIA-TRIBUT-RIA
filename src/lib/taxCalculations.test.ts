@@ -1871,6 +1871,7 @@ export function runPurchasesToMarkupIntegrationTests(): {
   ]
 
   let markupProductsState: MockMarkupProduct[] = []
+  let globalMarkupModeState: 'liquid' | 'cost_margin' = 'liquid'
 
   // Função mock espelhando TaxContext.importPurchaseItemToMarkup
   const importItem = (itemId: string, regime: 'presumido' | 'real' | 'simples') => {
@@ -1889,6 +1890,9 @@ export function runPurchasesToMarkupIntegrationTests(): {
     const netVal = calculatePurchaseItemNetPurchases(item, regime)
     const qty = item.quantity || 1
     const unitCost = Math.round((netVal / qty) * 100) / 100
+
+    // Sincroniza o modo global predominante com o modo do item importado ('cost_margin')
+    globalMarkupModeState = 'cost_margin'
 
     markupProductsState.push({
       id: `prod-${Date.now()}-${markupProductsState.length}`,
@@ -1985,6 +1989,13 @@ export function runPurchasesToMarkupIntegrationTests(): {
       test: 'Importação de item avulso: Produto criado com quantidade comprada (50 un.)',
       expected: 50,
       received: notebookProdPresumido?.quantity || 0,
+    },
+
+    // Sincronização do seletor global do modo de cálculo predominante
+    {
+      test: 'Importação Compras -> Markup: Atualiza seletor global (markupMode) para "cost_margin"',
+      expected: 'cost_margin',
+      received: globalMarkupModeState,
     },
 
     // Prevenção de Duplicação
