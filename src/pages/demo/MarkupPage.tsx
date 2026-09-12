@@ -341,17 +341,14 @@ export default function MarkupPage() {
     const baseTaxFactorReal = icmsF * pisFactorReal * cofinsFactorReal * customTaxesFactor
 
     // 3. Simples Nacional: Alíquota efetiva do PGDAS calculada sobre RBT12 e Anexo do TaxContext
-    // Se RBT12 zerado ou não informado, não calcula preço fixo ("—") e emite aviso
-    const hasSimplesData = (simplesRbt12 || 0) > 0
-    let effectiveSimplesRate = 0
-    let baseTaxFactorSimples: number | null = null
-
-    if (hasSimplesData) {
-      const pgdasRes = calculatePgdas((simplesAnexo as SimplesAnexoId) || 'anexo_1', simplesRbt12)
-      effectiveSimplesRate = pgdasRes.aliquotaEfetiva // ex: 8.5 para 8.5%
-      // fator Simples = (1 - alíquota efetiva) * customTaxesFactor
-      baseTaxFactorSimples = (1 - effectiveSimplesRate / 100) * customTaxesFactor
-    }
+    // Se RBT12 zerado ou não informado, aplica a alíquota nominal da 1ª faixa como fallback legal (nunca 0%)
+    const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+    const rbt12Clean = simplesRbt12 || 0
+    const hasSimplesData = rbt12Clean > 0
+    const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
+    const effectiveSimplesRate = pgdasRes.aliquotaEfetiva
+    // fator Simples = (1 - alíquota efetiva) * customTaxesFactor
+    const baseTaxFactorSimples = (1 - effectiveSimplesRate / 100) * customTaxesFactor
 
     // Helper para calcular produtos com um determinado fator tributário base
     const calcForTaxFactor = (taxFactor: number) => {
@@ -360,7 +357,10 @@ export default function MarkupPage() {
       const prods = markupProducts.map((p) => {
         const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
         const marginFactor = 1 - rawMargin / 100
-        const completeFactor = (Number.isFinite(taxFactor) ? taxFactor : 0) * marginFactor
+        let completeFactor = (Number.isFinite(taxFactor) ? taxFactor : 0) * marginFactor
+        if (taxFactor < 1 && completeFactor >= 1) {
+          completeFactor = taxFactor
+        }
         const safeFactor = completeFactor > 0.0001 ? completeFactor : 0
         const baseValue =
           p.mode === 'liquid'
@@ -394,18 +394,18 @@ export default function MarkupPage() {
 
     const calcPresumido = calcForTaxFactor(baseTaxFactorPresumido)
     const calcReal = calcForTaxFactor(baseTaxFactorReal)
-    const calcSimples =
-      baseTaxFactorSimples !== null ? calcForTaxFactor(baseTaxFactorSimples) : null
+    const calcSimples = calcForTaxFactor(baseTaxFactorSimples)
 
     return {
       hasSimplesData,
       effectiveSimplesRate,
+      isFallbackRbt12: !hasSimplesData,
       totalRevPresumido: calcPresumido.totalRev,
       totalRevReal: calcReal.totalRev,
-      totalRevSimples: calcSimples ? calcSimples.totalRev : null,
+      totalRevSimples: calcSimples.totalRev,
       prodsPresumido: calcPresumido.prods,
       prodsReal: calcReal.prods,
-      prodsSimples: calcSimples ? calcSimples.prods : null,
+      prodsSimples: calcSimples.prods,
     }
   }, [
     isMarkupSimulated,
@@ -1601,8 +1601,8 @@ export default function MarkupPage() {
                     <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
                     <span>
                       {simplesIsInicioAtividade
-                        ? 'Empresa em início de atividade: informe as receitas mensais na DRE Simples Nacional para calcular o preço no Simples Nacional.'
-                        : 'Informe o RBT12 na DRE Simples Nacional para obter a alíquota efetiva do PGDAS e calcular o preço no Simples Nacional.'}
+                        ? 'Empresa em início de atividade: receitas mensais não preenchidas. O Simples Nacional está usando a alíquota da 1ª faixa como fallback (4,00%).'
+                        : 'RBT12 não informada na DRE Simples Nacional: o cálculo do Simples Nacional está utilizando a alíquota da 1ª faixa como fallback (4,00%).'}
                     </span>
                   </div>
                 )}
@@ -1703,11 +1703,18 @@ export default function MarkupPage() {
                                 )}
                               </td>
                               <td className="py-2.5 px-3 text-right">
-                                {regimeComparison.hasSimplesData && pSimp ? (
+                                {pSimp ? (
                                   <>
-                                    <span className="font-bold text-slate-100">
-                                      {formatBRL(pSimp.salePrice)}
-                                    </span>
+                                    <div className="flex items-center justify-end gap-1">
+                                      <span className="font-bold text-slate-100">
+                                        {formatBRL(pSimp.salePrice)}
+                                      </span>
+                                      {regimeComparison.isFallbackRbt12 && (
+                                        <Badge className="bg-amber-500/20 text-amber-300 border-0 text-[8px] px-1 py-0 font-normal">
+                                          1ª faixa
+                                        </Badge>
+                                      )}
+                                    </div>
                                     {qty > 0 && (
                                       <span className="text-[10px] text-slate-500 block">
                                         Tot: {formatBRL(pSimp.totalRevenue)}
@@ -1715,12 +1722,7 @@ export default function MarkupPage() {
                                     )}
                                   </>
                                 ) : (
-                                  <span
-                                    className="text-slate-500"
-                                    title="Informe RBT12 na DRE Simples"
-                                  >
-                                    —
-                                  </span>
+                                  <span className="text-slate-500">—</span>
                                 )}
                               </td>
                               <td className="py-2.5 px-3 text-center">

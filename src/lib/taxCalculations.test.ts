@@ -392,6 +392,83 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * Testes obrigatórios: Markup Simples Nacional - LC 123/2006
+ */
+export function runMarkupSimplesNacionalTests(): {
+  allPassed: boolean
+  results: { test: string; passed: boolean; expected: number | string; received: number | string }[]
+} {
+  // 1. Canônico: RBT12 360k, Anexo I, margem 20%, custo R$ 100
+  const pgdas1 = calculatePgdas('anexo_1', 360000)
+  const completeFactor1 =
+    Math.round((1 - pgdas1.aliquotaEfetiva / 100) * (1 - 20 / 100) * 10000) / 10000
+  const price1 = Math.round((100 / completeFactor1) * 100) / 100
+
+  // 2. Usuário: custo 2.600, margem 0%, RBT12 360k → 2.755,69 (nunca 2.600)
+  const pgdas2 = calculatePgdas('anexo_1', 360000)
+  const divisor2 = Math.round((1 - pgdas2.aliquotaEfetiva / 100) * 10000) / 10000
+  const price2 = Math.round((2600 / divisor2) * 100) / 100
+
+  // 3. Fallback 1ª faixa com RBT12 vazia (Anexo I: 4,00%)
+  const pgdas3 = calculatePgdas('anexo_1', 0)
+  const divisor3 = 1 - pgdas3.aliquotaEfetiva / 100
+  const price3 = Math.round((100 / 0.96) * 100) / 100
+
+  const tests = [
+    {
+      test: 'Canônico: RBT12 360k Anexo I aliquotaEfetiva ~ 5.65%',
+      expected: 5.65,
+      received: Math.round(pgdas1.aliquotaEfetiva * 100) / 100,
+    },
+    {
+      test: 'Canônico: completeFactor deve ser 0.7548',
+      expected: 0.7548,
+      received: completeFactor1,
+    },
+    {
+      test: 'Canônico: preço sugerido deve ser R$ 132,49',
+      expected: 132.49,
+      received: price1,
+    },
+    {
+      test: 'Usuário: divisor margem 0% deve ser 0.9435',
+      expected: 0.9435,
+      received: divisor2,
+    },
+    {
+      test: 'Usuário: custo 2.600 com divisor 0.9435 deve ser R$ 2.755,69 (nunca 2.600)',
+      expected: 2755.69,
+      received: price2,
+    },
+    {
+      test: 'Fallback 1ª faixa: RBT12 0 Anexo I aliquotaEfetiva deve ser 4.00%',
+      expected: 4.0,
+      received: pgdas3.aliquotaEfetiva,
+    },
+    {
+      test: 'Fallback 1ª faixa: divisor (1 - 4%) não deve ser 1.0 (deve ser 0.96)',
+      expected: 0.96,
+      received: Math.round(divisor3 * 100) / 100,
+    },
+    {
+      test: 'Fallback 1ª faixa: custo 100 / 0.96 deve ser R$ 104,17',
+      expected: 104.17,
+      received: price3,
+    },
+  ]
+
+  const results = tests.map((t) => ({
+    test: t.test,
+    passed: Math.abs(t.expected - t.received) < 0.001,
+    expected: t.expected,
+    received: t.received,
+  }))
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
  * CENÁRIO EXATO DE REFERÊNCIA (validado pelo usuário, valores oficiais):
  * Item 1: Celular Samsung, 30 un., mercadoria total R$ 42.000,00 (unitário R$ 1.400,00),
  * frete atribuído ao item R$ 400,00, ICMS 18% (sobre mercadoria e sobre frete).

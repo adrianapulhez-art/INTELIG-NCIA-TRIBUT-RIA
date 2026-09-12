@@ -114,24 +114,26 @@ export function MarkupCalculationMemoryModal({
   const hasSimplesRbt = (simplesRbt12 || 0) > 0
   const anexoIdClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
   const anexoConfig = SIMPLES_ANEXOS[anexoIdClean] || SIMPLES_ANEXOS.anexo_1
+  const rawRbt12 = simplesRbt12 || 0
+  const isFallbackRbt12 = rawRbt12 <= 0
 
-  let pgdasResult = null
-  let effectiveSimplesRate = 0
-  let taxFactorSimples: number | null = null
-  let completeFactorSimples: number | null = null
-  let salePriceSimples = 0
-  let totalRevenueSimples = 0
-
-  if (hasSimplesRbt) {
-    pgdasResult = calculatePgdas(anexoIdClean, simplesRbt12)
-    effectiveSimplesRate = pgdasResult.aliquotaEfetiva
-    taxFactorSimples = (1 - effectiveSimplesRate / 100) * customTaxesFactor
-    completeFactorSimples = taxFactorSimples * marginFactor
-    const safeFactor = completeFactorSimples > 0.0001 ? completeFactorSimples : 0
-    salePriceSimples =
-      safeFactor > 0 && baseValue > 0 ? Math.round((baseValue / safeFactor) * 100) / 100 : 0
-    totalRevenueSimples = Math.round(salePriceSimples * quantity * 100) / 100
+  // No Simples Nacional, a alíquota efetiva NUNCA é zero/ausente:
+  // Se RBT12 > 0: fórmula legal LC 123/2006 (RBT12 × Alíquota Nominal − Parcela Deduzir) ÷ RBT12
+  // Se RBT12 = 0 ou não informada: fallback explícito com alíquota nominal da 1ª faixa do anexo
+  const pgdasResult = calculatePgdas(anexoIdClean, rawRbt12)
+  const effectiveSimplesRate = pgdasResult.aliquotaEfetiva
+  const baseTaxFactorSimples = 1 - effectiveSimplesRate / 100
+  let rawCompleteFactorSimples = baseTaxFactorSimples * customTaxesFactor * marginFactor
+  // Assert defensivo: se houver imposto aplicável e completeFactor >= 1, usa baseTaxFactor sem margem
+  if (baseTaxFactorSimples < 1 && rawCompleteFactorSimples >= 1) {
+    rawCompleteFactorSimples = baseTaxFactorSimples * customTaxesFactor
   }
+  const completeFactorSimples = Math.max(0.0001, rawCompleteFactorSimples)
+  const salePriceSimples =
+    completeFactorSimples > 0 && baseValue > 0
+      ? Math.round((baseValue / completeFactorSimples) * 100) / 100
+      : 0
+  const totalRevenueSimples = Math.round(salePriceSimples * quantity * 100) / 100
 
   // Preço e fator calculados diretamente no contexto no regime atual:
   const activeSalePrice = product.salePrice || 0
@@ -233,7 +235,9 @@ export function MarkupCalculationMemoryModal({
                 )}
               </div>
               <p className="text-[10px] text-slate-400 mt-0.5 truncate">
-                {hasSimplesRbt ? `DAS: ${formatPercentBR(effectiveSimplesRate)}` : 'DAS integrado'}
+                {isFallbackRbt12
+                  ? `DAS: ${formatPercentBR(effectiveSimplesRate)} (1ª faixa)`
+                  : `DAS: ${formatPercentBR(effectiveSimplesRate)}`}
               </p>
             </button>
 
@@ -337,11 +341,21 @@ export function MarkupCalculationMemoryModal({
                       <span className="text-[10px] text-slate-400">
                         {anexoConfig.nome}
                         {simplesIsInicioAtividade ? ' · Proporcional início de atividade' : ''}
+                        {isFallbackRbt12
+                          ? ' · RBT12 não informada — usando 1ª faixa (fallback: 4,00%)'
+                          : ''}
                       </span>
                     </div>
-                    <span className="font-bold text-slate-300">
-                      {hasSimplesRbt ? formatBRL(simplesRbt12) : 'Não informado (R$ 0,00)'}
-                    </span>
+                    <div className="text-right">
+                      <span className="font-bold text-slate-300 block">
+                        {hasSimplesRbt
+                          ? formatBRL(simplesRbt12)
+                          : 'RBT12 não informada — usando 1ª faixa (fallback: 4,00%)'}
+                      </span>
+                      {isFallbackRbt12 && (
+                        <span className="text-[10px] text-amber-300">Fallback legal aplicado</span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Linha 3: Alíquota Efetiva do DAS */}
@@ -350,40 +364,47 @@ export function MarkupCalculationMemoryModal({
                       <span className="font-bold text-orange-300 block">
                         3. Alíquota Efetiva do DAS (PGDAS)
                       </span>
-                      {pgdasResult ? (
+                      {hasSimplesRbt ? (
                         <span className="text-[10px] text-slate-400">
-                          Faixa {pgdasResult.faixaNumero}: ({formatBRL(simplesRbt12)} ×{' '}
+                          Faixa {pgdasResult.faixaNumero}: ({formatBRL(rawRbt12)} ×{' '}
                           {formatNumberBR(pgdasResult.aliquotaNominal)}% −{' '}
-                          {formatBRL(pgdasResult.parcelaDeduzir)}) ÷ {formatBRL(simplesRbt12)}
+                          {formatBRL(pgdasResult.parcelaDeduzir)}) ÷ {formatBRL(rawRbt12)} ={' '}
+                          {formatPercentBR(effectiveSimplesRate, 4)}
                         </span>
                       ) : (
-                        <span className="text-[10px] text-amber-400">
-                          Requer RBT12 preenchido na DRE Simples
+                        <span className="text-[10px] text-amber-300">
+                          RBT12 não informada — usando 1ª faixa (fallback:{' '}
+                          {formatPercentBR(effectiveSimplesRate, 2)})
                         </span>
                       )}
                     </div>
                     <span className="font-bold text-orange-300 text-sm">
-                      {hasSimplesRbt ? formatPercentBR(effectiveSimplesRate, 4) : '—'}
+                      {formatPercentBR(effectiveSimplesRate, 4)}
                     </span>
                   </div>
 
                   {/* Sub-abertura: Componentes do DAS (Destaque do ICMS integrado) */}
                   {pgdasResult && (
                     <div className="px-3.5 py-2 bg-slate-950/50 space-y-1.5 border-l-2 border-orange-500/60 ml-2 my-1 rounded-r-lg">
-                      <div className="flex items-center justify-between text-[11px]">
+                      <div className="flex items-center justify-between text-[11px] flex-wrap gap-1">
                         <span className="text-slate-300 font-semibold flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          ICMS Integrado ao DAS (
-                          {anexoConfig.tributoEstadualMunicipal === 'icms'
-                            ? 'Partilha estadual'
-                            : 'Partilha'}
-                          ):
+                          ICMS Integrado = alíquota efetiva × partilha:
                         </span>
                         <span className="font-bold text-emerald-400">
-                          {formatPercentBR(pgdasResult.reparticao.icmsRate, 4)}
+                          {formatPercentBR(effectiveSimplesRate, 4)} ×{' '}
+                          {formatPercentBR(
+                            anexoConfig.faixas[pgdasResult.faixaNumero - 1]?.partilha.icms || 34,
+                            2,
+                          )}{' '}
+                          = {formatPercentBR(pgdasResult.reparticao.icmsRate, 4)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <div className="text-[10px] text-emerald-300/90 font-mono">
+                        (Aviso legal: O ICMS já está contido no DAS — não há destaque nem
+                        recolhimento estadual apartado)
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
                         <span>PIS Integrado ao DAS:</span>
                         <span>{formatPercentBR(pgdasResult.reparticao.pisRate, 4)}</span>
                       </div>
@@ -455,15 +476,12 @@ export function MarkupCalculationMemoryModal({
                         6. Fator Divisor do Markup (Denominador)
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        {hasSimplesRbt
-                          ? `(1 − ${formatNumberBR(effectiveSimplesRate, 4)}%) × ${formatFactorBR(marginFactor, 4)}`
-                          : 'Aguardando RBT12'}
+                        (1 − {formatNumberBR(effectiveSimplesRate, 4)}%) × (1 −{' '}
+                        {formatNumberBR(marginPct)}%) = (1 − DAS) × (1 − margem)
                       </span>
                     </div>
                     <span className="font-black text-emerald-300 text-sm">
-                      {completeFactorSimples !== null
-                        ? formatFactorBR(completeFactorSimples, 5)
-                        : '—'}
+                      {formatFactorBR(completeFactorSimples, 5)}
                     </span>
                   </div>
 
@@ -474,18 +492,17 @@ export function MarkupCalculationMemoryModal({
                         7. Preço de Venda Sugerido (Unitário)
                       </span>
                       <span className="text-[10px] text-emerald-400/80">
-                        {hasSimplesRbt
-                          ? `${formatBRL(baseValue)} ÷ ${formatFactorBR(completeFactorSimples || 0, 5)}`
-                          : 'Informe RBT12 para apurar'}
+                        {formatBRL(baseValue)} ÷ {formatFactorBR(completeFactorSimples || 0, 5)} ={' '}
+                        {formatBRL(salePriceSimples)}
                       </span>
                     </div>
                     <span className="text-base sm:text-lg font-black text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.35)]">
-                      {hasSimplesRbt ? formatBRL(salePriceSimples) : '—'}
+                      {formatBRL(salePriceSimples)}
                     </span>
                   </div>
 
                   {/* Linha 8: Receita Total se houver quantidade */}
-                  {quantity > 0 && hasSimplesRbt && (
+                  {quantity > 0 && (
                     <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/60 text-slate-300">
                       <div>
                         <span className="font-semibold block">Receita Bruta Total Projetada</span>
