@@ -203,7 +203,8 @@ export default function MarkupPage() {
     totalConsolidatedQuantity,
     totalConsolidatedCost,
     simplesAnexo,
-    effectiveSimplesRbt12: simplesRbt12,
+    simplesRbt12,
+    effectiveSimplesRbt12,
     simplesIsInicioAtividade,
     stSubsystem,
     interstateSubsystem,
@@ -343,7 +344,7 @@ export default function MarkupPage() {
     // 3. Simples Nacional: Alíquota efetiva do PGDAS calculada sobre RBT12 e Anexo do TaxContext
     // Se RBT12 zerado ou não informado, aplica a alíquota nominal da 1ª faixa como fallback legal (nunca 0%)
     const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
-    const rbt12Clean = simplesRbt12 || 0
+    const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
     const hasSimplesData = rbt12Clean > 0
     const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
     const effectiveSimplesRate = pgdasRes.aliquotaEfetiva
@@ -413,6 +414,7 @@ export default function MarkupPage() {
     customTaxesMarkup,
     icmsRateMarkup,
     simplesRbt12,
+    effectiveSimplesRbt12,
     simplesAnexo,
     totalConsolidatedQuantity,
   ])

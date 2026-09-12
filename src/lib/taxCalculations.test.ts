@@ -7,7 +7,7 @@ import {
   calculatePurchaseItemNetPurchases,
 } from './taxCalculations'
 import { calculateCmvDetailedBreakdown } from './cmvBreakdownCalculations'
-import { calculateRbt12InicioAtividade } from './simplesCalculations'
+import { calculatePgdas, calculateRbt12InicioAtividade } from './simplesCalculations'
 
 /**
  * Validação de integridade e fidedignidade dos cálculos do parseBRNumber e
