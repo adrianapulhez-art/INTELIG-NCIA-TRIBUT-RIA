@@ -212,8 +212,17 @@ export function MarkupCalculationMemoryModal({
   const icmsPartilhaPct = faixaDetectada?.partilha.icms ?? 34
   const icmsIntegradoRate = pgdasResult.reparticao.icmsRate
 
-  // Divisor Simples Multiplicativo: (1 - DAS) * (1 - DV) * (1 - Margem) * customTaxesFactor
-  const rawDivisorSimples = dasTaxFactor * dvFactor * marginFactor * customTaxesFactor
+  // Soma de tributos customizados em percentual
+  const sumCustomTaxesRate = customTaxesMarkup.reduce((acc, t) => acc + (t.rate || 0), 0)
+
+  // Divisor Simples:
+  // Se modo liquid: fórmula gross-up aditiva para tributos + DV, multiplicativo apenas na margem:
+  // Divisor = (1 - %DAS - %customTaxes - %DV) * (1 - Margem)
+  // Se custo+margem: multiplicativo: (1 - DAS) * (1 - DV) * (1 - Margem) * customTaxesFactor
+  const rawDivisorSimples = isLiquid
+    ? Math.max(0.0001, 1 - (effectiveSimplesRate + sumCustomTaxesRate + dvRate) / 100) *
+      marginFactor
+    : dasTaxFactor * dvFactor * marginFactor * customTaxesFactor
   // Blindagem: se tributo aplicável (dasTaxFactor < 1), completeFactor nunca pode ser 1.0
   const divisorSimples = Math.max(0.0001, rawDivisorSimples)
   const salePriceSimples =
@@ -240,7 +249,11 @@ export function MarkupCalculationMemoryModal({
   const taxFactorPresumidoDecomposto =
     icmsFactorPresumido * pisFactorPresumido * cofinsFactorPresumido * customTaxesFactor
 
-  const rawDivisorPresumido = taxFactorPresumidoDecomposto * dvFactor * marginFactor
+  const totalTaxesPresumidoRate =
+    icmsRateClean + pisPresumidoRate + cofinsPresumidoRate + sumCustomTaxesRate
+  const rawDivisorPresumido = isLiquid
+    ? Math.max(0.0001, 1 - (totalTaxesPresumidoRate + dvRate) / 100) * marginFactor
+    : taxFactorPresumidoDecomposto * dvFactor * marginFactor
   const divisorPresumido = Math.max(0.0001, rawDivisorPresumido)
   const salePricePresumido =
     divisorPresumido > 0 && baseValue > 0
@@ -269,7 +282,10 @@ export function MarkupCalculationMemoryModal({
   const taxFactorRealDecomposto =
     icmsFactorReal * pisFactorReal * cofinsFactorReal * customTaxesFactor
 
-  const rawDivisorReal = taxFactorRealDecomposto * dvFactor * marginFactor
+  const totalTaxesRealRate = icmsRateClean + pisRealRate + cofinsRealRate + sumCustomTaxesRate
+  const rawDivisorReal = isLiquid
+    ? Math.max(0.0001, 1 - (totalTaxesRealRate + dvRate) / 100) * marginFactor
+    : taxFactorRealDecomposto * dvFactor * marginFactor
   const divisorReal = Math.max(0.0001, rawDivisorReal)
   const salePriceReal =
     divisorReal > 0 && baseValue > 0 ? Math.round((baseValue / divisorReal) * 100) / 100 : 0
@@ -921,10 +937,20 @@ export function MarkupCalculationMemoryModal({
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 font-mono text-xs text-slate-200 overflow-x-auto">
                   <code className="text-emerald-400">
-                    Divisor = (1 − ICMS%) × (1 − PIS 0,65%) × (1 − COFINS 3,00%) × (1 − DV Total) ×
-                    (1 − Margem%)
-                    <br />
-                    Preço Sugerido = Custo Unitário ÷ Divisor
+                    {isLiquid ? (
+                      <>
+                        Divisor = (1 − Σ%Tributos − %DV) × (1 − Margem%)
+                        <br />
+                        Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
+                      </>
+                    ) : (
+                      <>
+                        Divisor = (1 − ICMS%) × (1 − PIS 0,65%) × (1 − COFINS 3,00%) × (1 − DV
+                        Total) × (1 − Margem%)
+                        <br />
+                        Preço Sugerido = Custo Unitário ÷ Divisor
+                      </>
+                    )}
                   </code>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed">
@@ -1010,10 +1036,13 @@ export function MarkupCalculationMemoryModal({
                       </span>
                       <span className="text-[10px] text-slate-400">
                         ICMS {formatPercentBR(icmsRateClean)} + PIS 0,65% + COFINS 3,00%
+                        {isLiquid ? ` = ${formatPercentBR(totalTaxesPresumidoRate)}` : ''}
                       </span>
                     </div>
                     <span className="font-bold text-emerald-300">
-                      Fator: {formatFactorBR(taxFactorPresumidoDecomposto, 5)}
+                      {isLiquid
+                        ? `Alíquota: ${formatPercentBR(totalTaxesPresumidoRate)}`
+                        : `Fator: ${formatFactorBR(taxFactorPresumidoDecomposto, 5)}`}
                     </span>
                   </div>
 
@@ -1081,7 +1110,9 @@ export function MarkupCalculationMemoryModal({
                         ⑨ Fator Divisor Multiplicativo
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        (1 − ICMS%) × (1 − PIS%) × (1 − COFINS%) × (1 − DV) × (1 − Margem)
+                        {isLiquid
+                          ? `(1 − ${formatPercentBR(totalTaxesPresumidoRate)} − ${formatPercentBR(dvRate)}) × (1 − ${formatPercentBR(marginPct)}) = (1 − Σ%Tributos − %DV) × (1 − Margem)`
+                          : '(1 − ICMS%) × (1 − PIS%) × (1 − COFINS%) × (1 − DV) × (1 − Margem)'}
                       </span>
                     </div>
                     <span className="font-black text-emerald-300 text-base">
@@ -1300,10 +1331,20 @@ export function MarkupCalculationMemoryModal({
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 font-mono text-xs text-slate-200 overflow-x-auto">
                   <code className="text-emerald-400">
-                    Divisor = (1 − ICMS%) × (1 − PIS 1,65%) × (1 − COFINS 7,60%) × (1 − DV Total) ×
-                    (1 − Margem%)
-                    <br />
-                    Preço Sugerido = Custo Unitário ÷ Divisor
+                    {isLiquid ? (
+                      <>
+                        Divisor = (1 − Σ%Tributos − %DV) × (1 − Margem%)
+                        <br />
+                        Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
+                      </>
+                    ) : (
+                      <>
+                        Divisor = (1 − ICMS%) × (1 − PIS 1,65%) × (1 − COFINS 7,60%) × (1 − DV
+                        Total) × (1 − Margem%)
+                        <br />
+                        Preço Sugerido = Custo Unitário ÷ Divisor
+                      </>
+                    )}
                   </code>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed">
@@ -1385,10 +1426,13 @@ export function MarkupCalculationMemoryModal({
                       </span>
                       <span className="text-[10px] text-slate-400">
                         ICMS {formatPercentBR(icmsRateClean)} + PIS 1,65% + COFINS 7,60%
+                        {isLiquid ? ` = ${formatPercentBR(totalTaxesRealRate)}` : ''}
                       </span>
                     </div>
                     <span className="font-bold text-emerald-300">
-                      Fator: {formatFactorBR(taxFactorRealDecomposto, 5)}
+                      {isLiquid
+                        ? `Alíquota: ${formatPercentBR(totalTaxesRealRate)}`
+                        : `Fator: ${formatFactorBR(taxFactorRealDecomposto, 5)}`}
                     </span>
                   </div>
 
@@ -1456,7 +1500,9 @@ export function MarkupCalculationMemoryModal({
                         ⑨ Fator Divisor Multiplicativo
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        (1 − ICMS%) × (1 − PIS%) × (1 − COFINS%) × (1 − DV) × (1 − Margem)
+                        {isLiquid
+                          ? `(1 − ${formatPercentBR(totalTaxesRealRate)} − ${formatPercentBR(dvRate)}) × (1 − ${formatPercentBR(marginPct)}) = (1 − Σ%Tributos − %DV) × (1 − Margem)`
+                          : '(1 − ICMS%) × (1 − PIS%) × (1 − COFINS%) × (1 − DV) × (1 − Margem)'}
                       </span>
                     </div>
                     <span className="font-black text-emerald-300 text-base">

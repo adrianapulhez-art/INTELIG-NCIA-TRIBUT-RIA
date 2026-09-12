@@ -2904,8 +2904,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return (p.mode === 'liquid' ? desired > 0 : costVal > 0) || qty > 0 || mrg > 0
     })
 
-    // Fator tributário conforme regime
+    // Alíquotas base conforme regime
     let baseTaxFactor = 1
+    let sumTaxesRatePct = 0
 
     let rbt12Fallback = false
     if (regime === 'simples') {
@@ -2918,12 +2919,14 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
       const effectiveDasRate = pgdasRes.aliquotaEfetiva
+      sumTaxesRatePct = effectiveDasRate
       baseTaxFactor = 1 - effectiveDasRate / 100
     } else {
       // Lucro Presumido ou Lucro Real
       const pisRate = regime === 'presumido' ? 0.0065 : 0.0165
       const cofinsRate = regime === 'presumido' ? 0.03 : 0.076
       const cleanIcms = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
+      sumTaxesRatePct = cleanIcms + pisRate * 100 + cofinsRate * 100
       const icmsFactor = 1 - cleanIcms / 100
       const pisFactor = 1 - pisRate
       const cofinsFactor = 1 - cofinsRate
@@ -2932,14 +2935,24 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
 
     // Tributos customizados
+    let sumCustomTaxesPct = 0
     for (const tax of customTaxesMarkup) {
       const taxRate = Number.isFinite(tax.rate) ? tax.rate : 0
+      sumCustomTaxesPct += taxRate
       baseTaxFactor *= 1 - taxRate / 100
     }
-    // Despesas Variáveis (DV) multiplicativas: (1 - DV_total)
-    // Motor Multiplicativo: Divisor = (1 - Tributos) * (1 - DV) * (1 - Margem)
-    const dvFactor = 1 - (totalVariableExpenseRate || 0) / 100
+    sumTaxesRatePct += sumCustomTaxesPct
+
+    // Despesas Variáveis (DV)
+    const dvRatePct = Number.isFinite(totalVariableExpenseRate) ? totalVariableExpenseRate : 0
+    const dvFactor = 1 - dvRatePct / 100
     baseTaxFactor *= dvFactor > 0 ? dvFactor : 1
+    if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
+
+    // Fator tributário aditivo para o modo líquido: (1 - Σ%tributos - %DV)
+    // No modo liquid: gross-up aditivo para tributos + DV, e multiplicativo APENAS para margem:
+    // completeFactor = Math.max(0.0001, 1 - (sumTaxesRatePct + dvRatePct) / 100) * (1 - margin / 100)
+    const baseLiquidDivisorWithoutMargin = Math.max(0.0001, 1 - (sumTaxesRatePct + dvRatePct) / 100)
     if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
     // Se não há dados preenchidos, não ativa a simulação automaticamente
     if (!hasAnyFilledProduct) {
@@ -2975,15 +2988,19 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
       const marginFactor = 1 - rawMargin / 100
-      let completeFactor = baseTaxFactor * marginFactor
-      // Assert defensivo: se houver imposto aplicável (baseTaxFactor < 1) e completeFactor >= 1, usa baseTaxFactor sem margem
-      if (baseTaxFactor < 1 && completeFactor >= 1) {
-        completeFactor = baseTaxFactor
+
+      const isLiquidProd = p.mode === 'liquid'
+      const productTaxFactor = isLiquidProd ? baseLiquidDivisorWithoutMargin : baseTaxFactor
+
+      let completeFactor = productTaxFactor * marginFactor
+      // Assert defensivo: se houver imposto aplicável e completeFactor >= 1, usa productTaxFactor sem margem
+      if (productTaxFactor < 1 && completeFactor >= 1) {
+        completeFactor = productTaxFactor
       }
       if (!Number.isFinite(completeFactor)) completeFactor = 0
 
       let baseValue = 0
-      if (p.mode === 'liquid') {
+      if (isLiquidProd) {
         baseValue =
           typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
             ? p.desiredNetRevenue
@@ -3011,7 +3028,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return {
         ...p,
         salePrice,
-        taxFactor: baseTaxFactor,
+        taxFactor: productTaxFactor,
         completeFactor,
         totalRevenue: rev,
         totalCost: costItem,
@@ -3073,15 +3090,16 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const firstProduct = syncedWithRegimeCost[0]
+    const activeHeaderTaxFactor = firstProduct ? firstProduct.taxFactor : baseTaxFactor
     let legacyCompleteFactor = firstProduct
       ? firstProduct.completeFactor
-      : baseTaxFactor * (1 - (additionalMargin || 0) / 100)
-    if (baseTaxFactor < 1 && legacyCompleteFactor >= 1) {
-      legacyCompleteFactor = baseTaxFactor
+      : activeHeaderTaxFactor * (1 - (additionalMargin || 0) / 100)
+    if (activeHeaderTaxFactor < 1 && legacyCompleteFactor >= 1) {
+      legacyCompleteFactor = activeHeaderTaxFactor
     }
     const legacySalePrice = firstProduct ? firstProduct.salePrice : 0
 
-    setSimulatedTaxFactorTotal(Number.isFinite(baseTaxFactor) ? baseTaxFactor : 0)
+    setSimulatedTaxFactorTotal(Number.isFinite(activeHeaderTaxFactor) ? activeHeaderTaxFactor : 0)
     setSimulatedCompleteFactor(Number.isFinite(legacyCompleteFactor) ? legacyCompleteFactor : 0)
     setSimulatedSalePrice(Number.isFinite(legacySalePrice) ? legacySalePrice : 0)
     setTotalConsolidatedRevenue(Number.isFinite(totalRev) ? Math.round(totalRev * 100) / 100 : 0)
@@ -3109,6 +3127,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // SIMULAÇÃO DO MARKUP MANUAL (mantido para atender cliques no botão "Simular", garantindo reciprocidade)
   const simulateMarkup = () => {
     let baseTaxFactor = 1
+    let sumTaxesRatePct = 0
     let rbt12Fallback = false
     if (regime === 'simples') {
       const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
@@ -3117,21 +3136,32 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         rbt12Fallback = true
       }
       const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
+      sumTaxesRatePct = pgdasRes.aliquotaEfetiva
       baseTaxFactor = 1 - pgdasRes.aliquotaEfetiva / 100
     } else {
       const pisRate = regime === 'presumido' ? 0.0065 : 0.0165
       const cofinsRate = regime === 'presumido' ? 0.03 : 0.076
-      const icmsFactor = 1 - (icmsRateMarkup || 0) / 100
+      const cleanIcms = icmsRateMarkup || 0
+      sumTaxesRatePct = cleanIcms + pisRate * 100 + cofinsRate * 100
+      const icmsFactor = 1 - cleanIcms / 100
       const pisFactor = 1 - pisRate
       const cofinsFactor = 1 - cofinsRate
       baseTaxFactor = icmsFactor * pisFactor * cofinsFactor
     }
 
+    let sumCustomTaxesPct = 0
     for (const tax of customTaxesMarkup) {
-      baseTaxFactor *= 1 - (tax.rate || 0) / 100
+      const tRate = tax.rate || 0
+      sumCustomTaxesPct += tRate
+      baseTaxFactor *= 1 - tRate / 100
     }
-    const dvFactorManual = 1 - (totalVariableExpenseRate || 0) / 100
+    sumTaxesRatePct += sumCustomTaxesPct
+
+    const dvRatePct = totalVariableExpenseRate || 0
+    const dvFactorManual = 1 - dvRatePct / 100
     baseTaxFactor *= dvFactorManual > 0 ? dvFactorManual : 1
+
+    const baseLiquidDivisorWithoutMargin = Math.max(0.0001, 1 - (sumTaxesRatePct + dvRatePct) / 100)
 
     let consolidatedRevenue = 0
     let consolidatedQty = 0
@@ -3152,15 +3182,19 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
       const marginFactor = 1 - rawMargin / 100
-      let completeFactor = baseTaxFactor * marginFactor
-      // Assert defensivo: se houver imposto aplicável (baseTaxFactor < 1) e completeFactor >= 1, usa baseTaxFactor sem margem
-      if (baseTaxFactor < 1 && completeFactor >= 1) {
-        completeFactor = baseTaxFactor
+
+      const isLiquidProd = p.mode === 'liquid'
+      const productTaxFactor = isLiquidProd ? baseLiquidDivisorWithoutMargin : baseTaxFactor
+
+      let completeFactor = productTaxFactor * marginFactor
+      // Assert defensivo: se houver imposto aplicável e completeFactor >= 1, usa productTaxFactor sem margem
+      if (productTaxFactor < 1 && completeFactor >= 1) {
+        completeFactor = productTaxFactor
       }
       if (!Number.isFinite(completeFactor)) completeFactor = 0
 
       let baseValue = 0
-      if (p.mode === 'liquid') {
+      if (isLiquidProd) {
         baseValue =
           typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
             ? p.desiredNetRevenue
@@ -3188,7 +3222,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ...p,
         cost: currentCost,
         salePrice: roundedPrice,
-        taxFactor: baseTaxFactor,
+        taxFactor: productTaxFactor,
         completeFactor,
         totalRevenue: totalRev,
         totalCost,
@@ -3201,15 +3235,16 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTotalConsolidatedCost(Math.round(consolidatedCost * 100) / 100)
 
     const firstProduct = updatedProducts[0]
+    const activeHeaderTaxFactor = firstProduct ? firstProduct.taxFactor : baseTaxFactor
     let legacyCompleteFactor = firstProduct
       ? firstProduct.completeFactor
-      : baseTaxFactor * (1 - (additionalMargin || 0) / 100)
-    if (baseTaxFactor < 1 && legacyCompleteFactor >= 1) {
-      legacyCompleteFactor = baseTaxFactor
+      : activeHeaderTaxFactor * (1 - (additionalMargin || 0) / 100)
+    if (activeHeaderTaxFactor < 1 && legacyCompleteFactor >= 1) {
+      legacyCompleteFactor = activeHeaderTaxFactor
     }
     const legacySalePrice = firstProduct ? firstProduct.salePrice : 0
 
-    setSimulatedTaxFactorTotal(baseTaxFactor)
+    setSimulatedTaxFactorTotal(activeHeaderTaxFactor)
     setSimulatedCompleteFactor(legacyCompleteFactor)
     setSimulatedSalePrice(legacySalePrice)
 

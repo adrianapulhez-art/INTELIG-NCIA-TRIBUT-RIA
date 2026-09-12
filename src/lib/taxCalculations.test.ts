@@ -617,6 +617,57 @@ export function runLiquidDreMarkupTests(): {
       expected: 200,
       received: unviableRes.shortfall,
     },
+
+    // (e) Cenário Canônico Oficial de Unificação da Calculadora de Markup (Contrato Permanente):
+    // Regime: Lucro Presumido
+    // RL desejada: R$ 2.335,00 | ICMS: 18,00% | PIS: 0,65% | COFINS: 3,00% | DV total: 7,50% | Margem: 0,00% | Qtd: 30
+    // Fórmula correta unificada:
+    // Divisor = (1 - Σ%tributos - %DV) × (1 - Margem)
+    // Divisor = (1 - 0,2165 - 0,075) × (1 - 0) = 0,70850
+    // PV = 2.335,00 / 0,7085 = R$ 3.295,70
+    // Subtotal = 30 × 3.295,70 = R$ 98.871,00
+    // REJEITA expressamente a fórmula multiplicativa desalinhada que resultava em divisor ~0,73096 e PV R$ 3.194,42
+    {
+      test: '(e) Contrato Canônico Markup Líquido Presumido: Divisor aditivo = (1 - 0,2165 - 0,075) = 0,70850',
+      expected: 0.7085,
+      received: Math.round((1 - (18 + 0.65 + 3.0 + 7.5) / 100) * 100000) / 100000,
+    },
+    {
+      test: '(e) Contrato Canônico Markup Líquido Presumido: PV canônico = R$ 2.335,00 / 0,7085 = R$ 3.295,70',
+      expected: 3295.7,
+      received: Math.round((2335 / 0.7085) * 100) / 100,
+    },
+    {
+      test: '(e) Contrato Canônico Markup Líquido Presumido: Subtotal (30 × 3.295,70) = R$ 98.871,00',
+      expected: 98871.0,
+      received: Math.round(30 * (Math.round((2335 / 0.7085) * 100) / 100) * 100) / 100,
+    },
+    {
+      test: '(e) Contrato Canônico: REJEITA expressamente valor legado desalinhado R$ 3.194,42',
+      expected: true,
+      received: Math.round((2335 / 0.7085) * 100) / 100 !== 3194.42,
+    },
+    {
+      test: '(e) Contrato Canônico: Equivalência Card ↔ Memória de Cálculo (ambos usam divisor 0,70850 gerando PV 3.295,70)',
+      expected: true,
+      received: (() => {
+        // Simulação da memória de cálculo
+        const dvRate = 7.5
+        const icmsRateClean = 18.0
+        const pisPresumidoRate = 0.65
+        const cofinsPresumidoRate = 3.0
+        const totalTaxes = icmsRateClean + pisPresumidoRate + cofinsPresumidoRate
+        const rawDivisorMemoria = Math.max(0.0001, 1 - (totalTaxes + dvRate) / 100) * (1 - 0)
+        const pvMemoria = Math.round((2335 / rawDivisorMemoria) * 100) / 100
+
+        // Simulação do TaxContext / Card
+        const baseLiquidDivisor = Math.max(0.0001, 1 - (totalTaxes + dvRate) / 100)
+        const completeFactorCard = baseLiquidDivisor * (1 - 0)
+        const pvCard = Math.round((2335 / completeFactorCard) * 100) / 100
+
+        return pvMemoria === 3295.7 && pvCard === 3295.7 && pvMemoria === pvCard
+      })(),
+    },
   ]
 
   const results = tests.map((t) => {

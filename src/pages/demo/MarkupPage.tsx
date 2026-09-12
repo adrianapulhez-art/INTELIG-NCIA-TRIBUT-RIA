@@ -303,7 +303,7 @@ function VariableExpenseRow({ dv, onUpdate, onRemove }: VariableExpenseRowProps)
   )
 }
 
-// QA production build check v0.0.108
+// QA production build check v0.0.110
 export default function MarkupPage() {
   const navigate = useNavigate()
   const {
@@ -526,22 +526,40 @@ export default function MarkupPage() {
 
     // Fator de tributos customizados (comum a todos os regimes)
     let customTaxesFactor = 1
+    let sumCustomTaxesPct = 0
     for (const tax of customTaxesMarkup) {
-      customTaxesFactor *= 1 - (tax.rate || 0) / 100
+      const tRate = tax.rate || 0
+      sumCustomTaxesPct += tRate
+      customTaxesFactor *= 1 - tRate / 100
     }
 
     const icmsF = 1 - (icmsRateMarkup || 0) / 100
+    const cleanIcms = icmsRateMarkup || 0
+    const dvRate = totalVariableExpenseRate || 0
+    const dvFactor = 1 - dvRate / 100
 
     // 1. Lucro Presumido: PIS 0,65% (0.0065) e COFINS 3,00% (0.0300) cumulativo, ICMS informado
     const pisFactorPresumido = 1 - 0.0065
     const cofinsFactorPresumido = 1 - 0.03
     const baseTaxFactorPresumido =
-      icmsF * pisFactorPresumido * cofinsFactorPresumido * customTaxesFactor
+      icmsF *
+      pisFactorPresumido *
+      cofinsFactorPresumido *
+      customTaxesFactor *
+      (dvFactor > 0 ? dvFactor : 1)
+    const totalTaxesPresumidoRate = cleanIcms + 0.65 + 3.0 + sumCustomTaxesPct
+    const liquidDivisorPresumidoBase = Math.max(
+      0.0001,
+      1 - (totalTaxesPresumidoRate + dvRate) / 100,
+    )
 
     // 2. Lucro Real: PIS 1,65% (0.0165) e COFINS 7,60% (0.0760) não cumulativo, ICMS informado
     const pisFactorReal = 1 - 0.0165
     const cofinsFactorReal = 1 - 0.076
-    const baseTaxFactorReal = icmsF * pisFactorReal * cofinsFactorReal * customTaxesFactor
+    const baseTaxFactorReal =
+      icmsF * pisFactorReal * cofinsFactorReal * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
+    const totalTaxesRealRate = cleanIcms + 1.65 + 7.6 + sumCustomTaxesPct
+    const liquidDivisorRealBase = Math.max(0.0001, 1 - (totalTaxesRealRate + dvRate) / 100)
 
     // 3. Simples Nacional: Alíquota efetiva do PGDAS calculada sobre RBT12 e Anexo do TaxContext
     // Se RBT12 zerado ou não informado, aplica a alíquota nominal da 1ª faixa como fallback legal (nunca 0%)
@@ -550,29 +568,34 @@ export default function MarkupPage() {
     const hasSimplesData = rbt12Clean > 0
     const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
     const effectiveSimplesRate = pgdasRes.aliquotaEfetiva
-    // fator Simples = (1 - alíquota efetiva) * customTaxesFactor
-    const baseTaxFactorSimples = (1 - effectiveSimplesRate / 100) * customTaxesFactor
+    // fator Simples = (1 - alíquota efetiva) * customTaxesFactor * dvFactor
+    const baseTaxFactorSimples =
+      (1 - effectiveSimplesRate / 100) * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
+    const totalTaxesSimplesRate = effectiveSimplesRate + sumCustomTaxesPct
+    const liquidDivisorSimplesBase = Math.max(0.0001, 1 - (totalTaxesSimplesRate + dvRate) / 100)
 
-    // Helper para calcular produtos com um determinado fator tributário base
-    const calcForTaxFactor = (taxFactor: number) => {
+    // Helper para calcular produtos por regime, respeitando o modo líquido (divisor aditivo tributos+DV) vs custo+margem
+    const calcForTaxFactor = (taxFactorMultiplicative: number, liquidDivisorBase: number) => {
       let totalRev = 0
       let totalQty = 0
       const prods = markupProducts.map((p) => {
         const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
         const marginFactor = 1 - rawMargin / 100
-        let completeFactor = (Number.isFinite(taxFactor) ? taxFactor : 0) * marginFactor
-        if (taxFactor < 1 && completeFactor >= 1) {
-          completeFactor = taxFactor
+        const isLiquidProd = p.mode === 'liquid'
+        const baseFactor = isLiquidProd ? liquidDivisorBase : taxFactorMultiplicative
+
+        let completeFactor = (Number.isFinite(baseFactor) ? baseFactor : 0) * marginFactor
+        if (baseFactor < 1 && completeFactor >= 1) {
+          completeFactor = baseFactor
         }
         const safeFactor = completeFactor > 0.0001 ? completeFactor : 0
-        const baseValue =
-          p.mode === 'liquid'
-            ? typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
-              ? p.desiredNetRevenue
-              : 0
-            : typeof p.cost === 'number' && Number.isFinite(p.cost)
-              ? p.cost
-              : 0
+        const baseValue = isLiquidProd
+          ? typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
+            ? p.desiredNetRevenue
+            : 0
+          : typeof p.cost === 'number' && Number.isFinite(p.cost)
+            ? p.cost
+            : 0
         const rawSalePrice = safeFactor > 0 && baseValue > 0 ? baseValue / safeFactor : 0
         const roundedPrice = Number.isFinite(rawSalePrice)
           ? Math.round(rawSalePrice * 100) / 100
@@ -595,9 +618,9 @@ export default function MarkupPage() {
       return { prods, totalRev: Math.round(totalRev * 100) / 100, totalQty }
     }
 
-    const calcPresumido = calcForTaxFactor(baseTaxFactorPresumido)
-    const calcReal = calcForTaxFactor(baseTaxFactorReal)
-    const calcSimples = calcForTaxFactor(baseTaxFactorSimples)
+    const calcPresumido = calcForTaxFactor(baseTaxFactorPresumido, liquidDivisorPresumidoBase)
+    const calcReal = calcForTaxFactor(baseTaxFactorReal, liquidDivisorRealBase)
+    const calcSimples = calcForTaxFactor(baseTaxFactorSimples, liquidDivisorSimplesBase)
 
     return {
       hasSimplesData,
@@ -619,6 +642,7 @@ export default function MarkupPage() {
     effectiveSimplesRbt12,
     simplesAnexo,
     totalConsolidatedQuantity,
+    totalVariableExpenseRate,
   ])
 
   // Aplica modo padrão para novos produtos ou quando o usuário clica nos botões do topo:
