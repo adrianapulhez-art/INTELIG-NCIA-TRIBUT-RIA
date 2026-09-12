@@ -8,6 +8,7 @@ import {
 } from './taxCalculations'
 import { calculateCmvDetailedBreakdown } from './cmvBreakdownCalculations'
 import { calculatePgdas, calculateRbt12InicioAtividade } from './simplesCalculations'
+import { calculateLiquidDreChain } from './liquidMarkupCalculations'
 
 /**
  * Validação de integridade e fidedignidade dos cálculos do parseBRNumber e
@@ -379,6 +380,216 @@ export function runAutoStockDeductionTests(): {
       typeof t.expected === 'boolean'
         ? t.expected === t.received
         : Math.abs((t.expected as number) - (t.received as number)) < 0.0001
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
+ * Testes dedicados do modo RECEITA LÍQUIDA e DRE derivada de Markup:
+ * (a) Sincronização em lote do seletor -> todos os produtos mudam de mode
+ * (b) Margem derivada no modo liquid (resultado, não digitável)
+ * (c) RBV = receita líquida ÷ (1 - %tributos - %DV) com valores canônicos por regime:
+ *     - Simples: DAS efetivo
+ *     - Presumido: ICMS + 0,65% + 3,00%
+ *     - Real: ICMS + 1,65% + 7,60%
+ * (d) LLE negativo -> isViable === false com faltante correto
+ */
+export function runLiquidDreMarkupTests(): {
+  allPassed: boolean
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
+} {
+  // Teste (a): Sincronização em lote do seletor -> todos os produtos mudam de mode
+  const initialProducts = [
+    { id: 'p1', mode: 'cost_margin' as const, name: 'P1' },
+    { id: 'p2', mode: 'cost_margin' as const, name: 'P2' },
+    { id: 'p3', mode: 'liquid' as const, name: 'P3' },
+  ]
+  const targetMode = 'liquid' as const
+  const syncedProducts = initialProducts.map((p) => ({ ...p, mode: targetMode }))
+  const allSyncedToLiquid = syncedProducts.every((p) => p.mode === 'liquid')
+
+  const targetModeCostMargin = 'cost_margin' as const
+  const syncedCostMargin = syncedProducts.map((p) => ({ ...p, mode: targetModeCostMargin }))
+  const allSyncedToCostMargin = syncedCostMargin.every((p) => p.mode === 'cost_margin')
+
+  // Teste (b) & (c): RBV = RL ÷ (1 - %tributos - %DV) e derivedMarginPct
+  // 1. Simples Nacional:
+  // RL = 1.000, custo = 600, DAS efetivo = 7,00%, DV = 3,00%
+  // divisor = 1 - 0.07 - 0.03 = 0.90 -> RBV = 1000 / 0.90 = 1111.11
+  // Deduções = 0, ROL = 1111.11 - (1111.11 * 0.07) - (1111.11 * 0.03) = 1111.11 - 77.78 - 33.33 = 1000.00
+  // Lucro Bruto = 1000.00 - 600 = 400.00
+  // Sem despesas operacionais nem IRPJ extra (Simples já inclui IRPJ/CSLL no DAS): LLE = 400.00
+  // Margem derivada = (400 / 1000) * 100 = 40.00%
+  const simplesRes = calculateLiquidDreChain({
+    desiredNetRevenue: 1000,
+    regime: 'simples',
+    unitCost: 600,
+    icmsRate: 0,
+    variableExpensesRate: 3.0,
+    effectiveSimplesRate: 7.0,
+    operatingExpensesUnit: 0,
+  })
+
+  // 2. Lucro Presumido:
+  // RL = 1.000, custo = 500, ICMS = 18%, PIS = 0.65%, COFINS = 3.0%, DV = 2.0%
+  // Soma tributos sobre vendas = 18 + 0.65 + 3.0 = 21.65%
+  // Divisor = 1 - 0.2165 - 0.02 = 0.7635
+  // RBV = 1000 / 0.7635 = 1309.76
+  // ROL = 1309.76 * (1 - 0.2165) - (1309.76 * 0.02) = 1000.00
+  // Base IRPJ (8%) = 1309.76 * 0.08 = 104.78 -> IRPJ 15% = 15.72
+  // Base CSLL (12%) = 1309.76 * 0.12 = 157.17 -> CSLL 9% = 14.15
+  // Lucro Bruto = 1000 - 500 = 500
+  // LLE = 500 - 15.72 - 14.15 = 470.13
+  // Margem líquida derivada = (470.13 / 1000) * 100 = 47.01%
+  const presumidoRes = calculateLiquidDreChain({
+    desiredNetRevenue: 1000,
+    regime: 'presumido',
+    unitCost: 500,
+    icmsRate: 18.0,
+    variableExpensesRate: 2.0,
+    effectiveSimplesRate: 0,
+    operatingExpensesUnit: 0,
+    presumidoActivity: 'comercio',
+  })
+
+  // 3. Lucro Real:
+  // RL = 1.000, custo = 400, ICMS = 18%, PIS = 1.65%, COFINS = 7.60%, DV = 1.0%
+  // Soma tributos s/ vendas = 18 + 1.65 + 7.60 = 27.25%
+  // Divisor = 1 - 0.2725 - 0.01 = 0.7175
+  // RBV = 1000 / 0.7175 = 1393.73
+  const realRes = calculateLiquidDreChain({
+    desiredNetRevenue: 1000,
+    regime: 'real',
+    unitCost: 400,
+    icmsRate: 18.0,
+    variableExpensesRate: 1.0,
+    effectiveSimplesRate: 0,
+    operatingExpensesUnit: 0,
+  })
+
+  // Teste (d): LLE negativo -> isViable === false com faltante correto
+  // Custo unitário = 1.200, RL informada = 1.000
+  // ROL = 1.000 -> Lucro Bruto = 1000 - 1200 = -200 (prejuízo)
+  // LLE = -200 -> isViable deve ser false, faltante = 200.00
+  const unviableRes = calculateLiquidDreChain({
+    desiredNetRevenue: 1000,
+    regime: 'simples',
+    unitCost: 1200,
+    icmsRate: 0,
+    variableExpensesRate: 3.0,
+    effectiveSimplesRate: 7.0,
+    operatingExpensesUnit: 0,
+  })
+
+  const tests: {
+    test: string
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[] = [
+    // (a) Sincronização em lote
+    {
+      test: '(a) Sincronização em lote: Seletor global modo liquid atualiza todos os produtos para "liquid"',
+      expected: true,
+      received: allSyncedToLiquid,
+    },
+    {
+      test: '(a) Sincronização em lote: Seletor global modo cost_margin atualiza todos os produtos para "cost_margin"',
+      expected: true,
+      received: allSyncedToCostMargin,
+    },
+
+    // (b) Margem derivada
+    {
+      test: '(b) Margem de lucro é resultado derivado: Simples (RL=1000, Custo=600, DAS=7%, DV=3%) -> 40.00%',
+      expected: 40.0,
+      received: simplesRes.derivedMarginPct,
+    },
+    {
+      test: '(b) Margem de lucro é resultado derivado: Presumido (RL=1000, Custo=500, ICMS=18%, DV=2%) -> 47.01%',
+      expected: 47.01,
+      received: presumidoRes.derivedMarginPct,
+    },
+
+    // (c) Gross-up canônico RBV por regime
+    {
+      test: '(c) RBV Simples: RL 1000 / (1 - 0,07 - 0,03) = 1111,11',
+      expected: 1111.11,
+      received: simplesRes.rbv,
+    },
+    {
+      test: '(c) Tributos sobre vendas Simples (DAS 7% de 1111,11) = 77,78',
+      expected: 77.78,
+      received: simplesRes.taxesValue,
+    },
+    {
+      test: '(c) Despesas variáveis Simples (DV 3% de 1111,11) = 33,33',
+      expected: 33.33,
+      received: simplesRes.deductionsValue,
+    },
+    {
+      test: '(c) RBV Presumido: RL 1000 / (1 - 0,18 - 0,0065 - 0,03 - 0,02) = 1309,76',
+      expected: 1309.76,
+      received: presumidoRes.rbv,
+    },
+    {
+      test: '(c) Soma tributos sobre vendas Presumido (21,65% de 1309,76) = 283,56',
+      expected: 283.56,
+      received: presumidoRes.taxesValue,
+    },
+    {
+      test: '(c) RBV Real: RL 1000 / (1 - 0,18 - 0,0165 - 0,0760 - 0,01) = 1393,73',
+      expected: 1393.73,
+      received: realRes.rbv,
+    },
+    {
+      test: '(c) Soma tributos sobre vendas Real (27,25% de 1393,73) = 379,79',
+      expected: 379.79,
+      received: realRes.taxesValue,
+    },
+
+    // (d) Viabilidade e faltante
+    {
+      test: '(d) LLE positivo -> isViable é true',
+      expected: true,
+      received: simplesRes.isViable,
+    },
+    {
+      test: '(d) LLE positivo -> faltante é 0',
+      expected: 0,
+      received: simplesRes.shortfall,
+    },
+    {
+      test: '(d) LLE negativo -> isViable é false quando RL não cobre custos e encargos',
+      expected: false,
+      received: unviableRes.isViable,
+    },
+    {
+      test: '(d) LLE negativo -> shortfall (faltante) indica valor exato para equilíbrio (200,00)',
+      expected: 200,
+      received: unviableRes.shortfall,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : typeof t.expected === 'string'
+          ? t.expected === t.received
+          : Math.abs((t.expected as number) - (t.received as number)) < 0.01
     return {
       test: t.test,
       passed,

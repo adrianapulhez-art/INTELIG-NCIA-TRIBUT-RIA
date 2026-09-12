@@ -13,7 +13,7 @@ export interface LiquidDreChainInput {
 }
 
 export interface LiquidDreChainResult {
-  desiredNetRevenue: number // RL âncora
+  desiredNetRevenue: number // RL informada (âncora)
   taxRateTotal: number // % Tributos sobre RBV
   variableExpenseRate: number // % Deduções / DV sobre RBV
   grossUpDivisor: number // 1 - %Tributos - %Deduções
@@ -21,6 +21,11 @@ export interface LiquidDreChainResult {
   taxesValue: number // RBV * %Tributos
   deductionsValue: number // RBV * %Deduções
   derivedNetRevenue: number // RBV - taxes - deductions (~ RL âncora)
+  tributosRate: number
+  tributosValor: number
+  deducoesRate: number
+  deducoesValor: number
+  netRevenue: number
   cmv: number // Custo do produto / mercadoria
   grossProfit: number // Lucro Bruto = RL - CMV
   operatingExpenses: number // Despesas operacionais
@@ -133,6 +138,11 @@ export function calculateLiquidDreChain(input: LiquidDreChainInput): LiquidDreCh
     taxesValue,
     deductionsValue,
     derivedNetRevenue,
+    tributosRate: taxRate,
+    tributosValor: taxesValue,
+    deducoesRate: dvRate,
+    deducoesValor: deductionsValue,
+    netRevenue: derivedNetRevenue,
     cmv,
     grossProfit,
     operatingExpenses,

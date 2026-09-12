@@ -666,7 +666,13 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [])
 
   // MARKUP
-  const [markupMode, setMarkupMode] = useState<MarkupMode>('liquid')
+  const [markupMode, setMarkupModeState] = useState<MarkupMode>('liquid')
+
+  const setMarkupMode = useCallback((mode: MarkupMode) => {
+    recordUndoSnapshot()
+    setMarkupModeState(mode)
+    setMarkupProducts((prev) => prev.map((p) => ({ ...p, mode })))
+  }, [])
   const [desiredNetRevenue, setDesiredNetRevenue] = useState<number>(0)
   const [additionalMargin, setAdditionalMargin] = useState<number>(0)
   const [icmsRateMarkup, setIcmsRateMarkup] = useState<number>(0)
@@ -3213,7 +3219,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const resetAll = () => {
     setRegime('presumido')
-    setMarkupMode('liquid')
+    setMarkupModeState('liquid')
     setDesiredNetRevenue(0)
     setAdditionalMargin(0)
     setIcmsRateMarkup(0)
@@ -3371,7 +3377,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else {
       setRegime('presumido')
     }
-    if (snapshot.markupMode) setMarkupMode(snapshot.markupMode)
+    if (snapshot.markupMode) setMarkupModeState(snapshot.markupMode)
     setDesiredNetRevenue(snapshot.desiredNetRevenue ?? 0)
     setAdditionalMargin(snapshot.additionalMargin ?? 0)
     setIcmsRateMarkup(snapshot.icmsRateMarkup ?? 0)

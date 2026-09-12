@@ -624,10 +624,7 @@ export default function MarkupPage() {
   // Aplica modo padrão para novos produtos ou quando o usuário clica nos botões do topo:
   // Sincroniza TODOS os produtos em lote imediatamente
   const handleSelectDefaultMode = (mode: 'liquid' | 'cost_margin') => {
-    setMarkupMode(mode)
-    markupProducts.forEach((p) => {
-      updateMarkupProduct(p.id, 'mode', mode)
-    })
+    setMarkupMode(mode) // O próprio setMarkupMode sincroniza todos os produtos no TaxContext
   }
 
   return (
