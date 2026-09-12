@@ -47,11 +47,13 @@ import {
   Boxes,
   Download,
   Layers,
+  AlertTriangle,
 } from 'lucide-react'
 import {
   calculateSaleIcmsSt,
   calculateInterstateOperation,
 } from '@/lib/specialOperationsCalculations'
+import { calculateLiquidDreChain } from '@/lib/liquidMarkupCalculations'
 
 interface ProductBaseValueInputProps {
   productId: string
@@ -82,13 +84,23 @@ function ProductBaseValueInput({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <label className="text-[11px] text-slate-300 font-semibold">
-          {isLiquid ? 'Receita líquida desejada' : 'Custo do produto'}
+        <label
+          className="text-[11px] text-slate-300 font-semibold"
+          title={
+            isLiquid
+              ? 'Receita Líquida de Vendas (Receita Bruta − deduções − tributos sobre vendas). NÃO confundir com custo da mercadoria.'
+              : 'Custo unitário base do produto'
+          }
+        >
+          {isLiquid ? 'Receita líquida desejada (RL Vendas)' : 'Custo do produto'}
         </label>
         {isReadOnlyCost && (
           <span className="text-[10px] font-mono text-emerald-400 font-medium">
             · via composição de custo
           </span>
+        )}
+        {isLiquid && (
+          <span className="text-[10px] font-mono text-emerald-400/80">Âncora da DRE</span>
         )}
       </div>
       <div className="relative">
@@ -132,31 +144,59 @@ interface ProductMarginInputProps {
   productId: string
   isLiquid: boolean
   margin: number
+  derivedMarginPct?: number
   onUpdate: (id: string, margin: number) => void
 }
 
-function ProductMarginInput({ productId, isLiquid, margin, onUpdate }: ProductMarginInputProps) {
+function ProductMarginInput({
+  productId,
+  isLiquid,
+  margin,
+  derivedMarginPct = 0,
+  onUpdate,
+}: ProductMarginInputProps) {
   const [isFocused, setIsFocused] = useState(false)
   const [text, setText] = useState<string>(margin > 0 ? formatNumberBR(margin) : '')
 
   useEffect(() => {
     if (!isFocused) {
-      setText(margin > 0 ? formatNumberBR(margin) : '')
+      if (isLiquid) {
+        setText(formatNumberBR(derivedMarginPct))
+      } else {
+        setText(margin > 0 ? formatNumberBR(margin) : '')
+      }
     }
-  }, [margin, isFocused])
+  }, [margin, isFocused, isLiquid, derivedMarginPct])
 
   return (
     <div className="space-y-1">
-      <label className="text-[11px] text-slate-300 font-semibold">
-        {isLiquid ? 'Margem adicional (%)' : 'Margem de lucro (%)'}
-      </label>
+      <div className="flex items-center justify-between gap-1 flex-wrap">
+        <label className="text-[11px] text-slate-300 font-semibold flex items-center gap-1">
+          <span>Margem de lucro (%)</span>
+        </label>
+        {isLiquid && (
+          <Badge
+            variant="outline"
+            className="text-[9px] px-1.5 py-0 border-emerald-500/40 text-emerald-300 bg-emerald-500/10 font-mono font-normal"
+          >
+            Derivado do valor informado
+          </Badge>
+        )}
+      </div>
+
       <div className="relative">
         <Input
           type="text"
           placeholder="0,00"
-          value={text}
-          onFocus={() => setIsFocused(true)}
+          value={isLiquid ? formatNumberBR(derivedMarginPct) : text}
+          disabled={isLiquid}
+          readOnly={isLiquid}
+          tabIndex={isLiquid ? -1 : 0}
+          onFocus={() => {
+            if (!isLiquid) setIsFocused(true)
+          }}
           onChange={(e) => {
+            if (isLiquid) return
             const raw = e.target.value
             setText(raw)
             const num = parseBRNumber(raw)
@@ -164,16 +204,37 @@ function ProductMarginInput({ productId, isLiquid, margin, onUpdate }: ProductMa
           }}
           onBlur={(e) => {
             setIsFocused(false)
+            if (isLiquid) return
             const num = parseBRNumber(e.target.value)
             setText(num > 0 ? formatNumberBR(num) : '')
             onUpdate(productId, num)
           }}
-          className="pr-6 text-right text-xs h-8 field-input-interactive"
+          className={`pr-6 text-right text-xs h-8 ${
+            isLiquid
+              ? 'bg-slate-900/90 border-emerald-500/30 text-emerald-300 font-bold cursor-not-allowed opacity-90'
+              : 'field-input-interactive'
+          }`}
+          title={
+            isLiquid
+              ? 'Margem derivada: calculada a partir do custo da mercadoria e da receita líquida informada'
+              : undefined
+          }
         />
-        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
+        <span
+          className={`absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono pointer-events-none ${
+            isLiquid ? 'text-emerald-400 font-bold' : 'text-slate-500'
+          }`}
+        >
           %
         </span>
       </div>
+
+      {isLiquid && (
+        <p className="text-[10px] text-slate-400 leading-tight">
+          Receita líquida de vendas ≠ custo da mercadoria — o valor informado já embute CMV,
+          despesas operacionais, IR, CSLL e a margem líquida alvo.
+        </p>
+      )}
     </div>
   )
 }
@@ -560,17 +621,13 @@ export default function MarkupPage() {
     totalConsolidatedQuantity,
   ])
 
-  // Aplica modo padrão para novos produtos ou quando o usuário clica nos botões do topo
+  // Aplica modo padrão para novos produtos ou quando o usuário clica nos botões do topo:
+  // Sincroniza TODOS os produtos em lote imediatamente
   const handleSelectDefaultMode = (mode: 'liquid' | 'cost_margin') => {
     setMarkupMode(mode)
-    // Se houver apenas 1 produto e estiver zerado, também atualiza seu modo para facilitar a experiência
-    if (
-      markupProducts.length === 1 &&
-      markupProducts[0].desiredNetRevenue === 0 &&
-      markupProducts[0].cost === 0
-    ) {
-      updateMarkupProduct(markupProducts[0].id, 'mode', mode)
-    }
+    markupProducts.forEach((p) => {
+      updateMarkupProduct(p.id, 'mode', mode)
+    })
   }
 
   return (
@@ -1295,6 +1352,48 @@ export default function MarkupPage() {
             <div className="space-y-3">
               {markupProducts.map((prod, index) => {
                 const isProdLiquid = prod.mode === 'liquid'
+
+                // Pega o custo unitário líquido do produto vindo das Compras no regime ativo ou do campo cost
+                const matchedPurchaseItemForChain = prod.purchaseItemId
+                  ? purchasesItems.find((pi) => pi.id === prod.purchaseItemId)
+                  : null
+                const effectiveUnitCostForChain =
+                  matchedPurchaseItemForChain &&
+                  prod.costOrigin !== 'manual' &&
+                  prod.manualCostOverride === undefined
+                    ? getPurchaseItemUnitNetCost(matchedPurchaseItemForChain, regime)
+                    : prod.cost || 0
+
+                // Alíquota adicional customizada somada
+                const customTaxesSum = customTaxesMarkup.reduce((acc, t) => acc + (t.rate || 0), 0)
+
+                // Alíquota Simples efetiva calculada
+                const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+                const rbt12Clean =
+                  effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
+                const pgdasCalc = calculatePgdas(anexoClean, rbt12Clean)
+
+                // Executa cadeia da DRE líquida se em modo liquid
+                const liquidChain = isProdLiquid
+                  ? calculateLiquidDreChain({
+                      desiredNetRevenue: prod.desiredNetRevenue || 0,
+                      regime,
+                      effectiveSimplesRate: pgdasCalc.aliquotaEfetiva,
+                      icmsRate: icmsRateMarkup || 0,
+                      customTaxesRate: customTaxesSum,
+                      variableExpensesRate: totalVariableExpenseRate,
+                      unitCost: effectiveUnitCostForChain,
+                      operatingExpensesUnit: 0,
+                      presumidoActivity: 'comercio',
+                    })
+                  : null
+
+                // Preço de venda a exibir: se modo liquid e simulado ou em tempo real com RL informada, pode refletir RBV do motor
+                const displaySalePrice =
+                  isProdLiquid && liquidChain && prod.desiredNetRevenue > 0
+                    ? liquidChain.rbv
+                    : prod.salePrice
+
                 return (
                   <div
                     key={prod.id}
@@ -1453,6 +1552,7 @@ export default function MarkupPage() {
                         productId={prod.id}
                         isLiquid={isProdLiquid}
                         margin={prod.margin}
+                        derivedMarginPct={liquidChain?.derivedMarginPct || 0}
                         onUpdate={(id, val) => updateMarkupProduct(id, 'margin', val)}
                       />
 
@@ -1498,11 +1598,53 @@ export default function MarkupPage() {
                         <div className="h-8 px-2.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs font-bold text-emerald-400">
                           <span className="text-[10px] text-emerald-400/70 font-mono">Un.:</span>
                           <div className="flex items-center gap-1.5">
-                            <span>{isMarkupSimulated ? formatBRL(prod.salePrice) : '—'}</span>
+                            <span>
+                              {isMarkupSimulated || (isProdLiquid && prod.desiredNetRevenue > 0)
+                                ? formatBRL(displaySalePrice)
+                                : '—'}
+                            </span>
                           </div>
                         </div>
                       </div>
                     </div>
+
+                    {/* Alerta de Viabilidade em Tela (Item 4 do escopo): quando LLE for negativo */}
+                    {isProdLiquid &&
+                      prod.desiredNetRevenue > 0 &&
+                      liquidChain &&
+                      !liquidChain.isViable && (
+                        <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-mono flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                            <span className="font-semibold text-amber-300">
+                              Faltam {formatBRL(liquidChain.shortfall)} para LLE positivo
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-amber-200/80">
+                            (LLE projetado:{' '}
+                            <strong className="text-rose-400">{formatBRL(liquidChain.lle)}</strong>{' '}
+                            · Margem: {formatNumberBR(liquidChain.derivedMarginPct)}%)
+                          </span>
+                        </div>
+                      )}
+                    {isProdLiquid &&
+                      prod.desiredNetRevenue > 0 &&
+                      liquidChain &&
+                      liquidChain.isViable && (
+                        <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-emerald-300 text-[11px] font-mono flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>
+                              Operação viável (LLE positivo:{' '}
+                              <strong>{formatBRL(liquidChain.lle)}</strong> · Margem:{' '}
+                              <strong>{formatNumberBR(liquidChain.derivedMarginPct)}%</strong>)
+                            </span>
+                          </div>
+                          <span className="text-slate-400 text-[10px]">
+                            RBV Gross-up: {formatBRL(liquidChain.rbv)}
+                          </span>
+                        </div>
+                      )}
 
                     {/* Sub-resultado do produto quando simulado */}
                     {isMarkupSimulated && prod.quantity > 0 && (

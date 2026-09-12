@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { formatBRL, formatNumberBR, formatPercentBR, formatFactorBR } from '@/lib/taxCalculations'
 import { calculatePgdas, SimplesAnexoId, SIMPLES_ANEXOS } from '@/lib/simplesCalculations'
+import { calculateLiquidDreChain } from '@/lib/liquidMarkupCalculations'
 import {
   MarkupProductItem,
   TaxRegime,
@@ -80,6 +81,55 @@ export function MarkupCalculationMemoryModal({
 
   // 1. Dados base do produto
   const isLiquid = product.mode === 'liquid'
+
+  // Motor da Cadeia da DRE Líquida (Item 5 do escopo)
+  const customTaxesSum = customTaxesMarkup.reduce((acc, t) => acc + (t.rate || 0), 0)
+  const effectiveCostForLiquidChain =
+    typeof product.cost === 'number' && Number.isFinite(product.cost) ? product.cost : 0
+  const liquidChainSimples = isLiquid
+    ? calculateLiquidDreChain({
+        desiredNetRevenue: product.desiredNetRevenue || 0,
+        regime: 'simples',
+        effectiveSimplesRate: calculatePgdas(
+          (simplesAnexo as SimplesAnexoId) || 'anexo_1',
+          effectiveRbt12Prop && effectiveRbt12Prop > 0 ? effectiveRbt12Prop : simplesRbt12 || 0,
+        ).aliquotaEfetiva,
+        icmsRate: icmsRateMarkup || 0,
+        customTaxesRate: customTaxesSum,
+        variableExpensesRate: totalVariableExpenseRate || 0,
+        unitCost: effectiveCostForLiquidChain,
+        operatingExpensesUnit: 0,
+        presumidoActivity: 'comercio',
+      })
+    : null
+
+  const liquidChainPresumido = isLiquid
+    ? calculateLiquidDreChain({
+        desiredNetRevenue: product.desiredNetRevenue || 0,
+        regime: 'presumido',
+        effectiveSimplesRate: 0,
+        icmsRate: icmsRateMarkup || 0,
+        customTaxesRate: customTaxesSum,
+        variableExpensesRate: totalVariableExpenseRate || 0,
+        unitCost: effectiveCostForLiquidChain,
+        operatingExpensesUnit: 0,
+        presumidoActivity: 'comercio',
+      })
+    : null
+
+  const liquidChainReal = isLiquid
+    ? calculateLiquidDreChain({
+        desiredNetRevenue: product.desiredNetRevenue || 0,
+        regime: 'real',
+        effectiveSimplesRate: 0,
+        icmsRate: icmsRateMarkup || 0,
+        customTaxesRate: customTaxesSum,
+        variableExpensesRate: totalVariableExpenseRate || 0,
+        unitCost: effectiveCostForLiquidChain,
+        operatingExpensesUnit: 0,
+        presumidoActivity: 'comercio',
+      })
+    : null
   const baseCost =
     typeof product.cost === 'number' && Number.isFinite(product.cost) ? product.cost : 0
   const desiredNetRevenue =
@@ -734,6 +784,126 @@ export function MarkupCalculationMemoryModal({
                   </div>
                 </div>
               </div>
+
+              {/* Sub-bloco exclusivo do modo líquido: Cadeia da DRE linha a linha (Item 5) */}
+              {isLiquid && liquidChainSimples && (
+                <div className="p-4 rounded-xl bg-slate-950/80 border border-emerald-500/30 space-y-3 font-mono text-xs">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-emerald-400" />
+                      <span className="font-bold text-emerald-300 uppercase tracking-wide text-[11px]">
+                        Cadeia da DRE Derivada — Modo Receita Líquida (Simples Nacional)
+                      </span>
+                    </div>
+                    <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 text-[10px]">
+                      Gross-up Reverso
+                    </Badge>
+                  </div>
+
+                  <div className="divide-y divide-slate-800/60">
+                    <div className="py-1.5 flex items-center justify-between font-bold text-slate-100">
+                      <span>Receita Bruta de Vendas (RBV Sugerida)</span>
+                      <span className="text-emerald-400 text-sm">
+                        {formatBRL(liquidChainSimples.rbv)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>
+                        (−) Tributos sobre Vendas (
+                        {formatPercentBR(liquidChainSimples.tributosRate)}%)
+                      </span>
+                      <span className="text-rose-400">
+                        − {formatBRL(liquidChainSimples.tributosValor)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>
+                        (−) Deduções / Despesas Variáveis (
+                        {formatPercentBR(liquidChainSimples.deducoesRate)}%)
+                      </span>
+                      <span className="text-rose-400">
+                        − {formatBRL(liquidChainSimples.deducoesValor)}
+                      </span>
+                    </div>
+                    <div className="py-2 flex items-center justify-between bg-emerald-500/10 px-2 rounded font-bold text-emerald-300">
+                      <span>(=) Receita Líquida de Vendas (Âncora Informada)</span>
+                      <span className="text-emerald-300 text-sm">
+                        {formatBRL(liquidChainSimples.netRevenue)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>(−) Custo das Mercadorias Vendidas (CMV)</span>
+                      <span className="text-rose-400">− {formatBRL(liquidChainSimples.cmv)}</span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between font-semibold text-slate-200">
+                      <span>(=) Lucro Bruto</span>
+                      <span
+                        className={
+                          liquidChainSimples.grossProfit >= 0 ? 'text-emerald-300' : 'text-rose-400'
+                        }
+                      >
+                        {formatBRL(liquidChainSimples.grossProfit)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>(−) Despesas Operacionais Rateadas</span>
+                      <span className="text-slate-300">
+                        − {formatBRL(liquidChainSimples.operatingExpenses)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between font-semibold text-slate-200">
+                      <span>(=) LAIR (Lucro Antes do IR)</span>
+                      <span
+                        className={
+                          liquidChainSimples.lair >= 0 ? 'text-emerald-300' : 'text-rose-400'
+                        }
+                      >
+                        {formatBRL(liquidChainSimples.lair)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>(−) LADIR (IRPJ / CSLL / Adicional)</span>
+                      <span className="text-slate-300">
+                        − {formatBRL(liquidChainSimples.ladir)}
+                      </span>
+                    </div>
+                    <div
+                      className={`py-2 px-2.5 rounded-lg flex items-center justify-between font-bold text-sm ${
+                        liquidChainSimples.lle >= 0
+                          ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300'
+                          : 'bg-rose-500/15 border border-rose-500/40 text-rose-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {liquidChainSimples.lle >= 0 ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-rose-400" />
+                        )}
+                        <span>(=) Lucro Líquido do Exercício (LLE)</span>
+                      </div>
+                      <div className="text-right">
+                        <span>{formatBRL(liquidChainSimples.lle)}</span>
+                        <span className="block text-[10px] font-normal opacity-80">
+                          Margem derivada: {formatNumberBR(liquidChainSimples.derivedMarginPct)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {!liquidChainSimples.isViable && (
+                    <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>
+                        <strong>Atenção:</strong> Faltam{' '}
+                        <strong>{formatBRL(liquidChainSimples.shortfall)}</strong> para LLE
+                        positivo. A receita líquida informada é insuficiente para cobrir CMV e
+                        encargos.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -991,6 +1161,128 @@ export function MarkupCalculationMemoryModal({
                   </div>
                 </div>
               </div>
+
+              {/* Sub-bloco exclusivo do modo líquido: Cadeia da DRE linha a linha (Item 5) */}
+              {isLiquid && liquidChainPresumido && (
+                <div className="p-4 rounded-xl bg-slate-950/80 border border-emerald-500/30 space-y-3 font-mono text-xs">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-emerald-400" />
+                      <span className="font-bold text-emerald-300 uppercase tracking-wide text-[11px]">
+                        Cadeia da DRE Derivada — Modo Receita Líquida (Lucro Presumido)
+                      </span>
+                    </div>
+                    <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 text-[10px]">
+                      Gross-up Reverso
+                    </Badge>
+                  </div>
+
+                  <div className="divide-y divide-slate-800/60">
+                    <div className="py-1.5 flex items-center justify-between font-bold text-slate-100">
+                      <span>Receita Bruta de Vendas (RBV Sugerida)</span>
+                      <span className="text-emerald-400 text-sm">
+                        {formatBRL(liquidChainPresumido.rbv)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>
+                        (−) Tributos sobre Vendas (
+                        {formatPercentBR(liquidChainPresumido.tributosRate)}%)
+                      </span>
+                      <span className="text-rose-400">
+                        − {formatBRL(liquidChainPresumido.tributosValor)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>
+                        (−) Deduções / Despesas Variáveis (
+                        {formatPercentBR(liquidChainPresumido.deducoesRate)}%)
+                      </span>
+                      <span className="text-rose-400">
+                        − {formatBRL(liquidChainPresumido.deducoesValor)}
+                      </span>
+                    </div>
+                    <div className="py-2 flex items-center justify-between bg-emerald-500/10 px-2 rounded font-bold text-emerald-300">
+                      <span>(=) Receita Líquida de Vendas (Âncora Informada)</span>
+                      <span className="text-emerald-300 text-sm">
+                        {formatBRL(liquidChainPresumido.netRevenue)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>(−) Custo das Mercadorias Vendidas (CMV)</span>
+                      <span className="text-rose-400">− {formatBRL(liquidChainPresumido.cmv)}</span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between font-semibold text-slate-200">
+                      <span>(=) Lucro Bruto</span>
+                      <span
+                        className={
+                          liquidChainPresumido.grossProfit >= 0
+                            ? 'text-emerald-300'
+                            : 'text-rose-400'
+                        }
+                      >
+                        {formatBRL(liquidChainPresumido.grossProfit)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>(−) Despesas Operacionais Rateadas</span>
+                      <span className="text-slate-300">
+                        − {formatBRL(liquidChainPresumido.operatingExpenses)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between font-semibold text-slate-200">
+                      <span>(=) LAIR (Lucro Antes do IR)</span>
+                      <span
+                        className={
+                          liquidChainPresumido.lair >= 0 ? 'text-emerald-300' : 'text-rose-400'
+                        }
+                      >
+                        {formatBRL(liquidChainPresumido.lair)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>(−) LADIR (IRPJ Presumido + CSLL)</span>
+                      <span className="text-slate-300">
+                        − {formatBRL(liquidChainPresumido.ladir)}
+                      </span>
+                    </div>
+                    <div
+                      className={`py-2 px-2.5 rounded-lg flex items-center justify-between font-bold text-sm ${
+                        liquidChainPresumido.lle >= 0
+                          ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300'
+                          : 'bg-rose-500/15 border border-rose-500/40 text-rose-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {liquidChainPresumido.lle >= 0 ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-rose-400" />
+                        )}
+                        <span>(=) Lucro Líquido do Exercício (LLE)</span>
+                      </div>
+                      <div className="text-right">
+                        <span>{formatBRL(liquidChainPresumido.lle)}</span>
+                        <span className="block text-[10px] font-normal opacity-80">
+                          Margem derivada: {formatNumberBR(liquidChainPresumido.derivedMarginPct)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {!liquidChainPresumido.isViable && (
+                    <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>
+                        <strong>Atenção:</strong> Faltam{' '}
+                        <strong>{formatBRL(liquidChainPresumido.shortfall)}</strong> para LLE
+                        positivo. A receita líquida informada é insuficiente para cobrir CMV e
+                        tributos.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -1241,6 +1533,120 @@ export function MarkupCalculationMemoryModal({
                   </div>
                 </div>
               </div>
+
+              {/* Sub-bloco exclusivo do modo líquido: Cadeia da DRE linha a linha (Item 5) */}
+              {isLiquid && liquidChainReal && (
+                <div className="p-4 rounded-xl bg-slate-950/80 border border-emerald-500/30 space-y-3 font-mono text-xs">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-emerald-400" />
+                      <span className="font-bold text-emerald-300 uppercase tracking-wide text-[11px]">
+                        Cadeia da DRE Derivada — Modo Receita Líquida (Lucro Real)
+                      </span>
+                    </div>
+                    <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/30 text-[10px]">
+                      Gross-up Reverso
+                    </Badge>
+                  </div>
+
+                  <div className="divide-y divide-slate-800/60">
+                    <div className="py-1.5 flex items-center justify-between font-bold text-slate-100">
+                      <span>Receita Bruta de Vendas (RBV Sugerida)</span>
+                      <span className="text-emerald-400 text-sm">
+                        {formatBRL(liquidChainReal.rbv)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>
+                        (−) Tributos sobre Vendas ({formatPercentBR(liquidChainReal.tributosRate)}%)
+                      </span>
+                      <span className="text-rose-400">
+                        − {formatBRL(liquidChainReal.tributosValor)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>
+                        (−) Deduções / Despesas Variáveis (
+                        {formatPercentBR(liquidChainReal.deducoesRate)}%)
+                      </span>
+                      <span className="text-rose-400">
+                        − {formatBRL(liquidChainReal.deducoesValor)}
+                      </span>
+                    </div>
+                    <div className="py-2 flex items-center justify-between bg-emerald-500/10 px-2 rounded font-bold text-emerald-300">
+                      <span>(=) Receita Líquida de Vendas (Âncora Informada)</span>
+                      <span className="text-emerald-300 text-sm">
+                        {formatBRL(liquidChainReal.netRevenue)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>(−) Custo das Mercadorias Vendidas (CMV)</span>
+                      <span className="text-rose-400">− {formatBRL(liquidChainReal.cmv)}</span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between font-semibold text-slate-200">
+                      <span>(=) Lucro Bruto</span>
+                      <span
+                        className={
+                          liquidChainReal.grossProfit >= 0 ? 'text-emerald-300' : 'text-rose-400'
+                        }
+                      >
+                        {formatBRL(liquidChainReal.grossProfit)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>(−) Despesas Operacionais Rateadas</span>
+                      <span className="text-slate-300">
+                        − {formatBRL(liquidChainReal.operatingExpenses)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between font-semibold text-slate-200">
+                      <span>(=) LAIR (Lucro Antes do IR)</span>
+                      <span
+                        className={liquidChainReal.lair >= 0 ? 'text-emerald-300' : 'text-rose-400'}
+                      >
+                        {formatBRL(liquidChainReal.lair)}
+                      </span>
+                    </div>
+                    <div className="py-1.5 flex items-center justify-between text-slate-400">
+                      <span>(−) LADIR (IRPJ Real + Adicional + CSLL)</span>
+                      <span className="text-slate-300">− {formatBRL(liquidChainReal.ladir)}</span>
+                    </div>
+                    <div
+                      className={`py-2 px-2.5 rounded-lg flex items-center justify-between font-bold text-sm ${
+                        liquidChainReal.lle >= 0
+                          ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-300'
+                          : 'bg-rose-500/15 border border-rose-500/40 text-rose-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        {liquidChainReal.lle >= 0 ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-rose-400" />
+                        )}
+                        <span>(=) Lucro Líquido do Exercício (LLE)</span>
+                      </div>
+                      <div className="text-right">
+                        <span>{formatBRL(liquidChainReal.lle)}</span>
+                        <span className="block text-[10px] font-normal opacity-80">
+                          Margem derivada: {formatNumberBR(liquidChainReal.derivedMarginPct)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {!liquidChainReal.isViable && (
+                    <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>
+                        <strong>Atenção:</strong> Faltam{' '}
+                        <strong>{formatBRL(liquidChainReal.shortfall)}</strong> para LLE positivo. A
+                        receita líquida informada é insuficiente para cobrir CMV e tributos.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
