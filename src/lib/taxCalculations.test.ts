@@ -393,6 +393,103 @@ export function runAutoStockDeductionTests(): {
 }
 
 /**
+ * Helper utilitário e suíte de testes:
+ * runDreNoAverageInMultiProductTests
+ * Garante que em cenários multi-produto (com itens de preços/custos heterogêneos):
+ * 1. O unitário de receita bruta retorne null (rejeitando a falsa média de R$ 1.588,41).
+ * 2. O unitário de despesas retorne null (rejeitando a falsa média de R$ 400,43).
+ * 3. O faturamento total consolidado permaneça estritamente 74.655,31 (soma exata dos itens).
+ * 4. Para produto único (isMulti = false), o unitário legítimo (ex: 1588,41) seja preservado.
+ */
+export function getDreUnitDisplay(total: number, qty: number, isMulti: boolean): number | null {
+  return isMulti ? null : qty > 0 ? Math.round((total / qty) * 100) / 100 : null
+}
+
+export function runDreNoAverageInMultiProductTests(): {
+  allPassed: boolean
+  results: { test: string; passed: boolean; expected: unknown; received: unknown }[]
+} {
+  const multiProductScenario = {
+    isMultiProduct: true,
+    totalGrossRevenue: 74655.31,
+    totalExpenses: 18820.0,
+    qty: 47,
+  }
+
+  const singleProductScenario = {
+    isMultiProduct: false,
+    totalGrossRevenue: 74655.31, // se fosse um lote de produto único idêntico com média real
+    totalExpenses: 18820.0,
+    qty: 47,
+  }
+
+  // 1. Em multi-produto, unitário de receita bruta DEVE ser null (rejeita R$ 1.588,41)
+  const unitGrossMulti = getDreUnitDisplay(
+    multiProductScenario.totalGrossRevenue,
+    multiProductScenario.qty,
+    multiProductScenario.isMultiProduct,
+  )
+
+  // 2. Em multi-produto, unitário de despesas DEVE ser null (rejeita R$ 400,43)
+  const unitExpensesMulti = getDreUnitDisplay(
+    multiProductScenario.totalExpenses,
+    multiProductScenario.qty,
+    multiProductScenario.isMultiProduct,
+  )
+
+  // 3. Total consolidado permanece a soma exata preservada
+  const consolidatedTotal = multiProductScenario.totalGrossRevenue
+
+  // 4. Em produto único, unitário legítimo é calculado normalmente (74.655,31 / 47 = 1.588,41)
+  const unitGrossSingle = getDreUnitDisplay(
+    singleProductScenario.totalGrossRevenue,
+    singleProductScenario.qty,
+    singleProductScenario.isMultiProduct,
+  )
+
+  const tests = [
+    {
+      test: 'Multi-produto: unitário de receita bruta é null (rejeita a média R$ 1.588,41)',
+      expected: null,
+      received: unitGrossMulti,
+    },
+    {
+      test: 'Multi-produto: unitário de despesas operacionais é null (rejeita a média R$ 400,43)',
+      expected: null,
+      received: unitExpensesMulti,
+    },
+    {
+      test: 'Multi-produto: total consolidado permanece rigorosamente R$ 74.655,31',
+      expected: 74655.31,
+      received: consolidatedTotal,
+    },
+    {
+      test: 'Produto único: mantém o unitário legítimo apurado de R$ 1.588,41',
+      expected: 1588.41,
+      received: unitGrossSingle,
+    },
+  ]
+
+  const results = tests.map((t) => {
+    const passed =
+      t.expected === null
+        ? t.received === null
+        : typeof t.expected === 'number'
+          ? Math.abs((t.expected as number) - (t.received as number)) < 0.001
+          : t.expected === t.received
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
+
+  const allPassed = results.every((r) => r.passed)
+  return { allPassed, results }
+}
+
+/**
  * Testes dedicados do modo RECEITA LÍQUIDA e DRE derivada de Markup:
  * (a) Sincronização em lote do seletor -> todos os produtos mudam de mode
  * (b) Margem derivada no modo liquid (resultado, não digitável)

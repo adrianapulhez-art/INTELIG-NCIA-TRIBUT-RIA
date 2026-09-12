@@ -248,6 +248,31 @@ export default function DreSimplesPage() {
       : null
   const unitNetProfit = unitLair
 
+  // SALVAGUARDAS MULTI-PRODUTO: Em cenários multi-produto, grandezas unitárias NÃO devem expressar
+  // médias matemáticas enganosas entre mercadorias com custos/preços distintos.
+  const displayUnitGross = isMultiProduct ? null : unitGross
+  const displayUnitDasTotal = isMultiProduct ? null : unitDasTotal
+  const displayUnitIrpj = isMultiProduct ? null : unitIrpj
+  const displayUnitCsll = isMultiProduct ? null : unitCsll
+  const displayUnitCofins = isMultiProduct ? null : unitCofins
+  const displayUnitPis = isMultiProduct ? null : unitPis
+  const displayUnitCpp = isMultiProduct ? null : unitCpp
+  const displayUnitIcms = isMultiProduct ? null : unitIcms
+  const displayUnitIpi = isMultiProduct ? null : unitIpi
+  const displayUnitIss = isMultiProduct ? null : unitIss
+  const displayUnitNetRevenue = isMultiProduct ? null : unitNetRevenue
+  const displayUnitCmv = isMultiProduct ? null : unitCmvVal
+  const displayUnitGrossProfit = isMultiProduct ? null : unitGrossProfit
+  const displayUnitOperatingExpenses = isMultiProduct
+    ? null
+    : qty > 0
+      ? totalOperatingExpenses / qty
+      : 0
+  const displayUnitLocalExpenses = isMultiProduct ? null : qty > 0 ? totalLocalExpenses / qty : 0
+  const displayUnitOperatingRevenues = isMultiProduct ? null : unitOperatingRevenues
+  const displayUnitLair = isMultiProduct ? null : unitLair
+  const displayUnitNetProfit = isMultiProduct ? null : unitNetProfit
+
   // CÁLCULOS TOTAIS DA DRE (totalGross já definido estritamente pela soma consolidada sem multiplicação por média unitária)
   const totalDasTotal = Math.round(unitDasTotal * (qty > 0 ? qty : 0) * 100) / 100
   const totalIrpj = Math.round(unitIrpj * (qty > 0 ? qty : 0) * 100) / 100
@@ -922,11 +947,13 @@ export default function DreSimplesPage() {
                 <div className="h-11 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
                   <span className="text-slate-500 text-xs">R$</span>
                   <span className="font-bold text-emerald-400">
-                    {formatNumberBR(unitGrossRevenue)}
+                    {isMultiProduct ? '—' : formatNumberBR(unitGrossRevenue)}
                   </span>
                 </div>
                 <p className="text-[10px] font-mono text-slate-400 px-1">
-                  Preço unitário de venda apurado
+                  {isMultiProduct
+                    ? 'Multi-itens (sem preço médio global)'
+                    : 'Preço unitário de venda apurado'}
                 </p>
               </div>
 
@@ -948,9 +975,15 @@ export default function DreSimplesPage() {
                 </div>
                 <p
                   className="text-[10px] font-mono text-slate-400 px-1 truncate"
-                  title={`${formatBRL(unitGrossRevenue)} × ${qty} un.`}
+                  title={
+                    isMultiProduct
+                      ? 'Soma consolidada do faturamento dos itens'
+                      : `${formatBRL(unitGrossRevenue)} × ${qty} un.`
+                  }
                 >
-                  {formatBRL(unitGrossRevenue)} × {qty} un.
+                  {isMultiProduct
+                    ? 'Soma consolidada dos itens'
+                    : `${formatBRL(unitGrossRevenue)} × ${qty} un.`}
                 </p>
               </div>
 
@@ -1081,7 +1114,9 @@ export default function DreSimplesPage() {
                         ? 'Receita bruta de serviços'
                         : 'Receita bruta de vendas'}
                     </td>
-                    <td className="py-2 px-3 text-right text-slate-200">{formatBRL(unitGross)}</td>
+                    <td className="py-2 px-3 text-right text-slate-200">
+                      {displayUnitGross !== null ? formatBRL(displayUnitGross) : '—'}
+                    </td>
                     <td className="py-2 px-3 text-right text-slate-200">{formatBRL(totalGross)}</td>
                   </tr>
 
@@ -1093,12 +1128,13 @@ export default function DreSimplesPage() {
                         : `(−) Simples Nacional — Guia Única DAS (${formatNumberBR(pgdas.aliquotaEfetiva, 2)}% efetivo)`}
                     </td>
                     <td className="py-2 px-3 text-right font-semibold text-emerald-400">
-                      -
-                      {formatBRL(
-                        stSubsystem.enabled && stSubsystem.simplesStExclusive
-                          ? Math.max(0, unitDasTotal - unitIcms)
-                          : unitDasTotal,
-                      )}
+                      {displayUnitDasTotal !== null
+                        ? `-${formatBRL(
+                            stSubsystem.enabled && stSubsystem.simplesStExclusive
+                              ? Math.max(0, unitDasTotal - unitIcms)
+                              : unitDasTotal,
+                          )}`
+                        : '—'}
                     </td>
                     <td className="py-2 px-3 text-right font-semibold text-emerald-400">
                       -
@@ -1115,28 +1151,36 @@ export default function DreSimplesPage() {
                     <td className="py-1 pl-6 text-left italic">
                       · IRPJ ({formatNumberBR(pgdas.reparticao.irpjRate, 2)}% da receita)
                     </td>
-                    <td className="py-1 px-3 text-right">-{formatBRL(unitIrpj)}</td>
+                    <td className="py-1 px-3 text-right">
+                      {displayUnitIrpj !== null ? `-${formatBRL(displayUnitIrpj)}` : '—'}
+                    </td>
                     <td className="py-1 px-3 text-right">-{formatBRL(totalIrpj)}</td>
                   </tr>
                   <tr className="bg-slate-900/20 text-slate-500">
                     <td className="py-1 pl-6 text-left italic">
                       · CSLL ({formatNumberBR(pgdas.reparticao.csllRate, 2)}% da receita)
                     </td>
-                    <td className="py-1 px-3 text-right">-{formatBRL(unitCsll)}</td>
+                    <td className="py-1 px-3 text-right">
+                      {displayUnitCsll !== null ? `-${formatBRL(displayUnitCsll)}` : '—'}
+                    </td>
                     <td className="py-1 px-3 text-right">-{formatBRL(totalCsll)}</td>
                   </tr>
                   <tr className="bg-slate-900/20 text-slate-500">
                     <td className="py-1 pl-6 text-left italic">
                       · COFINS ({formatNumberBR(pgdas.reparticao.cofinsRate, 2)}% da receita)
                     </td>
-                    <td className="py-1 px-3 text-right">-{formatBRL(unitCofins)}</td>
+                    <td className="py-1 px-3 text-right">
+                      {displayUnitCofins !== null ? `-${formatBRL(displayUnitCofins)}` : '—'}
+                    </td>
                     <td className="py-1 px-3 text-right">-{formatBRL(totalCofins)}</td>
                   </tr>
                   <tr className="bg-slate-900/20 text-slate-500">
                     <td className="py-1 pl-6 text-left italic">
                       · PIS ({formatNumberBR(pgdas.reparticao.pisRate, 2)}% da receita)
                     </td>
-                    <td className="py-1 px-3 text-right">-{formatBRL(unitPis)}</td>
+                    <td className="py-1 px-3 text-right">
+                      {displayUnitPis !== null ? `-${formatBRL(displayUnitPis)}` : '—'}
+                    </td>
                     <td className="py-1 px-3 text-right">-{formatBRL(totalPis)}</td>
                   </tr>
                   {currentAnexoConfig.cppNoDas && (
@@ -1145,7 +1189,9 @@ export default function DreSimplesPage() {
                         · CPP Previdenciária ({formatNumberBR(pgdas.reparticao.cppRate, 2)}% da
                         receita)
                       </td>
-                      <td className="py-1 px-3 text-right">-{formatBRL(unitCpp)}</td>
+                      <td className="py-1 px-3 text-right">
+                        {displayUnitCpp !== null ? `-${formatBRL(displayUnitCpp)}` : '—'}
+                      </td>
                       <td className="py-1 px-3 text-right">-{formatBRL(totalCpp)}</td>
                     </tr>
                   )}
@@ -1154,7 +1200,9 @@ export default function DreSimplesPage() {
                       <td className="py-1 pl-6 text-left italic">
                         · IPI ({formatNumberBR(pgdas.reparticao.ipiRate, 2)}% da receita)
                       </td>
-                      <td className="py-1 px-3 text-right">-{formatBRL(unitIpi)}</td>
+                      <td className="py-1 px-3 text-right">
+                        {displayUnitIpi !== null ? `-${formatBRL(displayUnitIpi)}` : '—'}
+                      </td>
                       <td className="py-1 px-3 text-right">-{formatBRL(totalIpi)}</td>
                     </tr>
                   )}
@@ -1166,10 +1214,13 @@ export default function DreSimplesPage() {
                         : `ICMS Estadual (${formatNumberBR(pgdas.reparticao.icmsRate, 2)}% da receita)`}
                     </td>
                     <td className="py-1 px-3 text-right">
-                      -
-                      {formatBRL(
-                        currentAnexoConfig.tributoEstadualMunicipal === 'iss' ? unitIss : unitIcms,
-                      )}
+                      {currentAnexoConfig.tributoEstadualMunicipal === 'iss'
+                        ? displayUnitIss !== null
+                          ? `-${formatBRL(displayUnitIss)}`
+                          : '—'
+                        : displayUnitIcms !== null
+                          ? `-${formatBRL(displayUnitIcms)}`
+                          : '—'}
                     </td>
                     <td className="py-1 px-3 text-right">
                       -
@@ -1185,7 +1236,7 @@ export default function DreSimplesPage() {
                   <tr className="bg-slate-950/40 font-bold text-slate-100">
                     <td className="py-2.5 text-left">= Receita líquida</td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
-                      {formatBRL(unitNetRevenue)}
+                      {displayUnitNetRevenue !== null ? formatBRL(displayUnitNetRevenue) : '—'}
                     </td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
                       {formatBRL(totalNetRevenue)}
@@ -1205,7 +1256,7 @@ export default function DreSimplesPage() {
                       </div>
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      {unitCmvVal === null ? '—' : `-${formatBRL(unitCmvVal)}`}
+                      {displayUnitCmv !== null ? `-${formatBRL(displayUnitCmv)}` : '—'}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
                   </tr>
@@ -1226,7 +1277,7 @@ export default function DreSimplesPage() {
                   <tr className="bg-slate-950/40 font-bold text-slate-100">
                     <td className="py-2.5 text-left">= Lucro bruto</td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
-                      {unitGrossProfit !== null ? formatBRL(unitGrossProfit) : '—'}
+                      {displayUnitGrossProfit !== null ? formatBRL(displayUnitGrossProfit) : '—'}
                     </td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
                       {formatBRL(totalGrossProfit)}
@@ -1240,7 +1291,9 @@ export default function DreSimplesPage() {
                         (−) Despesas operacionais (vendas, adm, financeiras)
                       </td>
                       <td className="py-2 px-3 text-right">
-                        -{formatBRL(qty > 0 ? totalOperatingExpenses / qty : 0)}
+                        {displayUnitOperatingExpenses !== null
+                          ? `-${formatBRL(displayUnitOperatingExpenses)}`
+                          : '—'}
                       </td>
                       <td className="py-2 px-3 text-right">-{formatBRL(totalOperatingExpenses)}</td>
                     </tr>
@@ -1253,7 +1306,9 @@ export default function DreSimplesPage() {
                         (−) Despesas operacionais locais (aba Simples)
                       </td>
                       <td className="py-2 px-3 text-right text-slate-400">
-                        -{formatBRL(qty > 0 ? totalLocalExpenses / qty : 0)}
+                        {displayUnitLocalExpenses !== null
+                          ? `-${formatBRL(displayUnitLocalExpenses)}`
+                          : '—'}
                       </td>
                       <td className="py-2 px-3 text-right text-slate-400">
                         -{formatBRL(totalLocalExpenses)}
@@ -1266,7 +1321,9 @@ export default function DreSimplesPage() {
                       <td className="py-2 text-left text-slate-500 italic">
                         (−) Despesas operacionais
                       </td>
-                      <td className="py-2 px-3 text-right text-slate-500">R$ 0,00</td>
+                      <td className="py-2 px-3 text-right text-slate-500">
+                        {isMultiProduct ? '—' : 'R$ 0,00'}
+                      </td>
                       <td className="py-2 px-3 text-right text-slate-500">R$ 0,00</td>
                     </tr>
                   )}
@@ -1283,7 +1340,9 @@ export default function DreSimplesPage() {
                       (+) Receitas operacionais (financeiras e outras)
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      +{formatBRL(unitOperatingRevenues)}
+                      {displayUnitOperatingRevenues !== null
+                        ? `+${formatBRL(displayUnitOperatingRevenues)}`
+                        : '—'}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
                       +{formatBRL(totalAllOperatingRevenues)}
@@ -1294,7 +1353,7 @@ export default function DreSimplesPage() {
                   <tr className="bg-slate-950/40 font-bold text-slate-100">
                     <td className="py-2 text-left">= Lucro antes do imposto de renda (LAIR)</td>
                     <td className="py-2 px-3 text-right text-slate-100">
-                      {unitLair !== null ? formatBRL(unitLair) : '—'}
+                      {displayUnitLair !== null ? formatBRL(displayUnitLair) : '—'}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-100">{formatBRL(totalLair)}</td>
                   </tr>
@@ -1303,7 +1362,7 @@ export default function DreSimplesPage() {
                   <tr className="bg-emerald-950/40 text-emerald-400 font-extrabold border-t-2 border-emerald-500/40">
                     <td className="py-3 px-2 text-left text-sm">= Lucro líquido</td>
                     <td className="py-3 px-3 text-right text-sm text-emerald-400">
-                      {unitNetProfit !== null ? formatBRL(unitNetProfit) : '—'}
+                      {displayUnitNetProfit !== null ? formatBRL(displayUnitNetProfit) : '—'}
                     </td>
                     <td className="py-3 px-3 text-right text-sm text-emerald-400">
                       {formatBRL(totalNetProfit)}
@@ -1360,7 +1419,7 @@ export default function DreSimplesPage() {
                   title: 'DRE — Simples Nacional (PGDAS)',
                   regimeName: `Simples Nacional (${currentAnexoConfig.nome})`,
                   quantity: qty,
-                  unitGrossRevenue: unitGross,
+                  unitGrossRevenue: isMultiProduct ? 0 : unitGross,
                   totalGrossRevenue: totalGross,
                   metadata: [
                     { label: 'Anexo', value: currentAnexoConfig.nome },
@@ -1391,35 +1450,35 @@ export default function DreSimplesPage() {
                   rows: [
                     {
                       description: 'Receita bruta total',
-                      unitValue: unitGross,
+                      unitValue: isMultiProduct ? '—' : unitGross,
                       totalValue: totalGross,
                     },
                     {
                       description: `(−) Guia única DAS (${formatNumberBR(pgdas.aliquotaEfetiva, 2)}% efetivo)`,
-                      unitValue: -unitDasTotal,
+                      unitValue: isMultiProduct ? '—' : -unitDasTotal,
                       totalValue: -totalDasTotal,
                     },
                     {
                       description: `  · IRPJ segregado (${formatNumberBR(pgdas.reparticao.irpjRate, 2)}% da receita)`,
-                      unitValue: -unitIrpj,
+                      unitValue: isMultiProduct ? '—' : -unitIrpj,
                       totalValue: -totalIrpj,
                       isInformative: true,
                     },
                     {
                       description: `  · CSLL segregada (${formatNumberBR(pgdas.reparticao.csllRate, 2)}% da receita)`,
-                      unitValue: -unitCsll,
+                      unitValue: isMultiProduct ? '—' : -unitCsll,
                       totalValue: -totalCsll,
                       isInformative: true,
                     },
                     {
                       description: `  · COFINS segregada (${formatNumberBR(pgdas.reparticao.cofinsRate, 2)}% da receita)`,
-                      unitValue: -unitCofins,
+                      unitValue: isMultiProduct ? '—' : -unitCofins,
                       totalValue: -totalCofins,
                       isInformative: true,
                     },
                     {
                       description: `  · PIS segregado (${formatNumberBR(pgdas.reparticao.pisRate, 2)}% da receita)`,
-                      unitValue: -unitPis,
+                      unitValue: isMultiProduct ? '—' : -unitPis,
                       totalValue: -totalPis,
                       isInformative: true,
                     },
@@ -1427,7 +1486,7 @@ export default function DreSimplesPage() {
                       ? [
                           {
                             description: `  · CPP patronal no DAS (${formatNumberBR(pgdas.reparticao.cppRate, 2)}% da receita)`,
-                            unitValue: -unitCpp,
+                            unitValue: isMultiProduct ? '—' : -unitCpp,
                             totalValue: -totalCpp,
                             isInformative: true,
                           },
@@ -1437,7 +1496,7 @@ export default function DreSimplesPage() {
                       ? [
                           {
                             description: `  · IPI no DAS (${formatNumberBR(pgdas.reparticao.ipiRate, 2)}% da receita)`,
-                            unitValue: -unitIpi,
+                            unitValue: isMultiProduct ? '—' : -unitIpi,
                             totalValue: -totalIpi,
                             isInformative: true,
                           },
@@ -1448,9 +1507,11 @@ export default function DreSimplesPage() {
                         currentAnexoConfig.tributoEstadualMunicipal === 'iss'
                           ? `  · ISS Municipal (${formatNumberBR(pgdas.reparticao.issRate, 2)}% da receita)`
                           : `  · ICMS Estadual (${formatNumberBR(pgdas.reparticao.icmsRate, 2)}% da receita)`,
-                      unitValue: -(currentAnexoConfig.tributoEstadualMunicipal === 'iss'
-                        ? unitIss
-                        : unitIcms),
+                      unitValue: isMultiProduct
+                        ? '—'
+                        : -(currentAnexoConfig.tributoEstadualMunicipal === 'iss'
+                            ? unitIss
+                            : unitIcms),
                       totalValue: -(currentAnexoConfig.tributoEstadualMunicipal === 'iss'
                         ? totalIss
                         : totalIcms),
@@ -1458,18 +1519,22 @@ export default function DreSimplesPage() {
                     },
                     {
                       description: '(=) Receita líquida',
-                      unitValue: unitNetRevenue,
+                      unitValue: isMultiProduct ? '—' : unitNetRevenue,
                       totalValue: totalNetRevenue,
                       isSubtotal: true,
                     },
                     {
                       description: '(−) CMV (custo não creditável)',
-                      unitValue: unitCmvVal !== null ? -unitCmvVal : '—',
+                      unitValue: isMultiProduct ? '—' : unitCmvVal !== null ? -unitCmvVal : '—',
                       totalValue: -totalCmv,
                     },
                     {
                       description: '(=) Lucro bruto',
-                      unitValue: unitGrossProfit !== null ? unitGrossProfit : '—',
+                      unitValue: isMultiProduct
+                        ? '—'
+                        : unitGrossProfit !== null
+                          ? unitGrossProfit
+                          : '—',
                       totalValue: totalGrossProfit,
                       isSubtotal: true,
                     },
@@ -1477,7 +1542,11 @@ export default function DreSimplesPage() {
                       ? [
                           {
                             description: '(−) Despesas operacionais (vendas, adm, financeiras)',
-                            unitValue: qty > 0 ? -(totalOperatingExpenses / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(totalOperatingExpenses / qty)
+                                : 0,
                             totalValue: -totalOperatingExpenses,
                           },
                         ]
@@ -1486,7 +1555,11 @@ export default function DreSimplesPage() {
                       ? [
                           {
                             description: '(−) Despesas operacionais locais',
-                            unitValue: qty > 0 ? -(totalLocalExpenses / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(totalLocalExpenses / qty)
+                                : 0,
                             totalValue: -totalLocalExpenses,
                           },
                         ]
@@ -1495,20 +1568,28 @@ export default function DreSimplesPage() {
                       ? [
                           {
                             description: '(+) Receitas operacionais (financeiras e outras)',
-                            unitValue: qty > 0 ? totalAllOperatingRevenues / qty : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? totalAllOperatingRevenues / qty
+                                : 0,
                             totalValue: totalAllOperatingRevenues,
                           },
                         ]
                       : []),
                     {
                       description: '(=) Lucro antes do imposto de renda (LAIR)',
-                      unitValue: unitLair !== null ? unitLair : '—',
+                      unitValue: isMultiProduct ? '—' : unitLair !== null ? unitLair : '—',
                       totalValue: totalLair,
                       isSubtotal: true,
                     },
                     {
                       description: '(=) Lucro líquido',
-                      unitValue: unitNetProfit !== null ? unitNetProfit : '—',
+                      unitValue: isMultiProduct
+                        ? '—'
+                        : unitNetProfit !== null
+                          ? unitNetProfit
+                          : '—',
                       totalValue: totalNetProfit,
                       isTotal: true,
                     },
@@ -1552,7 +1633,7 @@ export default function DreSimplesPage() {
                   title: 'DRE — Simples Nacional (PGDAS)',
                   regimeName: `Simples Nacional (${currentAnexoConfig.nome})`,
                   quantity: qty,
-                  unitGrossRevenue: unitGross,
+                  unitGrossRevenue: isMultiProduct ? 0 : unitGross,
                   totalGrossRevenue: totalGross,
                   metadata: [
                     { label: 'Anexo', value: currentAnexoConfig.nome },
@@ -1583,39 +1664,39 @@ export default function DreSimplesPage() {
                   rows: [
                     {
                       description: 'Receita bruta total',
-                      unitValue: unitGross,
+                      unitValue: isMultiProduct ? '—' : unitGross,
                       totalValue: totalGross,
                     },
                     {
                       description: `(−) Guia única DAS (${formatNumberBR(pgdas.aliquotaEfetiva, 2)}% efetivo)`,
-                      unitValue: -unitDasTotal,
+                      unitValue: isMultiProduct ? '—' : -unitDasTotal,
                       totalValue: -totalDasTotal,
                     },
                     {
                       description: `  · IRPJ segregado (${formatNumberBR(pgdas.reparticao.irpjRate, 2)}% da receita)`,
-                      unitValue: -unitIrpj,
+                      unitValue: isMultiProduct ? '—' : -unitIrpj,
                       totalValue: -totalIrpj,
                     },
                     {
                       description: `  · CSLL segregada (${formatNumberBR(pgdas.reparticao.csllRate, 2)}% da receita)`,
-                      unitValue: -unitCsll,
+                      unitValue: isMultiProduct ? '—' : -unitCsll,
                       totalValue: -totalCsll,
                     },
                     {
                       description: `  · COFINS segregada (${formatNumberBR(pgdas.reparticao.cofinsRate, 2)}% da receita)`,
-                      unitValue: -unitCofins,
+                      unitValue: isMultiProduct ? '—' : -unitCofins,
                       totalValue: -totalCofins,
                     },
                     {
                       description: `  · PIS segregado (${formatNumberBR(pgdas.reparticao.pisRate, 2)}% da receita)`,
-                      unitValue: -unitPis,
+                      unitValue: isMultiProduct ? '—' : -unitPis,
                       totalValue: -totalPis,
                     },
                     ...(pgdas.reparticao.cppRate > 0
                       ? [
                           {
                             description: `  · CPP patronal no DAS (${formatNumberBR(pgdas.reparticao.cppRate, 2)}% da receita)`,
-                            unitValue: -unitCpp,
+                            unitValue: isMultiProduct ? '—' : -unitCpp,
                             totalValue: -totalCpp,
                           },
                         ]
@@ -1624,7 +1705,7 @@ export default function DreSimplesPage() {
                       ? [
                           {
                             description: `  · IPI no DAS (${formatNumberBR(pgdas.reparticao.ipiRate, 2)}% da receita)`,
-                            unitValue: -unitIpi,
+                            unitValue: isMultiProduct ? '—' : -unitIpi,
                             totalValue: -totalIpi,
                           },
                         ]
@@ -1634,33 +1715,43 @@ export default function DreSimplesPage() {
                         currentAnexoConfig.tributoEstadualMunicipal === 'iss'
                           ? `  · ISS Municipal (${formatNumberBR(pgdas.reparticao.issRate, 2)}% da receita)`
                           : `  · ICMS Estadual (${formatNumberBR(pgdas.reparticao.icmsRate, 2)}% da receita)`,
-                      unitValue: -(currentAnexoConfig.tributoEstadualMunicipal === 'iss'
-                        ? unitIss
-                        : unitIcms),
+                      unitValue: isMultiProduct
+                        ? '—'
+                        : -(currentAnexoConfig.tributoEstadualMunicipal === 'iss'
+                            ? unitIss
+                            : unitIcms),
                       totalValue: -(currentAnexoConfig.tributoEstadualMunicipal === 'iss'
                         ? totalIss
                         : totalIcms),
                     },
                     {
                       description: '(=) Receita líquida',
-                      unitValue: unitNetRevenue,
+                      unitValue: isMultiProduct ? '—' : unitNetRevenue,
                       totalValue: totalNetRevenue,
                     },
                     {
                       description: '(−) CMV (custo não creditável)',
-                      unitValue: unitCmvVal !== null ? -unitCmvVal : '—',
+                      unitValue: isMultiProduct ? '—' : unitCmvVal !== null ? -unitCmvVal : '—',
                       totalValue: -totalCmv,
                     },
                     {
                       description: '(=) Lucro bruto',
-                      unitValue: unitGrossProfit !== null ? unitGrossProfit : '—',
+                      unitValue: isMultiProduct
+                        ? '—'
+                        : unitGrossProfit !== null
+                          ? unitGrossProfit
+                          : '—',
                       totalValue: totalGrossProfit,
                     },
                     ...(totalOperatingExpenses > 0
                       ? [
                           {
                             description: '(−) Despesas operacionais (vendas, adm, financeiras)',
-                            unitValue: qty > 0 ? -(totalOperatingExpenses / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(totalOperatingExpenses / qty)
+                                : 0,
                             totalValue: -totalOperatingExpenses,
                           },
                         ]
@@ -1669,7 +1760,11 @@ export default function DreSimplesPage() {
                       ? [
                           {
                             description: '(−) Despesas operacionais locais',
-                            unitValue: qty > 0 ? -(totalLocalExpenses / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(totalLocalExpenses / qty)
+                                : 0,
                             totalValue: -totalLocalExpenses,
                           },
                         ]
@@ -1678,19 +1773,27 @@ export default function DreSimplesPage() {
                       ? [
                           {
                             description: '(+) Receitas operacionais (financeiras e outras)',
-                            unitValue: qty > 0 ? totalAllOperatingRevenues / qty : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? totalAllOperatingRevenues / qty
+                                : 0,
                             totalValue: totalAllOperatingRevenues,
                           },
                         ]
                       : []),
                     {
                       description: '(=) Lucro antes do imposto de renda (LAIR)',
-                      unitValue: unitLair !== null ? unitLair : '—',
+                      unitValue: isMultiProduct ? '—' : unitLair !== null ? unitLair : '—',
                       totalValue: totalLair,
                     },
                     {
                       description: '(=) Lucro líquido',
-                      unitValue: unitNetProfit !== null ? unitNetProfit : '—',
+                      unitValue: isMultiProduct
+                        ? '—'
+                        : unitNetProfit !== null
+                          ? unitNetProfit
+                          : '—',
                       totalValue: totalNetProfit,
                     },
                   ],

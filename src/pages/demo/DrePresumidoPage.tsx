@@ -215,6 +215,52 @@ export default function DrePresumidoPage() {
       ? Math.round((unitGrossProfit - unitOperatingExpenses + unitOperatingRevenues) * 100) / 100
       : null
 
+  // SALVAGUARDAS MULTI-PRODUTO: Em cenários multi-produto, grandezas unitárias NÃO devem expressar
+  // médias matemáticas enganosas entre mercadorias com custos/preços distintos.
+  const displayUnitGross = isMultiProduct ? null : unitGross
+  const displayUnitMunicipalStateTax = isMultiProduct ? null : unitMunicipalStateTax
+  const displayUnitDifal = isMultiProduct
+    ? null
+    : qty > 0
+      ? (totalGross *
+          Math.max(
+            0,
+            18 -
+              (interstateSubsystem.originUf === 'SP' &&
+              ['RJ', 'MG', 'RS', 'SC', 'PR'].includes(interstateSubsystem.destinationUf)
+                ? 12
+                : 7),
+          )) /
+        100 /
+        qty
+      : 0
+  const displayUnitSt = isMultiProduct
+    ? null
+    : qty > 0
+      ? (totalGross * (1 + (stSubsystem.mvaPercent || 0) / 100) * 0.18 - totalGross * 0.12) / qty
+      : 0
+  const displayUnitPisCofinsBase = isMultiProduct ? null : unitPisCofinsBase
+  const displayUnitPis = isMultiProduct ? null : unitPis
+  const displayUnitCofins = isMultiProduct ? null : unitCofins
+  const displayUnitNetRevenue = isMultiProduct ? null : unitNetRevenue
+  const displayUnitCmv = isMultiProduct ? null : unitCmvVal
+  const displayUnitGrossProfit = isMultiProduct ? null : unitGrossProfit
+  const displayUnitOperatingExpenses = isMultiProduct
+    ? null
+    : qty > 0
+      ? totalOperatingExpenses / qty
+      : 0
+  const displayUnitPayrollSalaries = isMultiProduct ? null : qty > 0 ? payrollSalaries / qty : 0
+  const displayUnitPayrollProLabore = isMultiProduct ? null : qty > 0 ? payrollProLabore / qty : 0
+  const displayUnitPatronalCharges = isMultiProduct
+    ? null
+    : qty > 0
+      ? payrollResult.patronalChargesTotal / qty
+      : 0
+  const displayUnitOtherExpenses = isMultiProduct ? null : qty > 0 ? totalOtherExpenses / qty : 0
+  const displayUnitOperatingRevenues = isMultiProduct ? null : unitOperatingRevenues
+  const displayUnitResultBeforeTax = isMultiProduct ? null : unitResultBeforeTax
+
   // CÁLCULOS TOTAIS:
   // totalGross já definido estritamente pela soma consolidada sem multiplicação por média unitária
 
@@ -461,11 +507,13 @@ export default function DrePresumidoPage() {
                 <div className="h-11 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
                   <span className="text-slate-500 text-xs">R$</span>
                   <span className="font-bold text-emerald-400">
-                    {formatNumberBR(unitGrossRevenue)}
+                    {isMultiProduct ? '—' : formatNumberBR(unitGrossRevenue)}
                   </span>
                 </div>
                 <p className="text-[10px] font-mono text-slate-400 px-1">
-                  Preço unitário de venda apurado
+                  {isMultiProduct
+                    ? 'Multi-itens (sem preço médio global)'
+                    : 'Preço unitário de venda apurado'}
                 </p>
               </div>
 
@@ -487,9 +535,15 @@ export default function DrePresumidoPage() {
                 </div>
                 <p
                   className="text-[10px] font-mono text-slate-400 px-1 truncate"
-                  title={`${formatBRL(unitGrossRevenue)} × ${qty} un.`}
+                  title={
+                    isMultiProduct
+                      ? 'Soma consolidada do faturamento dos itens'
+                      : `${formatBRL(unitGrossRevenue)} × ${qty} un.`
+                  }
                 >
-                  {formatBRL(unitGrossRevenue)} × {qty} un.
+                  {isMultiProduct
+                    ? 'Soma consolidada dos itens'
+                    : `${formatBRL(unitGrossRevenue)} × ${qty} un.`}
                 </p>
               </div>
 
@@ -679,7 +733,9 @@ export default function DrePresumidoPage() {
                     <td className="py-2 text-left font-medium text-slate-200">
                       {isServices ? 'Receita bruta de serviços' : 'Receita bruta de vendas'}
                     </td>
-                    <td className="py-2 px-3 text-right text-slate-200">{formatBRL(unitGross)}</td>
+                    <td className="py-2 px-3 text-right text-slate-200">
+                      {displayUnitGross !== null ? formatBRL(displayUnitGross) : '—'}
+                    </td>
                     <td className="py-2 px-3 text-right text-slate-200">{formatBRL(totalGross)}</td>
                   </tr>
 
@@ -694,7 +750,9 @@ export default function DrePresumidoPage() {
                           : '(−) ICMS'}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(unitMunicipalStateTax)}
+                      {displayUnitMunicipalStateTax !== null
+                        ? `-${formatBRL(displayUnitMunicipalStateTax)}`
+                        : '—'}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
                       -{formatBRL(totalMunicipalStateTax)}
@@ -711,24 +769,7 @@ export default function DrePresumidoPage() {
                           (−) DIFAL destino (EC 87/15 · {interstateSubsystem.destinationUf})
                         </td>
                         <td className="py-2 px-3 text-right">
-                          -
-                          {formatBRL(
-                            qty > 0
-                              ? (totalGross *
-                                  Math.max(
-                                    0,
-                                    18 -
-                                      (interstateSubsystem.originUf === 'SP' &&
-                                      ['RJ', 'MG', 'RS', 'SC', 'PR'].includes(
-                                        interstateSubsystem.destinationUf,
-                                      )
-                                        ? 12
-                                        : 7),
-                                  )) /
-                                  100 /
-                                  qty
-                              : 0,
-                          )}
+                          {displayUnitDifal !== null ? `-${formatBRL(displayUnitDifal)}` : '—'}
                         </td>
                         <td className="py-2 px-3 text-right">
                           -
@@ -756,13 +797,7 @@ export default function DrePresumidoPage() {
                         (+) ICMS-ST retido na venda (recolhido em favor do destino)
                       </td>
                       <td className="py-2 px-3 text-right">
-                        {formatBRL(
-                          qty > 0
-                            ? (totalGross * (1 + (stSubsystem.mvaPercent || 0) / 100) * 0.18 -
-                                totalGross * 0.12) /
-                                qty
-                            : 0,
-                        )}
+                        {displayUnitSt !== null ? formatBRL(displayUnitSt) : '—'}
                       </td>
                       <td className="py-2 px-3 text-right">
                         {formatBRL(
@@ -783,14 +818,20 @@ export default function DrePresumidoPage() {
                         ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
                         : 'Base PIS/COFINS (tese do século · exclui ICMS)'}
                     </td>
-                    <td className="py-2 px-3 text-right">{formatBRL(unitPisCofinsBase)}</td>
+                    <td className="py-2 px-3 text-right">
+                      {displayUnitPisCofinsBase !== null
+                        ? formatBRL(displayUnitPisCofinsBase)
+                        : '—'}
+                    </td>
                     <td className="py-2 px-3 text-right">{formatBRL(totalPisCofinsBase)}</td>
                   </tr>
 
                   {/* 4. (-) PIS */}
                   <tr>
                     <td className="py-2 text-left text-slate-400">(−) PIS</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(unitPis)}</td>
+                    <td className="py-2 px-3 text-right text-slate-400">
+                      {displayUnitPis !== null ? `-${formatBRL(displayUnitPis)}` : '—'}
+                    </td>
                     <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalPis)}</td>
                   </tr>
 
@@ -798,7 +839,7 @@ export default function DrePresumidoPage() {
                   <tr>
                     <td className="py-2 text-left text-slate-400">(−) COFINS</td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(unitCofins)}
+                      {displayUnitCofins !== null ? `-${formatBRL(displayUnitCofins)}` : '—'}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
                       -{formatBRL(totalCofins)}
@@ -809,7 +850,7 @@ export default function DrePresumidoPage() {
                   <tr className="bg-slate-950/40 font-bold text-slate-100">
                     <td className="py-2.5 text-left">= Receita líquida</td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
-                      {formatBRL(unitNetRevenue)}
+                      {displayUnitNetRevenue !== null ? formatBRL(displayUnitNetRevenue) : '—'}
                     </td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
                       {formatBRL(totalNetRevenue)}
@@ -829,7 +870,7 @@ export default function DrePresumidoPage() {
                       </div>
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      {unitCmvVal === null ? '—' : `-${formatBRL(unitCmvVal)}`}
+                      {displayUnitCmv !== null ? `-${formatBRL(displayUnitCmv)}` : '—'}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
                   </tr>
@@ -850,7 +891,7 @@ export default function DrePresumidoPage() {
                   <tr className="bg-slate-950/40 font-bold text-slate-100">
                     <td className="py-2.5 text-left">= Lucro bruto</td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
-                      {unitGrossProfit !== null ? formatBRL(unitGrossProfit) : '—'}
+                      {displayUnitGrossProfit !== null ? formatBRL(displayUnitGrossProfit) : '—'}
                     </td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
                       {formatBRL(totalGrossProfit)}
@@ -864,7 +905,9 @@ export default function DrePresumidoPage() {
                         (−) Despesas operacionais (vendas, adm, financeiras)
                       </td>
                       <td className="py-2 px-3 text-right">
-                        -{formatBRL(qty > 0 ? totalOperatingExpenses / qty : 0)}
+                        {displayUnitOperatingExpenses !== null
+                          ? `-${formatBRL(displayUnitOperatingExpenses)}`
+                          : '—'}
                       </td>
                       <td className="py-2 px-3 text-right">-{formatBRL(totalOperatingExpenses)}</td>
                     </tr>
@@ -875,7 +918,9 @@ export default function DrePresumidoPage() {
                     <tr>
                       <td className="py-2 text-left text-slate-400">(−) Folha de salários</td>
                       <td className="py-2 px-3 text-right text-slate-400">
-                        -{formatBRL(qty > 0 ? payrollSalaries / qty : 0)}
+                        {displayUnitPayrollSalaries !== null
+                          ? `-${formatBRL(displayUnitPayrollSalaries)}`
+                          : '—'}
                       </td>
                       <td className="py-2 px-3 text-right text-slate-400">
                         -{formatBRL(payrollSalaries)}
@@ -887,7 +932,9 @@ export default function DrePresumidoPage() {
                     <tr>
                       <td className="py-2 text-left text-slate-400">(−) Pró-labore dos sócios</td>
                       <td className="py-2 px-3 text-right text-slate-400">
-                        -{formatBRL(qty > 0 ? payrollProLabore / qty : 0)}
+                        {displayUnitPayrollProLabore !== null
+                          ? `-${formatBRL(displayUnitPayrollProLabore)}`
+                          : '—'}
                       </td>
                       <td className="py-2 px-3 text-right text-slate-400">
                         -{formatBRL(payrollProLabore)}
@@ -902,7 +949,9 @@ export default function DrePresumidoPage() {
                         Terceiros)
                       </td>
                       <td className="py-2 px-3 text-right text-slate-400">
-                        -{formatBRL(qty > 0 ? payrollResult.patronalChargesTotal / qty : 0)}
+                        {displayUnitPatronalCharges !== null
+                          ? `-${formatBRL(displayUnitPatronalCharges)}`
+                          : '—'}
                       </td>
                       <td className="py-2 px-3 text-right text-slate-400">
                         -{formatBRL(payrollResult.patronalChargesTotal)}
@@ -917,7 +966,9 @@ export default function DrePresumidoPage() {
                         (−) Outras despesas operacionais (locais)
                       </td>
                       <td className="py-2 px-3 text-right text-slate-400">
-                        -{formatBRL(qty > 0 ? totalOtherExpenses / qty : 0)}
+                        {displayUnitOtherExpenses !== null
+                          ? `-${formatBRL(displayUnitOtherExpenses)}`
+                          : '—'}
                       </td>
                       <td className="py-2 px-3 text-right text-slate-400">
                         -{formatBRL(totalOtherExpenses)}
@@ -931,7 +982,9 @@ export default function DrePresumidoPage() {
                       <td className="py-2 text-left text-slate-500 italic">
                         (−) Despesas operacionais
                       </td>
-                      <td className="py-2 px-3 text-right text-slate-500">R$ 0,00</td>
+                      <td className="py-2 px-3 text-right text-slate-500">
+                        {isMultiProduct ? '—' : 'R$ 0,00'}
+                      </td>
                       <td className="py-2 px-3 text-right text-slate-500">R$ 0,00</td>
                     </tr>
                   )}
@@ -948,7 +1001,9 @@ export default function DrePresumidoPage() {
                       (+) Receitas operacionais (financeiras e outras)
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
-                      +{formatBRL(unitOperatingRevenues)}
+                      {displayUnitOperatingRevenues !== null
+                        ? `+${formatBRL(displayUnitOperatingRevenues)}`
+                        : '—'}
                     </td>
                     <td className="py-2 px-3 text-right text-slate-400">
                       +{formatBRL(totalAllOperatingRevenues)}
@@ -959,7 +1014,9 @@ export default function DrePresumidoPage() {
                   <tr className="bg-slate-950/40 font-bold text-slate-100">
                     <td className="py-2.5 text-left">= Lucro antes do imposto de renda (LAIR)</td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
-                      {unitResultBeforeTax !== null ? formatBRL(unitResultBeforeTax) : '—'}
+                      {displayUnitResultBeforeTax !== null
+                        ? formatBRL(displayUnitResultBeforeTax)
+                        : '—'}
                     </td>
                     <td className="py-2.5 px-3 text-right text-slate-100">
                       {formatBRL(totalResultBeforeTax)}
@@ -1059,7 +1116,7 @@ export default function DrePresumidoPage() {
                   title: 'DRE — Lucro Presumido',
                   regimeName: `Lucro Presumido (${presumidoActivity.toUpperCase()})`,
                   quantity: qty,
-                  unitGrossRevenue: unitGross,
+                  unitGrossRevenue: isMultiProduct ? 0 : unitGross,
                   totalGrossRevenue: totalGross,
                   metadata: [
                     { label: 'Atividade', value: presumidoActivity.toUpperCase() },
@@ -1083,46 +1140,50 @@ export default function DrePresumidoPage() {
                       description: isServices
                         ? 'Receita bruta de serviços'
                         : 'Receita bruta de vendas',
-                      unitValue: unitGross,
+                      unitValue: isMultiProduct ? '—' : unitGross,
                       totalValue: totalGross,
                     },
                     {
                       description: isServices ? '(−) ISSQN' : '(−) ICMS',
-                      unitValue: -unitMunicipalStateTax,
+                      unitValue: isMultiProduct ? '—' : -unitMunicipalStateTax,
                       totalValue: -totalMunicipalStateTax,
                     },
                     {
                       description: isServices
                         ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
                         : 'Base PIS/COFINS (tese do século · exclui ICMS)',
-                      unitValue: unitPisCofinsBase,
+                      unitValue: isMultiProduct ? '—' : unitPisCofinsBase,
                       totalValue: totalPisCofinsBase,
                       isInformative: true,
                     },
                     {
                       description: '(−) PIS (0,65%)',
-                      unitValue: -unitPis,
+                      unitValue: isMultiProduct ? '—' : -unitPis,
                       totalValue: -totalPis,
                     },
                     {
                       description: '(−) COFINS (3,00%)',
-                      unitValue: -unitCofins,
+                      unitValue: isMultiProduct ? '—' : -unitCofins,
                       totalValue: -totalCofins,
                     },
                     {
                       description: '(=) Receita líquida',
-                      unitValue: unitNetRevenue,
+                      unitValue: isMultiProduct ? '—' : unitNetRevenue,
                       totalValue: totalNetRevenue,
                       isSubtotal: true,
                     },
                     {
                       description: '(−) CMV',
-                      unitValue: unitCmvVal !== null ? -unitCmvVal : '—',
+                      unitValue: isMultiProduct ? '—' : unitCmvVal !== null ? -unitCmvVal : '—',
                       totalValue: -totalCmv,
                     },
                     {
                       description: '(=) Lucro bruto',
-                      unitValue: unitGrossProfit !== null ? unitGrossProfit : '—',
+                      unitValue: isMultiProduct
+                        ? '—'
+                        : unitGrossProfit !== null
+                          ? unitGrossProfit
+                          : '—',
                       totalValue: totalGrossProfit,
                       isSubtotal: true,
                     },
@@ -1130,7 +1191,11 @@ export default function DrePresumidoPage() {
                       ? [
                           {
                             description: '(−) Despesas operacionais (vendas, adm, financeiras)',
-                            unitValue: qty > 0 ? -(totalOperatingExpenses / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(totalOperatingExpenses / qty)
+                                : 0,
                             totalValue: -totalOperatingExpenses,
                           },
                         ]
@@ -1139,7 +1204,11 @@ export default function DrePresumidoPage() {
                       ? [
                           {
                             description: '(−) Folha de salários',
-                            unitValue: qty > 0 ? -(payrollSalaries / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(payrollSalaries / qty)
+                                : 0,
                             totalValue: -payrollSalaries,
                           },
                         ]
@@ -1148,7 +1217,11 @@ export default function DrePresumidoPage() {
                       ? [
                           {
                             description: '(−) Pró-labore dos sócios',
-                            unitValue: qty > 0 ? -(payrollProLabore / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(payrollProLabore / qty)
+                                : 0,
                             totalValue: -payrollProLabore,
                           },
                         ]
@@ -1157,7 +1230,11 @@ export default function DrePresumidoPage() {
                       ? [
                           {
                             description: `(−) Encargos patronais (INSS ${formatNumberBR(payrollInssRate)}% + RAT + Terceiros)`,
-                            unitValue: qty > 0 ? -(payrollResult.patronalChargesTotal / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(payrollResult.patronalChargesTotal / qty)
+                                : 0,
                             totalValue: -payrollResult.patronalChargesTotal,
                           },
                         ]
@@ -1166,7 +1243,11 @@ export default function DrePresumidoPage() {
                       ? [
                           {
                             description: '(−) Outras despesas operacionais locais',
-                            unitValue: qty > 0 ? -(totalOtherExpenses / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(totalOtherExpenses / qty)
+                                : 0,
                             totalValue: -totalOtherExpenses,
                           },
                         ]
@@ -1175,14 +1256,22 @@ export default function DrePresumidoPage() {
                       ? [
                           {
                             description: '(+) Receitas operacionais (financeiras e outras)',
-                            unitValue: qty > 0 ? totalAllOperatingRevenues / qty : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? totalAllOperatingRevenues / qty
+                                : 0,
                             totalValue: totalAllOperatingRevenues,
                           },
                         ]
                       : []),
                     {
                       description: '(=) Lucro antes do imposto de renda (LAIR)',
-                      unitValue: unitResultBeforeTax !== null ? unitResultBeforeTax : '—',
+                      unitValue: isMultiProduct
+                        ? '—'
+                        : unitResultBeforeTax !== null
+                          ? unitResultBeforeTax
+                          : '—',
                       totalValue: totalResultBeforeTax,
                       isSubtotal: true,
                     },
@@ -1215,7 +1304,7 @@ export default function DrePresumidoPage() {
                     },
                     {
                       description: '(=) Lucro líquido',
-                      unitValue: unitNetProfit,
+                      unitValue: isMultiProduct ? '—' : unitNetProfit,
                       totalValue: totalNetProfit,
                       isTotal: true,
                     },
@@ -1255,7 +1344,7 @@ export default function DrePresumidoPage() {
                   title: 'DRE — Lucro Presumido',
                   regimeName: `Lucro Presumido (${presumidoActivity.toUpperCase()})`,
                   quantity: qty,
-                  unitGrossRevenue: unitGross,
+                  unitGrossRevenue: isMultiProduct ? 0 : unitGross,
                   totalGrossRevenue: totalGross,
                   metadata: [
                     { label: 'Atividade', value: presumidoActivity.toUpperCase() },
@@ -1279,51 +1368,55 @@ export default function DrePresumidoPage() {
                       description: isServices
                         ? 'Receita bruta de serviços'
                         : 'Receita bruta de vendas',
-                      unitValue: unitGross,
+                      unitValue: isMultiProduct ? '—' : unitGross,
                       totalValue: totalGross,
                     },
                     {
                       description: isServices ? '(−) ISSQN' : '(−) ICMS',
-                      unitValue: -unitMunicipalStateTax,
+                      unitValue: isMultiProduct ? '—' : -unitMunicipalStateTax,
                       totalValue: -totalMunicipalStateTax,
                     },
                     {
                       description: isServices
                         ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
                         : 'Base PIS/COFINS (tese do século · exclui ICMS)',
-                      unitValue: unitPisCofinsBase,
+                      unitValue: isMultiProduct ? '—' : unitPisCofinsBase,
                       totalValue: totalPisCofinsBase,
                     },
                     {
                       description: '(−) PIS (0,65%)',
-                      unitValue: -unitPis,
+                      unitValue: isMultiProduct ? '—' : -unitPis,
                       totalValue: -totalPis,
                     },
                     {
                       description: '(−) COFINS (3,00%)',
-                      unitValue: -unitCofins,
+                      unitValue: isMultiProduct ? '—' : -unitCofins,
                       totalValue: -totalCofins,
                     },
                     {
                       description: '(=) Receita líquida',
-                      unitValue: unitNetRevenue,
+                      unitValue: isMultiProduct ? '—' : unitNetRevenue,
                       totalValue: totalNetRevenue,
                     },
                     {
                       description: '(−) CMV',
-                      unitValue: -unitCmvVal,
+                      unitValue: isMultiProduct ? '—' : unitCmvVal !== null ? -unitCmvVal : '—',
                       totalValue: -totalCmv,
                     },
                     {
                       description: '(=) Lucro bruto',
-                      unitValue: unitGrossProfit,
+                      unitValue: isMultiProduct ? '—' : unitGrossProfit,
                       totalValue: totalGrossProfit,
                     },
                     ...(totalOperatingExpenses > 0
                       ? [
                           {
                             description: '(−) Despesas operacionais (vendas, adm, financeiras)',
-                            unitValue: qty > 0 ? -(totalOperatingExpenses / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(totalOperatingExpenses / qty)
+                                : 0,
                             totalValue: -totalOperatingExpenses,
                           },
                         ]
@@ -1332,7 +1425,11 @@ export default function DrePresumidoPage() {
                       ? [
                           {
                             description: '(−) Folha de salários',
-                            unitValue: qty > 0 ? -(payrollSalaries / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(payrollSalaries / qty)
+                                : 0,
                             totalValue: -payrollSalaries,
                           },
                         ]
@@ -1341,7 +1438,11 @@ export default function DrePresumidoPage() {
                       ? [
                           {
                             description: '(−) Pró-labore dos sócios',
-                            unitValue: qty > 0 ? -(payrollProLabore / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(payrollProLabore / qty)
+                                : 0,
                             totalValue: -payrollProLabore,
                           },
                         ]
@@ -1350,7 +1451,11 @@ export default function DrePresumidoPage() {
                       ? [
                           {
                             description: `(−) Encargos patronais (INSS ${formatNumberBR(payrollInssRate)}% + RAT + Terceiros)`,
-                            unitValue: qty > 0 ? -(payrollResult.patronalChargesTotal / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(payrollResult.patronalChargesTotal / qty)
+                                : 0,
                             totalValue: -payrollResult.patronalChargesTotal,
                           },
                         ]
@@ -1359,7 +1464,11 @@ export default function DrePresumidoPage() {
                       ? [
                           {
                             description: '(−) Outras despesas operacionais locais',
-                            unitValue: qty > 0 ? -(totalOtherExpenses / qty) : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? -(totalOtherExpenses / qty)
+                                : 0,
                             totalValue: -totalOtherExpenses,
                           },
                         ]
@@ -1368,14 +1477,18 @@ export default function DrePresumidoPage() {
                       ? [
                           {
                             description: '(+) Receitas operacionais (financeiras e outras)',
-                            unitValue: qty > 0 ? totalAllOperatingRevenues / qty : 0,
+                            unitValue: isMultiProduct
+                              ? '—'
+                              : qty > 0
+                                ? totalAllOperatingRevenues / qty
+                                : 0,
                             totalValue: totalAllOperatingRevenues,
                           },
                         ]
                       : []),
                     {
                       description: '(=) Lucro antes do imposto de renda (LAIR)',
-                      unitValue: unitResultBeforeTax,
+                      unitValue: isMultiProduct ? '—' : unitResultBeforeTax,
                       totalValue: totalResultBeforeTax,
                     },
                     {
@@ -1405,7 +1518,7 @@ export default function DrePresumidoPage() {
                     },
                     {
                       description: '(=) Lucro líquido',
-                      unitValue: unitNetProfit,
+                      unitValue: isMultiProduct ? '—' : unitNetProfit,
                       totalValue: totalNetProfit,
                     },
                   ],
