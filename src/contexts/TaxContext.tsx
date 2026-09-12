@@ -332,6 +332,7 @@ export interface TaxContextType {
   totalConsolidatedRevenue: number // Σ (preço * quantidade)
   totalConsolidatedQuantity: number // Σ quantidade
   totalConsolidatedCost: number // Σ (custo * quantidade)
+  getPurchaseItemUnitNetCost: (item: PurchaseItem, targetRegime?: TaxRegime) => number
 
   // COMPRAS STATE (multi-itens + parâmetros globais)
   purchasesItems: PurchaseItem[]
@@ -460,7 +461,7 @@ export interface TaxContextType {
   // DRE SIMPLES NACIONAL STATE
   simplesAnexo: string // 'anexo_1' | 'anexo_2' | 'anexo_3' | 'anexo_4' | 'anexo_5'
   setSimplesAnexo: (anexo: string) => void
-  simplesRbt12: number // Receita bruta acumulada 12 meses (manual ou efetiva quando início de atividade)
+  simplesRbt12: number // Receita bruta acumulada 12 meses informada (Porta 2)
   setSimplesRbt12: (val: number) => void
   simplesPayroll12m: number // Folha de salários 12 meses (para Fator R)
   setSimplesPayroll12m: (val: number) => void
@@ -935,7 +936,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // RBT12 efetiva para cálculo:
   // Se estiver na Porta 1 (!simplesIsActiveMoreThan12m):
   //   - Se activityMonths <= 1: mensal * 12
-  //   - Se activityMonths 2 a 12: mensal * 12 (conforme projeção/acumulado dos meses)
+  //   - Se activityMonths 2 a 12: proporcional art. 2º (acumulado * 12 / meses, onde acumulado = mensal * meses => mensal * 12)
   //   - Projeção = simplesMonthlyProjectedRevenue * 12
   // Se estiver na Porta 2 (simplesIsActiveMoreThan12m):
   //   - Usa simplesRbt12 (ou se simplesIsInicioAtividade na aba DRE, calculadoInicioAtividadeRbt12)
@@ -943,12 +944,15 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!simplesIsActiveMoreThan12m) {
       // Porta 1 (início de atividade)
       const monthly = Math.max(0, simplesMonthlyProjectedRevenue || 0)
-      return monthly * 12
+      const months = Math.max(1, Math.min(12, simplesActivityMonths || 1))
+      // 1º mês = receita * 12; meses 2 a 12 = acumulado * 12 / meses = (monthly * months) * 12 / months = monthly * 12
+      return months <= 1 ? monthly * 12 : Math.round(((monthly * months * 12) / months) * 100) / 100
     }
     return simplesIsInicioAtividade ? calculatedInicioAtividadeRbt12 : simplesRbt12
   }, [
     simplesIsActiveMoreThan12m,
     simplesMonthlyProjectedRevenue,
+    simplesActivityMonths,
     simplesIsInicioAtividade,
     calculatedInicioAtividadeRbt12,
     simplesRbt12,
@@ -3728,7 +3732,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       realExpenses,
       isRealSimulated,
       simplesAnexo,
-      simplesRbt12: effectiveSimplesRbt12,
+      simplesRbt12,
+      effectiveSimplesRbt12,
       simplesPayroll12m,
       simplesQuantitySold,
       simplesExpenses,
@@ -3979,6 +3984,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         totalConsolidatedRevenue,
         totalConsolidatedQuantity,
         totalConsolidatedCost,
+        getPurchaseItemUnitNetCost,
 
         purchasesItems: computedPurchasesItems,
         addPurchaseItem,

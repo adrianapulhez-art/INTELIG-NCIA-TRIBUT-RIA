@@ -204,12 +204,35 @@ export default function MarkupPage() {
     totalConsolidatedCost,
     simplesAnexo,
     simplesRbt12,
+    setSimplesRbt12,
     effectiveSimplesRbt12,
     simplesIsInicioAtividade,
+    simplesIsActiveMoreThan12m,
+    setSimplesIsActiveMoreThan12m,
+    simplesActivityMonths,
+    setSimplesActivityMonths,
+    simplesMonthlyProjectedRevenue,
+    setSimplesMonthlyProjectedRevenue,
+    simplesSelectedScenario,
+    setSimplesSelectedScenario,
+    variableExpenses,
+    addVariableExpense,
+    updateVariableExpense,
+    removeVariableExpense,
+    totalVariableExpenseRate,
+    getPurchaseItemUnitNetCost,
     stSubsystem,
     interstateSubsystem,
     purchasesItems,
   } = useTaxContext()
+
+  // Estados locais para adição de Despesa Variável (DV)
+  const [showAddDvForm, setShowAddDvForm] = useState(false)
+  const [newDvName, setNewDvName] = useState('')
+  const [newDvRate, setNewDvRate] = useState('')
+
+  // Preço praticado manual para o painel "Minha precificação está correta?" (por produto selecionado ou geral)
+  const [practicedPrices, setPracticedPrices] = useState<Record<string, number>>({})
 
   // Estados dos modais em camadas para ST, DIFAL, Importação de Compras, Composição de Custo e Subcamadas de Detalhamento
   const [isStDialogOpen, setIsStDialogOpen] = useState(false)
@@ -560,6 +583,410 @@ export default function MarkupPage() {
             </div>
           </div>
 
+          {/* ========================================================================= */}
+          {/* BLOCO DE ENTRADA INTELIGENTE: SIMPLES NACIONAL (PORTA 1 vs PORTA 2)       */}
+          {/* ========================================================================= */}
+          {regime === 'simples' && (
+            <div className="space-y-4 pt-3 border-t border-orange-500/30 rounded-2xl bg-orange-950/15 p-4 sm:p-5 border border-orange-500/20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-orange-400" />
+                    <h3 className="text-xs sm:text-sm font-mono font-bold uppercase tracking-wider text-orange-300">
+                      Entrada Inteligente — Simples Nacional
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1">
+                    A empresa já está em atividade há mais de 12 meses?
+                  </p>
+                </div>
+
+                {/* Seletor Não / Sim */}
+                <div className="inline-flex rounded-xl bg-slate-950 p-1 border border-orange-500/40 text-xs font-mono shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => setSimplesIsActiveMoreThan12m(false)}
+                    className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer font-bold ${
+                      !simplesIsActiveMoreThan12m
+                        ? 'bg-orange-500 text-slate-950 shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    NÃO (Início de atividade)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSimplesIsActiveMoreThan12m(true)}
+                    className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer font-bold ${
+                      simplesIsActiveMoreThan12m
+                        ? 'bg-orange-500 text-slate-950 shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    SIM (&gt; 12 meses)
+                  </button>
+                </div>
+              </div>
+
+              {/* PORTA 1: Início de Atividade (< 12 meses) */}
+              {!simplesIsActiveMoreThan12m && (
+                <div className="space-y-4 pt-2 border-t border-orange-500/20">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-xs font-semibold text-slate-300">
+                      Escolha um cenário de faturamento mensal ou digite livremente:
+                    </span>
+                    <span className="text-[11px] font-mono text-orange-300">
+                      RBT12 Adotada: <strong>{formatBRL(effectiveSimplesRbt12)}</strong>
+                    </span>
+                  </div>
+
+                  {/* 3 Cartões de Cenários Clicáveis */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* Cenário Conservador */}
+                    <button
+                      type="button"
+                      onClick={() => setSimplesSelectedScenario('conservador')}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        simplesSelectedScenario === 'conservador'
+                          ? 'bg-orange-500/25 border-orange-400 ring-2 ring-orange-500/40 text-orange-100 shadow-md'
+                          : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-orange-500/40 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold uppercase text-orange-300">
+                          Conservador
+                        </span>
+                        {simplesSelectedScenario === 'conservador' && (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-orange-400" />
+                        )}
+                      </div>
+                      <div className="mt-1 text-sm font-bold text-white font-mono">
+                        R$ 15.000 / mês
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-mono mt-1">
+                        RBT12: R$ 180.000 · Alíquota: <strong>4,00%</strong>
+                      </p>
+                    </button>
+
+                    {/* Cenário Moderado */}
+                    <button
+                      type="button"
+                      onClick={() => setSimplesSelectedScenario('moderado')}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        simplesSelectedScenario === 'moderado'
+                          ? 'bg-orange-500/25 border-orange-400 ring-2 ring-orange-500/40 text-orange-100 shadow-md'
+                          : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-orange-500/40 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold uppercase text-orange-300">
+                          Moderado
+                        </span>
+                        {simplesSelectedScenario === 'moderado' && (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-orange-400" />
+                        )}
+                      </div>
+                      <div className="mt-1 text-sm font-bold text-white font-mono">
+                        R$ 20.000 / mês
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-mono mt-1">
+                        RBT12: R$ 240.000 · Alíquota: <strong>4,83%</strong>
+                      </p>
+                    </button>
+
+                    {/* Cenário Otimista */}
+                    <button
+                      type="button"
+                      onClick={() => setSimplesSelectedScenario('otimista')}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        simplesSelectedScenario === 'otimista'
+                          ? 'bg-orange-500/25 border-orange-400 ring-2 ring-orange-500/40 text-orange-100 shadow-md'
+                          : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-orange-500/40 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold uppercase text-orange-300">
+                          Otimista
+                        </span>
+                        {simplesSelectedScenario === 'otimista' && (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-orange-400" />
+                        )}
+                      </div>
+                      <div className="mt-1 text-sm font-bold text-white font-mono">
+                        R$ 30.000 / mês
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-mono mt-1">
+                        RBT12: R$ 360.000 · Alíquota: <strong>5,65%</strong>
+                      </p>
+                    </button>
+                  </div>
+
+                  {/* Linha de Personalização: Faturamento mensal projetado + Meses de atividade (1-12) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-slate-300 font-semibold">
+                        Faturamento mensal projetado (R$)
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
+                          R$
+                        </span>
+                        <Input
+                          type="text"
+                          value={
+                            simplesMonthlyProjectedRevenue > 0
+                              ? formatNumberBR(simplesMonthlyProjectedRevenue)
+                              : ''
+                          }
+                          placeholder="20.000,00"
+                          onChange={(e) => {
+                            const val = parseBRNumber(e.target.value)
+                            setSimplesMonthlyProjectedRevenue(val)
+                          }}
+                          className="pl-8 text-right font-mono text-xs h-8 field-input-interactive"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] text-slate-300 font-semibold">
+                          Meses de atividade decorridos
+                        </label>
+                        <span className="text-[10px] font-mono text-orange-300">
+                          {simplesActivityMonths === 1
+                            ? '1º mês (receita × 12)'
+                            : `${simplesActivityMonths} meses (acumulado × 12 ÷ meses)`}
+                        </span>
+                      </div>
+                      <select
+                        value={simplesActivityMonths}
+                        onChange={(e) => setSimplesActivityMonths(parseInt(e.target.value, 10))}
+                        className="w-full h-8 px-2 text-xs font-mono rounded-md bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:border-orange-500"
+                      >
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                          <option key={m} value={m}>
+                            {m} {m === 1 ? 'mês (início imediato)' : `meses de atividade`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+                    const pgdasRes = calculatePgdas(anexoClean, effectiveSimplesRbt12)
+                    return (
+                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-orange-500/10 border border-orange-500/25 text-xs font-mono text-orange-200 flex-wrap gap-2">
+                        <span>
+                          Faixa detectada:{' '}
+                          <strong className="text-white">Faixa {pgdasRes.faixa}</strong> (Anexo I —
+                          Comércio)
+                        </span>
+                        <span>
+                          Alíquota efetiva PGDAS:{' '}
+                          <strong className="text-orange-300 text-sm">
+                            {formatPercentBR(pgdasRes.aliquotaEfetiva)}
+                          </strong>
+                        </span>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {/* PORTA 2: Empresa madura (> 12 meses) */}
+              {simplesIsActiveMoreThan12m && (
+                <div className="space-y-3 pt-2 border-t border-orange-500/20">
+                  <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <label className="text-xs font-bold text-slate-200 font-mono">
+                        RBT12 Formada (Receita Bruta Acumulada 12 Meses)
+                      </label>
+                      <p className="text-[11px] text-slate-400">
+                        Informe o montante dos últimos 12 meses da empresa para apuração da faixa
+                        legal.
+                      </p>
+                    </div>
+
+                    <div className="relative w-44">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
+                        R$
+                      </span>
+                      <Input
+                        type="text"
+                        placeholder="0,00"
+                        value={simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : ''}
+                        onChange={(e) => {
+                          const val = parseBRNumber(e.target.value)
+                          setSimplesRbt12(val)
+                        }}
+                        className="pl-8 text-right font-mono text-xs h-8 field-input-interactive"
+                      />
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+                    const pgdasRes = calculatePgdas(anexoClean, effectiveSimplesRbt12)
+                    return (
+                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-orange-500/10 border border-orange-500/25 text-xs font-mono text-orange-200 flex-wrap gap-2">
+                        <span>
+                          Faixa detectada:{' '}
+                          <strong className="text-white">Faixa {pgdasRes.faixa}</strong> (RBT12:{' '}
+                          {formatBRL(effectiveSimplesRbt12)})
+                        </span>
+                        <span>
+                          Alíquota efetiva PGDAS:{' '}
+                          <strong className="text-orange-300 text-sm">
+                            {formatPercentBR(pgdasRes.aliquotaEfetiva)}
+                          </strong>
+                        </span>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* BLOCO: DESPESAS VARIÁVEIS (DV) - APLICÁVEIS EM TODOS OS REGIMES          */}
+          {/* ========================================================================= */}
+          <div className="space-y-3 pt-3 border-t border-slate-800/80">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-3.5 bg-emerald-400 rounded-full" />
+                  <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+                    Despesas Variáveis de Venda (DV)
+                  </h3>
+                  <Badge className="bg-emerald-950/60 text-emerald-300 border-emerald-700/50 text-[10px] font-mono">
+                    Total: {formatPercentBR(totalVariableExpenseRate)}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Taxas incidentes sobre o preço de venda: maquininha ~3%, comissão ~2%, frete de
+                  entrega ~0–5%.
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAddDvForm(!showAddDvForm)}
+                className="h-7 text-xs bg-slate-950/40 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer self-start sm:self-center"
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                Adicionar despesa variável
+              </Button>
+            </div>
+
+            {/* Formulário inline para nova despesa variável */}
+            {showAddDvForm && (
+              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                <span className="text-xs font-semibold text-slate-200">Nova despesa variável</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Input
+                    type="text"
+                    placeholder="Descrição (ex.: Embalagem, Marketplace)"
+                    value={newDvName}
+                    onChange={(e) => setNewDvName(e.target.value)}
+                    className="text-xs font-mono field-input-interactive"
+                  />
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="Alíquota %"
+                      value={newDvRate}
+                      onChange={(e) => setNewDvRate(e.target.value)}
+                      className="text-xs font-mono pr-6 text-right field-input-interactive"
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
+                      %
+                    </span>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAddDvForm(false)}
+                    className="text-xs h-7"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      if (newDvName.trim()) {
+                        addVariableExpense(newDvName.trim(), parseBRNumber(newDvRate))
+                        setNewDvName('')
+                        setNewDvRate('')
+                        setShowAddDvForm(false)
+                      }
+                    }}
+                    className="text-xs h-7 bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-semibold"
+                  >
+                    Salvar
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Lista item a item de Despesas Variáveis */}
+            <div className="bg-slate-950/50 border border-slate-800 rounded-xl divide-y divide-slate-800/80 text-xs font-mono overflow-hidden">
+              {variableExpenses.map((dv) => (
+                <div
+                  key={dv.id}
+                  className="px-3.5 py-2.5 flex items-center justify-between gap-3 flex-wrap"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-[180px]">
+                    <Input
+                      type="text"
+                      value={dv.name}
+                      onChange={(e) => updateVariableExpense(dv.id, 'name', e.target.value)}
+                      className="h-7 text-xs font-mono text-slate-200 bg-slate-900/60 border-slate-800 focus:border-emerald-500"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-24">
+                      <Input
+                        type="text"
+                        placeholder="0,00"
+                        value={dv.rate > 0 ? formatNumberBR(dv.rate) : ''}
+                        onChange={(e) => updateVariableExpense(dv.id, 'rate', e.target.value)}
+                        className="h-7 pr-6 text-right font-mono text-xs field-input-interactive"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
+                        %
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeVariableExpense(dv.id)}
+                      className="p-1 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-rose-500/10 cursor-pointer"
+                      title="Remover despesa variável"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Linha de Total */}
+              <div className="px-3.5 py-2.5 bg-emerald-950/20 flex items-center justify-between text-xs font-bold font-mono">
+                <span className="text-emerald-300 uppercase">Total Despesas Variáveis (Σ DV)</span>
+                <span className="text-emerald-300 text-sm">
+                  {formatPercentBR(totalVariableExpenseRate)}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Seção % Tributos: ICMS, PIS, COFINS e adicionais (oculto quando o regime for Simples Nacional) */}
           {regime !== 'simples' && (
             <div className="space-y-4 pt-2 border-t border-slate-800/80">
@@ -794,7 +1221,7 @@ export default function MarkupPage() {
                   >
                     {/* Linha superior: Nome do produto, seletor de modo e lixeira */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-800/80">
-                      <div className="flex items-center gap-2 flex-1">
+                      <div className="flex items-center gap-2 flex-1 flex-wrap">
                         <span className="text-xs font-mono text-slate-500 font-bold shrink-0">
                           #{index + 1}
                         </span>
@@ -803,8 +1230,19 @@ export default function MarkupPage() {
                           value={prod.name}
                           onChange={(e) => updateMarkupProduct(prod.id, 'name', e.target.value)}
                           placeholder="Nome ou descrição do produto/serviço (ex.: Produto A)"
-                          className="font-semibold text-xs h-8 flex-1 field-input-interactive"
+                          className="font-semibold text-xs h-8 min-w-[180px] flex-1 field-input-interactive"
                         />
+                        {/* Badges de Origem do Custo: Custo via Compras vs Custo Manual */}
+                        {prod.costOrigin === 'purchases' ||
+                        (prod.purchaseItemId && prod.manualCostOverride === undefined) ? (
+                          <Badge className="bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[10px] font-mono inline-flex items-center gap-1">
+                            <span>📦 Custo via Compras</span>
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-mono inline-flex items-center gap-1">
+                            <span>✏️ Custo manual</span>
+                          </Badge>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2 self-end sm:self-center">
@@ -865,16 +1303,67 @@ export default function MarkupPage() {
                         )
                         const totalComp = directSum + indirectSum + fixedSum
                         const hasCompValues = totalComp > 0
+                        const isManual =
+                          prod.costOrigin === 'manual' || prod.manualCostOverride !== undefined
+                        const matchedPurchaseItem = prod.purchaseItemId
+                          ? purchasesItems.find((pi) => pi.id === prod.purchaseItemId)
+                          : null
 
                         return (
-                          <ProductBaseValueInput
-                            key={`base-${prod.id}-${prod.mode}`}
-                            productId={prod.id}
-                            isLiquid={isProdLiquid}
-                            value={isProdLiquid ? prod.desiredNetRevenue : prod.cost}
-                            hasCompositionValues={hasCompValues}
-                            onUpdate={(id, field, val) => updateMarkupProduct(id, field, val)}
-                          />
+                          <div className="space-y-1">
+                            <ProductBaseValueInput
+                              key={`base-${prod.id}-${prod.mode}`}
+                              productId={prod.id}
+                              isLiquid={isProdLiquid}
+                              value={isProdLiquid ? prod.desiredNetRevenue : prod.cost}
+                              hasCompositionValues={hasCompValues}
+                              onUpdate={(id, field, val) => {
+                                if (field === 'cost') {
+                                  // Marca como custo manual
+                                  updateMarkupProduct(id, 'costOrigin', 'manual')
+                                  updateMarkupProduct(id, 'manualCostOverride', val)
+                                }
+                                updateMarkupProduct(id, field, val)
+                              }}
+                            />
+                            {/* Controle para alternar e restaurar custo das compras */}
+                            {!isProdLiquid && matchedPurchaseItem && (
+                              <div className="flex items-center justify-between text-[10px] font-mono pt-0.5">
+                                {isManual ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const purchasesUnitCost = getPurchaseItemUnitNetCost(
+                                        matchedPurchaseItem,
+                                        regime,
+                                      )
+                                      updateMarkupProduct(prod.id, 'costOrigin', 'purchases')
+                                      updateMarkupProduct(prod.id, 'manualCostOverride', undefined)
+                                      if (purchasesUnitCost > 0) {
+                                        updateMarkupProduct(prod.id, 'cost', purchasesUnitCost)
+                                      }
+                                    }}
+                                    className="text-sky-400 hover:text-sky-200 underline cursor-pointer"
+                                    title="Restaurar o custo unitário líquido vindo da tabela de compras"
+                                  >
+                                    ↺ Restaurar custo compras (
+                                    {formatBRL(
+                                      getPurchaseItemUnitNetCost(matchedPurchaseItem, regime),
+                                    )}
+                                    )
+                                  </button>
+                                ) : (
+                                  <span className="text-slate-400">
+                                    Sincronizado c/ Compras (
+                                    {formatBRL(
+                                      getPurchaseItemUnitNetCost(matchedPurchaseItem, regime),
+                                    )}
+                                    )
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )
                       })()}
                       {/* Campo 2: Margem de Lucro (%) */}
