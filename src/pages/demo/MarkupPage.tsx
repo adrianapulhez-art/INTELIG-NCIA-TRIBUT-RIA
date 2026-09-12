@@ -178,6 +178,70 @@ function ProductMarginInput({ productId, isLiquid, margin, onUpdate }: ProductMa
   )
 }
 
+interface VariableExpenseRowProps {
+  dv: { id: string; name: string; rate: number }
+  onUpdate: (id: string, field: 'name' | 'rate', value: string | number) => void
+  onRemove: (id: string) => void
+}
+
+function VariableExpenseRow({ dv, onUpdate, onRemove }: VariableExpenseRowProps) {
+  const [isFocused, setIsFocused] = useState(false)
+  const [rateText, setRateText] = useState<string>(dv.rate > 0 ? formatNumberBR(dv.rate) : '')
+
+  useEffect(() => {
+    if (!isFocused) {
+      setRateText(dv.rate > 0 ? formatNumberBR(dv.rate) : '')
+    }
+  }, [dv.rate, isFocused])
+
+  return (
+    <div className="px-3.5 py-2.5 flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center gap-2 flex-1 min-w-[180px]">
+        <Input
+          type="text"
+          value={dv.name}
+          onChange={(e) => onUpdate(dv.id, 'name', e.target.value)}
+          className="h-7 text-xs font-mono text-slate-200 bg-slate-900/60 border-slate-800 focus:border-emerald-500"
+        />
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="relative w-24">
+          <Input
+            type="text"
+            placeholder="0,00"
+            value={rateText}
+            onFocus={() => setIsFocused(true)}
+            onChange={(e) => {
+              const raw = e.target.value
+              setRateText(raw)
+              const num = parseBRNumber(raw)
+              onUpdate(dv.id, 'rate', num)
+            }}
+            onBlur={(e) => {
+              setIsFocused(false)
+              const num = parseBRNumber(e.target.value)
+              setRateText(num > 0 ? formatNumberBR(num) : '')
+              onUpdate(dv.id, 'rate', num)
+            }}
+            className="h-7 pr-6 text-right font-mono text-xs field-input-interactive"
+          />
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
+            %
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onRemove(dv.id)}
+          className="p-1 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-rose-500/10 cursor-pointer"
+          title="Remover despesa variável"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function MarkupPage() {
   const navigate = useNavigate()
   const {
@@ -987,44 +1051,14 @@ export default function MarkupPage() {
             {/* Lista item a item de Despesas Variáveis */}
             <div className="bg-slate-950/50 border border-slate-800 rounded-xl divide-y divide-slate-800/80 text-xs font-mono overflow-hidden">
               {variableExpenses.map((dv) => (
-                <div
+                <VariableExpenseRow
                   key={dv.id}
-                  className="px-3.5 py-2.5 flex items-center justify-between gap-3 flex-wrap"
-                >
-                  <div className="flex items-center gap-2 flex-1 min-w-[180px]">
-                    <Input
-                      type="text"
-                      value={dv.name}
-                      onChange={(e) => updateVariableExpense(dv.id, 'name', e.target.value)}
-                      className="h-7 text-xs font-mono text-slate-200 bg-slate-900/60 border-slate-800 focus:border-emerald-500"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-24">
-                      <Input
-                        type="text"
-                        placeholder="0,00"
-                        value={dv.rate > 0 ? formatNumberBR(dv.rate) : ''}
-                        onChange={(e) => updateVariableExpense(dv.id, 'rate', e.target.value)}
-                        className="h-7 pr-6 text-right font-mono text-xs field-input-interactive"
-                      />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
-                        %
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeVariableExpense(dv.id)}
-                      className="p-1 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-rose-500/10 cursor-pointer"
-                      title="Remover despesa variável"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+                  dv={dv}
+                  onUpdate={updateVariableExpense}
+                  onRemove={removeVariableExpense}
+                />
               ))}
-
-              {/* Linha de Total */}
+              {/* Linha de Total */}{' '}
               <div className="px-3.5 py-2.5 bg-emerald-950/20 flex items-center justify-between text-xs font-bold font-mono">
                 <span className="text-emerald-300 uppercase">Total Despesas Variáveis (Σ DV)</span>
                 <span className="text-emerald-300 text-sm">
