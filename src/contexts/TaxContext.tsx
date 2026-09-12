@@ -56,6 +56,8 @@ export interface MarkupProductItem {
   cost: number // Custo base (quando mode === 'cost_margin')
   margin: number // Margem de lucro % (quando mode === 'cost_margin' ou margem adicional)
   quantity: number // Quantidade vendida
+  costOrigin?: 'purchases' | 'manual' // Origem do custo (Compras Líquidas por regime ou digitação manual)
+  manualCostOverride?: number // Valor manual fixado quando o usuário opta por override
   // Vínculo opcional com item da Calculadora de Compras
   purchaseItemId?: string
   // Subsistema de Composição do Custo (modo cost_margin)
@@ -148,6 +150,14 @@ export interface CustomTaxItem {
   rate: number // percentual, ex: 5 para 5%
 }
 
+export interface VariableExpenseItem {
+  id: string
+  name: string
+  rate: number // percentual individual, ex: 3.0 para 3%
+}
+
+export type SimplesScenarioKey = 'conservador' | 'moderado' | 'otimista'
+
 export interface TaxStateSnapshot {
   regime: TaxRegime
   markupMode: MarkupMode
@@ -155,7 +165,12 @@ export interface TaxStateSnapshot {
   additionalMargin: number
   icmsRateMarkup: number
   customTaxesMarkup: CustomTaxItem[]
+  variableExpenses?: VariableExpenseItem[]
   markupProducts: MarkupProductItem[]
+  simplesIsActiveMoreThan12m?: boolean // Porta 1 (false) vs Porta 2 (true)
+  simplesActivityMonths?: number // 1 a 12 meses
+  simplesMonthlyProjectedRevenue?: number // Receita mensal projetada
+  simplesSelectedScenario?: SimplesScenarioKey
   simulatedSalePrice: number
   simulatedTaxFactorTotal: number
   simulatedCompleteFactor: number
@@ -251,6 +266,21 @@ export interface TaxContextType {
   customTaxesMarkup: CustomTaxItem[]
   addCustomTaxMarkup: (name: string, rate: number) => void
   removeCustomTaxMarkup: (id: string) => void
+  // Despesas Variáveis (DV) aplicadas nos 3 regimes
+  variableExpenses: VariableExpenseItem[]
+  addVariableExpense: (name: string, rate: number) => void
+  updateVariableExpense: (id: string, field: 'name' | 'rate', value: string | number) => void
+  removeVariableExpense: (id: string) => void
+  totalVariableExpenseRate: number // Σ DV %
+  // Bloco Inteligente Simples Nacional (Porta 1 vs Porta 2)
+  simplesIsActiveMoreThan12m: boolean
+  setSimplesIsActiveMoreThan12m: (val: boolean) => void
+  simplesActivityMonths: number
+  setSimplesActivityMonths: (val: number) => void
+  simplesMonthlyProjectedRevenue: number
+  setSimplesMonthlyProjectedRevenue: (val: number) => void
+  simplesSelectedScenario: SimplesScenarioKey
+  setSimplesSelectedScenario: (scenario: SimplesScenarioKey) => void
   // Múltiplos Produtos no Markup
   markupProducts: MarkupProductItem[]
   addMarkupProduct: (name?: string, mode?: MarkupMode) => void
@@ -640,6 +670,21 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [icmsRateMarkup, setIcmsRateMarkup] = useState<number>(0)
   const [customTaxesMarkup, setCustomTaxesMarkup] = useState<CustomTaxItem[]>([])
 
+  // Despesas Variáveis (DV) aplicadas aos 3 regimes (taxa maquininha, comissão, frete, etc.)
+  const [variableExpenses, setVariableExpenses] = useState<VariableExpenseItem[]>([
+    { id: 'dv-1', name: 'Taxa de maquininha / cartão', rate: 3.0 },
+    { id: 'dv-2', name: 'Comissão de vendedores', rate: 2.0 },
+    { id: 'dv-3', name: 'Frete de entrega', rate: 0.0 },
+  ])
+
+  // Bloco Inteligente Simples Nacional (Porta 1 vs Porta 2)
+  const [simplesIsActiveMoreThan12m, setSimplesIsActiveMoreThan12mState] = useState<boolean>(true) // Porta 2 por padrão
+  const [simplesActivityMonths, setSimplesActivityMonthsState] = useState<number>(1) // 1 a 12 meses
+  const [simplesMonthlyProjectedRevenue, setSimplesMonthlyProjectedRevenueState] =
+    useState<number>(20000)
+  const [simplesSelectedScenario, setSimplesSelectedScenarioState] =
+    useState<SimplesScenarioKey>('moderado')
+
   // Cria 1 produto padrão inicial estritamente zerado
   const [markupProducts, setMarkupProducts] = useState<MarkupProductItem[]>([
     {
@@ -887,10 +932,96 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return count > 0 ? (sum / count) * 12 : 0
   }, [simplesMonthlyRevenues])
 
-  // RBT12 efetiva: se toggle de início de atividade ativo, usa o proporcional calculado; senão a digitada
-  const effectiveSimplesRbt12 = simplesIsInicioAtividade
-    ? calculatedInicioAtividadeRbt12
-    : simplesRbt12
+  // RBT12 efetiva para cálculo:
+  // Se estiver na Porta 1 (!simplesIsActiveMoreThan12m):
+  //   - Se activityMonths <= 1: mensal * 12
+  //   - Se activityMonths 2 a 12: mensal * 12 (conforme projeção/acumulado dos meses)
+  //   - Projeção = simplesMonthlyProjectedRevenue * 12
+  // Se estiver na Porta 2 (simplesIsActiveMoreThan12m):
+  //   - Usa simplesRbt12 (ou se simplesIsInicioAtividade na aba DRE, calculadoInicioAtividadeRbt12)
+  const effectiveSimplesRbt12 = useMemo(() => {
+    if (!simplesIsActiveMoreThan12m) {
+      // Porta 1 (início de atividade)
+      const monthly = Math.max(0, simplesMonthlyProjectedRevenue || 0)
+      return monthly * 12
+    }
+    return simplesIsInicioAtividade ? calculatedInicioAtividadeRbt12 : simplesRbt12
+  }, [
+    simplesIsActiveMoreThan12m,
+    simplesMonthlyProjectedRevenue,
+    simplesIsInicioAtividade,
+    calculatedInicioAtividadeRbt12,
+    simplesRbt12,
+  ])
+
+  const setSimplesIsActiveMoreThan12m = (val: boolean) => {
+    recordUndoSnapshot()
+    setSimplesIsActiveMoreThan12mState(val)
+  }
+
+  const setSimplesActivityMonths = (val: number) => {
+    recordUndoSnapshot()
+    const clamped = Math.max(1, Math.min(12, Math.round(val) || 1))
+    setSimplesActivityMonthsState(clamped)
+  }
+
+  const setSimplesMonthlyProjectedRevenue = (val: number) => {
+    recordUndoSnapshot()
+    const clean = Math.max(0, Number.isFinite(val) ? val : 0)
+    setSimplesMonthlyProjectedRevenueState(clean)
+  }
+
+  const setSimplesSelectedScenario = (scenario: SimplesScenarioKey) => {
+    recordUndoSnapshot()
+    setSimplesSelectedScenarioState(scenario)
+    if (scenario === 'conservador') {
+      setSimplesMonthlyProjectedRevenueState(15000)
+    } else if (scenario === 'moderado') {
+      setSimplesMonthlyProjectedRevenueState(20000)
+    } else if (scenario === 'otimista') {
+      setSimplesMonthlyProjectedRevenueState(30000)
+    }
+  }
+
+  // Manipuladores de Despesas Variáveis
+  const addVariableExpense = (name: string, rate: number) => {
+    recordUndoSnapshot()
+    const cleanRate = Math.max(0, Number.isFinite(rate) ? rate : 0)
+    setVariableExpenses((prev) => [
+      ...prev,
+      {
+        id: `dv-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        name: name || 'Nova despesa variável',
+        rate: cleanRate,
+      },
+    ])
+  }
+
+  const updateVariableExpense = (id: string, field: 'name' | 'rate', value: string | number) => {
+    recordUndoSnapshot()
+    setVariableExpenses((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item
+        if (field === 'rate') {
+          const num = typeof value === 'number' ? value : parseBRNumber(String(value))
+          return { ...item, rate: Math.max(0, Number.isFinite(num) ? num : 0) }
+        }
+        return { ...item, [field]: value }
+      }),
+    )
+  }
+
+  const removeVariableExpense = (id: string) => {
+    recordUndoSnapshot()
+    setVariableExpenses((prev) => prev.filter((item) => item.id !== id))
+  }
+
+  const totalVariableExpenseRate = useMemo(() => {
+    return variableExpenses.reduce((acc, curr) => {
+      const r = Number.isFinite(curr.rate) && curr.rate > 0 ? curr.rate : 0
+      return acc + r
+    }, 0)
+  }, [variableExpenses])
 
   const addSimplesMonthlyRevenue = (val = 0) => {
     recordUndoSnapshot()
@@ -1544,6 +1675,13 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (field === 'purchaseItemId') {
           return { ...item, purchaseItemId: value ? String(value) : undefined }
         }
+        if (field === 'costOrigin') {
+          return { ...item, costOrigin: value as 'purchases' | 'manual' }
+        }
+        if (field === 'manualCostOverride') {
+          const num = typeof value === 'number' ? value : parseBRNumber(String(value ?? 0))
+          return { ...item, manualCostOverride: Number.isFinite(num) ? num : undefined }
+        }
         if (field === 'quantity') {
           const parsed = typeof value === 'number' ? value : parseInt(String(value), 10)
           return { ...item, quantity: isNaN(parsed) || parsed < 0 ? 0 : parsed }
@@ -1551,7 +1689,17 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (field === 'costComposition') {
           return { ...item, costComposition: value as CostComposition }
         }
-        // Campos numéricos (desiredNetRevenue, cost, margin)
+        // Se estiver alterando o 'cost' diretamente via digitação
+        if (field === 'cost') {
+          const numVal = typeof value === 'number' ? value : parseBRNumber(String(value ?? 0))
+          return {
+            ...item,
+            cost: numVal,
+            manualCostOverride: numVal,
+            costOrigin: 'manual',
+          }
+        }
+        // Campos numéricos (desiredNetRevenue, margin)
         const numVal = typeof value === 'number' ? value : parseBRNumber(String(value ?? 0))
         return {
           ...item,
@@ -1831,6 +1979,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       mode: 'cost_margin',
       desiredNetRevenue: 0,
       cost: unitNetCost,
+      costOrigin: 'purchases',
       margin: 0,
       quantity: qtyPurchased,
       costComposition: {
@@ -1947,6 +2096,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             mode: 'cost_margin',
             desiredNetRevenue: 0,
             cost: unitNetCost,
+            costOrigin: 'purchases',
             margin: 0,
             quantity: qty,
             costComposition: {
@@ -2762,6 +2912,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const taxRate = Number.isFinite(tax.rate) ? tax.rate : 0
       baseTaxFactor *= 1 - taxRate / 100
     }
+    // Despesas Variáveis (DV) multiplicativas: (1 - DV_total)
+    // Motor Multiplicativo: Divisor = (1 - Tributos) * (1 - DV) * (1 - Margem)
+    const dvFactor = 1 - (totalVariableExpenseRate || 0) / 100
+    baseTaxFactor *= dvFactor > 0 ? dvFactor : 1
     if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
     // Se não há dados preenchidos, não ativa a simulação automaticamente
     if (!hasAnyFilledProduct) {
@@ -2798,7 +2952,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ? p.desiredNetRevenue
             : 0
       } else {
-        baseValue = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+        baseValue = currentCost
       }
 
       // Blindagem contra divisão por zero / NaN / Infinity: safeFactor > 0.0001
@@ -2827,9 +2981,41 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     })
 
-    // Sincroniza produtos internamente sem loop infinito:
-    // Comparação com tolerância numérica (> 0.00001 para fatores, > 0.01 para monetários)
-    const hasDiff = updated.some((p, i) => {
+    // Sincronização dinâmica de custos dos produtos vindos de Compras Líquidas:
+    // Se um produto tem purchaseItemId ou foi importado de compras e costOrigin !== 'manual',
+    // seu custo base atualiza para refletir o custo de compras líquidas unitário daquele item no regime ativo.
+    const syncedWithRegimeCost = updated.map((p) => {
+      if (p.costOrigin === 'manual' || p.manualCostOverride !== undefined) {
+        return p
+      }
+      if (p.purchaseItemId) {
+        const item = (
+          computedPurchasesItems.length > 0 ? computedPurchasesItems : purchasesItems
+        ).find((pi) => pi.id === p.purchaseItemId)
+        if (item) {
+          const unitRegimeCost = getPurchaseItemUnitNetCost(item, regime)
+          if (unitRegimeCost > 0 && Math.abs(unitRegimeCost - p.cost) > 0.001) {
+            const safeFactor = p.completeFactor > 0.0001 ? p.completeFactor : 0
+            const newSalePrice =
+              safeFactor > 0 && unitRegimeCost > 0
+                ? Math.round((unitRegimeCost / safeFactor) * 100) / 100
+                : p.salePrice
+            const newTotalRev = Math.round(newSalePrice * p.quantity * 100) / 100
+            const newTotalCost = Math.round(unitRegimeCost * p.quantity * 100) / 100
+            return {
+              ...p,
+              cost: unitRegimeCost,
+              salePrice: newSalePrice,
+              totalRevenue: newTotalRev,
+              totalCost: newTotalCost,
+            }
+          }
+        }
+      }
+      return p
+    })
+
+    const hasDiff = syncedWithRegimeCost.some((p, i) => {
       const prev = markupProducts[i]
       if (!prev) return true
       const salePriceDiff = Math.abs((p.salePrice || 0) - (prev.salePrice || 0))
@@ -2846,10 +3032,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       )
     })
     if (hasDiff) {
-      setMarkupProducts(updated)
+      setMarkupProducts(syncedWithRegimeCost)
     }
 
-    const firstProduct = updated[0]
+    const firstProduct = syncedWithRegimeCost[0]
     let legacyCompleteFactor = firstProduct
       ? firstProduct.completeFactor
       : baseTaxFactor * (1 - (additionalMargin || 0) / 100)
@@ -2875,6 +3061,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     regime,
     icmsRateMarkup,
     customTaxesMarkup,
+    totalVariableExpenseRate,
     additionalMargin,
     markupProducts,
     simplesAnexo,
@@ -2906,12 +3093,26 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     for (const tax of customTaxesMarkup) {
       baseTaxFactor *= 1 - (tax.rate || 0) / 100
     }
+    const dvFactorManual = 1 - (totalVariableExpenseRate || 0) / 100
+    baseTaxFactor *= dvFactorManual > 0 ? dvFactorManual : 1
 
     let consolidatedRevenue = 0
     let consolidatedQty = 0
     let consolidatedCost = 0
 
     const updatedProducts = markupProducts.map((p) => {
+      let currentCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+      if (p.costOrigin !== 'manual' && p.manualCostOverride === undefined && p.purchaseItemId) {
+        const item = (
+          computedPurchasesItems.length > 0 ? computedPurchasesItems : purchasesItems
+        ).find((pi) => pi.id === p.purchaseItemId)
+        if (item) {
+          const unitRegimeCost = getPurchaseItemUnitNetCost(item, regime)
+          if (unitRegimeCost > 0) {
+            currentCost = unitRegimeCost
+          }
+        }
+      }
       const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
       const marginFactor = 1 - rawMargin / 100
       let completeFactor = baseTaxFactor * marginFactor
@@ -2938,7 +3139,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         typeof p.quantity === 'number' && Number.isFinite(p.quantity) ? Math.max(0, p.quantity) : 0
       const rawRev = roundedPrice * qty
       const totalRev = Number.isFinite(rawRev) ? Math.round(rawRev * 100) / 100 : 0
-      const pCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+      const pCost = currentCost
       const rawTotalCost = pCost * qty
       const totalCost = Number.isFinite(rawTotalCost) ? Math.round(rawTotalCost * 100) / 100 : 0
 
@@ -2948,6 +3149,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       return {
         ...p,
+        cost: currentCost,
         salePrice: roundedPrice,
         taxFactor: baseTaxFactor,
         completeFactor,
