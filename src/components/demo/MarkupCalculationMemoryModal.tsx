@@ -12,15 +12,21 @@ import {
   Info,
   Layers,
   Sparkles,
-  ChevronRight,
-  TrendingUp,
-  Receipt,
+  ShieldCheck,
   Building2,
   Percent,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react'
 import { formatBRL, formatNumberBR, formatPercentBR, formatFactorBR } from '@/lib/taxCalculations'
 import { calculatePgdas, SimplesAnexoId, SIMPLES_ANEXOS } from '@/lib/simplesCalculations'
-import { MarkupProductItem, TaxRegime, CustomTaxItem } from '@/contexts/TaxContext'
+import {
+  MarkupProductItem,
+  TaxRegime,
+  CustomTaxItem,
+  VariableExpenseItem,
+  SimplesScenarioKey,
+} from '@/contexts/TaxContext'
 
 export interface MarkupCalculationMemoryModalProps {
   open: boolean
@@ -32,6 +38,14 @@ export interface MarkupCalculationMemoryModalProps {
   simplesAnexo: string
   simplesRbt12: number
   simplesIsInicioAtividade?: boolean
+  // Novos campos enriquecidos da Portas 1 e 2 e Despesas Variáveis
+  simplesIsActiveMoreThan12m?: boolean
+  simplesActivityMonths?: number
+  simplesMonthlyProjectedRevenue?: number
+  simplesSelectedScenario?: SimplesScenarioKey
+  effectiveSimplesRbt12?: number
+  variableExpenses?: VariableExpenseItem[]
+  totalVariableExpenseRate?: number
 }
 
 export function MarkupCalculationMemoryModal({
@@ -40,10 +54,17 @@ export function MarkupCalculationMemoryModal({
   product,
   currentRegime,
   icmsRateMarkup,
-  customTaxesMarkup,
+  customTaxesMarkup = [],
   simplesAnexo,
   simplesRbt12,
   simplesIsInicioAtividade,
+  simplesIsActiveMoreThan12m = false,
+  simplesActivityMonths = 1,
+  simplesMonthlyProjectedRevenue = 20000,
+  simplesSelectedScenario = 'moderado',
+  effectiveSimplesRbt12: effectiveRbt12Prop,
+  variableExpenses = [],
+  totalVariableExpenseRate = 0,
 }: MarkupCalculationMemoryModalProps) {
   // Aba ativa de regime (padrão inicia no regime atual da empresa)
   const [activeTab, setActiveTab] = useState<TaxRegime>(currentRegime)
@@ -59,89 +80,199 @@ export function MarkupCalculationMemoryModal({
 
   // 1. Dados base do produto
   const isLiquid = product.mode === 'liquid'
-  const baseValue = isLiquid
-    ? typeof product.desiredNetRevenue === 'number' && Number.isFinite(product.desiredNetRevenue)
+  const baseCost =
+    typeof product.cost === 'number' && Number.isFinite(product.cost) ? product.cost : 0
+  const desiredNetRevenue =
+    typeof product.desiredNetRevenue === 'number' && Number.isFinite(product.desiredNetRevenue)
       ? product.desiredNetRevenue
       : 0
-    : typeof product.cost === 'number' && Number.isFinite(product.cost)
-      ? product.cost
-      : 0
+  const baseValue = isLiquid ? desiredNetRevenue : baseCost
+
   const marginPct =
     typeof product.margin === 'number' && Number.isFinite(product.margin) ? product.margin : 0
-  const marginFactor = 1 - marginPct / 100
+  const marginDecimal = marginPct / 100
+  const marginFactor = 1 - marginDecimal
+
   const quantity =
     typeof product.quantity === 'number' && Number.isFinite(product.quantity)
       ? Math.max(0, product.quantity)
       : 0
 
-  // 2. Fator de tributos customizados (comum)
+  // Origem do custo
+  const costOrigin = product.costOrigin || (product.purchaseItemId ? 'purchases' : 'manual')
+  const costOriginLabel =
+    costOrigin === 'manual' || product.manualCostOverride !== undefined
+      ? 'Manual (editado pelo usuário)'
+      : 'Compras líquidas do regime'
+
+  // Despesas Variáveis
+  const dvRate =
+    typeof totalVariableExpenseRate === 'number' && Number.isFinite(totalVariableExpenseRate)
+      ? totalVariableExpenseRate
+      : variableExpenses.reduce((sum, item) => sum + (item.rate || 0), 0)
+  const dvDecimal = dvRate / 100
+  const dvFactor = 1 - dvDecimal
+
+  // Tributos customizados
   let customTaxesFactor = 1
   for (const ct of customTaxesMarkup) {
     customTaxesFactor *= 1 - (ct.rate || 0) / 100
   }
 
-  // 3. Lucro Presumido
+  // -------------------------------------------------------------
+  // SIMPLES NACIONAL — Cálculos
+  // -------------------------------------------------------------
+  const anexoIdClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+  const anexoConfig = SIMPLES_ANEXOS[anexoIdClean] || SIMPLES_ANEXOS.anexo_1
+
+  // Determinar RBT12 real a ser exibida:
+  // Se Porta 1 (!simplesIsActiveMoreThan12m):
+  //   - Se activityMonths <= 1: mensal * 12
+  //   - Se activityMonths 2 a 12: proporcional art. 2º da LC 123/2006: (receitas acumuladas * 12) / meses
+  // Se Porta 2 (simplesIsActiveMoreThan12m): simplesRbt12
+  let calculatedRbt12 = 0
+  if (!simplesIsActiveMoreThan12m) {
+    if (effectiveRbt12Prop !== undefined && effectiveRbt12Prop > 0) {
+      calculatedRbt12 = effectiveRbt12Prop
+    } else {
+      const monthly = Math.max(0, simplesMonthlyProjectedRevenue || 0)
+      const months = Math.max(1, Math.min(12, simplesActivityMonths || 1))
+      calculatedRbt12 =
+        months <= 1 ? monthly * 12 : Math.round(((monthly * months * 12) / months) * 100) / 100
+    }
+  } else {
+    calculatedRbt12 = (simplesRbt12 || 0) > 0 ? simplesRbt12 : 0
+  }
+
+  const isFallbackRbt12 = calculatedRbt12 <= 0
+  const effectiveRbt12ForCalculation = calculatedRbt12
+
+  // Apuração legal LC 123/2006
+  const pgdasResult = calculatePgdas(anexoIdClean, effectiveRbt12ForCalculation)
+  const effectiveSimplesRate = pgdasResult.aliquotaEfetiva
+  const effectiveSimplesDecimal = effectiveSimplesRate / 100
+  const dasTaxFactor = 1 - effectiveSimplesDecimal
+
+  // Partilha ICMS da faixa detectada
+  const faixaIndex = Math.max(
+    0,
+    Math.min(pgdasResult.faixaNumero - 1, anexoConfig.faixas.length - 1),
+  )
+  const faixaDetectada = anexoConfig.faixas[faixaIndex]
+  const icmsPartilhaPct = faixaDetectada?.partilha.icms ?? 34
+  const icmsIntegradoRate = pgdasResult.reparticao.icmsRate
+
+  // Divisor Simples Multiplicativo: (1 - DAS) * (1 - DV) * (1 - Margem) * customTaxesFactor
+  const rawDivisorSimples = dasTaxFactor * dvFactor * marginFactor * customTaxesFactor
+  // Blindagem: se tributo aplicável (dasTaxFactor < 1), completeFactor nunca pode ser 1.0
+  const divisorSimples = Math.max(0.0001, rawDivisorSimples)
+  const salePriceSimples =
+    divisorSimples > 0 && baseValue > 0 ? Math.round((baseValue / divisorSimples) * 100) / 100 : 0
+  const totalRevenueSimples = Math.round(salePriceSimples * quantity * 100) / 100
+
+  // Distribuição do PV Simples em R$
+  const pvSimples = salePriceSimples
+  const valorDasSimples = Math.round(pvSimples * effectiveSimplesDecimal * 100) / 100
+  const valorDvSimples = Math.round(pvSimples * dvDecimal * 100) / 100
+  const valorMargemSimples =
+    Math.round((pvSimples - baseValue - valorDasSimples - valorDvSimples) * 100) / 100
+
+  // Comparação Aditiva vs Multiplicativa (Simples)
+  // Fórmula aditiva: Custo / (1 - (DAS% + DV% + Margem%))
+  const somaAliquotaSimplesAditiva = effectiveSimplesDecimal + dvDecimal + marginDecimal
+  const divisorAditivoSimples = Math.max(0.0001, 1 - somaAliquotaSimplesAditiva)
+  const salePriceAditivoSimples =
+    divisorAditivoSimples > 0 && baseValue > 0
+      ? Math.round((baseValue / divisorAditivoSimples) * 100) / 100
+      : 0
+
+  // -------------------------------------------------------------
+  // LUCRO PRESUMIDO — Cálculos
+  // -------------------------------------------------------------
   const pisPresumidoRate = 0.65
   const cofinsPresumidoRate = 3.0
   const icmsRateClean = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
+
   const icmsFactorPresumido = 1 - icmsRateClean / 100
   const pisFactorPresumido = 1 - pisPresumidoRate / 100
   const cofinsFactorPresumido = 1 - cofinsPresumidoRate / 100
-  const taxFactorPresumido =
+  const taxFactorPresumidoDecomposto =
     icmsFactorPresumido * pisFactorPresumido * cofinsFactorPresumido * customTaxesFactor
-  const completeFactorPresumido = taxFactorPresumido * marginFactor
-  const safeFactorPresumido = completeFactorPresumido > 0.0001 ? completeFactorPresumido : 0
+
+  const rawDivisorPresumido = taxFactorPresumidoDecomposto * dvFactor * marginFactor
+  const divisorPresumido = Math.max(0.0001, rawDivisorPresumido)
   const salePricePresumido =
-    safeFactorPresumido > 0 && baseValue > 0
-      ? Math.round((baseValue / safeFactorPresumido) * 100) / 100
+    divisorPresumido > 0 && baseValue > 0
+      ? Math.round((baseValue / divisorPresumido) * 100) / 100
       : 0
   const totalRevenuePresumido = Math.round(salePricePresumido * quantity * 100) / 100
 
-  // 4. Lucro Real
+  // Distribuição do PV Presumido
+  const pvPresumido = salePricePresumido
+  const valorIcmsPresumido = Math.round(pvPresumido * (icmsRateClean / 100) * 100) / 100
+  const valorPisPresumido = Math.round(pvPresumido * (pisPresumidoRate / 100) * 100) / 100
+  const valorCofinsPresumido = Math.round(pvPresumido * (cofinsPresumidoRate / 100) * 100) / 100
+  const valorTributosPresumido = valorIcmsPresumido + valorPisPresumido + valorCofinsPresumido
+  const valorDvPresumido = Math.round(pvPresumido * dvDecimal * 100) / 100
+  const valorMargemPresumido =
+    Math.round((pvPresumido - baseValue - valorTributosPresumido - valorDvPresumido) * 100) / 100
+
+  // Comparação Aditiva vs Multiplicativa (Presumido)
+  const somaAliquotaPresumidoAditiva =
+    icmsRateClean / 100 +
+    pisPresumidoRate / 100 +
+    cofinsPresumidoRate / 100 +
+    dvDecimal +
+    marginDecimal
+  const divisorAditivoPresumido = Math.max(0.0001, 1 - somaAliquotaPresumidoAditiva)
+  const salePriceAditivoPresumido =
+    divisorAditivoPresumido > 0 && baseValue > 0
+      ? Math.round((baseValue / divisorAditivoPresumido) * 100) / 100
+      : 0
+
+  // -------------------------------------------------------------
+  // LUCRO REAL — Cálculos
+  // -------------------------------------------------------------
   const pisRealRate = 1.65
   const cofinsRealRate = 7.6
   const icmsFactorReal = 1 - icmsRateClean / 100
   const pisFactorReal = 1 - pisRealRate / 100
   const cofinsFactorReal = 1 - cofinsRealRate / 100
-  const taxFactorReal = icmsFactorReal * pisFactorReal * cofinsFactorReal * customTaxesFactor
-  const completeFactorReal = taxFactorReal * marginFactor
-  const safeFactorReal = completeFactorReal > 0.0001 ? completeFactorReal : 0
+  const taxFactorRealDecomposto =
+    icmsFactorReal * pisFactorReal * cofinsFactorReal * customTaxesFactor
+
+  const rawDivisorReal = taxFactorRealDecomposto * dvFactor * marginFactor
+  const divisorReal = Math.max(0.0001, rawDivisorReal)
   const salePriceReal =
-    safeFactorReal > 0 && baseValue > 0 ? Math.round((baseValue / safeFactorReal) * 100) / 100 : 0
+    divisorReal > 0 && baseValue > 0 ? Math.round((baseValue / divisorReal) * 100) / 100 : 0
   const totalRevenueReal = Math.round(salePriceReal * quantity * 100) / 100
 
-  // 5. Simples Nacional
-  const hasSimplesRbt = (simplesRbt12 || 0) > 0
-  const anexoIdClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
-  const anexoConfig = SIMPLES_ANEXOS[anexoIdClean] || SIMPLES_ANEXOS.anexo_1
-  const rawRbt12 = simplesRbt12 || 0
-  const isFallbackRbt12 = rawRbt12 <= 0
+  // Distribuição do PV Real
+  const pvReal = salePriceReal
+  const valorIcmsReal = Math.round(pvReal * (icmsRateClean / 100) * 100) / 100
+  const valorPisReal = Math.round(pvReal * (pisRealRate / 100) * 100) / 100
+  const valorCofinsReal = Math.round(pvReal * (cofinsRealRate / 100) * 100) / 100
+  const valorTributosReal = valorIcmsReal + valorPisReal + valorCofinsReal
+  const valorDvReal = Math.round(pvReal * dvDecimal * 100) / 100
+  const valorMargemReal =
+    Math.round((pvReal - baseValue - valorTributosReal - valorDvReal) * 100) / 100
 
-  // No Simples Nacional, a alíquota efetiva NUNCA é zero/ausente:
-  // Se RBT12 > 0: fórmula legal LC 123/2006 (RBT12 × Alíquota Nominal − Parcela Deduzir) ÷ RBT12
-  // Se RBT12 = 0 ou não informada: fallback explícito com alíquota nominal da 1ª faixa do anexo
-  const pgdasResult = calculatePgdas(anexoIdClean, rawRbt12)
-  const effectiveSimplesRate = pgdasResult.aliquotaEfetiva
-  const baseTaxFactorSimples = 1 - effectiveSimplesRate / 100
-  let rawCompleteFactorSimples = baseTaxFactorSimples * customTaxesFactor * marginFactor
-  // Assert defensivo: se houver imposto aplicável e completeFactor >= 1, usa baseTaxFactor sem margem
-  if (baseTaxFactorSimples < 1 && rawCompleteFactorSimples >= 1) {
-    rawCompleteFactorSimples = baseTaxFactorSimples * customTaxesFactor
-  }
-  const completeFactorSimples = Math.max(0.0001, rawCompleteFactorSimples)
-  const salePriceSimples =
-    completeFactorSimples > 0 && baseValue > 0
-      ? Math.round((baseValue / completeFactorSimples) * 100) / 100
+  // Comparação Aditiva vs Multiplicativa (Real)
+  const somaAliquotaRealAditiva =
+    icmsRateClean / 100 + pisRealRate / 100 + cofinsRealRate / 100 + dvDecimal + marginDecimal
+  const divisorAditivoReal = Math.max(0.0001, 1 - somaAliquotaRealAditiva)
+  const salePriceAditivoReal =
+    divisorAditivoReal > 0 && baseValue > 0
+      ? Math.round((baseValue / divisorAditivoReal) * 100) / 100
       : 0
-  const totalRevenueSimples = Math.round(salePriceSimples * quantity * 100) / 100
 
-  // Preço e fator calculados diretamente no contexto no regime atual:
+  // Valores ativos do produto no regime corrente
   const activeSalePrice = product.salePrice || 0
   const activeCompleteFactor = product.completeFactor || 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-5 sm:p-7 shadow-2xl">
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-5 sm:p-7 shadow-2xl">
         {/* Cabeçalho */}
         <DialogHeader className="border-b border-slate-800 pb-3.5 space-y-1.5">
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -153,13 +284,19 @@ export function MarkupCalculationMemoryModal({
                 <span>Memória de Cálculo do Preço Sugerido</span>
               </DialogTitle>
             </div>
-            <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono text-xs">
-              {product.name || 'Produto'}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono text-xs">
+                {product.name || 'Produto'}
+              </Badge>
+              <Badge className="bg-slate-800 text-slate-300 border-slate-700 font-mono text-[11px]">
+                12 Blocos
+              </Badge>
+            </div>
           </div>
           <DialogDescription className="text-xs text-slate-400 font-mono">
-            Subcamada analítica: derivação linha a linha, com os valores reais cadastrados, da
-            fórmula exata que gerou o preço de venda sugerido.
+            Subcamada analítica: história completa do cálculo em 12 blocos numerados com valores
+            reais do estado, derivação da fórmula multiplicativa e seção técnica de Blindagem de
+            Margem.
           </DialogDescription>
         </DialogHeader>
 
@@ -167,16 +304,19 @@ export function MarkupCalculationMemoryModal({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
           <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80 font-mono">
             <span className="text-[10px] text-slate-400 block uppercase">
-              {isLiquid ? 'Receita Líquida' : 'Custo de Aquisição'}
+              {isLiquid ? 'Receita Líquida' : 'Custo Unitário'}
             </span>
             <span className="text-sm font-bold text-emerald-400">{formatBRL(baseValue)}</span>
-            <span className="text-[10px] text-slate-500 block mt-0.5">
-              {isLiquid ? 'Base líquida desejada' : 'Líquido / composição'}
+            <span
+              className="text-[10px] text-slate-500 block mt-0.5 truncate"
+              title={costOriginLabel}
+            >
+              {costOrigin === 'manual' ? 'Manual' : 'Via Compras'}
             </span>
           </div>
 
           <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80 font-mono">
-            <span className="text-[10px] text-slate-400 block uppercase">Margem de Lucro</span>
+            <span className="text-[10px] text-slate-400 block uppercase">Margem Desejada</span>
             <span className="text-sm font-bold text-amber-300">{formatPercentBR(marginPct)}</span>
             <span className="text-[10px] text-slate-500 block mt-0.5">
               Fator: {formatFactorBR(marginFactor, 4)}
@@ -184,9 +324,11 @@ export function MarkupCalculationMemoryModal({
           </div>
 
           <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80 font-mono">
-            <span className="text-[10px] text-slate-400 block uppercase">Regime da Empresa</span>
+            <span className="text-[10px] text-slate-400 block uppercase">Regime Ativo</span>
             <span className="text-sm font-bold text-orange-400 uppercase">{currentRegime}</span>
-            <span className="text-[10px] text-slate-500 block mt-0.5">Sincronizado global</span>
+            <span className="text-[10px] text-slate-500 block mt-0.5">
+              DV total: {formatPercentBR(dvRate)}
+            </span>
           </div>
 
           <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 font-mono">
@@ -197,7 +339,7 @@ export function MarkupCalculationMemoryModal({
               {formatBRL(activeSalePrice)}
             </span>
             <span className="text-[10px] text-emerald-400/80 block mt-0.5">
-              Divisor: {formatFactorBR(activeCompleteFactor, 4)}
+              Divisor: {formatFactorBR(activeCompleteFactor, 5)}
             </span>
           </div>
         </div>
@@ -207,11 +349,9 @@ export function MarkupCalculationMemoryModal({
           <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2">
             <span className="text-xs font-mono uppercase tracking-wider text-slate-300 font-semibold flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-emerald-400" />
-              Selecione o regime para ver a memória:
+              Selecione o regime para visualizar os 12 blocos:
             </span>
-            <span className="text-[11px] font-mono text-slate-500">
-              Linha a linha com dados reais
-            </span>
+            <span className="text-[11px] font-mono text-slate-500">Cálculo com valores reais</span>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
@@ -258,7 +398,9 @@ export function MarkupCalculationMemoryModal({
                   </Badge>
                 )}
               </div>
-              <p className="text-[10px] text-slate-400 mt-0.5 truncate">PIS 0,65% + COF 3%</p>
+              <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                ICMS {formatPercentBR(icmsRateClean)} + PIS 0,65% + COF 3%
+              </p>
             </button>
 
             <button
@@ -278,11 +420,15 @@ export function MarkupCalculationMemoryModal({
                   </Badge>
                 )}
               </div>
-              <p className="text-[10px] text-slate-400 mt-0.5 truncate">PIS 1,65% + COF 7,6%</p>
+              <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                ICMS {formatPercentBR(icmsRateClean)} + PIS 1,65% + COF 7,6%
+              </p>
             </button>
           </div>
 
-          {/* DETALHAMENTO DO SIMPLES NACIONAL */}
+          {/* =========================================================
+              ABA SIMPLES NACIONAL (12 BLOCOS NUMERADOS)
+              ========================================================= */}
           {activeTab === 'simples' && (
             <div className="space-y-4 pt-1 animate-in fade-in duration-200">
               {/* Box de fórmula sintética */}
@@ -290,173 +436,210 @@ export function MarkupCalculationMemoryModal({
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-orange-400" />
                   <span className="text-xs font-mono font-bold text-orange-300 uppercase">
-                    Fórmula do Preço no Simples Nacional
+                    Fórmula Multiplicativa no Simples Nacional
                   </span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 font-mono text-xs text-slate-200 overflow-x-auto">
                   <code className="text-emerald-400">
-                    Preço Sugerido = Custo Base ÷ [ (1 − Alíquota Efetiva DAS) × (1 − Margem%) ]
+                    Divisor = (1 − Alíquota Efetiva DAS) × (1 − DV Total) × (1 − Margem%)
+                    <br />
+                    Preço Sugerido = Custo Unitário ÷ Divisor
                   </code>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed">
                   No Simples Nacional, os tributos sobre receita (ICMS, PIS, COFINS, IRPJ, CSLL e
-                  CPP) são <strong>unificados na guia única DAS</strong> pela alíquota efetiva do
-                  PGDAS calculada sobre a receita acumulada dos últimos 12 meses (RBT12). A parcela
-                  do ICMS já está <strong>embutida/integrada</strong> dentro do DAS conforme a
-                  partilha legal do Anexo.
+                  CPP) são unificados no DAS pela alíquota efetiva do PGDAS calculada sobre a RBT12.
+                  O motor multiplicativo deduz os tributos e despesas variáveis antes de aplicar a
+                  margem líquida.
                 </p>
               </div>
 
-              {/* Tabela de Passos da Derivação */}
+              {/* Tabela dos 12 Blocos Numerados */}
               <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden text-xs font-mono">
                 <div className="bg-slate-950/80 px-3.5 py-2.5 border-b border-slate-800 flex items-center justify-between">
                   <span className="font-semibold text-slate-200 uppercase tracking-wider text-[11px]">
-                    Memória Passo a Passo (Simples Nacional)
+                    Memória de Cálculo em 12 Blocos (Simples Nacional)
                   </span>
-                  <span className="text-[10px] text-slate-500">Regras LC 123/2006</span>
+                  <span className="text-[10px] text-slate-500">LC 123/2006</span>
                 </div>
 
                 <div className="divide-y divide-slate-800/70">
-                  {/* Linha 1: Custo / Base */}
+                  {/* ① Perfil */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
-                      <span className="font-bold text-slate-200 block">
-                        1. {isLiquid ? 'Receita Líquida Desejada' : 'Custo Unitário de Aquisição'}
-                      </span>
+                      <span className="font-bold text-slate-200 block">① Perfil da Empresa</span>
                       <span className="text-[10px] text-slate-400">
-                        {isLiquid
-                          ? 'Valor líquido que a empresa deseja reter'
-                          : 'Custo líquido vindo de Compras / Composição'}
-                      </span>
-                    </div>
-                    <span className="font-bold text-slate-100 text-sm">{formatBRL(baseValue)}</span>
-                  </div>
-
-                  {/* Linha 2: RBT12 e Anexo */}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/30">
-                    <div>
-                      <span className="font-bold text-slate-200 block">
-                        2. RBT12 (Receita Bruta Acumulada 12 Meses)
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        {anexoConfig.nome}
-                        {simplesIsInicioAtividade ? ' · Proporcional início de atividade' : ''}
-                        {isFallbackRbt12
-                          ? ' · RBT12 não informada — usando 1ª faixa (fallback: 4,00%)'
-                          : ''}
+                        {!simplesIsActiveMoreThan12m
+                          ? 'Início de atividade (Porta 1 — até 12 meses de operação)'
+                          : 'RBT12 consolidada (Porta 2 — mais de 12 meses de operação)'}
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-slate-300 block">
-                        {hasSimplesRbt
-                          ? formatBRL(simplesRbt12)
-                          : 'RBT12 não informada — usando 1ª faixa (fallback: 4,00%)'}
+                      <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/40 text-[10px] font-mono">
+                        {!simplesIsActiveMoreThan12m
+                          ? 'Porta 1 (Início)'
+                          : 'Porta 2 (RBT12 Formada)'}
+                      </Badge>
+                      <span className="text-[10px] text-slate-500 block mt-0.5">
+                        {!simplesIsActiveMoreThan12m
+                          ? `${simplesActivityMonths}º mês · Cenário ${simplesSelectedScenario}`
+                          : 'Histórico > 12 meses'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ② RBT12 */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/30">
+                    <div>
+                      <span className="font-bold text-slate-200 block">
+                        ② RBT12 (Receita Bruta Acumulada 12 Meses)
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {!simplesIsActiveMoreThan12m ? (
+                          simplesActivityMonths <= 1 ? (
+                            <>
+                              1º mês: faturamento mensal projetado × 12 (
+                              {formatBRL(simplesMonthlyProjectedRevenue)} × 12)
+                            </>
+                          ) : (
+                            <>
+                              Proporcional art. 2º LC 123/2006: (receitas acumuladas × 12) ÷ meses =
+                              ({formatBRL(simplesMonthlyProjectedRevenue * simplesActivityMonths)} ×
+                              12) ÷ {simplesActivityMonths}
+                            </>
+                          )
+                        ) : (
+                          <>Porta 2: RBT12 informada ({formatBRL(simplesRbt12)})</>
+                        )}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-slate-200 block text-sm">
+                        {formatBRL(effectiveRbt12ForCalculation)}
                       </span>
                       {isFallbackRbt12 && (
-                        <span className="text-[10px] text-amber-300">Fallback legal aplicado</span>
+                        <span className="text-[10px] text-amber-300 block">
+                          1ª faixa aplicada (fallback 4,00%)
+                        </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Linha 3: Alíquota Efetiva do DAS */}
+                  {/* ③ Anexo e faixa detectada */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
-                      <span className="font-bold text-orange-300 block">
-                        3. Alíquota Efetiva do DAS (PGDAS)
+                      <span className="font-bold text-slate-200 block">
+                        ③ Anexo e Faixa Detectada
                       </span>
-                      {hasSimplesRbt ? (
-                        <span className="text-[10px] text-slate-400">
-                          Faixa {pgdasResult.faixaNumero}: ({formatBRL(rawRbt12)} ×{' '}
-                          {formatNumberBR(pgdasResult.aliquotaNominal)}% −{' '}
-                          {formatBRL(pgdasResult.parcelaDeduzir)}) ÷ {formatBRL(rawRbt12)} ={' '}
-                          {formatPercentBR(effectiveSimplesRate, 4)}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-amber-300">
-                          RBT12 não informada — usando 1ª faixa (fallback:{' '}
-                          {formatPercentBR(effectiveSimplesRate, 2)})
-                        </span>
-                      )}
+                      <span className="text-[10px] text-slate-400">
+                        {anexoConfig.nome} · Faixa {pgdasResult.faixaNumero} de{' '}
+                        {anexoConfig.faixas.length} (até{' '}
+                        {formatBRL(faixaDetectada?.limiteSuperior || 180000)})
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-slate-200 block">
+                        Nominal: {formatPercentBR(pgdasResult.aliquotaNominal)}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block">
+                        Deduzir: {formatBRL(pgdasResult.parcelaDeduzir)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ④ Alíquota efetiva */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-orange-500/[0.05]">
+                    <div>
+                      <span className="font-bold text-orange-300 block">
+                        ④ Alíquota Efetiva do DAS (PGDAS)
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {effectiveRbt12ForCalculation > 0 ? (
+                          <>
+                            ({formatBRL(effectiveRbt12ForCalculation)} ×{' '}
+                            {formatNumberBR(pgdasResult.aliquotaNominal)}% −{' '}
+                            {formatBRL(pgdasResult.parcelaDeduzir)}) ÷{' '}
+                            {formatBRL(effectiveRbt12ForCalculation)}
+                          </>
+                        ) : (
+                          <>1ª faixa (RBT12 zerada ou início 1º mês)</>
+                        )}
+                      </span>
                     </div>
                     <span className="font-bold text-orange-300 text-sm">
                       {formatPercentBR(effectiveSimplesRate, 4)}
                     </span>
                   </div>
 
-                  {/* Sub-abertura: Componentes do DAS (Destaque do ICMS integrado) */}
-                  {pgdasResult && (
-                    <div className="px-3.5 py-2 bg-slate-950/50 space-y-1.5 border-l-2 border-orange-500/60 ml-2 my-1 rounded-r-lg">
-                      <div className="flex items-center justify-between text-[11px] flex-wrap gap-1">
-                        <span className="text-slate-300 font-semibold flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          ICMS Integrado = alíquota efetiva × partilha:
-                        </span>
-                        <span className="font-bold text-emerald-400">
-                          {formatPercentBR(effectiveSimplesRate, 4)} ×{' '}
-                          {formatPercentBR(
-                            anexoConfig.faixas[pgdasResult.faixaNumero - 1]?.partilha.icms || 34,
-                            2,
-                          )}{' '}
-                          = {formatPercentBR(pgdasResult.reparticao.icmsRate, 4)}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-emerald-300/90 font-mono">
-                        (Aviso legal: O ICMS já está contido no DAS — não há destaque nem
-                        recolhimento estadual apartado)
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-                        <span>PIS Integrado ao DAS:</span>
-                        <span>{formatPercentBR(pgdasResult.reparticao.pisRate, 4)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-slate-400">
-                        <span>COFINS Integrada ao DAS:</span>
-                        <span>{formatPercentBR(pgdasResult.reparticao.cofinsRate, 4)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-slate-400">
-                        <span>Demais tributos (IRPJ, CSLL, CPP):</span>
-                        <span>
-                          {formatPercentBR(
-                            pgdasResult.reparticao.irpjRate +
-                              pgdasResult.reparticao.csllRate +
-                              pgdasResult.reparticao.cppRate,
-                            4,
-                          )}
-                        </span>
-                      </div>
-                      {pgdasResult.isSublimiteExceeded && (
-                        <div className="p-1.5 rounded bg-amber-500/15 border border-amber-500/30 text-[10px] text-amber-300">
-                          Atenção: Sublimite estadual excedido (&gt; R$ 3,6M). O ICMS deve ser
-                          recolhido por fora da guia DAS.
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Linha 4: Tributos Adicionais se houver */}
-                  {customTaxesMarkup.length > 0 && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between">
-                      <div>
-                        <span className="font-bold text-slate-200 block">
-                          4. Tributos Adicionais
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          {customTaxesMarkup.map((t) => `${t.name}: ${t.rate}%`).join(', ')}
-                        </span>
-                      </div>
-                      <span className="text-slate-300 font-bold">
-                        Fator: {formatFactorBR(customTaxesFactor, 4)}
+                  {/* ⑤ ICMS integrado */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/40">
+                    <div>
+                      <span className="font-bold text-emerald-400 block">
+                        ⑤ ICMS Integrado no DAS
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Alíquota efetiva ({formatPercentBR(effectiveSimplesRate, 4)}) × partilha da
+                        faixa ({formatPercentBR(icmsPartilhaPct)})
+                      </span>
+                      <span className="text-[10px] text-emerald-300/80 block mt-0.5">
+                        Nota: ICMS, PIS e COFINS vivem dentro do DAS no Simples Nacional
                       </span>
                     </div>
-                  )}
+                    <div className="text-right">
+                      <span className="font-bold text-emerald-300 text-sm block">
+                        {formatPercentBR(icmsIntegradoRate, 4)}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Partilha: {formatPercentBR(icmsPartilhaPct)}
+                      </span>
+                    </div>
+                  </div>
 
-                  {/* Linha 5: Margem de Lucro Desejada */}
+                  {/* ⑥ Custo unitário */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-200 block">
-                        5. Margem de Lucro Comercial (%)
+                        ⑥ Custo Unitário do Produto
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator da margem = 1 − ({formatNumberBR(marginPct)} ÷ 100)
+                        Origem: <strong className="text-slate-300">{costOriginLabel}</strong>
+                      </span>
+                    </div>
+                    <span className="font-bold text-slate-100 text-sm">{formatBRL(baseValue)}</span>
+                  </div>
+
+                  {/* ⑦ Despesas Variáveis */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/30">
+                    <div>
+                      <span className="font-bold text-slate-200 block">
+                        ⑦ Despesas Variáveis de Venda (Σ DV)
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {variableExpenses.length > 0
+                          ? variableExpenses
+                              .map((dv) => `${dv.name}: ${formatPercentBR(dv.rate)}`)
+                              .join(' · ')
+                          : 'Nenhuma despesa cadastrada'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-amber-300 text-sm block">
+                        {formatPercentBR(dvRate)}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Fator DV: {formatFactorBR(dvFactor, 4)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ⑧ Margem desejada */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-slate-200 block">
+                        ⑧ Margem de Lucro Desejada (%)
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Margem aplicada sobre a receita líquida
                       </span>
                     </div>
                     <div className="text-right">
@@ -464,35 +647,36 @@ export function MarkupCalculationMemoryModal({
                         {formatPercentBR(marginPct)}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator: {formatFactorBR(marginFactor, 4)}
+                        Fator Margem: {formatFactorBR(marginFactor, 4)}
                       </span>
                     </div>
                   </div>
 
-                  {/* Linha 6: Fator Divisor Completo */}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-500/[0.07]">
+                  {/* ⑨ Fator Divisor */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-500/[0.08]">
                     <div>
                       <span className="font-bold text-emerald-400 block">
-                        6. Fator Divisor do Markup (Denominador)
+                        ⑨ Fator Divisor Multiplicativo
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        (1 − {formatNumberBR(effectiveSimplesRate, 4)}%) × (1 −{' '}
-                        {formatNumberBR(marginPct)}%) = (1 − DAS) × (1 − margem)
+                        (1 − {formatPercentBR(effectiveSimplesRate, 4)}) × (1 −{' '}
+                        {formatPercentBR(dvRate)}) × (1 − {formatPercentBR(marginPct)}) = (1 − DAS)
+                        × (1 − DV) × (1 − Margem)
                       </span>
                     </div>
-                    <span className="font-black text-emerald-300 text-sm">
-                      {formatFactorBR(completeFactorSimples, 5)}
+                    <span className="font-black text-emerald-300 text-base">
+                      {formatFactorBR(divisorSimples, 5)}
                     </span>
                   </div>
 
-                  {/* Linha 7: Preço de Venda Sugerido */}
+                  {/* ⑩ Preço sugerido */}
                   <div className="px-3.5 py-3 flex items-center justify-between bg-emerald-500/15 border-t border-emerald-500/30">
                     <div>
                       <span className="font-extrabold text-emerald-300 block text-xs sm:text-sm uppercase tracking-wide">
-                        7. Preço de Venda Sugerido (Unitário)
+                        ⑩ Preço de Venda Sugerido (Unitário)
                       </span>
                       <span className="text-[10px] text-emerald-400/80">
-                        {formatBRL(baseValue)} ÷ {formatFactorBR(completeFactorSimples || 0, 5)} ={' '}
+                        {formatBRL(baseValue)} ÷ {formatFactorBR(divisorSimples, 5)} ={' '}
                         {formatBRL(salePriceSimples)}
                       </span>
                     </div>
@@ -501,79 +685,235 @@ export function MarkupCalculationMemoryModal({
                     </span>
                   </div>
 
-                  {/* Linha 8: Receita Total se houver quantidade */}
-                  {quantity > 0 && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/60 text-slate-300">
-                      <div>
-                        <span className="font-semibold block">Receita Bruta Total Projetada</span>
-                        <span className="text-[10px] text-slate-400">
-                          {quantity} unidades × {formatBRL(salePriceSimples)}
+                  {/* ⑪ Distribuição do preço em R$ */}
+                  <div className="p-3.5 bg-slate-950/70 space-y-2 border-l-2 border-emerald-500">
+                    <span className="font-bold text-slate-200 block text-[11px] uppercase tracking-wider">
+                      ⑪ Distribuição Didática do Preço de Venda ({formatBRL(pvSimples)})
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
+                      <div className="p-2 rounded bg-slate-900/80 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 block uppercase">
+                          Custo Produto
+                        </span>
+                        <span className="font-bold text-slate-200">{formatBRL(baseValue)}</span>
+                        <span className="text-[9px] text-slate-500 block">
+                          {pvSimples > 0 ? formatPercentBR((baseValue / pvSimples) * 100, 1) : '0%'}
                         </span>
                       </div>
-                      <span className="font-bold text-slate-100">
-                        {formatBRL(totalRevenueSimples)}
+                      <div className="p-2 rounded bg-slate-900/80 border border-slate-800">
+                        <span className="text-[10px] text-orange-400 block uppercase">
+                          DAS ({formatPercentBR(effectiveSimplesRate, 2)})
+                        </span>
+                        <span className="font-bold text-orange-300">
+                          {formatBRL(valorDasSimples)}
+                        </span>
+                        <span className="text-[9px] text-slate-500 block">PV × efetiva</span>
+                      </div>
+                      <div className="p-2 rounded bg-slate-900/80 border border-slate-800">
+                        <span className="text-[10px] text-amber-400 block uppercase">
+                          DV ({formatPercentBR(dvRate, 2)})
+                        </span>
+                        <span className="font-bold text-amber-300">
+                          {formatBRL(valorDvSimples)}
+                        </span>
+                        <span className="text-[9px] text-slate-500 block">PV × Σ DV</span>
+                      </div>
+                      <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/30">
+                        <span className="text-[10px] text-emerald-400 block uppercase font-semibold">
+                          Margem em R$
+                        </span>
+                        <span className="font-bold text-emerald-300">
+                          {formatBRL(valorMargemSimples)}
+                        </span>
+                        <span className="text-[9px] text-emerald-400/70 block">Sobra líquida</span>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/80">
+                      <span>Conferência da soma dos componentes:</span>
+                      <span className="font-bold text-emerald-300">
+                        {formatBRL(baseValue)} + {formatBRL(valorDasSimples)} +{' '}
+                        {formatBRL(valorDvSimples)} + {formatBRL(valorMargemSimples)} ={' '}
+                        {formatBRL(
+                          baseValue + valorDasSimples + valorDvSimples + valorMargemSimples,
+                        )}
                       </span>
                     </div>
-                  )}
+                  </div>
+
+                  {/* ⑫ Blindagem de Margem */}
+                  <div className="p-3.5 bg-gradient-to-r from-emerald-500/15 via-slate-900 to-slate-950 border border-emerald-500/40 rounded-b-xl space-y-2">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span className="font-extrabold text-emerald-300 uppercase tracking-wider text-xs">
+                        ⑫ BLINDAGEM DE MARGEM
+                      </span>
+                      <Badge className="bg-emerald-500/25 text-emerald-200 border-0 text-[9px] font-mono">
+                        Técnica Tributária
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-slate-200 leading-relaxed font-sans">
+                      Precificar com a alíquota de um cenário de faturamento superior (como Moderado
+                      ou Otimista)
+                      <strong> blinda a sua margem</strong> contra flutuações de vendas. Se a
+                      empresa faturar menos do que o projetado e a faixa real de RBT12 cair, a
+                      alíquota efetiva do DAS no fechamento do mês será <strong>menor</strong> que a
+                      aplicada na formação de preço — fazendo com que a{' '}
+                      <strong>margem real no fechamento seja MAIOR que a planejada</strong>. Se o
+                      faturamento se confirmar como projetado, a margem se mantém perfeitamente
+                      íntegra.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção Didática Aditiva x Multiplicativa */}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-4 space-y-3 font-mono text-xs">
+                <div className="flex items-center gap-2 text-slate-300 font-semibold border-b border-slate-800 pb-2">
+                  <span className="w-1.5 h-3.5 bg-cyan-400 rounded-full" />
+                  <span className="uppercase text-[11px] text-cyan-300">
+                    Comparação Didática: Aditiva × Multiplicativa
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-300 text-xs uppercase">
+                        Multiplicativa (Padrão IT)
+                      </span>
+                      <Badge className="bg-emerald-500/30 text-emerald-200 border-0 text-[9px]">
+                        Oficial
+                      </Badge>
+                    </div>
+                    <p className="text-[10px] text-slate-300">
+                      PV = Custo ÷ [(1 − DAS) × (1 − DV) × (1 − Margem)]
+                    </p>
+                    <div className="pt-1 flex items-baseline justify-between">
+                      <span className="text-slate-400 text-[10px]">Preço Resultante:</span>
+                      <span className="text-sm font-black text-emerald-300">
+                        {formatBRL(salePriceSimples)}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 pt-1 border-t border-emerald-500/20">
+                      Aplica a margem sobre a receita líquida de tributos e DV — coerente com as
+                      DREs e o LAIR.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-300 text-xs uppercase">
+                        Aditiva (Referência Comercial)
+                      </span>
+                      <Badge className="bg-slate-800 text-slate-400 border-0 text-[9px]">
+                        Apenas Exibição
+                      </Badge>
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      PV = Custo ÷ [1 − (DAS + DV + Margem)]
+                    </p>
+                    <div className="pt-1 flex items-baseline justify-between">
+                      <span className="text-slate-400 text-[10px]">Preço Resultante:</span>
+                      <span className="text-sm font-bold text-slate-200">
+                        {formatBRL(salePriceAditivoSimples)}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 pt-1 border-t border-slate-800">
+                      Aplica a margem sobre o preço bruto total e resulta em um preço ~7% maior que
+                      o multiplicativo.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* DETALHAMENTO DO LUCRO PRESUMIDO */}
+          {/* =========================================================
+              ABA LUCRO PRESUMIDO (12 BLOCOS NUMERADOS)
+              ========================================================= */}
           {activeTab === 'presumido' && (
             <div className="space-y-4 pt-1 animate-in fade-in duration-200">
               <div className="p-3.5 rounded-xl bg-orange-500/10 border border-orange-500/30 space-y-2">
                 <div className="flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-orange-400" />
                   <span className="text-xs font-mono font-bold text-orange-300 uppercase">
-                    Fórmula do Preço no Lucro Presumido
+                    Fórmula Multiplicativa no Lucro Presumido
                   </span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 font-mono text-xs text-slate-200 overflow-x-auto">
                   <code className="text-emerald-400">
-                    Preço Sugerido = Custo Base ÷ [ (1 − ICMS%) × (1 − PIS 0,65%) × (1 − COFINS
-                    3,00%) × (1 − Margem%) ]
+                    Divisor = (1 − ICMS%) × (1 − PIS 0,65%) × (1 − COFINS 3,00%) × (1 − DV Total) ×
+                    (1 − Margem%)
+                    <br />
+                    Preço Sugerido = Custo Unitário ÷ Divisor
                   </code>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed">
                   No Lucro Presumido cumulativo, o PIS (0,65%) e a COFINS (3,00%) incidem
-                  diretamente sobre a receita bruta, somados à alíquota de ICMS informada. IRPJ
-                  (1,20% com base 8%) e CSLL (1,08% com base 12%) incidem trimestralmente sobre a
-                  base presumida na DRE.
+                  diretamente sobre a receita bruta, somados à alíquota de ICMS informada e às
+                  despesas variáveis de venda.
                 </p>
               </div>
 
               <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden text-xs font-mono">
                 <div className="bg-slate-950/80 px-3.5 py-2.5 border-b border-slate-800 flex items-center justify-between">
                   <span className="font-semibold text-slate-200 uppercase tracking-wider text-[11px]">
-                    Memória Passo a Passo (Lucro Presumido)
+                    Memória de Cálculo em 12 Blocos (Lucro Presumido)
                   </span>
                   <span className="text-[10px] text-slate-500">Regime Cumulativo</span>
                 </div>
 
                 <div className="divide-y divide-slate-800/70">
+                  {/* ① Perfil */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
-                      <span className="font-bold text-slate-200 block">
-                        1. {isLiquid ? 'Receita Líquida Desejada' : 'Custo Unitário de Aquisição'}
+                      <span className="font-bold text-slate-200 block">① Perfil da Empresa</span>
+                      <span className="text-[10px] text-slate-400">
+                        Regime Lucro Presumido (Decreto-Lei 1.598/77 e Lei 9.718/98)
                       </span>
-                      <span className="text-[10px] text-slate-400">Base numérica inicial</span>
                     </div>
-                    <span className="font-bold text-slate-100 text-sm">{formatBRL(baseValue)}</span>
+                    <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/40 text-[10px] font-mono">
+                      Cumulativo
+                    </Badge>
                   </div>
 
+                  {/* ② Faturamento e base */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/30">
+                    <div>
+                      <span className="font-bold text-slate-200 block">② Base de Incidência</span>
+                      <span className="text-[10px] text-slate-400">
+                        Receita bruta da operação de saída
+                      </span>
+                    </div>
+                    <span className="font-bold text-slate-300">Incidência Direta</span>
+                  </div>
+
+                  {/* ③ Tributos Federais */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-200 block">
-                        2. ICMS Estadual sobre Venda
+                        ③ Tributos Federais Cumulativos
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Alíquota cadastrada no sistema
+                        PIS 0,65% + COFINS 3,00% (Lei 9.718/98)
+                      </span>
+                    </div>
+                    <span className="font-bold text-slate-200">
+                      3,65% (Fator: {formatFactorBR(pisFactorPresumido * cofinsFactorPresumido, 4)})
+                    </span>
+                  </div>
+
+                  {/* ④ ICMS Estadual */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-orange-500/[0.05]">
+                    <div>
+                      <span className="font-bold text-orange-300 block">
+                        ④ ICMS Estadual sobre Venda
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Alíquota configurada para operações internas
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-slate-200 block">
+                      <span className="font-bold text-orange-300 text-sm block">
                         {formatPercentBR(icmsRateClean)}
                       </span>
                       <span className="text-[10px] text-slate-400">
@@ -582,63 +922,66 @@ export function MarkupCalculationMemoryModal({
                     </div>
                   </div>
 
+                  {/* ⑤ Carga tributária decomposta */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/40">
+                    <div>
+                      <span className="font-bold text-emerald-400 block">
+                        ⑤ Carga Tributária Total Decomposta
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        ICMS {formatPercentBR(icmsRateClean)} + PIS 0,65% + COFINS 3,00%
+                      </span>
+                    </div>
+                    <span className="font-bold text-emerald-300">
+                      Fator: {formatFactorBR(taxFactorPresumidoDecomposto, 5)}
+                    </span>
+                  </div>
+
+                  {/* ⑥ Custo Unitário */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-200 block">
-                        3. PIS Cumulativo (Lei 9.718/98)
-                      </span>
-                      <span className="text-[10px] text-slate-400">Alíquota legal oficial</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-bold text-slate-200 block">
-                        {formatPercentBR(pisPresumidoRate)}
+                        ⑥ Custo Unitário do Produto
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator: {formatFactorBR(pisFactorPresumido, 4)}
+                        Origem: <strong className="text-slate-300">{costOriginLabel}</strong>
+                      </span>
+                    </div>
+                    <span className="font-bold text-slate-100 text-sm">{formatBRL(baseValue)}</span>
+                  </div>
+
+                  {/* ⑦ Despesas Variáveis */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/30">
+                    <div>
+                      <span className="font-bold text-slate-200 block">
+                        ⑦ Despesas Variáveis de Venda (Σ DV)
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {variableExpenses.length > 0
+                          ? variableExpenses
+                              .map((dv) => `${dv.name}: ${formatPercentBR(dv.rate)}`)
+                              .join(' · ')
+                          : 'Nenhuma despesa cadastrada'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-amber-300 text-sm block">
+                        {formatPercentBR(dvRate)}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Fator DV: {formatFactorBR(dvFactor, 4)}
                       </span>
                     </div>
                   </div>
 
+                  {/* ⑧ Margem desejada */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-200 block">
-                        4. COFINS Cumulativa (Lei 9.718/98)
-                      </span>
-                      <span className="text-[10px] text-slate-400">Alíquota legal oficial</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-bold text-slate-200 block">
-                        {formatPercentBR(cofinsPresumidoRate)}
+                        ⑧ Margem de Lucro Desejada (%)
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator: {formatFactorBR(cofinsFactorPresumido, 4)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {customTaxesMarkup.length > 0 && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between">
-                      <div>
-                        <span className="font-bold text-slate-200 block">
-                          5. Tributos Adicionais
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          {customTaxesMarkup.map((t) => `${t.name}: ${t.rate}%`).join(', ')}
-                        </span>
-                      </div>
-                      <span className="text-slate-300 font-bold">
-                        Fator: {formatFactorBR(customTaxesFactor, 4)}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="px-3.5 py-2.5 flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-slate-200 block">
-                        6. Margem de Lucro Comercial (%)
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        Fator da margem = 1 − ({formatNumberBR(marginPct)} ÷ 100)
+                        Margem comercial sobre a receita líquida
                       </span>
                     </div>
                     <div className="text-right">
@@ -646,33 +989,35 @@ export function MarkupCalculationMemoryModal({
                         {formatPercentBR(marginPct)}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator: {formatFactorBR(marginFactor, 4)}
+                        Fator Margem: {formatFactorBR(marginFactor, 4)}
                       </span>
                     </div>
                   </div>
 
-                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-500/[0.07]">
+                  {/* ⑨ Fator Divisor */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-500/[0.08]">
                     <div>
                       <span className="font-bold text-emerald-400 block">
-                        7. Fator Divisor Completo
+                        ⑨ Fator Divisor Multiplicativo
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator Tributário Base ({formatFactorBR(taxFactorPresumido, 5)}) × Fator
-                        Margem ({formatFactorBR(marginFactor, 4)})
+                        (1 − ICMS%) × (1 − PIS%) × (1 − COFINS%) × (1 − DV) × (1 − Margem)
                       </span>
                     </div>
-                    <span className="font-black text-emerald-300 text-sm">
-                      {formatFactorBR(completeFactorPresumido, 5)}
+                    <span className="font-black text-emerald-300 text-base">
+                      {formatFactorBR(divisorPresumido, 5)}
                     </span>
                   </div>
 
+                  {/* ⑩ Preço sugerido */}
                   <div className="px-3.5 py-3 flex items-center justify-between bg-emerald-500/15 border-t border-emerald-500/30">
                     <div>
                       <span className="font-extrabold text-emerald-300 block text-xs sm:text-sm uppercase tracking-wide">
-                        8. Preço de Venda Sugerido (Unitário)
+                        ⑩ Preço de Venda Sugerido (Unitário)
                       </span>
                       <span className="text-[10px] text-emerald-400/80">
-                        {formatBRL(baseValue)} ÷ {formatFactorBR(completeFactorPresumido, 5)}
+                        {formatBRL(baseValue)} ÷ {formatFactorBR(divisorPresumido, 5)} ={' '}
+                        {formatBRL(salePricePresumido)}
                       </span>
                     </div>
                     <span className="text-base sm:text-lg font-black text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.35)]">
@@ -680,80 +1025,186 @@ export function MarkupCalculationMemoryModal({
                     </span>
                   </div>
 
-                  {quantity > 0 && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/60 text-slate-300">
-                      <div>
-                        <span className="font-semibold block">Receita Bruta Total Projetada</span>
-                        <span className="text-[10px] text-slate-400">
-                          {quantity} unidades × {formatBRL(salePricePresumido)}
+                  {/* ⑪ Distribuição do preço em R$ */}
+                  <div className="p-3.5 bg-slate-950/70 space-y-2 border-l-2 border-emerald-500">
+                    <span className="font-bold text-slate-200 block text-[11px] uppercase tracking-wider">
+                      ⑪ Distribuição Didática do Preço de Venda ({formatBRL(pvPresumido)})
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
+                      <div className="p-2 rounded bg-slate-900/80 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 block uppercase">
+                          Custo Produto
+                        </span>
+                        <span className="font-bold text-slate-200">{formatBRL(baseValue)}</span>
+                      </div>
+                      <div className="p-2 rounded bg-slate-900/80 border border-slate-800">
+                        <span className="text-[10px] text-orange-400 block uppercase">
+                          Tributos (ICMS/PIS/COF)
+                        </span>
+                        <span className="font-bold text-orange-300">
+                          {formatBRL(valorTributosPresumido)}
                         </span>
                       </div>
-                      <span className="font-bold text-slate-100">
-                        {formatBRL(totalRevenuePresumido)}
+                      <div className="p-2 rounded bg-slate-900/80 border border-slate-800">
+                        <span className="text-[10px] text-amber-400 block uppercase">
+                          DV ({formatPercentBR(dvRate, 2)})
+                        </span>
+                        <span className="font-bold text-amber-300">
+                          {formatBRL(valorDvPresumido)}
+                        </span>
+                      </div>
+                      <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/30">
+                        <span className="text-[10px] text-emerald-400 block uppercase font-semibold">
+                          Margem em R$
+                        </span>
+                        <span className="font-bold text-emerald-300">
+                          {formatBRL(valorMargemPresumido)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ⑫ Blindagem de Margem */}
+                  <div className="p-3.5 bg-gradient-to-r from-emerald-500/15 via-slate-900 to-slate-950 border border-emerald-500/40 rounded-b-xl space-y-2">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span className="font-extrabold text-emerald-300 uppercase tracking-wider text-xs">
+                        ⑫ BLINDAGEM DE MARGEM
                       </span>
                     </div>
-                  )}
+                    <p className="text-[11px] text-slate-200 leading-relaxed font-sans">
+                      A blindagem protege a lucratividade contra volatilidades de mercado e
+                      comissões extras. Ao travar as despesas variáveis e a carga integral no
+                      divisor multiplicativo, garante-se que a margem planejada não seja corroída
+                      mesmo com aumentos transitórios de custos operacionais.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção Didática Aditiva x Multiplicativa */}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-4 space-y-3 font-mono text-xs">
+                <div className="flex items-center gap-2 text-slate-300 font-semibold border-b border-slate-800 pb-2">
+                  <span className="w-1.5 h-3.5 bg-cyan-400 rounded-full" />
+                  <span className="uppercase text-[11px] text-cyan-300">
+                    Comparação Didática: Aditiva × Multiplicativa
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+                    <span className="font-bold text-emerald-300 text-xs uppercase block">
+                      Multiplicativa (Padrão IT)
+                    </span>
+                    <p className="text-[10px] text-slate-300">
+                      PV = Custo ÷ Divisor Multiplicativo
+                    </p>
+                    <div className="pt-1 flex items-baseline justify-between">
+                      <span className="text-slate-400 text-[10px]">Preço Resultante:</span>
+                      <span className="text-sm font-black text-emerald-300">
+                        {formatBRL(salePricePresumido)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 space-y-1">
+                    <span className="font-bold text-slate-300 text-xs uppercase block">
+                      Aditiva (Referência)
+                    </span>
+                    <p className="text-[10px] text-slate-400">PV = Custo ÷ [1 − Soma dos %]</p>
+                    <div className="pt-1 flex items-baseline justify-between">
+                      <span className="text-slate-400 text-[10px]">Preço Resultante:</span>
+                      <span className="text-sm font-bold text-slate-200">
+                        {formatBRL(salePriceAditivoPresumido)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* DETALHAMENTO DO LUCRO REAL */}
+          {/* =========================================================
+              ABA LUCRO REAL (12 BLOCOS NUMERADOS)
+              ========================================================= */}
           {activeTab === 'real' && (
             <div className="space-y-4 pt-1 animate-in fade-in duration-200">
               <div className="p-3.5 rounded-xl bg-orange-500/10 border border-orange-500/30 space-y-2">
                 <div className="flex items-center gap-2">
                   <Percent className="w-4 h-4 text-orange-400" />
                   <span className="text-xs font-mono font-bold text-orange-300 uppercase">
-                    Fórmula do Preço no Lucro Real
+                    Fórmula Multiplicativa no Lucro Real
                   </span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800 font-mono text-xs text-slate-200 overflow-x-auto">
                   <code className="text-emerald-400">
-                    Preço Sugerido = Custo Base ÷ [ (1 − ICMS%) × (1 − PIS 1,65%) × (1 − COFINS
-                    7,60%) × (1 − Margem%) ]
+                    Divisor = (1 − ICMS%) × (1 − PIS 1,65%) × (1 − COFINS 7,60%) × (1 − DV Total) ×
+                    (1 − Margem%)
+                    <br />
+                    Preço Sugerido = Custo Unitário ÷ Divisor
                   </code>
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed">
                   No Lucro Real não cumulativo, as alíquotas de PIS (1,65%) e COFINS (7,60%) incidem
-                  integralmente sobre a venda, gerando direito a créditos nas compras que reduzem o
-                  CMV líquido. O IRPJ (15% + 10% adicional) e a CSLL (9%) são apurados na DRE sobre
-                  o Lucro Líquido Real ajustado no LALUR.
+                  integralmente sobre a venda, gerando créditos nas compras que reduzem o CMV
+                  líquido.
                 </p>
               </div>
 
               <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden text-xs font-mono">
                 <div className="bg-slate-950/80 px-3.5 py-2.5 border-b border-slate-800 flex items-center justify-between">
                   <span className="font-semibold text-slate-200 uppercase tracking-wider text-[11px]">
-                    Memória Passo a Passo (Lucro Real)
+                    Memória de Cálculo em 12 Blocos (Lucro Real)
                   </span>
                   <span className="text-[10px] text-slate-500">Regime Não Cumulativo</span>
                 </div>
 
                 <div className="divide-y divide-slate-800/70">
+                  {/* ① Perfil */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
-                      <span className="font-bold text-slate-200 block">
-                        1. {isLiquid ? 'Receita Líquida Desejada' : 'Custo Unitário de Aquisição'}
-                      </span>
+                      <span className="font-bold text-slate-200 block">① Perfil da Empresa</span>
                       <span className="text-[10px] text-slate-400">
-                        Custo líquido das compras (já descontados créditos de ICMS, PIS e COFINS)
+                        Regime Lucro Real (Leis 10.637/02 e 10.833/03)
                       </span>
                     </div>
-                    <span className="font-bold text-slate-100 text-sm">{formatBRL(baseValue)}</span>
+                    <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/40 text-[10px] font-mono">
+                      Não Cumulativo
+                    </Badge>
                   </div>
 
+                  {/* ② Base */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/30">
+                    <div>
+                      <span className="font-bold text-slate-200 block">② Base de Incidência</span>
+                      <span className="text-[10px] text-slate-400">Receita bruta da operação</span>
+                    </div>
+                    <span className="font-bold text-slate-300">Não Cumulativa</span>
+                  </div>
+
+                  {/* ③ PIS e COFINS */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-200 block">
-                        2. ICMS Estadual sobre Venda
+                        ③ PIS e COFINS Não Cumulativos
+                      </span>
+                      <span className="text-[10px] text-slate-400">PIS 1,65% + COFINS 7,60%</span>
+                    </div>
+                    <span className="font-bold text-slate-200">
+                      9,25% (Fator: {formatFactorBR(pisFactorReal * cofinsFactorReal, 4)})
+                    </span>
+                  </div>
+
+                  {/* ④ ICMS */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-orange-500/[0.05]">
+                    <div>
+                      <span className="font-bold text-orange-300 block">
+                        ④ ICMS Estadual sobre Venda
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Alíquota cadastrada no sistema
+                        Alíquota configurada para operações internas
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-slate-200 block">
+                      <span className="font-bold text-orange-300 text-sm block">
                         {formatPercentBR(icmsRateClean)}
                       </span>
                       <span className="text-[10px] text-slate-400">
@@ -762,63 +1213,66 @@ export function MarkupCalculationMemoryModal({
                     </div>
                   </div>
 
+                  {/* ⑤ Carga tributária decomposta */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/40">
+                    <div>
+                      <span className="font-bold text-emerald-400 block">
+                        ⑤ Carga Tributária Total Decomposta
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        ICMS {formatPercentBR(icmsRateClean)} + PIS 1,65% + COFINS 7,60%
+                      </span>
+                    </div>
+                    <span className="font-bold text-emerald-300">
+                      Fator: {formatFactorBR(taxFactorRealDecomposto, 5)}
+                    </span>
+                  </div>
+
+                  {/* ⑥ Custo Unitário */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-200 block">
-                        3. PIS Não Cumulativo (Lei 10.637/02)
-                      </span>
-                      <span className="text-[10px] text-slate-400">Alíquota legal oficial</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-bold text-slate-200 block">
-                        {formatPercentBR(pisRealRate)}
+                        ⑥ Custo Unitário do Produto
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator: {formatFactorBR(pisFactorReal, 4)}
+                        Origem: <strong className="text-slate-300">{costOriginLabel}</strong>
+                      </span>
+                    </div>
+                    <span className="font-bold text-slate-100 text-sm">{formatBRL(baseValue)}</span>
+                  </div>
+
+                  {/* ⑦ Despesas Variáveis */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/30">
+                    <div>
+                      <span className="font-bold text-slate-200 block">
+                        ⑦ Despesas Variáveis de Venda (Σ DV)
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {variableExpenses.length > 0
+                          ? variableExpenses
+                              .map((dv) => `${dv.name}: ${formatPercentBR(dv.rate)}`)
+                              .join(' · ')
+                          : 'Nenhuma despesa cadastrada'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-amber-300 text-sm block">
+                        {formatPercentBR(dvRate)}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Fator DV: {formatFactorBR(dvFactor, 4)}
                       </span>
                     </div>
                   </div>
 
+                  {/* ⑧ Margem desejada */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-200 block">
-                        4. COFINS Não Cumulativa (Lei 10.833/03)
-                      </span>
-                      <span className="text-[10px] text-slate-400">Alíquota legal oficial</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-bold text-slate-200 block">
-                        {formatPercentBR(cofinsRealRate)}
+                        ⑧ Margem de Lucro Desejada (%)
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator: {formatFactorBR(cofinsFactorReal, 4)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {customTaxesMarkup.length > 0 && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between">
-                      <div>
-                        <span className="font-bold text-slate-200 block">
-                          5. Tributos Adicionais
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          {customTaxesMarkup.map((t) => `${t.name}: ${t.rate}%`).join(', ')}
-                        </span>
-                      </div>
-                      <span className="text-slate-300 font-bold">
-                        Fator: {formatFactorBR(customTaxesFactor, 4)}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="px-3.5 py-2.5 flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-slate-200 block">
-                        6. Margem de Lucro Comercial (%)
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        Fator da margem = 1 − ({formatNumberBR(marginPct)} ÷ 100)
+                        Margem comercial sobre a receita líquida
                       </span>
                     </div>
                     <div className="text-right">
@@ -826,33 +1280,35 @@ export function MarkupCalculationMemoryModal({
                         {formatPercentBR(marginPct)}
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator: {formatFactorBR(marginFactor, 4)}
+                        Fator Margem: {formatFactorBR(marginFactor, 4)}
                       </span>
                     </div>
                   </div>
 
-                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-500/[0.07]">
+                  {/* ⑨ Fator Divisor */}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-500/[0.08]">
                     <div>
                       <span className="font-bold text-emerald-400 block">
-                        7. Fator Divisor Completo
+                        ⑨ Fator Divisor Multiplicativo
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Fator Tributário Base ({formatFactorBR(taxFactorReal, 5)}) × Fator Margem (
-                        {formatFactorBR(marginFactor, 4)})
+                        (1 − ICMS%) × (1 − PIS%) × (1 − COFINS%) × (1 − DV) × (1 − Margem)
                       </span>
                     </div>
-                    <span className="font-black text-emerald-300 text-sm">
-                      {formatFactorBR(completeFactorReal, 5)}
+                    <span className="font-black text-emerald-300 text-base">
+                      {formatFactorBR(divisorReal, 5)}
                     </span>
                   </div>
 
+                  {/* ⑩ Preço sugerido */}
                   <div className="px-3.5 py-3 flex items-center justify-between bg-emerald-500/15 border-t border-emerald-500/30">
                     <div>
                       <span className="font-extrabold text-emerald-300 block text-xs sm:text-sm uppercase tracking-wide">
-                        8. Preço de Venda Sugerido (Unitário)
+                        ⑩ Preço de Venda Sugerido (Unitário)
                       </span>
                       <span className="text-[10px] text-emerald-400/80">
-                        {formatBRL(baseValue)} ÷ {formatFactorBR(completeFactorReal, 5)}
+                        {formatBRL(baseValue)} ÷ {formatFactorBR(divisorReal, 5)} ={' '}
+                        {formatBRL(salePriceReal)}
                       </span>
                     </div>
                     <span className="text-base sm:text-lg font-black text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.35)]">
@@ -860,19 +1316,95 @@ export function MarkupCalculationMemoryModal({
                     </span>
                   </div>
 
-                  {quantity > 0 && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-950/60 text-slate-300">
-                      <div>
-                        <span className="font-semibold block">Receita Bruta Total Projetada</span>
-                        <span className="text-[10px] text-slate-400">
-                          {quantity} unidades × {formatBRL(salePriceReal)}
+                  {/* ⑪ Distribuição do preço em R$ */}
+                  <div className="p-3.5 bg-slate-950/70 space-y-2 border-l-2 border-emerald-500">
+                    <span className="font-bold text-slate-200 block text-[11px] uppercase tracking-wider">
+                      ⑪ Distribuição Didática do Preço de Venda ({formatBRL(pvReal)})
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
+                      <div className="p-2 rounded bg-slate-900/80 border border-slate-800">
+                        <span className="text-[10px] text-slate-400 block uppercase">
+                          Custo Líquido
+                        </span>
+                        <span className="font-bold text-slate-200">{formatBRL(baseValue)}</span>
+                      </div>
+                      <div className="p-2 rounded bg-slate-900/80 border border-slate-800">
+                        <span className="text-[10px] text-orange-400 block uppercase">
+                          Tributos (ICMS/PIS/COF)
+                        </span>
+                        <span className="font-bold text-orange-300">
+                          {formatBRL(valorTributosReal)}
                         </span>
                       </div>
-                      <span className="font-bold text-slate-100">
-                        {formatBRL(totalRevenueReal)}
+                      <div className="p-2 rounded bg-slate-900/80 border border-slate-800">
+                        <span className="text-[10px] text-amber-400 block uppercase">
+                          DV ({formatPercentBR(dvRate, 2)})
+                        </span>
+                        <span className="font-bold text-amber-300">{formatBRL(valorDvReal)}</span>
+                      </div>
+                      <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/30">
+                        <span className="text-[10px] text-emerald-400 block uppercase font-semibold">
+                          Margem em R$
+                        </span>
+                        <span className="font-bold text-emerald-300">
+                          {formatBRL(valorMargemReal)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ⑫ Blindagem de Margem */}
+                  <div className="p-3.5 bg-gradient-to-r from-emerald-500/15 via-slate-900 to-slate-950 border border-emerald-500/40 rounded-b-xl space-y-2">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span className="font-extrabold text-emerald-300 uppercase tracking-wider text-xs">
+                        ⑫ BLINDAGEM DE MARGEM
                       </span>
                     </div>
-                  )}
+                    <p className="text-[11px] text-slate-200 leading-relaxed font-sans">
+                      No Lucro Real, a blindagem garante que mesmo que o volume de créditos nas
+                      compras oscile, o preço praticado mantém a taxa de lucratividade pretendida na
+                      venda.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção Didática Aditiva x Multiplicativa */}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/90 p-4 space-y-3 font-mono text-xs">
+                <div className="flex items-center gap-2 text-slate-300 font-semibold border-b border-slate-800 pb-2">
+                  <span className="w-1.5 h-3.5 bg-cyan-400 rounded-full" />
+                  <span className="uppercase text-[11px] text-cyan-300">
+                    Comparação Didática: Aditiva × Multiplicativa
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-1">
+                    <span className="font-bold text-emerald-300 text-xs uppercase block">
+                      Multiplicativa (Padrão IT)
+                    </span>
+                    <p className="text-[10px] text-slate-300">
+                      PV = Custo ÷ Divisor Multiplicativo
+                    </p>
+                    <div className="pt-1 flex items-baseline justify-between">
+                      <span className="text-slate-400 text-[10px]">Preço Resultante:</span>
+                      <span className="text-sm font-black text-emerald-300">
+                        {formatBRL(salePriceReal)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 space-y-1">
+                    <span className="font-bold text-slate-300 text-xs uppercase block">
+                      Aditiva (Referência)
+                    </span>
+                    <p className="text-[10px] text-slate-400">PV = Custo ÷ [1 − Soma dos %]</p>
+                    <div className="pt-1 flex items-baseline justify-between">
+                      <span className="text-slate-400 text-[10px]">Preço Resultante:</span>
+                      <span className="text-sm font-bold text-slate-200">
+                        {formatBRL(salePriceAditivoReal)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

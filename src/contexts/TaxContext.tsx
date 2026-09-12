@@ -171,6 +171,7 @@ export interface TaxStateSnapshot {
   simplesActivityMonths?: number // 1 a 12 meses
   simplesMonthlyProjectedRevenue?: number // Receita mensal projetada
   simplesSelectedScenario?: SimplesScenarioKey
+  effectiveSimplesRbt12?: number
   simulatedSalePrice: number
   simulatedTaxFactorTotal: number
   simulatedCompleteFactor: number
@@ -1010,7 +1011,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const num = typeof value === 'number' ? value : parseBRNumber(String(value))
           return { ...item, rate: Math.max(0, Number.isFinite(num) ? num : 0) }
         }
-        return { ...item, [field]: value }
+        return { ...item, name: String(value) }
       }),
     )
   }
@@ -2940,6 +2941,19 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let totalCostVal = 0
 
     const updated = markupProducts.map((p) => {
+      let currentCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+      if (p.costOrigin !== 'manual' && p.manualCostOverride === undefined && p.purchaseItemId) {
+        const item = (
+          computedPurchasesItems.length > 0 ? computedPurchasesItems : purchasesItems
+        ).find((pi) => pi.id === p.purchaseItemId)
+        if (item) {
+          const unitRegimeCost = getPurchaseItemUnitNetCost(item, regime)
+          if (unitRegimeCost > 0) {
+            currentCost = unitRegimeCost
+          }
+        }
+      }
+
       const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
       const marginFactor = 1 - rawMargin / 100
       let completeFactor = baseTaxFactor * marginFactor

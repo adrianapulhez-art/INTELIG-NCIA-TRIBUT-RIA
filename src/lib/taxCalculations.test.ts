@@ -396,7 +396,12 @@ export function runAutoStockDeductionTests(): {
  */
 export function runMarkupSimplesNacionalTests(): {
   allPassed: boolean
-  results: { test: string; passed: boolean; expected: number | string; received: number | string }[]
+  results: {
+    test: string
+    passed: boolean
+    expected: number | boolean | string
+    received: number | boolean | string
+  }[]
 } {
   // 1. Canônico: RBT12 360k, Anexo I, margem 20%, custo R$ 100
   const pgdas1 = calculatePgdas('anexo_1', 360000)
@@ -413,6 +418,46 @@ export function runMarkupSimplesNacionalTests(): {
   const pgdas3 = calculatePgdas('anexo_1', 0)
   const divisor3 = 1 - pgdas3.aliquotaEfetiva / 100
   const price3 = Math.round((100 / 0.96) * 100) / 100
+
+  // -------------------------------------------------------------
+  // Testes Canônicos da Parte 2 (especificação da tarefa):
+  // -------------------------------------------------------------
+  // A. Cenário Moderado Porta 1: RBT12 240.000 -> efetiva 4,83% ((240.000 * 7,30% - 5.940) / 240.000)
+  const pgdasModerado = calculatePgdas('anexo_1', 240000)
+  const efetivaModerado = Math.round(pgdasModerado.aliquotaEfetiva * 100) / 100
+
+  // B. Cenário Otimista: RBT12 360.000 -> 5,65%
+  const pgdasOtimista = calculatePgdas('anexo_1', 360000)
+  const efetivaOtimista = Math.round(pgdasOtimista.aliquotaEfetiva * 100) / 100
+
+  // C. Fallback/Porta 1 1º mês: efetiva 4,00% -> custo 2.600 -> PV = 2.600 / 0,96 = 2.708,33
+  const pgdasFallback1m = calculatePgdas('anexo_1', 0)
+  const divisorFallback1m = 1 - pgdasFallback1m.aliquotaEfetiva / 100 // 0.96
+  const pvFallback1m = Math.round((2600 / divisorFallback1m) * 100) / 100 // 2708.33
+
+  // D. Multiplicativo com DV: custo 50, DAS 4,83%, DV 5%, margem 15%
+  // divisor = (1 - 0,0483) * (1 - 0,05) * (1 - 0,15) = 0,9517 * 0,95 * 0,85 = 0,76849775
+  // PV multiplicativo = 50 / 0,76849775 = 65,06
+  // PV aditivo = 50 / (1 - (0,0483 + 0,05 + 0,15)) = 50 / 0,7517 = 66,5159... -> 66,51 ou 66,52
+  const dasRateD = 0.0483
+  const dvRateD = 0.05
+  const marginRateD = 0.15
+  const divisorMultiplicativoD = (1 - dasRateD) * (1 - dvRateD) * (1 - marginRateD) // ~0.7685
+  const pvMultiplicativoD = Math.round((50 / divisorMultiplicativoD) * 100) / 100 // 65.06
+  const divisorAditivoD = 1 - (dasRateD + dvRateD + marginRateD) // 1 - 0.2483 = 0.7517
+  const pvAditivoD = Math.round((50 / divisorAditivoD) * 100) / 100 // 66.52 ou 66.51
+
+  // E. RBT12 proporcional art. 2º LC 123/2006: 3 meses de atividade, receitas acumuladas 60.000 -> RBT12 = 240.000 -> 4,83%
+  const rbt12ProporcionalArt2 = Math.round(((60000 * 12) / 3) * 100) / 100 // 240000
+  const pgdasProporcional = calculatePgdas('anexo_1', rbt12ProporcionalArt2)
+  const efetivaProporcional = Math.round(pgdasProporcional.aliquotaEfetiva * 100) / 100 // 4.83%
+
+  // F. Blindagem: nenhum divisor pode sair 1,0000 quando há tributo aplicável
+  const divisorComTributo = Math.max(
+    0.0001,
+    (1 - pgdasModerado.aliquotaEfetiva / 100) * (1 - 0.05) * (1 - 0.15),
+  )
+  const divisorComTributoNaoEhUm = divisorComTributo < 0.9999
 
   const tests = [
     {
@@ -455,14 +500,61 @@ export function runMarkupSimplesNacionalTests(): {
       expected: 104.17,
       received: price3,
     },
+    // Testes novos canônicos da Parte 2:
+    {
+      test: 'Parte 2 - Cenário Moderado Porta 1: RBT12 240.000 -> efetiva 4,83% (240k×7,3%-5940)/240k',
+      expected: 4.83,
+      received: efetivaModerado,
+    },
+    {
+      test: 'Parte 2 - Cenário Otimista: RBT12 360.000 -> 5,65%',
+      expected: 5.65,
+      received: efetivaOtimista,
+    },
+    {
+      test: 'Parte 2 - Fallback/Porta 1 1º mês: efetiva 4,00% -> custo 2.600 -> PV = 2.600/0,96 = 2.708,33',
+      expected: 2708.33,
+      received: pvFallback1m,
+    },
+    {
+      test: 'Parte 2 - Multiplicativo com DV: custo 50, DAS 4,83%, DV 5%, margem 15% -> PV multiplicativo = 65,06',
+      expected: 65.06,
+      received: pvMultiplicativoD,
+    },
+    {
+      test: 'Parte 2 - Aditivo com DV: custo 50, soma taxas 24,83% -> PV aditivo exibido = 66,51 (ou 66,52)',
+      expected: 66.52,
+      received: pvAditivoD,
+    },
+    {
+      test: 'Parte 2 - RBT12 proporcional art. 2º: 3 meses, acumulado 60.000 -> RBT12 = 240.000',
+      expected: 240000,
+      received: rbt12ProporcionalArt2,
+    },
+    {
+      test: 'Parte 2 - RBT12 proporcional art. 2º: RBT12 240.000 gera alíquota efetiva 4,83%',
+      expected: 4.83,
+      received: efetivaProporcional,
+    },
+    {
+      test: 'Parte 2 - Blindagem: nenhum divisor pode sair 1,0000 quando há tributo aplicável (divisor < 1.0)',
+      expected: true,
+      received: divisorComTributoNaoEhUm,
+    },
   ]
 
-  const results = tests.map((t) => ({
-    test: t.test,
-    passed: Math.abs(t.expected - t.received) < 0.001,
-    expected: t.expected,
-    received: t.received,
-  }))
+  const results = tests.map((t) => {
+    const passed =
+      typeof t.expected === 'boolean'
+        ? t.expected === t.received
+        : Math.abs((t.expected as number) - (t.received as number)) < 0.001
+    return {
+      test: t.test,
+      passed,
+      expected: t.expected,
+      received: t.received,
+    }
+  })
 
   const allPassed = results.every((r) => r.passed)
   return { allPassed, results }

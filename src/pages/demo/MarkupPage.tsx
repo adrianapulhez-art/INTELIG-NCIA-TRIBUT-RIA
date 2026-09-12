@@ -780,8 +780,8 @@ export default function MarkupPage() {
                       <div className="flex items-center justify-between p-2.5 rounded-lg bg-orange-500/10 border border-orange-500/25 text-xs font-mono text-orange-200 flex-wrap gap-2">
                         <span>
                           Faixa detectada:{' '}
-                          <strong className="text-white">Faixa {pgdasRes.faixa}</strong> (Anexo I —
-                          Comércio)
+                          <strong className="text-white">Faixa {pgdasRes.faixaNumero}</strong>{' '}
+                          (Anexo I — Comércio)
                         </span>
                         <span>
                           Alíquota efetiva PGDAS:{' '}
@@ -833,8 +833,8 @@ export default function MarkupPage() {
                       <div className="flex items-center justify-between p-2.5 rounded-lg bg-orange-500/10 border border-orange-500/25 text-xs font-mono text-orange-200 flex-wrap gap-2">
                         <span>
                           Faixa detectada:{' '}
-                          <strong className="text-white">Faixa {pgdasRes.faixa}</strong> (RBT12:{' '}
-                          {formatBRL(effectiveSimplesRbt12)})
+                          <strong className="text-white">Faixa {pgdasRes.faixaNumero}</strong>{' '}
+                          (RBT12: {formatBRL(effectiveSimplesRbt12)})
                         </span>
                         <span>
                           Alíquota efetiva PGDAS:{' '}
@@ -1709,6 +1709,13 @@ export default function MarkupPage() {
               simplesAnexo={simplesAnexo}
               simplesRbt12={simplesRbt12}
               simplesIsInicioAtividade={simplesIsInicioAtividade}
+              simplesIsActiveMoreThan12m={simplesIsActiveMoreThan12m}
+              simplesActivityMonths={simplesActivityMonths}
+              simplesMonthlyProjectedRevenue={simplesMonthlyProjectedRevenue}
+              simplesSelectedScenario={simplesSelectedScenario}
+              effectiveSimplesRbt12={effectiveSimplesRbt12}
+              variableExpenses={variableExpenses}
+              totalVariableExpenseRate={totalVariableExpenseRate}
             />
 
             {/* Diálogo / Subcamada: Composição do Custo do Produto */}
