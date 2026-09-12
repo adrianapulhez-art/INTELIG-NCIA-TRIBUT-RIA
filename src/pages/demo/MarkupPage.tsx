@@ -30,6 +30,7 @@ import { CostCompositionSection } from '@/components/demo/CostCompositionSection
 import { SubstituicaoTributariaSection } from '@/components/demo/SubstituicaoTributariaSection'
 import { OperacoesInterestaduaisSection } from '@/components/demo/OperacoesInterestaduaisSection'
 import { ImportPurchasesModal } from '@/components/demo/ImportPurchasesModal'
+import { MarkupCalculationMemoryModal } from '@/components/demo/MarkupCalculationMemoryModal'
 import { PageHero } from '@/components/demo/PageHero'
 import {
   Dialog,
@@ -216,6 +217,7 @@ export default function MarkupPage() {
   const [compositionModalProductId, setCompositionModalProductId] = useState<string | null>(null)
   const [isProductRevenueDetailsOpen, setIsProductRevenueDetailsOpen] = useState(false)
   const [isRegimeComparisonDetailsOpen, setIsRegimeComparisonDetailsOpen] = useState(false)
+  const [calculationMemoryProductId, setCalculationMemoryProductId] = useState<string | null>(null)
 
   // Quantidade de itens de compras e quantos já foram importados
   const totalPurchasesAvailableCount = purchasesItems.length
@@ -899,12 +901,26 @@ export default function MarkupPage() {
 
                       {/* Campo 4: Preço Resultante e Total (atualizado após Simular) */}
                       <div className="space-y-1">
-                        <label className="text-[11px] text-emerald-400 font-semibold">
-                          Preço de venda simulado
-                        </label>
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] text-emerald-400 font-semibold">
+                            Preço de venda simulado
+                          </label>
+                          {/* Chip discreto de Memória de Cálculo junto ao resultado */}
+                          <button
+                            type="button"
+                            onClick={() => setCalculationMemoryProductId(prod.id)}
+                            className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-emerald-400/90 hover:text-emerald-200 transition-colors cursor-pointer group"
+                            title="Abrir memória de cálculo analítica deste produto"
+                          >
+                            <Calculator className="w-2.5 h-2.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                            <span>Memória ›</span>
+                          </button>
+                        </div>
                         <div className="h-8 px-2.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs font-bold text-emerald-400">
                           <span className="text-[10px] text-emerald-400/70 font-mono">Un.:</span>
-                          <span>{isMarkupSimulated ? formatBRL(prod.salePrice) : '—'}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span>{isMarkupSimulated ? formatBRL(prod.salePrice) : '—'}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -915,11 +931,37 @@ export default function MarkupPage() {
                         <span>
                           Subtotal do produto ({prod.quantity} un. × {formatBRL(prod.salePrice)}):
                         </span>
-                        <span className="font-bold text-emerald-300">
-                          {formatBRL(prod.totalRevenue)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-emerald-300">
+                            {formatBRL(prod.totalRevenue)}
+                          </span>
+                        </div>
                       </div>
                     )}
+
+                    {/* Chip Discreto em Subcamada: Memória de Cálculo do Preço */}
+                    <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCalculationMemoryProductId(prod.id)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-emerald-500/[0.12] border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/20 hover:border-emerald-300 shadow-sm"
+                        title="Ver memória de cálculo detalhada do preço sugerido (Simples, Presumido e Real)"
+                      >
+                        <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="font-semibold">Memória de Cálculo</span>
+                        <Badge className="bg-emerald-500/25 text-emerald-200 border-0 text-[9px] px-1.5 py-0 font-normal">
+                          {isMarkupSimulated ? formatBRL(prod.salePrice) : 'Ver fórmula'}
+                        </Badge>
+                        <ChevronRight className="w-3 h-3 text-emerald-400/80 ml-0.5" />
+                      </button>
+
+                      <span className="text-[10px] font-mono text-slate-400">
+                        Regime ativo:{' '}
+                        <strong className="text-orange-400 uppercase">{regime}</strong> · ICMS{' '}
+                        {formatPercentBR(icmsRateMarkup)}
+                        {regime === 'simples' && simplesRbt12 > 0 ? ' (integrado ao DAS)' : ''}
+                      </span>
+                    </div>
 
                     {/* Chip Compacto em Subcamada: Composição do Custo (modo Custo + Margem) */}
                     {!isProdLiquid &&
@@ -1156,6 +1198,21 @@ export default function MarkupPage() {
               onOpenChange={setIsImportPurchasesDialogOpen}
             />
 
+            {/* Diálogo / Subcamada: Memória de Cálculo Analítica do Preço Sugerido */}
+            <MarkupCalculationMemoryModal
+              open={!!calculationMemoryProductId}
+              onOpenChange={(open) => {
+                if (!open) setCalculationMemoryProductId(null)
+              }}
+              product={markupProducts.find((p) => p.id === calculationMemoryProductId) || null}
+              currentRegime={regime}
+              icmsRateMarkup={icmsRateMarkup}
+              customTaxesMarkup={customTaxesMarkup}
+              simplesAnexo={simplesAnexo}
+              simplesRbt12={simplesRbt12}
+              simplesIsInicioAtividade={simplesIsInicioAtividade}
+            />
+
             {/* Diálogo / Subcamada: Composição do Custo do Produto */}
             <Dialog
               open={!!compositionModalProductId}
@@ -1373,6 +1430,9 @@ export default function MarkupPage() {
                         <th className="py-2.5 px-3 font-semibold text-emerald-300">
                           Receita Bruta
                         </th>
+                        <th className="py-2.5 px-3 text-center font-semibold text-slate-300">
+                          Memória
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
@@ -1396,6 +1456,20 @@ export default function MarkupPage() {
                           </td>
                           <td className="py-2.5 px-3 text-right font-bold text-slate-100">
                             {formatBRL(p.totalRevenue)}
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCalculationMemoryProductId(p.id)
+                                setIsProductRevenueDetailsOpen(false)
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 cursor-pointer"
+                              title="Ver memória de cálculo detalhada"
+                            >
+                              <Calculator className="w-2.5 h-2.5" />
+                              <span>Ver ›</span>
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -1574,6 +1648,9 @@ export default function MarkupPage() {
                           <th className="py-2.5 px-3 text-center font-semibold text-emerald-400">
                             Menor Preço
                           </th>
+                          <th className="py-2.5 px-3 text-center font-semibold text-slate-300">
+                            Memória
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
@@ -1656,9 +1733,23 @@ export default function MarkupPage() {
                                   <span className="text-slate-500">—</span>
                                 )}
                               </td>
+                              <td className="py-2.5 px-3 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCalculationMemoryProductId(pPres.id)
+                                    setIsRegimeComparisonDetailsOpen(false)
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 cursor-pointer"
+                                  title="Ver memória de cálculo deste produto nos 3 regimes"
+                                >
+                                  <Calculator className="w-2.5 h-2.5" />
+                                  <span>Memória ›</span>
+                                </button>
+                              </td>
                             </tr>
                           )
-                        })}
+                        })}{' '}
                       </tbody>
                       <tfoot className="border-t-2 border-emerald-500/60 bg-emerald-500/15 font-bold">
                         <tr>
