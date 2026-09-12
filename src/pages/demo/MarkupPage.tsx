@@ -303,6 +303,7 @@ function VariableExpenseRow({ dv, onUpdate, onRemove }: VariableExpenseRowProps)
   )
 }
 
+// QA production build check v0.0.106
 export default function MarkupPage() {
   const navigate = useNavigate()
   const {
@@ -358,7 +359,6 @@ export default function MarkupPage() {
 
   // Preço praticado manual para o painel "Minha precificação está correta?" (por produto selecionado ou geral)
   const [practicedPrices, setPracticedPrices] = useState<Record<string, number>>({})
-
   // Estados dos modais em camadas para ST, DIFAL, Importação de Compras, Composição de Custo e Subcamadas de Detalhamento
   const [isStDialogOpen, setIsStDialogOpen] = useState(false)
   const [isInterstateDialogOpen, setIsInterstateDialogOpen] = useState(false)
