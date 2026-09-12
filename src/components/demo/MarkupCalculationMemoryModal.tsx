@@ -68,7 +68,7 @@ export function MarkupCalculationMemoryModal({
   variableExpenses = [],
   totalVariableExpenseRate = 0,
 }: MarkupCalculationMemoryModalProps) {
-  const { purchasesItems, computedPurchasesItems, getPurchaseItemUnitNetCost } = useTaxContext()
+  const { purchasesItems, getPurchaseItemUnitNetCost } = useTaxContext()
 
   // Aba ativa de regime (padrão inicia no regime atual da empresa)
   const [activeTab, setActiveTab] = useState<TaxRegime>(currentRegime)
@@ -93,10 +93,7 @@ export function MarkupCalculationMemoryModal({
       product.manualCostOverride === undefined &&
       product.purchaseItemId
     ) {
-      const itemsList =
-        computedPurchasesItems && computedPurchasesItems.length > 0
-          ? computedPurchasesItems
-          : purchasesItems
+      const itemsList = purchasesItems
       const matched = itemsList?.find((pi) => pi.id === product.purchaseItemId)
       if (matched && getPurchaseItemUnitNetCost) {
         const uCost = getPurchaseItemUnitNetCost(matched, targetRegime)
@@ -157,6 +154,14 @@ export function MarkupCalculationMemoryModal({
         presumidoActivity: 'comercio',
       })
     : null
+
+  // Cadeia correspondente ao regime atualmente ativo
+  const activeRegimeChain =
+    currentRegime === 'simples'
+      ? liquidChainSimples
+      : currentRegime === 'presumido'
+        ? liquidChainPresumido
+        : liquidChainReal
   const baseCost =
     typeof product.cost === 'number' && Number.isFinite(product.cost) ? product.cost : 0
   const desiredNetRevenue =
