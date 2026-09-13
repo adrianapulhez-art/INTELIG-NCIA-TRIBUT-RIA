@@ -92,6 +92,36 @@ export function sanitizeSnapshotForPersistence(raw: TaxStateSnapshot | unknown):
   }
   const snap = raw as Partial<TaxStateSnapshot>
 
+  // Migração e sanitização suave de desiredLiquidRevenueByRegime
+  const rawRL =
+    typeof snap.desiredNetRevenue === 'number' && Number.isFinite(snap.desiredNetRevenue)
+      ? snap.desiredNetRevenue
+      : 0
+
+  const desiredLiquidRevenueByRegime = snap.desiredLiquidRevenueByRegime
+    ? {
+        simples:
+          typeof snap.desiredLiquidRevenueByRegime.simples === 'number' &&
+          Number.isFinite(snap.desiredLiquidRevenueByRegime.simples)
+            ? snap.desiredLiquidRevenueByRegime.simples
+            : rawRL,
+        presumido:
+          typeof snap.desiredLiquidRevenueByRegime.presumido === 'number' &&
+          Number.isFinite(snap.desiredLiquidRevenueByRegime.presumido)
+            ? snap.desiredLiquidRevenueByRegime.presumido
+            : rawRL,
+        real:
+          typeof snap.desiredLiquidRevenueByRegime.real === 'number' &&
+          Number.isFinite(snap.desiredLiquidRevenueByRegime.real)
+            ? snap.desiredLiquidRevenueByRegime.real
+            : rawRL,
+      }
+    : {
+        simples: rawRL,
+        presumido: rawRL,
+        real: rawRL,
+      }
+
   let markupProducts = snap.markupProducts
   if (Array.isArray(markupProducts)) {
     markupProducts = markupProducts.map((p) => {
@@ -111,19 +141,30 @@ export function sanitizeSnapshotForPersistence(raw: TaxStateSnapshot | unknown):
         (snap.desiredNetRevenue ?? 0) === 0
       ) {
         desiredNetRevenue = cost
-      } else if (
-        mode === 'liquid' &&
-        desiredNetRevenue === 0 &&
-        typeof snap.desiredNetRevenue === 'number' &&
-        snap.desiredNetRevenue > 0
-      ) {
-        desiredNetRevenue = snap.desiredNetRevenue
       }
 
+      const desiredNetRevenueByRegime = p.desiredNetRevenueByRegime
+        ? {
+            simples: Number(p.desiredNetRevenueByRegime.simples) || 0,
+            presumido: Number(p.desiredNetRevenueByRegime.presumido) || 0,
+            real: Number(p.desiredNetRevenueByRegime.real) || 0,
+          }
+        : snap.desiredLiquidRevenueByRegime
+          ? {
+              simples: Number(snap.desiredLiquidRevenueByRegime.simples) || 0,
+              presumido: Number(snap.desiredLiquidRevenueByRegime.presumido) || 0,
+              real: Number(snap.desiredLiquidRevenueByRegime.real) || 0,
+            }
+          : {
+              simples: desiredNetRevenue,
+              presumido: desiredNetRevenue,
+              real: desiredNetRevenue,
+            }
       return {
         ...p,
         mode,
         desiredNetRevenue,
+        desiredNetRevenueByRegime,
         cost,
         costOrigin: p.costOrigin || (p.purchaseItemId ? 'purchases' : 'manual'),
         manualCostOverride: p.manualCostOverride,
@@ -134,6 +175,7 @@ export function sanitizeSnapshotForPersistence(raw: TaxStateSnapshot | unknown):
 
   return {
     ...snap,
+    desiredLiquidRevenueByRegime,
     markupProducts,
   } as TaxStateSnapshot
 }

@@ -48,11 +48,18 @@ export interface CostComposition {
   fixedCosts: CostCompositionItem[] // Custos fixos (ex: folha, contador, pró-labore, encargos)
 }
 
+export interface DesiredLiquidRevenueByRegime {
+  simples: number
+  presumido: number
+  real: number
+}
+
 export interface MarkupProductItem {
   id: string
   name: string
   mode: MarkupMode // 'liquid' ou 'cost_margin'
-  desiredNetRevenue: number // Receita líquida desejada (quando mode === 'liquid')
+  desiredNetRevenue: number // Receita líquida desejada legada / ativa
+  desiredNetRevenueByRegime?: DesiredLiquidRevenueByRegime // Receita líquida desejada independente por regime
   cost: number // Custo base (quando mode === 'cost_margin')
   margin: number // Margem de lucro % (quando mode === 'cost_margin' ou margem adicional)
   quantity: number // Quantidade vendida
@@ -162,6 +169,7 @@ export interface TaxStateSnapshot {
   regime: TaxRegime
   markupMode: MarkupMode
   desiredNetRevenue: number
+  desiredLiquidRevenueByRegime?: DesiredLiquidRevenueByRegime
   additionalMargin: number
   icmsRateMarkup: number
   customTaxesMarkup: CustomTaxItem[]
@@ -260,6 +268,11 @@ export interface TaxContextType {
   setMarkupMode: (mode: MarkupMode) => void
   desiredNetRevenue: number
   setDesiredNetRevenue: (val: number) => void
+  desiredLiquidRevenueByRegime: DesiredLiquidRevenueByRegime
+  setDesiredLiquidRevenueByRegime: (
+    regimeOrObj: TaxRegime | DesiredLiquidRevenueByRegime,
+    val?: number,
+  ) => void
   additionalMargin: number
   setAdditionalMargin: (val: number) => void
   icmsRateMarkup: number
@@ -653,7 +666,39 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // em um cenário salvo no PocketBase (ScenarioManagerBar) ou digita manualmente.
 
   // REGIME
-  const [regime, setRegime] = useState<TaxRegime>('presumido')
+  const [regime, setRegimeState] = useState<TaxRegime>('presumido')
+
+  const setRegime = useCallback((newRegime: TaxRegime) => {
+    recordUndoSnapshot()
+    setRegimeState(newRegime)
+    // Atualiza desiredNetRevenue para refletir a meta do NOVO regime, sem propagação automática!
+    setDesiredLiquidRevenueByRegimeState((prevRegimeMap) => {
+      const regimeVal = prevRegimeMap[newRegime] ?? 0
+      setDesiredNetRevenueState(regimeVal)
+      return prevRegimeMap
+    })
+    // Atualiza os produtos no modo liquid para exibir a receita do novo regime selecionado
+    setMarkupProducts((prevProds) =>
+      prevProds.map((p) => {
+        if (!p.desiredNetRevenueByRegime) {
+          const legacy = p.desiredNetRevenue || 0
+          return {
+            ...p,
+            desiredNetRevenueByRegime: {
+              simples: legacy,
+              presumido: legacy,
+              real: legacy,
+            },
+          }
+        }
+        const targetVal = p.desiredNetRevenueByRegime[newRegime] ?? 0
+        return {
+          ...p,
+          desiredNetRevenue: targetVal,
+        }
+      }),
+    )
+  }, [])
 
   // Método PIS/COFINS sobre frete no Lucro Real (default 'position_b')
   const [realFreightPisCofinsMethod, setRealFreightPisCofinsMethodState] = useState<
@@ -673,7 +718,95 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMarkupModeState(mode)
     setMarkupProducts((prev) => prev.map((p) => ({ ...p, mode })))
   }, [])
-  const [desiredNetRevenue, setDesiredNetRevenue] = useState<number>(0)
+  const [desiredNetRevenue, setDesiredNetRevenueState] = useState<number>(0)
+  const [desiredLiquidRevenueByRegime, setDesiredLiquidRevenueByRegimeState] =
+    useState<DesiredLiquidRevenueByRegime>({
+      simples: 0,
+      presumido: 0,
+      real: 0,
+    })
+
+  const setDesiredNetRevenue = useCallback(
+    (val: number) => {
+      recordUndoSnapshot()
+      const cleanVal = Math.max(0, typeof val === 'number' && Number.isFinite(val) ? val : 0)
+      setDesiredNetRevenueState(cleanVal)
+      // Sincroniza apenas no regime ativo
+      setDesiredLiquidRevenueByRegimeState((prev) => ({
+        ...prev,
+        [regime]: cleanVal,
+      }))
+      // Atualiza o produto ativo se houver
+      setMarkupProducts((prev) =>
+        prev.map((p, idx) => {
+          if (idx === 0) {
+            const currentByRegime = p.desiredNetRevenueByRegime || {
+              simples: p.desiredNetRevenue || 0,
+              presumido: p.desiredNetRevenue || 0,
+              real: p.desiredNetRevenue || 0,
+            }
+            return {
+              ...p,
+              desiredNetRevenue: cleanVal,
+              desiredNetRevenueByRegime: {
+                ...currentByRegime,
+                [regime]: cleanVal,
+              },
+            }
+          }
+          return p
+        }),
+      )
+    },
+    [regime],
+  )
+
+  const setDesiredLiquidRevenueByRegime = useCallback(
+    (regimeOrObj: TaxRegime | DesiredLiquidRevenueByRegime, val?: number) => {
+      recordUndoSnapshot()
+      if (typeof regimeOrObj === 'object' && regimeOrObj !== null) {
+        setDesiredLiquidRevenueByRegimeState({
+          simples: Math.max(0, Number(regimeOrObj.simples) || 0),
+          presumido: Math.max(0, Number(regimeOrObj.presumido) || 0),
+          real: Math.max(0, Number(regimeOrObj.real) || 0),
+        })
+        const activeVal = Number(regimeOrObj[regime]) || 0
+        setDesiredNetRevenueState(activeVal)
+        return
+      }
+      const targetRegime = regimeOrObj as TaxRegime
+      const cleanVal = Math.max(0, typeof val === 'number' && Number.isFinite(val) ? val : 0)
+      setDesiredLiquidRevenueByRegimeState((prev) => ({
+        ...prev,
+        [targetRegime]: cleanVal,
+      }))
+      if (targetRegime === regime) {
+        setDesiredNetRevenueState(cleanVal)
+      }
+      setMarkupProducts((prev) =>
+        prev.map((p, idx) => {
+          if (idx === 0) {
+            const currentByRegime = p.desiredNetRevenueByRegime || {
+              simples: p.desiredNetRevenue || 0,
+              presumido: p.desiredNetRevenue || 0,
+              real: p.desiredNetRevenue || 0,
+            }
+            const updatedByRegime = {
+              ...currentByRegime,
+              [targetRegime]: cleanVal,
+            }
+            return {
+              ...p,
+              desiredNetRevenue: targetRegime === regime ? cleanVal : p.desiredNetRevenue,
+              desiredNetRevenueByRegime: updatedByRegime,
+            }
+          }
+          return p
+        }),
+      )
+    },
+    [regime],
+  )
   const [additionalMargin, setAdditionalMargin] = useState<number>(0)
   const [icmsRateMarkup, setIcmsRateMarkup] = useState<number>(0)
   const [customTaxesMarkup, setCustomTaxesMarkup] = useState<CustomTaxItem[]>([])
@@ -700,6 +833,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: 'Produto 1',
       mode: 'liquid',
       desiredNetRevenue: 0,
+      desiredNetRevenueByRegime: {
+        simples: 0,
+        presumido: 0,
+        real: 0,
+      },
       cost: 0,
       margin: 0,
       quantity: 0,
@@ -1723,7 +1861,39 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             costOrigin: 'manual',
           }
         }
-        // Campos numéricos (desiredNetRevenue, margin)
+        // Se estiver alterando desiredNetRevenue
+        if (field === 'desiredNetRevenue') {
+          const numVal = typeof value === 'number' ? value : parseBRNumber(String(value ?? 0))
+          const currentByRegime = item.desiredNetRevenueByRegime || {
+            simples: item.desiredNetRevenue || 0,
+            presumido: item.desiredNetRevenue || 0,
+            real: item.desiredNetRevenue || 0,
+          }
+          const updatedByRegime = {
+            ...currentByRegime,
+            [regime]: numVal,
+          }
+          // Sincroniza também no estado de regime do contexto se for o 1º produto
+          setDesiredNetRevenueState(numVal)
+          setDesiredLiquidRevenueByRegimeState((prevMap) => ({
+            ...prevMap,
+            [regime]: numVal,
+          }))
+          return {
+            ...item,
+            desiredNetRevenue: numVal,
+            desiredNetRevenueByRegime: updatedByRegime,
+          }
+        }
+        if (field === 'desiredNetRevenueByRegime') {
+          const regimeMap = value as unknown as DesiredLiquidRevenueByRegime
+          return {
+            ...item,
+            desiredNetRevenueByRegime: regimeMap,
+            desiredNetRevenue: regimeMap[regime] ?? item.desiredNetRevenue,
+          }
+        }
+        // Campos numéricos (margin, etc.)
         const numVal = typeof value === 'number' ? value : parseBRNumber(String(value ?? 0))
         return {
           ...item,
@@ -1903,6 +2073,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             name: 'Produto 1',
             mode: 'liquid',
             desiredNetRevenue: 0,
+            desiredNetRevenueByRegime: {
+              simples: 0,
+              presumido: 0,
+              real: 0,
+            },
             cost: 0,
             margin: 0,
             quantity: 0,
@@ -2002,6 +2177,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: itemName || `Produto importado (${targetItem.id})`,
       mode: 'cost_margin',
       desiredNetRevenue: 0,
+      desiredNetRevenueByRegime: {
+        simples: 0,
+        presumido: 0,
+        real: 0,
+      },
       cost: unitNetCost,
       costOrigin: 'purchases',
       margin: 0,
@@ -3279,7 +3459,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const resetAll = () => {
     setRegime('presumido')
     setMarkupModeState('liquid')
-    setDesiredNetRevenue(0)
+    setDesiredNetRevenueState(0)
+    setDesiredLiquidRevenueByRegimeState({ simples: 0, presumido: 0, real: 0 })
     setAdditionalMargin(0)
     setIcmsRateMarkup(0)
     setCustomTaxesMarkup([])
@@ -3437,7 +3618,21 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setRegime('presumido')
     }
     if (snapshot.markupMode) setMarkupModeState(snapshot.markupMode)
-    setDesiredNetRevenue(snapshot.desiredNetRevenue ?? 0)
+    const rawRL = snapshot.desiredNetRevenue ?? 0
+    const loadedRLByRegime: DesiredLiquidRevenueByRegime = snapshot.desiredLiquidRevenueByRegime
+      ? {
+          simples: Number(snapshot.desiredLiquidRevenueByRegime.simples) || 0,
+          presumido: Number(snapshot.desiredLiquidRevenueByRegime.presumido) || 0,
+          real: Number(snapshot.desiredLiquidRevenueByRegime.real) || 0,
+        }
+      : {
+          simples: rawRL,
+          presumido: rawRL,
+          real: rawRL,
+        }
+    setDesiredLiquidRevenueByRegimeState(loadedRLByRegime)
+    const targetRegime = snapshot.regime || 'presumido'
+    setDesiredNetRevenueState(loadedRLByRegime[targetRegime] ?? rawRL)
     setAdditionalMargin(snapshot.additionalMargin ?? 0)
     setIcmsRateMarkup(snapshot.icmsRateMarkup ?? 0)
     setCustomTaxesMarkup(
@@ -3485,6 +3680,18 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   (snapshot.desiredNetRevenue ?? 0) === 0
                 ? p.cost // fallback legado quando a RL estava salva no campo cost
                 : 0
+          const safeByRegime: DesiredLiquidRevenueByRegime = p.desiredNetRevenueByRegime
+            ? {
+                simples: Number(p.desiredNetRevenueByRegime.simples) || 0,
+                presumido: Number(p.desiredNetRevenueByRegime.presumido) || 0,
+                real: Number(p.desiredNetRevenueByRegime.real) || 0,
+              }
+            : {
+                simples: safeDesiredNetRevenue || loadedRLByRegime.simples,
+                presumido: safeDesiredNetRevenue || loadedRLByRegime.presumido,
+                real: safeDesiredNetRevenue || loadedRLByRegime.real,
+              }
+          const activeRegimeVal = safeByRegime[targetRegime] ?? safeDesiredNetRevenue
           const safeCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
           const safeMargin =
             typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
@@ -3492,7 +3699,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return {
             ...p,
             mode: prodMode,
-            desiredNetRevenue: safeDesiredNetRevenue,
+            desiredNetRevenue: activeRegimeVal,
+            desiredNetRevenueByRegime: safeByRegime,
             cost: safeCost,
             margin: safeMargin,
             costComposition: p.costComposition || {
@@ -3512,6 +3720,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           name: 'Produto 1',
           mode: defaultMode,
           desiredNetRevenue: defaultMode === 'liquid' ? legacyVal : 0,
+          desiredNetRevenueByRegime: {
+            simples: defaultMode === 'liquid' ? legacyVal : 0,
+            presumido: defaultMode === 'liquid' ? legacyVal : 0,
+            real: defaultMode === 'liquid' ? legacyVal : 0,
+          },
           cost: defaultMode === 'cost_margin' ? legacyVal : 0,
           margin: snapshot.additionalMargin || 0,
           quantity: 0,
@@ -3791,6 +4004,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       regime,
       markupMode,
       desiredNetRevenue,
+      desiredLiquidRevenueByRegime,
       additionalMargin,
       icmsRateMarkup,
       customTaxesMarkup,
@@ -4055,6 +4269,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setMarkupMode,
         desiredNetRevenue,
         setDesiredNetRevenue,
+        desiredLiquidRevenueByRegime,
+        setDesiredLiquidRevenueByRegime,
         additionalMargin,
         setAdditionalMargin,
         icmsRateMarkup,
