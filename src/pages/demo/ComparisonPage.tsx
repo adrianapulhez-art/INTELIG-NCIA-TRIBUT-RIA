@@ -39,6 +39,8 @@ import { PageHero } from '@/components/demo/PageHero'
 export default function ComparisonPage() {
   const navigate = useNavigate()
   const {
+    regime,
+    markupMode,
     simulatedSalePrice,
     totalConsolidatedRevenue,
     totalConsolidatedQuantity,
@@ -355,26 +357,6 @@ export default function ComparisonPage() {
   }, [currentAnexoId, simplesRbt12])
 
   const regimeGrossRevenues = useMemo(() => {
-    // -----------------------------------------------------------------
-    // REGRA DE PARIDADE COM DRES INDIVIDUAIS:
-    // Quando houver receita consolidada do Markup (totalConsolidatedRevenue > 0),
-    // a Receita Bruta Total da Demonstração Comparativa Completa deve refletir
-    // fielmente a receita consolidada sincronizada (mesma fonte das DREs
-    // individuais: DrePresumidoPage, DreRealPage e DreSimplesPage).
-    // Isso elimina a distorção inflacionária decorrente de gross-up unitário
-    // composto sobre bases já brutas e dupla multiplicação em multi-produto.
-    // -----------------------------------------------------------------
-    if (totalConsolidatedRevenue > 0) {
-      return {
-        presumidoGrossRevenue: totalConsolidatedRevenue,
-        presumidoUnitGross: unitGrossRevenue,
-        realGrossRevenue: totalConsolidatedRevenue,
-        realUnitGross: unitGrossRevenue,
-        simplesGrossRevenue: totalConsolidatedRevenue,
-        simplesUnitGross: unitGrossRevenue,
-      }
-    }
-
     // 1. Soma de tributos customizados
     let sumCustomTaxesPct = 0
     if (Array.isArray(customTaxesMarkup)) {
@@ -394,8 +376,34 @@ export default function ComparisonPage() {
       typeof icmsRateMarkup === 'number' && Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
     const simplesEffectiveRate = pgdas.aliquotaEfetiva || 0
 
-    // Helper para calcular o divisor aditivo de um produto / regime
-    const computeDivisor = (regimeKey: 'presumido' | 'real' | 'simples', margin: number) => {
+    const validProducts = Array.isArray(markupProducts) ? markupProducts : []
+
+    // Helper para obter custo unitário do produto por regime (modo cost_margin)
+    const getProductUnitCost = (
+      p: (typeof validProducts)[number],
+      regimeKey: 'presumido' | 'real' | 'simples',
+    ) => {
+      if (p.purchaseItemId && purchasesItems && getPurchaseItemUnitNetCost) {
+        const pItem = purchasesItems.find((pi) => pi.id === p.purchaseItemId)
+        if (pItem) {
+          const uCost = getPurchaseItemUnitNetCost(pItem, regimeKey)
+          if (uCost > 0) return uCost
+        }
+      }
+      if (regimeKey === 'presumido' && calculatedPurchases.unitCostPresumidoEffective > 0) {
+        return calculatedPurchases.unitCostPresumidoEffective
+      }
+      if (regimeKey === 'real' && calculatedPurchases.unitCostRealEffective > 0) {
+        return calculatedPurchases.unitCostRealEffective
+      }
+      if (regimeKey === 'simples' && calculatedPurchases.unitCostSimplesEffective > 0) {
+        return calculatedPurchases.unitCostSimplesEffective
+      }
+      return typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+    }
+
+    // Helper para calcular o divisor aditivo (modo liquid) de um produto / regime
+    const computeLiquidDivisor = (regimeKey: 'presumido' | 'real' | 'simples') => {
       let taxesRate = 0
       if (regimeKey === 'presumido') {
         taxesRate = icms + 0.65 + 3.0 + sumCustomTaxesPct
@@ -405,52 +413,129 @@ export default function ComparisonPage() {
         taxesRate = simplesEffectiveRate + sumCustomTaxesPct
       }
 
-      // Divisor aditivo: 1 - (Σtributos + %DV)/100
-      let divisor = 1 - (taxesRate + dvRate) / 100
-
-      // Margem multiplicativa apenas se > 0
-      const safeMargin = typeof margin === 'number' && Number.isFinite(margin) ? margin : 0
-      if (safeMargin > 0) {
-        divisor *= 1 - safeMargin / 100
-      }
-
+      // Divisor aditivo do gross-up: 1 - (Σtributos + %DV)/100
+      const divisor = 1 - (taxesRate + dvRate) / 100
       return Math.max(0.0001, divisor)
     }
 
-    // Verifica se há produtos válidos com meta líquida informada no Markup
-    const validProducts = Array.isArray(markupProducts) ? markupProducts : []
-    const hasLiquidProductConfig = validProducts.some((p) => {
-      const pByRegime = p.desiredNetRevenueByRegime
-      const hasSpecificMeta =
-        pByRegime &&
-        ((pByRegime.presumido || 0) > 0 ||
-          (pByRegime.real || 0) > 0 ||
-          (pByRegime.simples || 0) > 0)
-      const hasDirectMeta = (p.desiredNetRevenue || 0) > 0
-      return hasSpecificMeta || hasDirectMeta
-    })
+    // Helper para calcular o divisor composto (modo cost_margin):
+    // fator = (1 - (soma tributos_k + %DV)/100) * (1 - margem_p/100)
+    const computeCostMarginDivisor = (
+      regimeKey: 'presumido' | 'real' | 'simples',
+      margin: number,
+    ) => {
+      let taxesRate = 0
+      if (regimeKey === 'presumido') {
+        taxesRate = icms + 0.65 + 3.0 + sumCustomTaxesPct
+      } else if (regimeKey === 'real') {
+        taxesRate = icms + 1.65 + 7.6 + sumCustomTaxesPct
+      } else {
+        taxesRate = simplesEffectiveRate + sumCustomTaxesPct
+      }
 
-    const hasGlobalByRegime =
-      desiredLiquidRevenueByRegime &&
-      ((desiredLiquidRevenueByRegime.presumido || 0) > 0 ||
-        (desiredLiquidRevenueByRegime.real || 0) > 0 ||
-        (desiredLiquidRevenueByRegime.simples || 0) > 0)
+      const taxDvFactor = 1 - (taxesRate + dvRate) / 100
+      const safeMargin = typeof margin === 'number' && Number.isFinite(margin) ? margin : 0
+      const marginFactor = safeMargin > 0 ? 1 - safeMargin / 100 : 1
+      const divisor = taxDvFactor * marginFactor
+      return Math.max(0.0001, divisor)
+    }
 
-    // Se não há metas líquidas configuradas por produto nem global por regime,
-    // mantém o fallback no faturamento já simulado/consolidado do contexto
-    if (!hasLiquidProductConfig && !hasGlobalByRegime) {
+    // A) MODO LIQUID (Receita Líquida de Vendas)
+    if (markupMode === 'liquid') {
+      const computeForLiquidRegime = (regimeKey: 'presumido' | 'real' | 'simples') => {
+        if (validProducts.length > 0) {
+          let totalRev = 0
+          let totalUnits = 0
+
+          for (const p of validProducts) {
+            const productQty =
+              typeof p.quantity === 'number' && Number.isFinite(p.quantity)
+                ? Math.max(0, p.quantity)
+                : 0
+            const itemMeta =
+              p.desiredNetRevenueByRegime?.[regimeKey] ??
+              desiredLiquidRevenueByRegime?.[regimeKey] ??
+              p.desiredNetRevenue ??
+              0
+            const divisor = computeLiquidDivisor(regimeKey)
+
+            const unitSalePrice =
+              divisor > 0.0001 && itemMeta > 0 ? Math.round((itemMeta / divisor) * 100) / 100 : 0
+
+            const effectiveItemQty = productQty > 0 ? productQty : 1
+            const itemRev = Math.round(unitSalePrice * effectiveItemQty * 100) / 100
+
+            totalRev += itemRev
+            totalUnits += effectiveItemQty
+          }
+
+          const roundedTotal = Math.round(totalRev * 100) / 100
+          const effectiveDivQty = qty > 0 ? qty : totalUnits > 0 ? totalUnits : 1
+          const roundedUnit =
+            effectiveDivQty > 0
+              ? Math.round((roundedTotal / effectiveDivQty) * 100) / 100
+              : roundedTotal
+
+          return { total: roundedTotal, unit: roundedUnit }
+        }
+
+        // Produto único / global
+        const globalMeta = desiredLiquidRevenueByRegime?.[regimeKey] ?? 0
+        const divisor = computeLiquidDivisor(regimeKey)
+        const unitSalePrice =
+          divisor > 0.0001 && globalMeta > 0 ? Math.round((globalMeta / divisor) * 100) / 100 : 0
+        const effectiveQty = qty > 0 ? qty : 1
+        const totalRev = Math.round(unitSalePrice * effectiveQty * 100) / 100
+        const unitRev = qty > 0 ? Math.round((totalRev / qty) * 100) / 100 : unitSalePrice
+
+        return { total: totalRev, unit: unitRev }
+      }
+
+      const pres = computeForLiquidRegime('presumido')
+      const rl = computeForLiquidRegime('real')
+      const simp = computeForLiquidRegime('simples')
+
+      // Fallback quando o cálculo resultar 0 para nunca exibir R$ 0,00
+      const presGross = pres.total || totalConsolidatedRevenue || activeGrossRevenue
+      const rlGross = rl.total || totalConsolidatedRevenue || activeGrossRevenue
+      const simpGross = simp.total || totalConsolidatedRevenue || activeGrossRevenue
+
+      const presUnit =
+        pres.total > 0
+          ? pres.unit
+          : qty > 0
+            ? Math.round((presGross / qty) * 100) / 100
+            : unitGrossRevenue
+      const rlUnit =
+        rl.total > 0
+          ? rl.unit
+          : qty > 0
+            ? Math.round((rlGross / qty) * 100) / 100
+            : unitGrossRevenue
+      const simpUnit =
+        simp.total > 0
+          ? simp.unit
+          : qty > 0
+            ? Math.round((simpGross / qty) * 100) / 100
+            : unitGrossRevenue
+
       return {
-        presumidoGrossRevenue: activeGrossRevenue,
-        presumidoUnitGross: unitGrossRevenue,
-        realGrossRevenue: activeGrossRevenue,
-        realUnitGross: unitGrossRevenue,
-        simplesGrossRevenue: activeGrossRevenue,
-        simplesUnitGross: unitGrossRevenue,
+        presumidoGrossRevenue: presGross,
+        presumidoUnitGross: presUnit,
+        realGrossRevenue: rlGross,
+        realUnitGross: rlUnit,
+        simplesGrossRevenue: simpGross,
+        simplesUnitGross: simpUnit,
       }
     }
 
-    // Calcula faturamento bruto e unitário para cada regime
-    const computeForRegime = (regimeKey: 'presumido' | 'real' | 'simples') => {
+    // B) MODO COST_MARGIN (Custo + Margem)
+    const computeForCostMarginRegime = (regimeKey: 'presumido' | 'real' | 'simples') => {
+      // No regime que coincidir com o regime selecionado no Markup, o resultado deve coincidir com totalConsolidatedRevenue
+      if (regime === regimeKey && totalConsolidatedRevenue > 0) {
+        return { total: totalConsolidatedRevenue, unit: unitGrossRevenue }
+      }
+
       if (validProducts.length > 0) {
         let totalRev = 0
         let totalUnits = 0
@@ -460,16 +545,12 @@ export default function ComparisonPage() {
             typeof p.quantity === 'number' && Number.isFinite(p.quantity)
               ? Math.max(0, p.quantity)
               : 0
-          const itemMeta =
-            p.desiredNetRevenueByRegime?.[regimeKey] ??
-            desiredLiquidRevenueByRegime?.[regimeKey] ??
-            p.desiredNetRevenue ??
-            0
+          const unitCost = getProductUnitCost(p, regimeKey)
           const pMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
-          const divisor = computeDivisor(regimeKey, pMargin)
+          const divisor = computeCostMarginDivisor(regimeKey, pMargin)
 
           const unitSalePrice =
-            divisor > 0.0001 && itemMeta > 0 ? Math.round((itemMeta / divisor) * 100) / 100 : 0
+            divisor > 0.0001 && unitCost > 0 ? Math.round((unitCost / divisor) * 100) / 100 : 0
 
           const effectiveItemQty = productQty > 0 ? productQty : 1
           const itemRev = Math.round(unitSalePrice * effectiveItemQty * 100) / 100
@@ -489,10 +570,18 @@ export default function ComparisonPage() {
       }
 
       // Produto único / global
-      const globalMeta = desiredLiquidRevenueByRegime?.[regimeKey] ?? 0
-      const divisor = computeDivisor(regimeKey, 0)
+      let fallbackCost = 0
+      if (regimeKey === 'presumido') {
+        fallbackCost = calculatedPurchases.unitCostPresumidoEffective
+      } else if (regimeKey === 'real') {
+        fallbackCost = calculatedPurchases.unitCostRealEffective
+      } else {
+        fallbackCost = calculatedPurchases.unitCostSimplesEffective
+      }
+
+      const divisor = computeCostMarginDivisor(regimeKey, 0)
       const unitSalePrice =
-        divisor > 0.0001 && globalMeta > 0 ? Math.round((globalMeta / divisor) * 100) / 100 : 0
+        divisor > 0.0001 && fallbackCost > 0 ? Math.round((fallbackCost / divisor) * 100) / 100 : 0
       const effectiveQty = qty > 0 ? qty : 1
       const totalRev = Math.round(unitSalePrice * effectiveQty * 100) / 100
       const unitRev = qty > 0 ? Math.round((totalRev / qty) * 100) / 100 : unitSalePrice
@@ -500,37 +589,56 @@ export default function ComparisonPage() {
       return { total: totalRev, unit: unitRev }
     }
 
-    const pres = computeForRegime('presumido')
-    const rl = computeForRegime('real')
-    const simp = computeForRegime('simples')
+    const presCM = computeForCostMarginRegime('presumido')
+    const rlCM = computeForCostMarginRegime('real')
+    const simpCM = computeForCostMarginRegime('simples')
 
-    // Se os três derem 0 (nenhuma meta líquida positiva encontrada), fallback na receita ativa
-    if (pres.total === 0 && rl.total === 0 && simp.total === 0) {
-      return {
-        presumidoGrossRevenue: activeGrossRevenue,
-        presumidoUnitGross: unitGrossRevenue,
-        realGrossRevenue: activeGrossRevenue,
-        realUnitGross: unitGrossRevenue,
-        simplesGrossRevenue: activeGrossRevenue,
-        simplesUnitGross: unitGrossRevenue,
-      }
-    }
+    // Fallback apenas quando o cálculo resultar 0 para nunca exibir R$ 0,00
+    const presCMGross = presCM.total || totalConsolidatedRevenue || activeGrossRevenue
+    const rlCMGross = rlCM.total || totalConsolidatedRevenue || activeGrossRevenue
+    const simpCMGross = simpCM.total || totalConsolidatedRevenue || activeGrossRevenue
+
+    const presCMUnit =
+      presCM.total > 0
+        ? presCM.unit
+        : qty > 0
+          ? Math.round((presCMGross / qty) * 100) / 100
+          : unitGrossRevenue
+    const rlCMUnit =
+      rlCM.total > 0
+        ? rlCM.unit
+        : qty > 0
+          ? Math.round((rlCMGross / qty) * 100) / 100
+          : unitGrossRevenue
+    const simpCMUnit =
+      simpCM.total > 0
+        ? simpCM.unit
+        : qty > 0
+          ? Math.round((simpCMGross / qty) * 100) / 100
+          : unitGrossRevenue
 
     return {
-      presumidoGrossRevenue: pres.total,
-      presumidoUnitGross: pres.unit,
-      realGrossRevenue: rl.total,
-      realUnitGross: rl.unit,
-      simplesGrossRevenue: simp.total,
-      simplesUnitGross: simp.unit,
+      presumidoGrossRevenue: presCMGross,
+      presumidoUnitGross: presCMUnit,
+      realGrossRevenue: rlCMGross,
+      realUnitGross: rlCMUnit,
+      simplesGrossRevenue: simpCMGross,
+      simplesUnitGross: simpCMUnit,
     }
   }, [
+    regime,
+    markupMode,
     totalConsolidatedRevenue,
     customTaxesMarkup,
     totalVariableExpenseRate,
     icmsRateMarkup,
     pgdas.aliquotaEfetiva,
     markupProducts,
+    purchasesItems,
+    getPurchaseItemUnitNetCost,
+    calculatedPurchases.unitCostPresumidoEffective,
+    calculatedPurchases.unitCostRealEffective,
+    calculatedPurchases.unitCostSimplesEffective,
     desiredLiquidRevenueByRegime,
     activeGrossRevenue,
     unitGrossRevenue,
@@ -1636,9 +1744,12 @@ export default function ComparisonPage() {
                 Demonstração Comparativa Completa
               </h3>
               <p className="text-xs text-slate-400">
+                {markupMode === 'liquid'
+                  ? `Base integrada à meta líquida por regime (${markupProducts.length} itens cadastrados)`
+                  : `Base integrada à formação custo + margem por regime (${markupProducts.length} itens cadastrados)`}
                 {hasConsolidated
-                  ? `Base calculada para ${qty} unidades consolidadas (${markupProducts.length} produtos — receita total: ${formatBRL(totalConsolidatedRevenue)})`
-                  : `Base calculada para ${qty} unidades vendidas a ${formatBRL(unitGrossRevenue)}/un.`}
+                  ? ` · ${qty} unidades consolidadas`
+                  : ` · ${qty} unidades a ${formatBRL(unitGrossRevenue)}/un.`}
               </p>
             </div>
             {economyDifference > 0 && (
