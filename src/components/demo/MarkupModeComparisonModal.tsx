@@ -56,6 +56,11 @@ export interface ModeTriadResult {
   anchorFormatted: string
   salePrice: number
   salePriceFormatted: string
+  // Margem de entrada (semântica de formação de preço / Custo + Margem)
+  entryMarginPct?: number
+  entryMarginFormatted?: string
+  entryMarginLabel?: string
+  // Margem líquida apurada (métrica canônica: pós-IRPJ/CSLL sobre RL aditiva)
   netMarginPct: number
   netMarginFormatted: string
   netMarginDerived: boolean
@@ -273,7 +278,7 @@ export function computeMarkupModeComparison(params: {
         'Âncora definida pelo valor líquido desejado após deduzir tributos e despesas de venda.',
     }
 
-    // MODO ALTERNATIVO: Custo + Margem com a PREMISSA HONESTA da usuária:
+    // MODO ALTERNATIVO: Custo + Margem com a PREMISSA HONESTA de CONVERGÊNCIA REAL:
     // Custo base = custo unitário líquido deste regime (unitCost).
     // Se não há custo cadastrado neste regime, avisa honestamente.
     if (unitCost <= 0) {
@@ -293,9 +298,12 @@ export function computeMarkupModeComparison(params: {
           anchorFormatted: 'Não cadastrado',
           salePrice: 0,
           salePriceFormatted: 'Indisponível',
+          entryMarginPct: 0,
+          entryMarginFormatted: 'Não calculável',
+          entryMarginLabel: 'Margem de Entrada Equivalente',
           netMarginPct: implicitMarginPct,
-          netMarginFormatted: `${formatNumberBR(implicitMarginPct)}% (implícita)`,
-          netMarginDerived: false,
+          netMarginFormatted: `${formatNumberBR(implicitMarginPct)}%`,
+          netMarginDerived: true,
           notes:
             'Para simular o modo alternativo Custo + Margem, cadastre o custo da mercadoria ou importe os itens da Calculadora de Compras.',
         },
@@ -305,26 +313,65 @@ export function computeMarkupModeComparison(params: {
       }
     }
 
-    // Calcula preço pelo modo Custo + Margem usando a margem implícita honesta
-    // Divisor alternativo = baseCostMultiplicativeTaxFactor * (1 - implicitMarginPct / 100)
-    // Se a margem for muito alta (>= 100%) ou negativa, trata com segurança matemática
-    const safeMarginFactor = Math.max(0.0001, 1 - implicitMarginPct / 100)
+    // Margem de entrada EQUIVALENTE para convergência real no preço de venda:
+    // Modo Custo + Margem: PV = unitCost / (baseCostMultiplicativeTaxFactor * (1 - mEntrada/100))
+    // Para PV == activeSalePrice:
+    // 1 - mEntrada/100 = unitCost / (baseCostMultiplicativeTaxFactor * activeSalePrice)
+    // mEntrada = (1 - unitCost / (baseCostMultiplicativeTaxFactor * activeSalePrice)) * 100
+    const denom = baseCostMultiplicativeTaxFactor * activeSalePrice
+    const equivalentEntryMarginRaw = denom > 0 ? (1 - unitCost / denom) * 100 : 0
+    const equivalentEntryMarginPct = Math.round(equivalentEntryMarginRaw * 100) / 100
+
+    // Divisor alternativo com a margem equivalente calculada
+    const safeMarginFactor = Math.max(0.0001, 1 - equivalentEntryMarginPct / 100)
     const divisorAlt = Math.max(0.0001, baseCostMultiplicativeTaxFactor * safeMarginFactor)
     const alternativeSalePrice = Math.round((unitCost / divisorAlt) * 100) / 100
+
+    // Margem líquida apurada canônica do alternativo (pós-IRPJ/CSLL sobre RL aditiva)
+    const altRL = Math.round(alternativeSalePrice * baseLiquidDivisor * 100) / 100
+    const altGrossProfit = Math.round((altRL - unitCost) * 100) / 100
+    let altLle = altGrossProfit
+    if (currentRegime === 'presumido') {
+      const irpjBase = alternativeSalePrice * 0.08
+      const irpj = Math.round(irpjBase * 0.15 * 100) / 100
+      const csll = Math.round(alternativeSalePrice * 0.12 * 0.09 * 100) / 100
+      altLle = Math.round((altGrossProfit - (irpj + csll)) * 100) / 100
+    } else if (currentRegime === 'real') {
+      const baseReal = Math.max(0, altGrossProfit)
+      const irpj = Math.round(baseReal * 0.15 * 100) / 100
+      const csll = Math.round(baseReal * 0.09 * 100) / 100
+      altLle = Math.round((altGrossProfit - (irpj + csll)) * 100) / 100
+    }
+    const altCanonicalMarginPct =
+      altRL > 0 ? Math.round((altLle / altRL) * 10000) / 100 : implicitMarginPct
+
+    const isConvergent = Math.abs(activeSalePrice - alternativeSalePrice) < 0.05
+
+    // Adiciona margem de entrada equivalente também na tríade ativa para rotulagem clara
+    activeTriad.entryMarginPct = equivalentEntryMarginPct
+    activeTriad.entryMarginFormatted = `${formatNumberBR(equivalentEntryMarginPct)}% (equivalente)`
+    activeTriad.entryMarginLabel = 'Margem de Entrada Equivalente'
 
     const alternativeTriad: ModeTriadResult = {
       mode: 'cost_margin',
       modeLabel: 'Custo + Margem (Alternativo)',
-      anchorLabel: 'Custo Unitário + Margem Implícita',
+      anchorLabel: 'Custo Unitário + Margem Equivalente',
       anchorValue: unitCost,
-      anchorFormatted: `${formatBRL(unitCost)} (+ ${formatNumberBR(implicitMarginPct)}% margem)`,
+      anchorFormatted: `${formatBRL(unitCost)} (+ ${formatNumberBR(equivalentEntryMarginPct)}% margem)`,
       salePrice: alternativeSalePrice,
       salePriceFormatted: formatBRL(alternativeSalePrice),
-      netMarginPct: implicitMarginPct,
-      netMarginFormatted: `${formatNumberBR(implicitMarginPct)}% (convergente)`,
-      netMarginDerived: false,
+      entryMarginPct: equivalentEntryMarginPct,
+      entryMarginFormatted: isConvergent
+        ? `${formatNumberBR(equivalentEntryMarginPct)}% (convergente)`
+        : `${formatNumberBR(equivalentEntryMarginPct)}%`,
+      entryMarginLabel: 'Margem de Entrada Equivalente',
+      netMarginPct: altCanonicalMarginPct,
+      netMarginFormatted: `${formatNumberBR(altCanonicalMarginPct)}%`,
+      netMarginDerived: true,
+      lle: altLle,
+      isViable: altLle >= 0,
       notes:
-        'Calculado com o CMV apurado no regime e a margem implícita derivada da meta líquida ativa.',
+        'Calculado com o CMV apurado no regime e a margem de entrada equivalente necessária para reproduzir exatamente o mesmo preço de venda.',
     }
 
     return {
@@ -354,8 +401,8 @@ export function computeMarkupModeComparison(params: {
   // RL implícita = Preço de Venda × divisor do gross-up (1 - Σtributos - %DV)
   const implicitNetRevenue = Math.round(activeSalePrice * baseLiquidDivisor * 100) / 100
 
-  // Margem líquida real apurada sobre a RL ou sobre a venda
-  // LLE estimado = RL implícita - CMV
+  // Margem líquida apurada canônica (pós-IRPJ/CSLL sobre RL aditiva)
+  // LLE = RL implícita - CMV - tributos diretos (IRPJ/CSLL)
   const grossProfitActive = Math.round((implicitNetRevenue - costAnchor) * 100) / 100
   let activeLle = grossProfitActive
   if (currentRegime === 'presumido') {
@@ -382,9 +429,12 @@ export function computeMarkupModeComparison(params: {
     anchorFormatted: `${formatBRL(costAnchor)} (${formatNumberBR(explicitMarginPct)}% margem)`,
     salePrice: activeSalePrice,
     salePriceFormatted: formatBRL(activeSalePrice),
-    netMarginPct: explicitMarginPct,
-    netMarginFormatted: `${formatNumberBR(explicitMarginPct)}%`,
-    netMarginDerived: false,
+    entryMarginPct: explicitMarginPct,
+    entryMarginFormatted: `${formatNumberBR(explicitMarginPct)}%`,
+    entryMarginLabel: 'Margem de Entrada',
+    netMarginPct: effectiveMarginPct,
+    netMarginFormatted: `${formatNumberBR(effectiveMarginPct)}%`,
+    netMarginDerived: true,
     lle: activeLle,
     isViable: activeLle >= 0,
     notes: 'Âncora definida pelo custo de aquisição/produção com margem percentual direta.',
@@ -403,13 +453,16 @@ export function computeMarkupModeComparison(params: {
     anchorFormatted: formatBRL(implicitNetRevenue),
     salePrice: alternativeSalePrice,
     salePriceFormatted: formatBRL(alternativeSalePrice),
+    entryMarginPct: explicitMarginPct,
+    entryMarginFormatted: `${formatNumberBR(explicitMarginPct)}%`,
+    entryMarginLabel: 'Margem de Entrada (Custo+Margem)',
     netMarginPct: effectiveMarginPct,
-    netMarginFormatted: `${formatNumberBR(effectiveMarginPct)}% (derivada)`,
+    netMarginFormatted: `${formatNumberBR(effectiveMarginPct)}%`,
     netMarginDerived: true,
     lle: activeLle,
     isViable: activeLle >= 0,
     notes:
-      'Calculado a partir da receita líquida que o preço do modo Custo + Margem produz, convergindo no mesmo nível de preço e rentabilidade.',
+      'Calculado a partir da receita líquida aditiva que o preço do modo Custo + Margem produz, convergindo no mesmo nível de preço e rentabilidade.',
   }
 
   return {
@@ -588,15 +641,25 @@ export function MarkupModeComparisonModal({
                 </div>
               </div>
 
-              {/* 3. Margem Líquida Resultante */}
-              <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-0.5">
+              {/* 3. Margens: Entrada e Líquida Apurada */}
+              <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
                 <span className="text-[10px] uppercase text-slate-400 block font-semibold">
-                  3. Margem Líquida Resultante
+                  3. Margens do Modo
                 </span>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-slate-300 text-[11px]">
-                    {activeTriad.netMarginDerived ? 'Margem Líquida Derivada:' : 'Margem de Lucro:'}
-                  </span>
+                {/* Linha A: Margem de Entrada */}
+                {activeTriad.entryMarginFormatted && (
+                  <div className="flex items-baseline justify-between text-[11px]">
+                    <span className="text-slate-300">
+                      {activeTriad.entryMarginLabel || 'Margem de entrada'}:
+                    </span>
+                    <span className="font-bold text-sky-300">
+                      {activeTriad.entryMarginFormatted}
+                    </span>
+                  </div>
+                )}
+                {/* Linha B: Margem Líquida Apurada (canônica: pós-IRPJ/CSLL sobre RL aditiva) */}
+                <div className="flex items-baseline justify-between text-[11px]">
+                  <span className="text-slate-300 font-medium">Margem líquida apurada:</span>
                   <span className="text-sm font-bold text-amber-300">
                     {activeTriad.netMarginFormatted}
                   </span>
@@ -670,17 +733,25 @@ export function MarkupModeComparisonModal({
                   </div>
                 </div>
 
-                {/* 3. Margem Líquida Resultante */}
-                <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-0.5">
+                {/* 3. Margens: Entrada e Líquida Apurada */}
+                <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
                   <span className="text-[10px] uppercase text-slate-400 block font-semibold">
-                    3. Margem Líquida Resultante
+                    3. Margens do Modo
                   </span>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-slate-300 text-[11px]">
-                      {alternativeTriad.netMarginDerived
-                        ? 'Margem Líquida Derivada:'
-                        : 'Margem Implícita Adotada:'}
-                    </span>
+                  {/* Linha A: Margem de Entrada */}
+                  {alternativeTriad.entryMarginFormatted && (
+                    <div className="flex items-baseline justify-between text-[11px]">
+                      <span className="text-slate-300">
+                        {alternativeTriad.entryMarginLabel || 'Margem de entrada'}:
+                      </span>
+                      <span className="font-bold text-sky-300">
+                        {alternativeTriad.entryMarginFormatted}
+                      </span>
+                    </div>
+                  )}
+                  {/* Linha B: Margem Líquida Apurada (canônica: pós-IRPJ/CSLL sobre RL aditiva) */}
+                  <div className="flex items-baseline justify-between text-[11px]">
+                    <span className="text-slate-300 font-medium">Margem líquida apurada:</span>
                     <span className="text-sm font-bold text-amber-300">
                       {alternativeTriad.netMarginFormatted}
                     </span>
@@ -784,8 +855,31 @@ export function MarkupModeComparisonModal({
                       )}
                     </td>
                   </tr>
+                  {/* Linha Margem de Entrada */}
+                  {(activeTriad.entryMarginFormatted || alternativeTriad.entryMarginFormatted) && (
+                    <tr>
+                      <td className="py-2.5 px-3 font-medium text-slate-400">Margem de entrada</td>
+                      <td className="py-2.5 px-3 font-bold text-sky-300">
+                        {activeTriad.entryMarginFormatted || '—'}
+                      </td>
+                      <td className="py-2.5 px-3 font-bold text-sky-300">
+                        {alternativeTriad.entryMarginFormatted || '—'}
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <span className="text-[10px] text-slate-400">
+                          {activeMode === 'liquid' ? 'Equivalente real' : 'Informada vs Implícita'}
+                        </span>
+                      </td>
+                    </tr>
+                  )}
+                  {/* Linha Margem Líquida Apurada (canônica) */}
                   <tr>
-                    <td className="py-2.5 px-3 font-medium text-slate-400">Margem Líquida</td>
+                    <td className="py-2.5 px-3 font-medium text-slate-400">
+                      Margem líquida apurada
+                      <span className="block text-[9px] text-slate-500 font-normal">
+                        (pós-IRPJ/CSLL sobre RL aditiva)
+                      </span>
+                    </td>
                     <td className="py-2.5 px-3 font-bold text-amber-300">
                       {activeTriad.netMarginFormatted}
                     </td>
@@ -795,7 +889,7 @@ export function MarkupModeComparisonModal({
                     <td className="py-2.5 px-3 text-center">
                       <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
                         <Sparkles className="w-3 h-3 text-amber-400" />
-                        Mesmo patamar
+                        Métrica canônica
                       </span>
                     </td>
                   </tr>
@@ -815,19 +909,24 @@ export function MarkupModeComparisonModal({
             {activeMode === 'liquid' ? (
               <>
                 Como o modo ativo é <strong>Receita Líquida</strong>, a calculadora parte da sua
-                meta líquida ({activeTriad.anchorFormatted}) e gera o preço de venda e a margem de
-                rentabilidade resultante ({activeTriad.netMarginFormatted}). O modo alternativo
-                aplica exatamente essa mesma margem implícita sobre o custo da mercadoria (
-                {formatBRL(comparison.unitCost)}), mostrando como a precificação convergiria para o
-                mesmo patamar de rentabilidade.
+                meta líquida ({activeTriad.anchorFormatted}), utiliza o divisor aditivo canônico do
+                regime ({formatNumberBR(comparison.divisorActive, 5)}) e gera o preço de venda (
+                {activeTriad.salePriceFormatted}) com margem líquida apurada de{' '}
+                {activeTriad.netMarginFormatted}. O modo alternativo Custo + Margem calcula a{' '}
+                <strong>margem de entrada equivalente</strong> (
+                {alternativeTriad.entryMarginFormatted}) necessária sob a semântica de formação de
+                preço para reproduzir com <strong>convergência real</strong> o mesmo preço de venda
+                ({alternativeTriad.salePriceFormatted}), mantendo a métrica canônica de margem
+                líquida apurada unificada.
               </>
             ) : (
               <>
-                Como o modo ativo é <strong>Custo + Margem</strong>, a calculadora parte do custo e
-                embute a margem informada ({activeTriad.netMarginFormatted}). O modo alternativo
-                extrai a meta líquida implícita que esse preço gera (
-                {alternativeTriad?.anchorFormatted}) e a adota como âncora, permitindo comparar os
-                dois caminhos sob a mesma ótica financeira.
+                Como o modo ativo é <strong>Custo + Margem</strong>, a calculadora parte do custo (
+                {activeTriad.anchorFormatted}) e da margem de entrada (
+                {activeTriad.entryMarginFormatted}). O modo alternativo extrai a meta líquida
+                implícita aditiva ({alternativeTriad?.anchorFormatted}) sob o divisor aditivo
+                canônico ({formatNumberBR(comparison.divisorAlternative, 5)}), garantindo a
+                comparabilidade exata de preço e rentabilidade sob as duas óticas.
               </>
             )}
           </p>
