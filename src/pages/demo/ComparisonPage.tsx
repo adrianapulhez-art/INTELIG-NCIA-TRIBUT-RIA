@@ -35,6 +35,7 @@ import { ExportReportButtons } from '@/components/demo/ExportReportButtons'
 import { exportComparisonToPdf, exportComparisonToExcel } from '@/lib/exportReports'
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
+import { ResultBaseComparison } from '@/components/demo/ResultBaseComparison'
 
 export default function ComparisonPage() {
   const navigate = useNavigate()
@@ -2894,165 +2895,219 @@ export default function ComparisonPage() {
         </div>
 
         {/* CARDS DE RESUMO COMPARATIVO (o quadro com os 3 cards posicionado na parte de baixo da página) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Card Lucro Presumido */}
-          <div
-            className={`p-5 rounded-2xl border transition-all ${
-              bestRegimeKey === 'presumido'
-                ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                : 'bg-[#0b101b]/90 border-slate-800/90'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-mono font-bold uppercase text-slate-300">
-                Lucro Presumido
-              </span>
-              {bestRegimeKey === 'presumido' ? (
-                <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center gap-1">
-                  <Trophy className="w-3 h-3" /> Melhor Resultado
-                </Badge>
-              ) : (
-                <span className="text-[11px] font-mono text-slate-500">Regime Geral</span>
-              )}
+        {!isMarkupSimulated &&
+        presumidoData.totalGross === 0 &&
+        realData.totalGross === 0 &&
+        simplesData.totalGross === 0 ? (
+          <div className="p-6 rounded-2xl bg-[#0b101b]/90 border border-slate-800 text-center space-y-3 font-mono">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+              <Info className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-200">
+                Nenhuma simulação ativa no Markup
+              </h4>
+              <p className="text-xs text-slate-400 mt-1 max-w-xl mx-auto">
+                Cadastre ou complete a simulação na Calculadora de Markup para apurar e comparar o
+                resultado da empresa nos três regimes tributários.
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={() => navigate('/demo/markup')}
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Ir para a Calculadora de Markup</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Card Lucro Presumido */}
+            <div
+              className={`p-5 rounded-2xl border transition-all ${
+                bestRegimeKey === 'presumido'
+                  ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                  : 'bg-[#0b101b]/90 border-slate-800/90'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-mono font-bold uppercase text-slate-300">
+                  Lucro Presumido
+                </span>
+                {bestRegimeKey === 'presumido' ? (
+                  <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center gap-1">
+                    <Trophy className="w-3 h-3" /> Melhor Resultado
+                  </Badge>
+                ) : (
+                  <span className="text-[11px] font-mono text-slate-500">Regime Geral</span>
+                )}
+              </div>
+
+              <div className="space-y-3 font-mono">
+                <div>
+                  <span className="text-[11px] text-slate-400 block">Carga Tributária Total</span>
+                  <span className="text-xl font-bold text-slate-100">
+                    {formatBRL(presumidoData.totalTaxBurden)}
+                  </span>
+                  <span className="text-[10px] text-slate-500 block">
+                    {formatNumberBR(presumidoData.effectiveTaxRate, 2)}% da receita bruta
+                  </span>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80">
+                  <span className="text-[11px] text-slate-400 block">Lucro Líquido Final</span>
+                  <span
+                    className={`text-2xl font-black ${
+                      bestRegimeKey === 'presumido' ? 'text-emerald-400' : 'text-slate-100'
+                    }`}
+                  >
+                    {formatBRL(presumidoData.totalNetProfit)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="text-slate-400">Margem Líquida</span>
+                  <span className="font-bold text-slate-200">
+                    {formatPercentBR(presumidoData.netMargin)}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-3 font-mono">
-              <div>
-                <span className="text-[11px] text-slate-400 block">Carga Tributária Total</span>
-                <span className="text-xl font-bold text-slate-100">
-                  {formatBRL(presumidoData.totalTaxBurden)}
+            {/* Card Lucro Real */}
+            <div
+              className={`p-5 rounded-2xl border transition-all ${
+                bestRegimeKey === 'real'
+                  ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                  : 'bg-[#0b101b]/90 border-slate-800/90'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-mono font-bold uppercase text-slate-300">
+                  Lucro Real
                 </span>
-                <span className="text-[10px] text-slate-500 block">
-                  {formatNumberBR(presumidoData.effectiveTaxRate, 2)}% da receita bruta
-                </span>
+                {bestRegimeKey === 'real' ? (
+                  <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center gap-1">
+                    <Trophy className="w-3 h-3" /> Melhor Resultado
+                  </Badge>
+                ) : (
+                  <span className="text-[11px] font-mono text-slate-500">Não Cumulativo</span>
+                )}
               </div>
 
-              <div className="pt-2 border-t border-slate-800/80">
-                <span className="text-[11px] text-slate-400 block">Lucro Líquido Final</span>
-                <span
-                  className={`text-2xl font-black ${
-                    bestRegimeKey === 'presumido' ? 'text-emerald-400' : 'text-slate-100'
-                  }`}
-                >
-                  {formatBRL(presumidoData.totalNetProfit)}
+              <div className="space-y-3 font-mono">
+                <div>
+                  <span className="text-[11px] text-slate-400 block">Carga Tributária Total</span>
+                  <span className="text-xl font-bold text-slate-100">
+                    {formatBRL(realData.totalTaxBurden)}
+                  </span>
+                  <span className="text-[10px] text-slate-500 block">
+                    {formatNumberBR(realData.effectiveTaxRate, 2)}% da receita bruta
+                  </span>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80">
+                  <span className="text-[11px] text-slate-400 block">Lucro Líquido Final</span>
+                  <span
+                    className={`text-2xl font-black ${
+                      bestRegimeKey === 'real' ? 'text-emerald-400' : 'text-slate-100'
+                    }`}
+                  >
+                    {formatBRL(realData.totalNetProfit)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="text-slate-400">Margem Líquida</span>
+                  <span className="font-bold text-slate-200">
+                    {formatPercentBR(realData.netMargin)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Simples Nacional */}
+            <div
+              className={`p-5 rounded-2xl border transition-all ${
+                bestRegimeKey === 'simples'
+                  ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                  : 'bg-[#0b101b]/90 border-slate-800/90'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-mono font-bold uppercase text-slate-300">
+                  Simples Nacional
                 </span>
+                {bestRegimeKey === 'simples' ? (
+                  <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center gap-1">
+                    <Trophy className="w-3 h-3" /> Melhor Resultado
+                  </Badge>
+                ) : (
+                  <span className="text-[11px] font-mono text-slate-500">LC 123/2006</span>
+                )}
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-1">
-                <span className="text-slate-400">Margem Líquida</span>
-                <span className="font-bold text-slate-200">
-                  {formatPercentBR(presumidoData.netMargin)}
-                </span>
+              <div className="space-y-3 font-mono">
+                <div>
+                  <span className="text-[11px] text-slate-400 block">
+                    Carga Tributária Total (DAS)
+                  </span>
+                  <span className="text-xl font-bold text-slate-100">
+                    {formatBRL(simplesData.totalTaxBurden)}
+                  </span>
+                  <span className="text-[10px] text-slate-500 block">
+                    {formatNumberBR(simplesData.effectiveTaxRate, 2)}% efetivo (PGDAS)
+                  </span>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80">
+                  <span className="text-[11px] text-slate-400 block">Lucro Líquido Final</span>
+                  <span
+                    className={`text-2xl font-black ${
+                      bestRegimeKey === 'simples' ? 'text-emerald-400' : 'text-slate-100'
+                    }`}
+                  >
+                    {formatBRL(simplesData.totalNetProfit)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="text-slate-400">Margem Líquida</span>
+                  <span className="font-bold text-slate-200">
+                    {formatPercentBR(simplesData.netMargin)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Card Lucro Real */}
-          <div
-            className={`p-5 rounded-2xl border transition-all ${
-              bestRegimeKey === 'real'
-                ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                : 'bg-[#0b101b]/90 border-slate-800/90'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-mono font-bold uppercase text-slate-300">
-                Lucro Real
-              </span>
-              {bestRegimeKey === 'real' ? (
-                <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center gap-1">
-                  <Trophy className="w-3 h-3" /> Melhor Resultado
-                </Badge>
-              ) : (
-                <span className="text-[11px] font-mono text-slate-500">Não Cumulativo</span>
-              )}
-            </div>
-
-            <div className="space-y-3 font-mono">
-              <div>
-                <span className="text-[11px] text-slate-400 block">Carga Tributária Total</span>
-                <span className="text-xl font-bold text-slate-100">
-                  {formatBRL(realData.totalTaxBurden)}
-                </span>
-                <span className="text-[10px] text-slate-500 block">
-                  {formatNumberBR(realData.effectiveTaxRate, 2)}% da receita bruta
-                </span>
-              </div>
-
-              <div className="pt-2 border-t border-slate-800/80">
-                <span className="text-[11px] text-slate-400 block">Lucro Líquido Final</span>
-                <span
-                  className={`text-2xl font-black ${
-                    bestRegimeKey === 'real' ? 'text-emerald-400' : 'text-slate-100'
-                  }`}
-                >
-                  {formatBRL(realData.totalNetProfit)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <span className="text-slate-400">Margem Líquida</span>
-                <span className="font-bold text-slate-200">
-                  {formatPercentBR(realData.netMargin)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card Simples Nacional */}
-          <div
-            className={`p-5 rounded-2xl border transition-all ${
-              bestRegimeKey === 'simples'
-                ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                : 'bg-[#0b101b]/90 border-slate-800/90'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-mono font-bold uppercase text-slate-300">
-                Simples Nacional
-              </span>
-              {bestRegimeKey === 'simples' ? (
-                <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center gap-1">
-                  <Trophy className="w-3 h-3" /> Melhor Resultado
-                </Badge>
-              ) : (
-                <span className="text-[11px] font-mono text-slate-500">LC 123/2006</span>
-              )}
-            </div>
-
-            <div className="space-y-3 font-mono">
-              <div>
-                <span className="text-[11px] text-slate-400 block">
-                  Carga Tributária Total (DAS)
-                </span>
-                <span className="text-xl font-bold text-slate-100">
-                  {formatBRL(simplesData.totalTaxBurden)}
-                </span>
-                <span className="text-[10px] text-slate-500 block">
-                  {formatNumberBR(simplesData.effectiveTaxRate, 2)}% efetivo (PGDAS)
-                </span>
-              </div>
-
-              <div className="pt-2 border-t border-slate-800/80">
-                <span className="text-[11px] text-slate-400 block">Lucro Líquido Final</span>
-                <span
-                  className={`text-2xl font-black ${
-                    bestRegimeKey === 'simples' ? 'text-emerald-400' : 'text-slate-100'
-                  }`}
-                >
-                  {formatBRL(simplesData.totalNetProfit)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <span className="text-slate-400">Margem Líquida</span>
-                <span className="font-bold text-slate-200">
-                  {formatPercentBR(simplesData.netMargin)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* COMPARAÇÃO DE RESULTADO POR BASE DE PRECIFICAÇÃO (Camada recolhida por padrão) */}
+        <ResultBaseComparison
+          markupProducts={markupProducts}
+          purchasesItems={purchasesItems}
+          getPurchaseItemUnitNetCost={getPurchaseItemUnitNetCost}
+          icmsRateMarkup={icmsRateMarkup}
+          customTaxesMarkup={customTaxesMarkup}
+          totalVariableExpenseRate={totalVariableExpenseRate}
+          simplesAnexo={simplesAnexo}
+          simplesRbt12={rawSimplesRbt12}
+          effectiveSimplesRbt12={effectiveSimplesRbt12}
+          desiredLiquidRevenueByRegime={desiredLiquidRevenueByRegime}
+          calculatedPurchases={calculatedPurchases}
+          totalGlobalOperatingExpenses={totalGlobalOperatingExpenses}
+          totalGlobalOperatingRevenues={totalGlobalOperatingRevenues}
+          directPayrollExpenses={directPayrollExpenses}
+          patronalCharges={patronalCharges}
+          presumidoActivity={presumidoActivity}
+          realActivity={realActivity}
+          presumidoIssRate={presumidoIssRate}
+          realIssRate={realIssRate}
+          realAdditions={realAdditions}
+          realExclusions={realExclusions}
+          qty={qty}
+        />
 
         {/* BASE LEGAL, CONDIÇÕES E PARTICULARIDADES POR REGIME (Camada colapsável / recolhida por padrão) */}
         <div className="space-y-3">
