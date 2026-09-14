@@ -33,6 +33,7 @@ import { SubstituicaoTributariaSection } from '@/components/demo/SubstituicaoTri
 import { OperacoesInterestaduaisSection } from '@/components/demo/OperacoesInterestaduaisSection'
 import { ImportPurchasesModal } from '@/components/demo/ImportPurchasesModal'
 import { MarkupCalculationMemoryModal } from '@/components/demo/MarkupCalculationMemoryModal'
+import { MarkupModeComparisonModal } from '@/components/demo/MarkupModeComparisonModal'
 import { PageHero } from '@/components/demo/PageHero'
 import {
   Dialog,
@@ -50,6 +51,7 @@ import {
   Download,
   Layers,
   AlertTriangle,
+  ArrowRightLeft,
 } from 'lucide-react'
 import {
   calculateSaleIcmsSt,
@@ -369,6 +371,7 @@ export default function MarkupPage() {
   const [isProductRevenueDetailsOpen, setIsProductRevenueDetailsOpen] = useState(false)
   const [isRegimeComparisonDetailsOpen, setIsRegimeComparisonDetailsOpen] = useState(false)
   const [calculationMemoryProductId, setCalculationMemoryProductId] = useState<string | null>(null)
+  const [comparisonModeProductId, setComparisonModeProductId] = useState<string | null>(null)
 
   // Quantidade de itens de compras e quantos já foram importados
   const totalPurchasesAvailableCount = purchasesItems.length
@@ -1806,6 +1809,19 @@ export default function MarkupPage() {
                             </span>
                           </div>
                         </div>
+
+                        {/* Chip Comparar Modos de Precificação (Âncora e Tríade do Regime Ativo) */}
+                        <div className="flex justify-end pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setComparisonModeProductId(prod.id)}
+                            className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-sky-400 hover:text-sky-200 transition-colors cursor-pointer group"
+                            title="Comparar com o modo alternativo: 'E se eu tivesse escolhido o outro modo?' (apenas no regime ativo)"
+                          >
+                            <ArrowRightLeft className="w-2.5 h-2.5 text-sky-400 group-hover:scale-110 transition-transform" />
+                            <span>Comparar modos ›</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -1861,21 +1877,34 @@ export default function MarkupPage() {
                       </div>
                     )}
 
-                    {/* Chip Discreto em Subcamada: Memória de Cálculo do Preço */}
+                    {/* Chip Discreto em Subcamada: Memória de Cálculo do Preço e Comparar Modos */}
                     <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setCalculationMemoryProductId(prod.id)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-emerald-500/[0.12] border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/20 hover:border-emerald-300 shadow-sm"
-                        title="Ver memória de cálculo detalhada do preço sugerido (Simples, Presumido e Real)"
-                      >
-                        <Calculator className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="font-semibold">Memória de Cálculo</span>
-                        <Badge className="bg-emerald-500/25 text-emerald-200 border-0 text-[9px] px-1.5 py-0 font-normal">
-                          {isMarkupSimulated ? formatBRL(prod.salePrice) : 'Ver fórmula'}
-                        </Badge>
-                        <ChevronRight className="w-3 h-3 text-emerald-400/80 ml-0.5" />
-                      </button>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setCalculationMemoryProductId(prod.id)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-emerald-500/[0.12] border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/20 hover:border-emerald-300 shadow-sm"
+                          title="Ver memória de cálculo detalhada do preço sugerido (Simples, Presumido e Real)"
+                        >
+                          <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="font-semibold">Memória de Cálculo</span>
+                          <Badge className="bg-emerald-500/25 text-emerald-200 border-0 text-[9px] px-1.5 py-0 font-normal">
+                            {isMarkupSimulated ? formatBRL(prod.salePrice) : 'Ver fórmula'}
+                          </Badge>
+                          <ChevronRight className="w-3 h-3 text-emerald-400/80 ml-0.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setComparisonModeProductId(prod.id)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-sky-500/[0.12] border-sky-500/40 text-sky-200 hover:bg-sky-500/20 hover:border-sky-300 shadow-sm"
+                          title="Comparar tríade com o modo alternativo no regime ativo (E se tivesse escolhido o outro modo?)"
+                        >
+                          <ArrowRightLeft className="w-3.5 h-3.5 text-sky-400" />
+                          <span className="font-semibold">Comparar modos</span>
+                          <ChevronRight className="w-3 h-3 text-sky-400/80 ml-0.5" />
+                        </button>
+                      </div>
 
                       <span className="text-[10px] font-mono text-slate-400">
                         Regime ativo:{' '}
@@ -2140,6 +2169,27 @@ export default function MarkupPage() {
               effectiveSimplesRbt12={effectiveSimplesRbt12}
               variableExpenses={variableExpenses}
               totalVariableExpenseRate={totalVariableExpenseRate}
+            />
+
+            {/* Diálogo / Subcamada: Comparação de Modos de Precificação (Âncora e Tríade no Regime Ativo) */}
+            <MarkupModeComparisonModal
+              open={!!comparisonModeProductId}
+              onOpenChange={(open) => {
+                if (!open) setComparisonModeProductId(null)
+              }}
+              product={markupProducts.find((p) => p.id === comparisonModeProductId) || null}
+              currentRegime={regime}
+              icmsRateMarkup={icmsRateMarkup}
+              customTaxesMarkup={customTaxesMarkup}
+              simplesAnexo={simplesAnexo}
+              simplesRbt12={simplesRbt12}
+              effectiveSimplesRbt12={effectiveSimplesRbt12}
+              variableExpenses={variableExpenses}
+              totalVariableExpenseRate={totalVariableExpenseRate}
+              simplesIsActiveMoreThan12m={simplesIsActiveMoreThan12m}
+              simplesActivityMonths={simplesActivityMonths}
+              simplesMonthlyProjectedRevenue={simplesMonthlyProjectedRevenue}
+              simplesSelectedScenario={simplesSelectedScenario}
             />
 
             {/* Diálogo / Subcamada: Composição do Custo do Produto */}
