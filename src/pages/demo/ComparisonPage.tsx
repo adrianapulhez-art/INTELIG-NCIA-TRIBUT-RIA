@@ -355,6 +355,26 @@ export default function ComparisonPage() {
   }, [currentAnexoId, simplesRbt12])
 
   const regimeGrossRevenues = useMemo(() => {
+    // -----------------------------------------------------------------
+    // REGRA DE PARIDADE COM DRES INDIVIDUAIS:
+    // Quando houver receita consolidada do Markup (totalConsolidatedRevenue > 0),
+    // a Receita Bruta Total da Demonstração Comparativa Completa deve refletir
+    // fielmente a receita consolidada sincronizada (mesma fonte das DREs
+    // individuais: DrePresumidoPage, DreRealPage e DreSimplesPage).
+    // Isso elimina a distorção inflacionária decorrente de gross-up unitário
+    // composto sobre bases já brutas e dupla multiplicação em multi-produto.
+    // -----------------------------------------------------------------
+    if (totalConsolidatedRevenue > 0) {
+      return {
+        presumidoGrossRevenue: totalConsolidatedRevenue,
+        presumidoUnitGross: unitGrossRevenue,
+        realGrossRevenue: totalConsolidatedRevenue,
+        realUnitGross: unitGrossRevenue,
+        simplesGrossRevenue: totalConsolidatedRevenue,
+        simplesUnitGross: unitGrossRevenue,
+      }
+    }
+
     // 1. Soma de tributos customizados
     let sumCustomTaxesPct = 0
     if (Array.isArray(customTaxesMarkup)) {
@@ -505,6 +525,7 @@ export default function ComparisonPage() {
       simplesUnitGross: simp.unit,
     }
   }, [
+    totalConsolidatedRevenue,
     customTaxesMarkup,
     totalVariableExpenseRate,
     icmsRateMarkup,
