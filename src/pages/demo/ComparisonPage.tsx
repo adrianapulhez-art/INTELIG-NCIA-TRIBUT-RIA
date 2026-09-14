@@ -45,6 +45,10 @@ export default function ComparisonPage() {
     markupProducts,
     calculatedPurchases,
     icmsRateMarkup,
+    customTaxesMarkup,
+    totalVariableExpenseRate,
+    desiredLiquidRevenueByRegime,
+    isMarkupSimulated,
     // Presumido
     presumidoActivity,
     setPresumidoActivity,
@@ -172,8 +176,7 @@ export default function ComparisonPage() {
   const totalGlobalOperatingExpenses = totalOperatingExpenses + totalOtherExpenses
   const totalGlobalOperatingRevenues = totalOperatingRevenues
 
-  // Preço de venda unitário e receita consolidada (Markup)
-  // Regra de ouro: total = valor consolidado direto do contexto; unitário = derivado só para exibição
+  // Preço de venda unitário e receita consolidada base (Markup compartilhado)
   const hasConsolidated = totalConsolidatedRevenue > 0
   const activeGrossRevenue =
     totalConsolidatedRevenue > 0
@@ -181,6 +184,193 @@ export default function ComparisonPage() {
       : Math.round((simulatedSalePrice || 0) * (qty > 0 ? qty : 0) * 100) / 100
   const unitGrossRevenue =
     qty > 0 ? Math.round((activeGrossRevenue / qty) * 100) / 100 : simulatedSalePrice || 0
+
+  // -------------------------------------------------------------
+  // CÁLCULO DE RECEITA BRUTA POR REGIME (RBV independente nos 3 blocos)
+  // Fórmula consagrada do sistema: tributos + despesas variáveis SOMAM no divisor aditivo.
+  // Fator multiplicativo apenas na margem, quando > 0.
+  // Multi-produto: se markupProducts tiver itens, calcula o gross-up POR ITEM usando a
+  // meta líquida do item para o regime (p.desiredNetRevenueByRegime?.[regime] ?? desiredLiquidRevenueByRegime?.[regime])
+  // e soma — SEM média entre produtos diferentes.
+  // -------------------------------------------------------------
+  const currentAnexoId = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+  const currentAnexoConfig = SIMPLES_ANEXOS[currentAnexoId] || SIMPLES_ANEXOS.anexo_1
+  const simplesRbt12 = effectiveSimplesRbt12
+
+  const pgdas = useMemo(() => {
+    return calculatePgdas(currentAnexoId, simplesRbt12)
+  }, [currentAnexoId, simplesRbt12])
+
+  const regimeGrossRevenues = useMemo(() => {
+    // 1. Soma de tributos customizados
+    let sumCustomTaxesPct = 0
+    if (Array.isArray(customTaxesMarkup)) {
+      for (const tax of customTaxesMarkup) {
+        const rate = typeof tax.rate === 'number' && Number.isFinite(tax.rate) ? tax.rate : 0
+        sumCustomTaxesPct += rate
+      }
+    }
+
+    // 2. Despesas variáveis (%)
+    const dvRate =
+      typeof totalVariableExpenseRate === 'number' && Number.isFinite(totalVariableExpenseRate)
+        ? totalVariableExpenseRate
+        : 0
+
+    const icms =
+      typeof icmsRateMarkup === 'number' && Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
+    const simplesEffectiveRate = pgdas.aliquotaEfetiva || 0
+
+    // Helper para calcular o divisor aditivo de um produto / regime
+    const computeDivisor = (regimeKey: 'presumido' | 'real' | 'simples', margin: number) => {
+      let taxesRate = 0
+      if (regimeKey === 'presumido') {
+        taxesRate = icms + 0.65 + 3.0 + sumCustomTaxesPct
+      } else if (regimeKey === 'real') {
+        taxesRate = icms + 1.65 + 7.6 + sumCustomTaxesPct
+      } else {
+        taxesRate = simplesEffectiveRate + sumCustomTaxesPct
+      }
+
+      // Divisor aditivo: 1 - (Σtributos + %DV)/100
+      let divisor = 1 - (taxesRate + dvRate) / 100
+
+      // Margem multiplicativa apenas se > 0
+      const safeMargin = typeof margin === 'number' && Number.isFinite(margin) ? margin : 0
+      if (safeMargin > 0) {
+        divisor *= 1 - safeMargin / 100
+      }
+
+      return Math.max(0.0001, divisor)
+    }
+
+    // Verifica se há produtos válidos com meta líquida informada no Markup
+    const validProducts = Array.isArray(markupProducts) ? markupProducts : []
+    const hasLiquidProductConfig = validProducts.some((p) => {
+      const pByRegime = p.desiredNetRevenueByRegime
+      const hasSpecificMeta =
+        pByRegime &&
+        ((pByRegime.presumido || 0) > 0 ||
+          (pByRegime.real || 0) > 0 ||
+          (pByRegime.simples || 0) > 0)
+      const hasDirectMeta = (p.desiredNetRevenue || 0) > 0
+      return hasSpecificMeta || hasDirectMeta
+    })
+
+    const hasGlobalByRegime =
+      desiredLiquidRevenueByRegime &&
+      ((desiredLiquidRevenueByRegime.presumido || 0) > 0 ||
+        (desiredLiquidRevenueByRegime.real || 0) > 0 ||
+        (desiredLiquidRevenueByRegime.simples || 0) > 0)
+
+    // Se não há metas líquidas configuradas por produto nem global por regime,
+    // mantém o fallback no faturamento já simulado/consolidado do contexto
+    if (!hasLiquidProductConfig && !hasGlobalByRegime) {
+      return {
+        presumidoGrossRevenue: activeGrossRevenue,
+        presumidoUnitGross: unitGrossRevenue,
+        realGrossRevenue: activeGrossRevenue,
+        realUnitGross: unitGrossRevenue,
+        simplesGrossRevenue: activeGrossRevenue,
+        simplesUnitGross: unitGrossRevenue,
+      }
+    }
+
+    // Calcula faturamento bruto e unitário para cada regime
+    const computeForRegime = (regimeKey: 'presumido' | 'real' | 'simples') => {
+      if (validProducts.length > 0) {
+        let totalRev = 0
+        let totalUnits = 0
+
+        for (const p of validProducts) {
+          const productQty =
+            typeof p.quantity === 'number' && Number.isFinite(p.quantity)
+              ? Math.max(0, p.quantity)
+              : 0
+          const itemMeta =
+            p.desiredNetRevenueByRegime?.[regimeKey] ??
+            desiredLiquidRevenueByRegime?.[regimeKey] ??
+            p.desiredNetRevenue ??
+            0
+          const pMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
+          const divisor = computeDivisor(regimeKey, pMargin)
+
+          const unitSalePrice =
+            divisor > 0.0001 && itemMeta > 0 ? Math.round((itemMeta / divisor) * 100) / 100 : 0
+
+          const effectiveItemQty = productQty > 0 ? productQty : 1
+          const itemRev = Math.round(unitSalePrice * effectiveItemQty * 100) / 100
+
+          totalRev += itemRev
+          totalUnits += effectiveItemQty
+        }
+
+        const roundedTotal = Math.round(totalRev * 100) / 100
+        const effectiveDivQty = qty > 0 ? qty : totalUnits > 0 ? totalUnits : 1
+        const roundedUnit =
+          effectiveDivQty > 0
+            ? Math.round((roundedTotal / effectiveDivQty) * 100) / 100
+            : roundedTotal
+
+        return { total: roundedTotal, unit: roundedUnit }
+      }
+
+      // Produto único / global
+      const globalMeta = desiredLiquidRevenueByRegime?.[regimeKey] ?? 0
+      const divisor = computeDivisor(regimeKey, 0)
+      const unitSalePrice =
+        divisor > 0.0001 && globalMeta > 0 ? Math.round((globalMeta / divisor) * 100) / 100 : 0
+      const effectiveQty = qty > 0 ? qty : 1
+      const totalRev = Math.round(unitSalePrice * effectiveQty * 100) / 100
+      const unitRev = qty > 0 ? Math.round((totalRev / qty) * 100) / 100 : unitSalePrice
+
+      return { total: totalRev, unit: unitRev }
+    }
+
+    const pres = computeForRegime('presumido')
+    const rl = computeForRegime('real')
+    const simp = computeForRegime('simples')
+
+    // Se os três derem 0 (nenhuma meta líquida positiva encontrada), fallback na receita ativa
+    if (pres.total === 0 && rl.total === 0 && simp.total === 0) {
+      return {
+        presumidoGrossRevenue: activeGrossRevenue,
+        presumidoUnitGross: unitGrossRevenue,
+        realGrossRevenue: activeGrossRevenue,
+        realUnitGross: unitGrossRevenue,
+        simplesGrossRevenue: activeGrossRevenue,
+        simplesUnitGross: unitGrossRevenue,
+      }
+    }
+
+    return {
+      presumidoGrossRevenue: pres.total,
+      presumidoUnitGross: pres.unit,
+      realGrossRevenue: rl.total,
+      realUnitGross: rl.unit,
+      simplesGrossRevenue: simp.total,
+      simplesUnitGross: simp.unit,
+    }
+  }, [
+    customTaxesMarkup,
+    totalVariableExpenseRate,
+    icmsRateMarkup,
+    pgdas.aliquotaEfetiva,
+    markupProducts,
+    desiredLiquidRevenueByRegime,
+    activeGrossRevenue,
+    unitGrossRevenue,
+    qty,
+  ])
+
+  const {
+    presumidoGrossRevenue,
+    presumidoUnitGross,
+    realGrossRevenue,
+    realUnitGross,
+    simplesGrossRevenue,
+    simplesUnitGross,
+  } = regimeGrossRevenues
 
   // -------------------------------------------------------------
   // 1. CÁLCULO LUCRO PRESUMIDO
@@ -198,7 +388,7 @@ export default function ComparisonPage() {
     const irpjAdditionalLimit = 60000.0 // trimestral
     const csllRate = 9.0
 
-    const unitGross = unitGrossRevenue
+    const unitGross = presumidoUnitGross
     const unitMunicipalStateTax =
       Math.round((isServices ? (unitGross * issRate) / 100 : (unitGross * icmsRate) / 100) * 100) /
       100
@@ -223,8 +413,8 @@ export default function ComparisonPage() {
     const unitCmv = Math.round(rawUnitPresumido * 100) / 100
     const unitGrossProfit = Math.round((unitNetRevenue - unitCmv) * 100) / 100
 
-    // Totais direto do contexto (sem multiplicar unitário por quantidade)
-    const totalGross = activeGrossRevenue
+    // Totais específicos do Lucro Presumido
+    const totalGross = presumidoGrossRevenue
     const totalMunicipalStateTax = Math.round(unitMunicipalStateTax * qty * 100) / 100
     const totalPis = Math.round(unitPis * qty * 100) / 100
     const totalCofins = Math.round(unitCofins * qty * 100) / 100
@@ -284,7 +474,8 @@ export default function ComparisonPage() {
     presumidoActivity,
     presumidoIssRate,
     icmsRateMarkup,
-    unitGrossRevenue,
+    presumidoUnitGross,
+    presumidoGrossRevenue,
     calculatedPurchases.cmvPresumido,
     calculatedPurchases.autoInventoryDeductionActive,
     calculatedPurchases.unitCostPresumidoEffective,
@@ -310,7 +501,7 @@ export default function ComparisonPage() {
     const irpjAdditionalLimit = 60000.0 // trimestral
     const csllRate = 9.0
 
-    const unitGross = unitGrossRevenue
+    const unitGross = realUnitGross
     const unitMunicipalStateTax =
       Math.round((isServices ? (unitGross * issRate) / 100 : (unitGross * icmsRate) / 100) * 100) /
       100
@@ -335,8 +526,8 @@ export default function ComparisonPage() {
     const unitCmv = Math.round(rawUnitReal * 100) / 100
     const unitGrossProfit = Math.round((unitNetRevenue - unitCmv) * 100) / 100
 
-    // Totais direto do contexto (sem multiplicar unitário por quantidade)
-    const totalGross = activeGrossRevenue
+    // Totais específicos do Lucro Real
+    const totalGross = realGrossRevenue
     const totalMunicipalStateTax = Math.round(unitMunicipalStateTax * qty * 100) / 100
     const totalPis = Math.round(unitPis * qty * 100) / 100
     const totalCofins = Math.round(unitCofins * qty * 100) / 100
@@ -397,7 +588,8 @@ export default function ComparisonPage() {
     realActivity,
     realIssRate,
     icmsRateMarkup,
-    unitGrossRevenue,
+    realUnitGross,
+    realGrossRevenue,
     calculatedPurchases.cmvReal,
     calculatedPurchases.autoInventoryDeductionActive,
     calculatedPurchases.unitCostRealEffective,
@@ -414,20 +606,12 @@ export default function ComparisonPage() {
   // -------------------------------------------------------------
   // 3. CÁLCULO SIMPLES NACIONAL (PGDAS)
   // -------------------------------------------------------------
-  const currentAnexoId = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
-  const currentAnexoConfig = SIMPLES_ANEXOS[currentAnexoId] || SIMPLES_ANEXOS.anexo_1
-  const simplesRbt12 = effectiveSimplesRbt12
-
-  const pgdas = useMemo(() => {
-    return calculatePgdas(currentAnexoId, simplesRbt12)
-  }, [currentAnexoId, simplesRbt12])
-
   const fatorRResult = useMemo(() => {
     return calculateFatorR(simplesPayroll12m, simplesRbt12)
   }, [simplesPayroll12m, simplesRbt12])
 
   const simplesData = useMemo(() => {
-    const unitGross = unitGrossRevenue
+    const unitGross = simplesUnitGross
     const effectiveRateDec = pgdas.aliquotaEfetiva / 100
     const unitDasTotal = Math.round(unitGross * effectiveRateDec * 100) / 100
 
@@ -453,8 +637,8 @@ export default function ComparisonPage() {
     const unitCmv = Math.round(rawUnitSimples * 100) / 100
     const unitGrossProfit = Math.round((unitNetRevenue - unitCmv) * 100) / 100
 
-    // Totais direto do contexto (sem multiplicar unitário por quantidade)
-    const totalGross = activeGrossRevenue
+    // Totais específicos do Simples Nacional
+    const totalGross = simplesGrossRevenue
     const totalDasTotal = Math.round(unitDasTotal * qty * 100) / 100
     const totalIrpj = Math.round(unitIrpj * qty * 100) / 100
     const totalCsll = Math.round(unitCsll * qty * 100) / 100
@@ -501,7 +685,8 @@ export default function ComparisonPage() {
       effectiveTaxRate,
     }
   }, [
-    unitGrossRevenue,
+    simplesUnitGross,
+    simplesGrossRevenue,
     pgdas,
     calculatedPurchases.cmvSimples,
     calculatedPurchases.autoInventoryDeductionActive,
@@ -569,6 +754,8 @@ export default function ComparisonPage() {
 
   // Estado da camada colapsável de parâmetros operacionais compartilhados
   const [isParamsOpen, setIsParamsOpen] = useState<boolean>(false)
+  // Estado da camada colapsável da base legal (recolhida por padrão)
+  const [isBaseLegalOpen, setIsBaseLegalOpen] = useState<boolean>(false)
 
   // Contagem de parâmetros compartilhados ativos para o badge "Parâmetros compartilhados (N) ›"
   const sharedParamsCount = useMemo(() => {
@@ -2338,109 +2525,135 @@ export default function ComparisonPage() {
           />
         </div>
 
-        {/* CONDIÇÕES, PARTICULARIDADES E AVISOS POR REGIME */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Card Condições Lucro Presumido */}
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2.5 text-xs font-mono">
-            <div className="flex items-center gap-2 text-slate-200 font-bold uppercase pb-1 border-b border-slate-800">
-              <Info className="w-4 h-4 text-emerald-400" />
-              <span>Condições · Presumido</span>
-            </div>
-            <ul className="space-y-1.5 text-slate-400 list-disc list-inside leading-relaxed">
-              <li>
-                <strong className="text-slate-300">Presunção por atividade:</strong>{' '}
-                {presumidoData.isServices
-                  ? 'IRPJ 32% e CSLL 32% sobre a receita bruta (serviços).'
-                  : 'IRPJ 8% e CSLL 12% sobre a receita bruta (comércio/indústria).'}
-              </li>
-              <li>
-                <strong className="text-slate-300">PIS/COFINS cumulativo:</strong> 0,65% e 3,00%.
-                Sem direito a tomada de créditos sobre compras ou insumos.
-              </li>
-              <li>
-                <strong className="text-slate-300">Tese do século (Tema 69/STF):</strong>{' '}
-                {presumidoData.isServices
-                  ? 'ISS não é excluído da base PIS/COFINS.'
-                  : 'ICMS destacado integralmente excluído da base de cálculo.'}
-              </li>
-              <li>
-                <strong className="text-slate-300">Adicional IRPJ:</strong> 10% sobre a parcela da
-                base presumida que exceder R$ 60.000,00 trimestral.
-              </li>
-            </ul>
+        {/* BASE LEGAL, CONDIÇÕES E PARTICULARIDADES POR REGIME (Camada colapsável / recolhida por padrão) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setIsBaseLegalOpen((prev) => !prev)}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:text-white transition-all cursor-pointer shrink-0 shadow-sm active:scale-95"
+              title="Acessar base legal, particularidades e normas tributárias por regime"
+            >
+              <Info className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Base legal e condições por regime ›</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-emerald-400 transition-transform duration-200 ${
+                  isBaseLegalOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+            <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
+              Lei 9.249/95 · Lei 10.637/02 · Lei 10.833/03 · LC 123/2006 · Tema 69/STF
+            </span>
           </div>
 
-          {/* Card Condições Lucro Real */}
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2.5 text-xs font-mono">
-            <div className="flex items-center gap-2 text-slate-200 font-bold uppercase pb-1 border-b border-slate-800">
-              <Info className="w-4 h-4 text-emerald-400" />
-              <span>Condições · Lucro Real</span>
-            </div>
-            <ul className="space-y-1.5 text-slate-400 list-disc list-inside leading-relaxed">
-              <li>
-                <strong className="text-slate-300">Créditos de compras:</strong> dedução integral de
-                ICMS, PIS (1,65%) e COFINS (7,60%) recuperáveis na aquisição de insumos e
-                mercadorias.
-              </li>
-              <li>
-                <strong className="text-slate-300">LALUR (Ajustes):</strong> IRPJ (15%) e CSLL (9%)
-                incidem sobre o lucro contábil ajustado por adições e exclusões.
-              </li>
-              <li>
-                <strong className="text-slate-300">Vantagem em margens baixas:</strong> ideal quando
-                a empresa possui margem operacional real menor do que a presunção legal ou prejuízo
-                fiscal.
-              </li>
-              <li>
-                <strong className="text-slate-300">Adicional IRPJ:</strong> 10% sobre o Lucro Real
-                que exceder R$ 60.000,00 trimestrais.
-              </li>
-            </ul>
-          </div>
+          <Collapsible open={isBaseLegalOpen} onOpenChange={setIsBaseLegalOpen}>
+            <CollapsibleContent className="animate-in fade-in-0 duration-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Card Condições Lucro Presumido */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2.5 text-xs font-mono">
+                  <div className="flex items-center gap-2 text-slate-200 font-bold uppercase pb-1 border-b border-slate-800">
+                    <Info className="w-4 h-4 text-emerald-400" />
+                    <span>Condições · Presumido</span>
+                  </div>
+                  <ul className="space-y-1.5 text-slate-400 list-disc list-inside leading-relaxed">
+                    <li>
+                      <strong className="text-slate-300">Presunção por atividade:</strong>{' '}
+                      {presumidoData.isServices
+                        ? 'IRPJ 32% e CSLL 32% sobre a receita bruta (serviços).'
+                        : 'IRPJ 8% e CSLL 12% sobre a receita bruta (comércio/indústria).'}
+                    </li>
+                    <li>
+                      <strong className="text-slate-300">PIS/COFINS cumulativo:</strong> 0,65% e
+                      3,00%. Sem direito a tomada de créditos sobre compras ou insumos.
+                    </li>
+                    <li>
+                      <strong className="text-slate-300">Tese do século (Tema 69/STF):</strong>{' '}
+                      {presumidoData.isServices
+                        ? 'ISS não é excluído da base PIS/COFINS.'
+                        : 'ICMS destacado integralmente excluído da base de cálculo.'}
+                    </li>
+                    <li>
+                      <strong className="text-slate-300">Adicional IRPJ:</strong> 10% sobre a
+                      parcela da base presumida que exceder R$ 60.000,00 trimestral.
+                    </li>
+                  </ul>
+                </div>
 
-          {/* Card Condições Simples Nacional */}
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2.5 text-xs font-mono">
-            <div className="flex items-center gap-2 text-slate-200 font-bold uppercase pb-1 border-b border-slate-800">
-              <Info className="w-4 h-4 text-emerald-400" />
-              <span>Condições · Simples</span>
-            </div>
-            <ul className="space-y-1.5 text-slate-400 list-disc list-inside leading-relaxed">
-              <li>
-                <strong className="text-slate-300">Anexo aplicado:</strong>{' '}
-                {currentAnexoConfig.nome} ({pgdas.faixaNome}). Alíquota efetiva PGDAS de{' '}
-                {formatNumberBR(pgdas.aliquotaEfetiva, 2)}%.
-              </li>
-              <li className="text-emerald-300">
-                <strong className="text-emerald-300">CPP já incluída no DAS:</strong> sem encargo
-                patronal adicional (20% + RAT + terceiros não incidem no Simples Nacional fora do
-                Anexo IV).
-              </li>
-              {currentAnexoConfig.sujeitoFatorR && (
-                <li>
-                  <strong className="text-slate-300">Fator R:</strong>{' '}
-                  {fatorRResult.fatorRPercent.toFixed(2)}% —{' '}
-                  {fatorRResult.isElegibleAnexo3
-                    ? '≥ 28% (elegível ao Anexo III).'
-                    : '< 28% (enquadrado no Anexo V).'}
-                </li>
-              )}
-              {pgdas.isSublimiteExceeded ? (
-                <li className="text-amber-300">
-                  <strong className="text-amber-300">Alerta de sublimite:</strong> faturamento &gt;
-                  R$ 3,6 mi. ICMS/ISS recolhidos por fora do DAS.
-                </li>
-              ) : (
-                <li>
-                  <strong className="text-slate-300">Sublimite R$ 3,6 mi:</strong> faturamento
-                  dentro do limite estadual/municipal unificado.
-                </li>
-              )}
-              <li>
-                <strong className="text-slate-300">Custo de compras:</strong> tributos de aquisição
-                não geram crédito e integram integralmente o CMV.
-              </li>
-            </ul>
-          </div>
+                {/* Card Condições Lucro Real */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2.5 text-xs font-mono">
+                  <div className="flex items-center gap-2 text-slate-200 font-bold uppercase pb-1 border-b border-slate-800">
+                    <Info className="w-4 h-4 text-emerald-400" />
+                    <span>Condições · Lucro Real</span>
+                  </div>
+                  <ul className="space-y-1.5 text-slate-400 list-disc list-inside leading-relaxed">
+                    <li>
+                      <strong className="text-slate-300">Créditos de compras:</strong> dedução
+                      integral de ICMS, PIS (1,65%) e COFINS (7,60%) recuperáveis na aquisição de
+                      insumos e mercadorias.
+                    </li>
+                    <li>
+                      <strong className="text-slate-300">LALUR (Ajustes):</strong> IRPJ (15%) e CSLL
+                      (9%) incidem sobre o lucro contábil ajustado por adições e exclusões.
+                    </li>
+                    <li>
+                      <strong className="text-slate-300">Vantagem em margens baixas:</strong> ideal
+                      quando a empresa possui margem operacional real menor do que a presunção legal
+                      ou prejuízo fiscal.
+                    </li>
+                    <li>
+                      <strong className="text-slate-300">Adicional IRPJ:</strong> 10% sobre o Lucro
+                      Real que exceder R$ 60.000,00 trimestrais.
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Card Condições Simples Nacional */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2.5 text-xs font-mono">
+                  <div className="flex items-center gap-2 text-slate-200 font-bold uppercase pb-1 border-b border-slate-800">
+                    <Info className="w-4 h-4 text-emerald-400" />
+                    <span>Condições · Simples</span>
+                  </div>
+                  <ul className="space-y-1.5 text-slate-400 list-disc list-inside leading-relaxed">
+                    <li>
+                      <strong className="text-slate-300">Anexo aplicado:</strong>{' '}
+                      {currentAnexoConfig.nome} ({pgdas.faixaNome}). Alíquota efetiva PGDAS de{' '}
+                      {formatNumberBR(pgdas.aliquotaEfetiva, 2)}%.
+                    </li>
+                    <li className="text-emerald-300">
+                      <strong className="text-emerald-300">CPP já incluída no DAS:</strong> sem
+                      encargo patronal adicional (20% + RAT + terceiros não incidem no Simples
+                      Nacional fora do Anexo IV).
+                    </li>
+                    {currentAnexoConfig.sujeitoFatorR && (
+                      <li>
+                        <strong className="text-slate-300">Fator R:</strong>{' '}
+                        {fatorRResult.fatorRPercent.toFixed(2)}% —{' '}
+                        {fatorRResult.isElegibleAnexo3
+                          ? '≥ 28% (elegível ao Anexo III).'
+                          : '< 28% (enquadrado no Anexo V).'}
+                      </li>
+                    )}
+                    {pgdas.isSublimiteExceeded ? (
+                      <li className="text-amber-300">
+                        <strong className="text-amber-300">Alerta de sublimite:</strong> faturamento
+                        &gt; R$ 3,6 mi. ICMS/ISS recolhidos por fora do DAS.
+                      </li>
+                    ) : (
+                      <li>
+                        <strong className="text-slate-300">Sublimite R$ 3,6 mi:</strong> faturamento
+                        dentro do limite estadual/municipal unificado.
+                      </li>
+                    )}
+                    <li>
+                      <strong className="text-slate-300">Custo de compras:</strong> tributos de
+                      aquisição não geram crédito e integram integralmente o CMV.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         {/* Barra de Gerenciamento de Cenários no fim da página (padrão Markup) */}
