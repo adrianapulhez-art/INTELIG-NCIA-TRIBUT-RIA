@@ -14,7 +14,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   Info,
+  SlidersHorizontal,
+  ChevronDown,
 } from 'lucide-react'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { formatBRL, formatNumberBR, formatPercentBR, parseBRNumber } from '@/lib/taxCalculations'
 import { calculatePayroll } from '@/lib/payrollCalculations'
 import {
@@ -564,6 +567,18 @@ export default function ComparisonPage() {
   const worstRegime = [...regimesList].sort((a, b) => a.netProfit - b.netProfit)[0]
   const economyDifference = Math.max(0, bestRegime.netProfit - worstRegime.netProfit)
 
+  // Estado da camada colapsável de parâmetros operacionais compartilhados
+  const [isParamsOpen, setIsParamsOpen] = useState<boolean>(false)
+
+  // Contagem de parâmetros compartilhados ativos para o badge "Parâmetros compartilhados (N) ›"
+  const sharedParamsCount = useMemo(() => {
+    let count = 4 // Base: Quantidade, Atividade, Anexo Simples, RBT12
+    if (payrollSalaries > 0) count++
+    if (payrollProLabore > 0) count++
+    if (presumidoExpenses.length > 0) count += presumidoExpenses.length
+    return count
+  }, [payrollSalaries, payrollProLabore, presumidoExpenses.length])
+
   return (
     <DemoLayout currentTab="comparacao">
       <div className="space-y-6 max-w-6xl mx-auto">
@@ -589,15 +604,15 @@ export default function ComparisonPage() {
             </div>
           )}
 
-        {/* Cabeçalho */}
-        <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
+        {/* CABEÇALHO COMPACTO E DIAGNÓSTICO (Regime Mais Vantajoso em Evidência Direta) */}
+        <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-4 sm:p-6 shadow-xl backdrop-blur-md space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-emerald-500/15">
             <div className="flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 shadow-sm">
                 <Scale className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
                     Parâmetros Compartilhados e Diagnóstico
                   </h2>
@@ -611,7 +626,7 @@ export default function ComparisonPage() {
               </div>
             </div>
 
-            {/* Card Destaque Rápido do Vencedor */}
+            {/* Card Destaque Rápido do Vencedor (Resultado em destaque prioritário) */}
             <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 flex items-center gap-3 shadow-md shadow-emerald-950/40">
               <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-300 shrink-0">
                 <Trophy className="w-5 h-5" />
@@ -627,353 +642,385 @@ export default function ComparisonPage() {
             </div>
           </div>
 
-          {/* Faixa Verde: Conectado às calculadoras */}
-          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
-            <div className="flex items-center gap-2 text-emerald-400 font-semibold">
+          {/* Faixa Compacta: Conectado às calculadoras + Botão de Camada "Parâmetros compartilhados (N) ›" */}
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono">
+            <div className="flex items-center gap-2 text-emerald-400 font-semibold shrink-0">
               <LinkIcon className="w-4 h-4 shrink-0" />
-              <span>Conectado às calculadoras — valores sincronizados em tempo real</span>
+              <span>Sincronizado em tempo real</span>
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-slate-300">
+
+            {/* Valores sincronizados consolidados em linha discreta */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-300 text-[11px]">
               <div>
-                Receita Markup {hasConsolidated ? '(consolidada)' : ''}:{' '}
+                Receita{hasConsolidated ? ' (consolidada)' : ''}:{' '}
                 <strong className="text-emerald-400">{formatBRL(activeGrossRevenue)}</strong>
               </div>
+              <span className="text-emerald-500/40 hidden sm:inline">•</span>
               <div>
-                CMV Presumido:{' '}
+                CMV Pres.:{' '}
                 <strong className="text-emerald-400">{formatBRL(presumidoData.totalCmv)}</strong>
               </div>
+              <span className="text-emerald-500/40 hidden sm:inline">•</span>
               <div>
                 CMV Real:{' '}
                 <strong className="text-emerald-400">{formatBRL(realData.totalCmv)}</strong>
               </div>
+              <span className="text-emerald-500/40 hidden sm:inline">•</span>
               <div>
                 CMV Simples:{' '}
                 <strong className="text-emerald-400">{formatBRL(simplesData.totalCmv)}</strong>
               </div>
             </div>
+
+            {/* Botão em camada padrão "›" do sistema para abrir/recolher parâmetros */}
+            <button
+              type="button"
+              onClick={() => setIsParamsOpen((prev) => !prev)}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25 hover:text-white transition-all cursor-pointer shrink-0 shadow-sm active:scale-95"
+              title="Acessar parâmetros compartilhados operacionais, folha e outras despesas"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Parâmetros compartilhados ({sharedParamsCount}) ›</span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-emerald-400 transition-transform duration-200 ${
+                  isParamsOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
           </div>
 
-          {/* PARÂMETROS EDITÁVEIS NA PRÓPRIA PÁGINA (sem botão simular - auto ao digitar) */}
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-xs font-mono font-bold uppercase text-slate-200">
-                Parâmetros operacionais compartilhados (atualização automática ao digitar)
-              </span>
-              <span className="text-[11px] text-emerald-400 font-mono">
-                · reflete nos 3 cenários
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Campo Quantidade Vendida */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300 block">
-                  Quantidade vendida (un.)
-                </label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    min="0"
-                    value={qtyInput}
-                    onChange={handleQtyChange}
-                    className="bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
-                  />
-                </div>
-                <span className="text-[10px] text-slate-500 font-mono">
-                  Multiplica receita, CMV e tributos
-                </span>
-              </div>
-
-              {/* Atividade Presumido / Real */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300 block">
-                  Atividade (Presumido & Real)
-                </label>
-                <select
-                  value={presumidoActivity}
-                  onChange={(e) => {
-                    const act = e.target.value as ActivityType
-                    setPresumidoActivity(act)
-                    setRealActivity(act)
-                  }}
-                  className="w-full h-9 rounded-md text-xs font-mono px-2.5 outline-none field-input-interactive"
-                >
-                  <option value="comercio">Comércio (ICMS · IRPJ 8% / CSLL 12%)</option>
-                  <option value="industria">Indústria (ICMS · IRPJ 8% / CSLL 12%)</option>
-                  <option value="servicos">Serviços (ISSQN · IRPJ 32% / CSLL 32%)</option>
-                </select>
-                <span className="text-[10px] text-slate-500 font-mono">Presunção Lei 9.249/95</span>
-              </div>
-
-              {/* Anexo Simples Nacional */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300 block">
-                  Anexo Simples Nacional
-                </label>
-                <select
-                  value={currentAnexoId}
-                  onChange={(e) => setSimplesAnexo(e.target.value)}
-                  className="w-full h-9 rounded-md text-xs font-mono px-2.5 outline-none field-input-interactive"
-                >
-                  <option value="anexo_1">Anexo I — Comércio</option>
-                  <option value="anexo_2">Anexo II — Indústria</option>
-                  <option value="anexo_3">Anexo III — Serviços / Fator R ≥ 28%</option>
-                  <option value="anexo_4">Anexo IV — Serviços sem CPP no DAS</option>
-                  <option value="anexo_5">Anexo V — Serviços / Fator R &lt; 28%</option>
-                </select>
-                <span className="text-[10px] text-slate-500 font-mono">
-                  Faixa: {pgdas.faixaNome} ({formatNumberBR(pgdas.aliquotaEfetiva, 2)}%)
-                </span>
-              </div>
-
-              {/* RBT12 (para alíquota efetiva do Simples) */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-300 block">
-                    RBT12 Simples Nacional (R$)
-                  </label>
-                  {simplesIsInicioAtividade && (
-                    <span className="text-[10px] text-emerald-400 font-mono font-semibold">
-                      · proporcional
-                    </span>
-                  )}
-                </div>
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
-                    R$
-                  </span>
-                  <Input
-                    type="text"
-                    disabled={simplesIsInicioAtividade}
-                    defaultValue={simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : ''}
-                    key={`rbt-${simplesRbt12}-${simplesIsInicioAtividade}`}
-                    onBlur={(e) => {
-                      if (!simplesIsInicioAtividade) {
-                        const parsed = parseBRNumber(e.target.value)
-                        setSimplesRbt12(parsed)
-                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                      }
-                    }}
-                    placeholder="0,00"
-                    className={`pl-8 text-right font-mono text-xs ${
-                      simplesIsInicioAtividade
-                        ? 'bg-slate-950/80 border-slate-800 text-slate-400 font-bold cursor-not-allowed'
-                        : 'bg-slate-900 border-orange-500/50 text-orange-50 focus:border-orange-500 focus-visible:ring-orange-500/30'
-                    }`}
-                  />
-                </div>
-                <span className="text-[10px] text-slate-500 font-mono">
-                  {simplesIsInicioAtividade
-                    ? 'Início de atividade (LC 123/2006, art. 3º, § 9º)'
-                    : 'Receita acumulada 12 meses'}
-                </span>
-              </div>
-            </div>
-
-            {/* BLOCO COMPARTILHADO: Folha e Pró-labore */}
-            <div className="pt-3 border-t border-slate-800/80 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <span className="text-xs font-mono font-bold uppercase text-slate-200 block">
-                    Folha e Pró-labore (impacto nos 3 regimes)
-                  </span>
-                  <span className="text-[11px] text-slate-400 font-mono">
-                    Folha e pró-labore são despesas nos 3 regimes. Encargos patronais (INSS{' '}
-                    {formatNumberBR(payrollInssRate)}% + RAT + terceiros ={' '}
-                    {formatNumberBR(payrollResult.totalPatronalRate)}%) incidem no Presumido e Real.
-                    No Simples, a CPP já integra o DAS.
-                  </span>
-                </div>
-                <div className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
-                  Encargos Presumido/Real: <strong>{formatBRL(patronalCharges)}</strong>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300 block">
-                    Folha de salários (R$)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
-                      R$
-                    </span>
-                    <Input
-                      type="text"
-                      defaultValue={payrollSalaries > 0 ? formatNumberBR(payrollSalaries) : ''}
-                      key={`sal-${payrollSalaries}`}
-                      onBlur={(e) => {
-                        const parsed = parseBRNumber(e.target.value)
-                        setPayrollSalaries(parsed)
-                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                      }}
-                      placeholder="0,00"
-                      className="pl-8 text-right text-xs font-mono field-input-interactive"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300 block">
-                    Pró-labore sócios (R$)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
-                      R$
-                    </span>
-                    <Input
-                      type="text"
-                      defaultValue={payrollProLabore > 0 ? formatNumberBR(payrollProLabore) : ''}
-                      key={`pro-${payrollProLabore}`}
-                      onBlur={(e) => {
-                        const parsed = parseBRNumber(e.target.value)
-                        setPayrollProLabore(parsed)
-                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                      }}
-                      placeholder="0,00"
-                      className="pl-8 text-right text-xs font-mono field-input-interactive"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-emerald-300 block">
-                    INSS Patronal (%)
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      defaultValue={formatNumberBR(payrollInssRate)}
-                      key={`inss-${payrollInssRate}`}
-                      onBlur={(e) => {
-                        const parsed = parseBRNumber(e.target.value)
-                        setPayrollInssRate(parsed)
-                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
-                      }}
-                      className="pr-6 text-right text-xs font-mono field-input-interactive"
-                    />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
-                      %
+          {/* CAMADA COLAPSÁVEL DE PARÂMETROS OPERACIONAIS (Recolhida por padrão) */}
+          <Collapsible open={isParamsOpen} onOpenChange={setIsParamsOpen}>
+            <CollapsibleContent className="space-y-4 pt-1 animate-in fade-in-0 duration-200">
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-xs font-mono font-bold uppercase text-slate-200">
+                      Parâmetros operacionais compartilhados (atualização automática ao digitar)
                     </span>
                   </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300 block">
-                    Alíquota RAT (%)
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      defaultValue={formatNumberBR(payrollRatRate)}
-                      key={`rat-${payrollRatRate}`}
-                      onBlur={(e) => {
-                        const parsed = parseBRNumber(e.target.value)
-                        setPayrollRatRate(parsed)
-                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
-                      }}
-                      className="pr-6 text-right text-xs font-mono field-input-interactive"
-                    />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
-                      %
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-300 block">
-                    Terceiros (%)
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      defaultValue={formatNumberBR(payrollTerceirosRate)}
-                      key={`terc-${payrollTerceirosRate}`}
-                      onBlur={(e) => {
-                        const parsed = parseBRNumber(e.target.value)
-                        setPayrollTerceirosRate(parsed)
-                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
-                      }}
-                      className="pr-6 text-right text-xs font-mono field-input-interactive"
-                    />
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
-                      %
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Despesas Operacionais Compartilhadas */}
-            <div className="pt-3 border-t border-slate-800/80 space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-mono font-semibold text-slate-300 block">
-                    Outras despesas operacionais do período: {formatBRL(totalOtherExpenses)}
-                  </span>
-                  <span className="text-[11px] text-slate-500 font-mono">
-                    Deduzidas igualmente do resultado nos 3 regimes.
+                  <span className="text-[11px] text-emerald-400 font-mono">
+                    · reflete nos 3 cenários
                   </span>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addPresumidoExpense('Nova despesa operacional', 0)}
-                  className="h-7 text-xs bg-slate-900 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  Adicionar despesa
-                </Button>
-              </div>
 
-              {presumidoExpenses.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                  {presumidoExpenses.map((exp) => (
-                    <div
-                      key={exp.id}
-                      className="flex items-center gap-2 bg-slate-900/60 p-2 rounded-lg border border-slate-800/80"
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Campo Quantidade Vendida */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-300 block">
+                      Quantidade vendida (un.)
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        value={qtyInput}
+                        onChange={handleQtyChange}
+                        className="bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      Multiplica receita, CMV e tributos
+                    </span>
+                  </div>
+
+                  {/* Atividade Presumido / Real */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-300 block">
+                      Atividade (Presumido & Real)
+                    </label>
+                    <select
+                      value={presumidoActivity}
+                      onChange={(e) => {
+                        const act = e.target.value as ActivityType
+                        setPresumidoActivity(act)
+                        setRealActivity(act)
+                      }}
+                      className="w-full h-9 rounded-md text-xs font-mono px-2.5 outline-none field-input-interactive"
                     >
+                      <option value="comercio">Comércio (ICMS · IRPJ 8% / CSLL 12%)</option>
+                      <option value="industria">Indústria (ICMS · IRPJ 8% / CSLL 12%)</option>
+                      <option value="servicos">Serviços (ISSQN · IRPJ 32% / CSLL 32%)</option>
+                    </select>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      Presunção Lei 9.249/95
+                    </span>
+                  </div>
+
+                  {/* Anexo Simples Nacional */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-300 block">
+                      Anexo Simples Nacional
+                    </label>
+                    <select
+                      value={currentAnexoId}
+                      onChange={(e) => setSimplesAnexo(e.target.value)}
+                      className="w-full h-9 rounded-md text-xs font-mono px-2.5 outline-none field-input-interactive"
+                    >
+                      <option value="anexo_1">Anexo I — Comércio</option>
+                      <option value="anexo_2">Anexo II — Indústria</option>
+                      <option value="anexo_3">Anexo III — Serviços / Fator R ≥ 28%</option>
+                      <option value="anexo_4">Anexo IV — Serviços sem CPP no DAS</option>
+                      <option value="anexo_5">Anexo V — Serviços / Fator R &lt; 28%</option>
+                    </select>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      Faixa: {pgdas.faixaNome} ({formatNumberBR(pgdas.aliquotaEfetiva, 2)}%)
+                    </span>
+                  </div>
+
+                  {/* RBT12 (para alíquota efetiva do Simples) */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-300 block">
+                        RBT12 Simples Nacional (R$)
+                      </label>
+                      {simplesIsInicioAtividade && (
+                        <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                          · proporcional
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                        R$
+                      </span>
                       <Input
                         type="text"
-                        value={exp.description}
-                        onChange={(e) =>
-                          updatePresumidoExpense(exp.id, 'description', e.target.value)
-                        }
-                        placeholder="Descrição"
-                        className="flex-1 text-xs font-mono h-8 field-input-interactive"
+                        disabled={simplesIsInicioAtividade}
+                        defaultValue={simplesRbt12 > 0 ? formatNumberBR(simplesRbt12) : ''}
+                        key={`rbt-${simplesRbt12}-${simplesIsInicioAtividade}`}
+                        onBlur={(e) => {
+                          if (!simplesIsInicioAtividade) {
+                            const parsed = parseBRNumber(e.target.value)
+                            setSimplesRbt12(parsed)
+                            e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                          }
+                        }}
+                        placeholder="0,00"
+                        className={`pl-8 text-right font-mono text-xs ${
+                          simplesIsInicioAtividade
+                            ? 'bg-slate-950/80 border-slate-800 text-slate-400 font-bold cursor-not-allowed'
+                            : 'bg-slate-900 border-orange-500/50 text-orange-50 focus:border-orange-500 focus-visible:ring-orange-500/30'
+                        }`}
                       />
-                      <div className="relative w-32">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 pointer-events-none">
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {simplesIsInicioAtividade
+                        ? 'Início de atividade (LC 123/2006, art. 3º, § 9º)'
+                        : 'Receita acumulada 12 meses'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* BLOCO COMPARTILHADO: Folha e Pró-labore */}
+                <div className="pt-3 border-t border-slate-800/80 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-mono font-bold uppercase text-slate-200 block">
+                        Folha e Pró-labore (impacto nos 3 regimes)
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        Folha e pró-labore são despesas nos 3 regimes. Encargos patronais (INSS{' '}
+                        {formatNumberBR(payrollInssRate)}% + RAT + terceiros ={' '}
+                        {formatNumberBR(payrollResult.totalPatronalRate)}%) incidem no Presumido e
+                        Real. No Simples, a CPP já integra o DAS.
+                      </span>
+                    </div>
+                    <div className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
+                      Encargos Presumido/Real: <strong>{formatBRL(patronalCharges)}</strong>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-300 block">
+                        Folha de salários (R$)
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
                           R$
                         </span>
                         <Input
                           type="text"
-                          defaultValue={exp.value > 0 ? formatNumberBR(exp.value) : ''}
-                          key={`exp-${exp.id}-${exp.value}`}
+                          defaultValue={payrollSalaries > 0 ? formatNumberBR(payrollSalaries) : ''}
+                          key={`sal-${payrollSalaries}`}
                           onBlur={(e) => {
                             const parsed = parseBRNumber(e.target.value)
-                            updatePresumidoExpense(exp.id, 'value', parsed)
+                            setPayrollSalaries(parsed)
                             e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                           }}
                           placeholder="0,00"
-                          className="pl-6 text-right text-xs font-mono h-8 field-input-interactive"
+                          className="pl-8 text-right text-xs font-mono field-input-interactive"
                         />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removePresumidoExpense(exp.id)}
-                        className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors"
-                        title="Remover"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
                     </div>
-                  ))}
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-300 block">
+                        Pró-labore sócios (R$)
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500">
+                          R$
+                        </span>
+                        <Input
+                          type="text"
+                          defaultValue={
+                            payrollProLabore > 0 ? formatNumberBR(payrollProLabore) : ''
+                          }
+                          key={`pro-${payrollProLabore}`}
+                          onBlur={(e) => {
+                            const parsed = parseBRNumber(e.target.value)
+                            setPayrollProLabore(parsed)
+                            e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                          }}
+                          placeholder="0,00"
+                          className="pl-8 text-right text-xs font-mono field-input-interactive"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-emerald-300 block">
+                        INSS Patronal (%)
+                      </label>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          defaultValue={formatNumberBR(payrollInssRate)}
+                          key={`inss-${payrollInssRate}`}
+                          onBlur={(e) => {
+                            const parsed = parseBRNumber(e.target.value)
+                            setPayrollInssRate(parsed)
+                            e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
+                          }}
+                          className="pr-6 text-right text-xs font-mono field-input-interactive"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
+                          %
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-300 block">
+                        Alíquota RAT (%)
+                      </label>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          defaultValue={formatNumberBR(payrollRatRate)}
+                          key={`rat-${payrollRatRate}`}
+                          onBlur={(e) => {
+                            const parsed = parseBRNumber(e.target.value)
+                            setPayrollRatRate(parsed)
+                            e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
+                          }}
+                          className="pr-6 text-right text-xs font-mono field-input-interactive"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
+                          %
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-300 block">
+                        Terceiros (%)
+                      </label>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          defaultValue={formatNumberBR(payrollTerceirosRate)}
+                          key={`terc-${payrollTerceirosRate}`}
+                          onBlur={(e) => {
+                            const parsed = parseBRNumber(e.target.value)
+                            setPayrollTerceirosRate(parsed)
+                            e.target.value = parsed > 0 ? formatNumberBR(parsed) : '0,00'
+                          }}
+                          className="pr-6 text-right text-xs font-mono field-input-interactive"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 pointer-events-none">
+                          %
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
+
+                {/* Despesas Operacionais Compartilhadas */}
+                <div className="pt-3 border-t border-slate-800/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-mono font-semibold text-slate-300 block">
+                        Outras despesas operacionais do período: {formatBRL(totalOtherExpenses)}
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        Deduzidas igualmente do resultado nos 3 regimes.
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addPresumidoExpense('Nova despesa operacional', 0)}
+                      className="h-7 text-xs bg-slate-900 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      Adicionar despesa
+                    </Button>
+                  </div>
+
+                  {presumidoExpenses.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      {presumidoExpenses.map((exp) => (
+                        <div
+                          key={exp.id}
+                          className="flex items-center gap-2 bg-slate-900/60 p-2 rounded-lg border border-slate-800/80"
+                        >
+                          <Input
+                            type="text"
+                            value={exp.description}
+                            onChange={(e) =>
+                              updatePresumidoExpense(exp.id, 'description', e.target.value)
+                            }
+                            placeholder="Descrição"
+                            className="flex-1 text-xs font-mono h-8 field-input-interactive"
+                          />
+                          <div className="relative w-32">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 pointer-events-none">
+                              R$
+                            </span>
+                            <Input
+                              type="text"
+                              defaultValue={exp.value > 0 ? formatNumberBR(exp.value) : ''}
+                              key={`exp-${exp.id}-${exp.value}`}
+                              onBlur={(e) => {
+                                const parsed = parseBRNumber(e.target.value)
+                                updatePresumidoExpense(exp.id, 'value', parsed)
+                                e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
+                              }}
+                              placeholder="0,00"
+                              className="pl-6 text-right text-xs font-mono h-8 field-input-interactive"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removePresumidoExpense(exp.id)}
+                            className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors"
+                            title="Remover"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         {/* CARDS DE RESUMO COMPARATIVO (3 cards lado a lado com destaque visual para o melhor) */}
