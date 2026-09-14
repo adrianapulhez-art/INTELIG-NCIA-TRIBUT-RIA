@@ -44,6 +44,8 @@ export default function ComparisonPage() {
     totalConsolidatedQuantity,
     markupProducts,
     calculatedPurchases,
+    purchasesItems,
+    getPurchaseItemUnitNetCost,
     icmsRateMarkup,
     customTaxesMarkup,
     totalVariableExpenseRate,
@@ -137,6 +139,157 @@ export default function ComparisonPage() {
       setQtyInput(String(initialQty))
     }
   }, [initialQty])
+
+  // --------------------------------------------------------------------------
+  // Fluxo A: Comparação por Preço de Mercado Único (Âncora de Mercado)
+  // Permite testar um preço de venda de mercado como âncora comum aos 3 regimes,
+  // calculando os custos líquidos e lucros resultantes em cada regime.
+  // --------------------------------------------------------------------------
+  const [marketAnchorPrice, setMarketAnchorPrice] = useState<number>(0)
+  const [marketAnchorPriceInput, setMarketAnchorPriceInput] = useState<string>('')
+  const [isMarketAnchorFocused, setIsMarketAnchorFocused] = useState<boolean>(false)
+
+  // Atualiza marketAnchorPriceInput inicial caso esteja zerado quando há preço calculado
+  React.useEffect(() => {
+    if (marketAnchorPrice === 0 && simulatedSalePrice > 0) {
+      setMarketAnchorPrice(simulatedSalePrice)
+      if (!isMarketAnchorFocused) {
+        setMarketAnchorPriceInput(formatNumberBR(simulatedSalePrice))
+      }
+    }
+  }, [simulatedSalePrice, marketAnchorPrice, isMarketAnchorFocused])
+
+  // Cálculo da Comparação por Preço de Mercado (Fluxo A)
+  const marketFlowAComparison = useMemo(() => {
+    const anchor = marketAnchorPrice > 0 ? marketAnchorPrice : simulatedSalePrice || 0
+    if (anchor <= 0) return null
+
+    // Custos e alíquotas dos 3 regimes
+    const dvRate = totalVariableExpenseRate || 0
+    let sumCustomTaxesPct = 0
+    if (Array.isArray(customTaxesMarkup)) {
+      for (const tax of customTaxesMarkup) {
+        sumCustomTaxesPct += tax.rate || 0
+      }
+    }
+    const cleanIcms = icmsRateMarkup || 0
+
+    // 1. Presumido
+    const presTaxRate = cleanIcms + 0.65 + 3.0 + sumCustomTaxesPct
+    const presTaxesVal = Math.round(anchor * (presTaxRate / 100) * 100) / 100
+    const presDvVal = Math.round(anchor * (dvRate / 100) * 100) / 100
+    const presNetRev = Math.round((anchor - presTaxesVal - presDvVal) * 100) / 100
+    // Custo base: CMV do 1º produto no Presumido ou unitCostPresumidoEffective
+    const firstProd = markupProducts && markupProducts[0]
+    let presCost = firstProd ? firstProd.cost : 0
+    if (firstProd?.purchaseItemId && purchasesItems && getPurchaseItemUnitNetCost) {
+      const pItem = purchasesItems.find((pi) => pi.id === firstProd.purchaseItemId)
+      if (pItem) {
+        const uCost = getPurchaseItemUnitNetCost(pItem, 'presumido')
+        if (uCost > 0) presCost = uCost
+      }
+    }
+    if (presCost === 0 && calculatedPurchases.unitCostPresumidoEffective > 0) {
+      presCost = calculatedPurchases.unitCostPresumidoEffective
+    }
+    const presGrossProfit = Math.round((presNetRev - presCost) * 100) / 100
+    // IRPJ/CSLL presumido (comércio 8% / 12%)
+    const presIrpjBase = anchor * 0.08
+    const presIrpj = Math.round(presIrpjBase * 0.15 * 100) / 100
+    const presCsll = Math.round(anchor * 0.12 * 0.09 * 100) / 100
+    const presLle = Math.round((presGrossProfit - (presIrpj + presCsll)) * 100) / 100
+    const presMargin = anchor > 0 ? Math.round((presLle / anchor) * 10000) / 100 : 0
+
+    // 2. Real
+    const realTaxRate = cleanIcms + 1.65 + 7.6 + sumCustomTaxesPct
+    const realTaxesVal = Math.round(anchor * (realTaxRate / 100) * 100) / 100
+    const realDvVal = Math.round(anchor * (dvRate / 100) * 100) / 100
+    const realNetRev = Math.round((anchor - realTaxesVal - realDvVal) * 100) / 100
+    let realCost = firstProd ? firstProd.cost : 0
+    if (firstProd?.purchaseItemId && purchasesItems && getPurchaseItemUnitNetCost) {
+      const pItem = purchasesItems.find((pi) => pi.id === firstProd.purchaseItemId)
+      if (pItem) {
+        const uCost = getPurchaseItemUnitNetCost(pItem, 'real')
+        if (uCost > 0) realCost = uCost
+      }
+    }
+    if (realCost === 0 && calculatedPurchases.unitCostRealEffective > 0) {
+      realCost = calculatedPurchases.unitCostRealEffective
+    }
+    const realGrossProfit = Math.round((realNetRev - realCost) * 100) / 100
+    const realLair = realGrossProfit
+    const realBase = Math.max(0, realLair)
+    const realIrpj = Math.round(realBase * 0.15 * 100) / 100
+    const realCsll = Math.round(realBase * 0.09 * 100) / 100
+    const realLle = Math.round((realLair - (realIrpj + realCsll)) * 100) / 100
+    const realMargin = anchor > 0 ? Math.round((realLle / anchor) * 10000) / 100 : 0
+
+    // 3. Simples
+    const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+    const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : rawSimplesRbt12 || 0
+    const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
+    const simpTaxRate = pgdasRes.aliquotaEfetiva + sumCustomTaxesPct
+    const simpTaxesVal = Math.round(anchor * (simpTaxRate / 100) * 100) / 100
+    const simpDvVal = Math.round(anchor * (dvRate / 100) * 100) / 100
+    const simpNetRev = Math.round((anchor - simpTaxesVal - simpDvVal) * 100) / 100
+    let simpCost = firstProd ? firstProd.cost : 0
+    if (firstProd?.purchaseItemId && purchasesItems && getPurchaseItemUnitNetCost) {
+      const pItem = purchasesItems.find((pi) => pi.id === firstProd.purchaseItemId)
+      if (pItem) {
+        const uCost = getPurchaseItemUnitNetCost(pItem, 'simples')
+        if (uCost > 0) simpCost = uCost
+      }
+    }
+    if (simpCost === 0 && calculatedPurchases.unitCostSimplesEffective > 0) {
+      simpCost = calculatedPurchases.unitCostSimplesEffective
+    }
+    const simpGrossProfit = Math.round((simpNetRev - simpCost) * 100) / 100
+    const simpLle = simpGrossProfit
+    const simpMargin = anchor > 0 ? Math.round((simpLle / anchor) * 10000) / 100 : 0
+
+    return {
+      anchorPrice: anchor,
+      presumido: {
+        cost: presCost,
+        taxRate: presTaxRate,
+        taxesValue: presTaxesVal,
+        netRevenue: presNetRev,
+        lle: presLle,
+        marginPct: presMargin,
+      },
+      real: {
+        cost: realCost,
+        taxRate: realTaxRate,
+        taxesValue: realTaxesVal,
+        netRevenue: realNetRev,
+        lle: realLle,
+        marginPct: realMargin,
+      },
+      simples: {
+        cost: simpCost,
+        taxRate: simpTaxRate,
+        taxesValue: simpTaxesVal,
+        netRevenue: simpNetRev,
+        lle: simpLle,
+        marginPct: simpMargin,
+      },
+    }
+  }, [
+    marketAnchorPrice,
+    simulatedSalePrice,
+    totalVariableExpenseRate,
+    customTaxesMarkup,
+    icmsRateMarkup,
+    markupProducts,
+    purchasesItems,
+    simplesAnexo,
+    effectiveSimplesRbt12,
+    rawSimplesRbt12,
+    getPurchaseItemUnitNetCost,
+    calculatedPurchases.unitCostPresumidoEffective,
+    calculatedPurchases.unitCostRealEffective,
+    calculatedPurchases.unitCostSimplesEffective,
+  ])
 
   // Atualizar a quantidade em todos os contextos simultaneamente
   const handleQtyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1210,165 +1363,248 @@ export default function ComparisonPage() {
           </Collapsible>
         </div>
 
-        {/* CARDS DE RESUMO COMPARATIVO (3 cards lado a lado com destaque visual para o melhor) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Card Lucro Presumido */}
-          <div
-            className={`p-5 rounded-2xl border transition-all ${
-              bestRegimeKey === 'presumido'
-                ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                : 'bg-[#0b101b]/90 border-slate-800/90'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-mono font-bold uppercase text-slate-300">
-                Lucro Presumido
-              </span>
-              {bestRegimeKey === 'presumido' ? (
-                <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center gap-1">
-                  <Trophy className="w-3 h-3" /> Melhor Resultado
-                </Badge>
-              ) : (
-                <span className="text-[11px] font-mono text-slate-500">Regime Geral</span>
-              )}
+        {/* QUADRO DE COMPARAÇÃO POR PREÇO DE MERCADO (Fluxo A - SEMPRE VISÍVEL) */}
+        <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-300 shrink-0">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                    Comparação por Preço de Mercado (Fluxo A)
+                  </h3>
+                  <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-mono">
+                    Âncora Única de Mercado
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Um único preço de venda de mercado alimenta simultaneamente os três regimes
+                  tributários, revelando a margem e o lucro líquido apurados a partir do mesmo preço
+                  praticado.
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-3 font-mono">
-              <div>
-                <span className="text-[11px] text-slate-400 block">Carga Tributária Total</span>
-                <span className="text-xl font-bold text-slate-100">
-                  {formatBRL(presumidoData.totalTaxBurden)}
+            {/* Entrada do Preço de Mercado Âncora */}
+            <div className="flex items-center gap-3 bg-slate-900/90 p-2.5 px-4 rounded-xl border border-slate-800 shrink-0">
+              <label className="text-xs font-bold text-slate-200 font-mono whitespace-nowrap">
+                Preço de Mercado:
+              </label>
+              <div className="relative w-36 sm:w-44">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
+                  R$
                 </span>
-                <span className="text-[10px] text-slate-500 block">
-                  {formatNumberBR(presumidoData.effectiveTaxRate, 2)}% da receita bruta
-                </span>
-              </div>
-
-              <div className="pt-2 border-t border-slate-800/80">
-                <span className="text-[11px] text-slate-400 block">Lucro Líquido Final</span>
-                <span
-                  className={`text-2xl font-black ${
-                    bestRegimeKey === 'presumido' ? 'text-emerald-400' : 'text-slate-100'
-                  }`}
-                >
-                  {formatBRL(presumidoData.totalNetProfit)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <span className="text-slate-400">Margem Líquida</span>
-                <span className="font-bold text-slate-200">
-                  {formatPercentBR(presumidoData.netMargin)}
-                </span>
+                <Input
+                  type="text"
+                  value={
+                    isMarketAnchorFocused
+                      ? marketAnchorPriceInput
+                      : marketAnchorPrice > 0
+                        ? formatNumberBR(marketAnchorPrice)
+                        : simulatedSalePrice > 0
+                          ? formatNumberBR(simulatedSalePrice)
+                          : '0,00'
+                  }
+                  onFocus={() => {
+                    setIsMarketAnchorFocused(true)
+                    setMarketAnchorPriceInput(
+                      marketAnchorPrice > 0
+                        ? String(marketAnchorPrice).replace('.', ',')
+                        : simulatedSalePrice > 0
+                          ? String(simulatedSalePrice).replace('.', ',')
+                          : '',
+                    )
+                  }}
+                  onChange={(e) => setMarketAnchorPriceInput(e.target.value)}
+                  onBlur={() => {
+                    setIsMarketAnchorFocused(false)
+                    const parsed = parseBRNumber(marketAnchorPriceInput)
+                    setMarketAnchorPrice(parsed)
+                  }}
+                  placeholder="0,00"
+                  className="pl-8 text-right font-mono text-xs h-9 field-input-interactive font-bold text-amber-300 bg-slate-950/80 border-slate-700 focus:border-amber-500 focus-visible:ring-amber-500/30"
+                />
               </div>
             </div>
           </div>
 
-          {/* Card Lucro Real */}
-          <div
-            className={`p-5 rounded-2xl border transition-all ${
-              bestRegimeKey === 'real'
-                ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                : 'bg-[#0b101b]/90 border-slate-800/90'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-mono font-bold uppercase text-slate-300">
-                Lucro Real
-              </span>
-              {bestRegimeKey === 'real' ? (
-                <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center gap-1">
-                  <Trophy className="w-3 h-3" /> Melhor Resultado
-                </Badge>
-              ) : (
-                <span className="text-[11px] font-mono text-slate-500">Não Cumulativo</span>
-              )}
+          {/* Cards dos 3 Regimes Calculados a partir do Preço de Mercado Único */}
+          {marketFlowAComparison ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Cartão Lucro Presumido */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3 font-mono">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                  <span className="text-xs font-bold uppercase text-orange-400">
+                    Lucro Presumido
+                  </span>
+                  <Badge className="bg-orange-500/15 text-orange-300 border-0 text-[10px]">
+                    {formatPercentBR(marketFlowAComparison.presumido.taxRate)}
+                  </Badge>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Preço de Venda:</span>
+                    <span className="text-slate-200 font-bold">
+                      {formatBRL(marketFlowAComparison.anchorPrice)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Custo Líquido:</span>
+                    <span className="text-slate-200">
+                      {formatBRL(marketFlowAComparison.presumido.cost)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Tributos s/ Venda:</span>
+                    <span className="text-rose-400">
+                      -{formatBRL(marketFlowAComparison.presumido.taxesValue)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Receita Líquida:</span>
+                    <span className="text-slate-200">
+                      {formatBRL(marketFlowAComparison.presumido.netRevenue)}
+                    </span>
+                  </div>
+                  <div className="pt-2.5 border-t border-slate-800/80 flex justify-between font-bold">
+                    <span className="text-slate-200">Lucro Líquido (LLE):</span>
+                    <span
+                      className={
+                        marketFlowAComparison.presumido.lle >= 0
+                          ? 'text-emerald-400 text-sm'
+                          : 'text-rose-400 text-sm'
+                      }
+                    >
+                      {formatBRL(marketFlowAComparison.presumido.lle)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-400 pt-0.5">
+                    <span>Margem Líquida:</span>
+                    <span className="font-bold text-slate-200">
+                      {formatNumberBR(marketFlowAComparison.presumido.marginPct)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cartão Lucro Real */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3 font-mono">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                  <span className="text-xs font-bold uppercase text-sky-400">Lucro Real</span>
+                  <Badge className="bg-sky-500/15 text-sky-300 border-0 text-[10px]">
+                    {formatPercentBR(marketFlowAComparison.real.taxRate)}
+                  </Badge>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Preço de Venda:</span>
+                    <span className="text-slate-200 font-bold">
+                      {formatBRL(marketFlowAComparison.anchorPrice)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Custo Líquido:</span>
+                    <span className="text-slate-200">
+                      {formatBRL(marketFlowAComparison.real.cost)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Tributos s/ Venda:</span>
+                    <span className="text-rose-400">
+                      -{formatBRL(marketFlowAComparison.real.taxesValue)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Receita Líquida:</span>
+                    <span className="text-slate-200">
+                      {formatBRL(marketFlowAComparison.real.netRevenue)}
+                    </span>
+                  </div>
+                  <div className="pt-2.5 border-t border-slate-800/80 flex justify-between font-bold">
+                    <span className="text-slate-200">Lucro Líquido (LLE):</span>
+                    <span
+                      className={
+                        marketFlowAComparison.real.lle >= 0
+                          ? 'text-emerald-400 text-sm'
+                          : 'text-rose-400 text-sm'
+                      }
+                    >
+                      {formatBRL(marketFlowAComparison.real.lle)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-400 pt-0.5">
+                    <span>Margem Líquida:</span>
+                    <span className="font-bold text-slate-200">
+                      {formatNumberBR(marketFlowAComparison.real.marginPct)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cartão Simples Nacional */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3 font-mono">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                  <span className="text-xs font-bold uppercase text-emerald-400">
+                    Simples Nacional
+                  </span>
+                  <Badge className="bg-emerald-500/15 text-emerald-300 border-0 text-[10px]">
+                    {formatPercentBR(marketFlowAComparison.simples.taxRate)}
+                  </Badge>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Preço de Venda:</span>
+                    <span className="text-slate-200 font-bold">
+                      {formatBRL(marketFlowAComparison.anchorPrice)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Custo Líquido:</span>
+                    <span className="text-slate-200">
+                      {formatBRL(marketFlowAComparison.simples.cost)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Tributos (DAS):</span>
+                    <span className="text-rose-400">
+                      -{formatBRL(marketFlowAComparison.simples.taxesValue)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Receita Líquida:</span>
+                    <span className="text-slate-200">
+                      {formatBRL(marketFlowAComparison.simples.netRevenue)}
+                    </span>
+                  </div>
+                  <div className="pt-2.5 border-t border-slate-800/80 flex justify-between font-bold">
+                    <span className="text-slate-200">Lucro Líquido (LLE):</span>
+                    <span
+                      className={
+                        marketFlowAComparison.simples.lle >= 0
+                          ? 'text-emerald-400 text-sm'
+                          : 'text-rose-400 text-sm'
+                      }
+                    >
+                      {formatBRL(marketFlowAComparison.simples.lle)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-400 pt-0.5">
+                    <span>Margem Líquida:</span>
+                    <span className="font-bold text-slate-200">
+                      {formatNumberBR(marketFlowAComparison.simples.marginPct)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            <div className="space-y-3 font-mono">
-              <div>
-                <span className="text-[11px] text-slate-400 block">Carga Tributária Total</span>
-                <span className="text-xl font-bold text-slate-100">
-                  {formatBRL(realData.totalTaxBurden)}
-                </span>
-                <span className="text-[10px] text-slate-500 block">
-                  {formatNumberBR(realData.effectiveTaxRate, 2)}% da receita bruta
-                </span>
-              </div>
-
-              <div className="pt-2 border-t border-slate-800/80">
-                <span className="text-[11px] text-slate-400 block">Lucro Líquido Final</span>
-                <span
-                  className={`text-2xl font-black ${
-                    bestRegimeKey === 'real' ? 'text-emerald-400' : 'text-slate-100'
-                  }`}
-                >
-                  {formatBRL(realData.totalNetProfit)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <span className="text-slate-400">Margem Líquida</span>
-                <span className="font-bold text-slate-200">
-                  {formatPercentBR(realData.netMargin)}
-                </span>
-              </div>
+          ) : (
+            <div className="p-6 rounded-xl bg-slate-900/40 border border-slate-800 text-center text-xs font-mono text-slate-400">
+              Informe um preço de venda no campo acima para visualizar a comparação simultânea entre
+              os três regimes.
             </div>
-          </div>
-
-          {/* Card Simples Nacional */}
-          <div
-            className={`p-5 rounded-2xl border transition-all ${
-              bestRegimeKey === 'simples'
-                ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                : 'bg-[#0b101b]/90 border-slate-800/90'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-mono font-bold uppercase text-slate-300">
-                Simples Nacional
-              </span>
-              {bestRegimeKey === 'simples' ? (
-                <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center gap-1">
-                  <Trophy className="w-3 h-3" /> Melhor Resultado
-                </Badge>
-              ) : (
-                <span className="text-[11px] font-mono text-slate-500">LC 123/2006</span>
-              )}
-            </div>
-
-            <div className="space-y-3 font-mono">
-              <div>
-                <span className="text-[11px] text-slate-400 block">
-                  Carga Tributária Total (DAS)
-                </span>
-                <span className="text-xl font-bold text-slate-100">
-                  {formatBRL(simplesData.totalTaxBurden)}
-                </span>
-                <span className="text-[10px] text-slate-500 block">
-                  {formatNumberBR(simplesData.effectiveTaxRate, 2)}% efetivo (PGDAS)
-                </span>
-              </div>
-
-              <div className="pt-2 border-t border-slate-800/80">
-                <span className="text-[11px] text-slate-400 block">Lucro Líquido Final</span>
-                <span
-                  className={`text-2xl font-black ${
-                    bestRegimeKey === 'simples' ? 'text-emerald-400' : 'text-slate-100'
-                  }`}
-                >
-                  {formatBRL(simplesData.totalNetProfit)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <span className="text-slate-400">Margem Líquida</span>
-                <span className="font-bold text-slate-200">
-                  {formatPercentBR(simplesData.netMargin)}
-                </span>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* TABELA COMPARATIVA LADO A LADO COM AS LINHAS DA DRE */}
@@ -2523,6 +2759,167 @@ export default function ComparisonPage() {
               })
             }}
           />
+        </div>
+
+        {/* CARDS DE RESUMO COMPARATIVO (o quadro com os 3 cards posicionado na parte de baixo da página) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card Lucro Presumido */}
+          <div
+            className={`p-5 rounded-2xl border transition-all ${
+              bestRegimeKey === 'presumido'
+                ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                : 'bg-[#0b101b]/90 border-slate-800/90'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-mono font-bold uppercase text-slate-300">
+                Lucro Presumido
+              </span>
+              {bestRegimeKey === 'presumido' ? (
+                <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center gap-1">
+                  <Trophy className="w-3 h-3" /> Melhor Resultado
+                </Badge>
+              ) : (
+                <span className="text-[11px] font-mono text-slate-500">Regime Geral</span>
+              )}
+            </div>
+
+            <div className="space-y-3 font-mono">
+              <div>
+                <span className="text-[11px] text-slate-400 block">Carga Tributária Total</span>
+                <span className="text-xl font-bold text-slate-100">
+                  {formatBRL(presumidoData.totalTaxBurden)}
+                </span>
+                <span className="text-[10px] text-slate-500 block">
+                  {formatNumberBR(presumidoData.effectiveTaxRate, 2)}% da receita bruta
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800/80">
+                <span className="text-[11px] text-slate-400 block">Lucro Líquido Final</span>
+                <span
+                  className={`text-2xl font-black ${
+                    bestRegimeKey === 'presumido' ? 'text-emerald-400' : 'text-slate-100'
+                  }`}
+                >
+                  {formatBRL(presumidoData.totalNetProfit)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <span className="text-slate-400">Margem Líquida</span>
+                <span className="font-bold text-slate-200">
+                  {formatPercentBR(presumidoData.netMargin)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Lucro Real */}
+          <div
+            className={`p-5 rounded-2xl border transition-all ${
+              bestRegimeKey === 'real'
+                ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                : 'bg-[#0b101b]/90 border-slate-800/90'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-mono font-bold uppercase text-slate-300">
+                Lucro Real
+              </span>
+              {bestRegimeKey === 'real' ? (
+                <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center gap-1">
+                  <Trophy className="w-3 h-3" /> Melhor Resultado
+                </Badge>
+              ) : (
+                <span className="text-[11px] font-mono text-slate-500">Não Cumulativo</span>
+              )}
+            </div>
+
+            <div className="space-y-3 font-mono">
+              <div>
+                <span className="text-[11px] text-slate-400 block">Carga Tributária Total</span>
+                <span className="text-xl font-bold text-slate-100">
+                  {formatBRL(realData.totalTaxBurden)}
+                </span>
+                <span className="text-[10px] text-slate-500 block">
+                  {formatNumberBR(realData.effectiveTaxRate, 2)}% da receita bruta
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800/80">
+                <span className="text-[11px] text-slate-400 block">Lucro Líquido Final</span>
+                <span
+                  className={`text-2xl font-black ${
+                    bestRegimeKey === 'real' ? 'text-emerald-400' : 'text-slate-100'
+                  }`}
+                >
+                  {formatBRL(realData.totalNetProfit)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <span className="text-slate-400">Margem Líquida</span>
+                <span className="font-bold text-slate-200">
+                  {formatPercentBR(realData.netMargin)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Simples Nacional */}
+          <div
+            className={`p-5 rounded-2xl border transition-all ${
+              bestRegimeKey === 'simples'
+                ? 'bg-emerald-950/20 border-emerald-500 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                : 'bg-[#0b101b]/90 border-slate-800/90'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-mono font-bold uppercase text-slate-300">
+                Simples Nacional
+              </span>
+              {bestRegimeKey === 'simples' ? (
+                <Badge className="bg-emerald-500 text-slate-950 font-bold text-[10px] flex items-center gap-1">
+                  <Trophy className="w-3 h-3" /> Melhor Resultado
+                </Badge>
+              ) : (
+                <span className="text-[11px] font-mono text-slate-500">LC 123/2006</span>
+              )}
+            </div>
+
+            <div className="space-y-3 font-mono">
+              <div>
+                <span className="text-[11px] text-slate-400 block">
+                  Carga Tributária Total (DAS)
+                </span>
+                <span className="text-xl font-bold text-slate-100">
+                  {formatBRL(simplesData.totalTaxBurden)}
+                </span>
+                <span className="text-[10px] text-slate-500 block">
+                  {formatNumberBR(simplesData.effectiveTaxRate, 2)}% efetivo (PGDAS)
+                </span>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800/80">
+                <span className="text-[11px] text-slate-400 block">Lucro Líquido Final</span>
+                <span
+                  className={`text-2xl font-black ${
+                    bestRegimeKey === 'simples' ? 'text-emerald-400' : 'text-slate-100'
+                  }`}
+                >
+                  {formatBRL(simplesData.totalNetProfit)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <span className="text-slate-400">Margem Líquida</span>
+                <span className="font-bold text-slate-200">
+                  {formatPercentBR(simplesData.netMargin)}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* BASE LEGAL, CONDIÇÕES E PARTICULARIDADES POR REGIME (Camada colapsável / recolhida por padrão) */}
