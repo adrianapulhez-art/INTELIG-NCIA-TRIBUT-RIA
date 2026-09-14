@@ -1,6 +1,20 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
+
+// Resolução resiliente a interop ESM/CJS de pacotes de terceiros (jspdf-autotable e xlsx)
+// No Vite/Rollup ou dev mode (esbuild), importações default de pacotes CJS/UMD podem vir como { default: fn } ou a própria fn
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const autoTableFn: any =
+  typeof autoTable === 'function'
+    ? autoTable
+    : (autoTable as unknown as { default?: unknown })?.default &&
+        typeof (autoTable as unknown as { default?: unknown }).default === 'function'
+      ? (autoTable as unknown as { default: unknown }).default
+      : autoTable
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const xlsxLib: any = (XLSX as unknown as { default?: unknown })?.default ?? XLSX
 import { formatBRL, formatNumberBR, formatPercentBR } from './taxCalculations'
 
 /**
@@ -217,7 +231,7 @@ export function exportDreToPdf(options: DreExportOptions, filename?: string): vo
     return [desc, unit, total]
   })
 
-  autoTable(doc, {
+  autoTableFn(doc, {
     startY: currentY,
     head: tableHeaders,
     body: tableData,
@@ -457,7 +471,7 @@ export function exportComparisonToPdf(options: ComparisonExportOptions, filename
     return [row.line, pVal, rVal, sVal]
   })
 
-  autoTable(doc, {
+  autoTableFn(doc, {
     startY: currentY,
     head: tableHeaders,
     body: tableData,
@@ -541,7 +555,7 @@ export function exportComparisonToPdf(options: ComparisonExportOptions, filename
  * EXPORTAR DRE PARA EXCEL (Valores numéricos reais)
  */
 export function exportDreToExcel(options: DreExportOptions, filename?: string): void {
-  const wb = XLSX.utils.book_new()
+  const wb = (xlsxLib.utils || XLSX.utils).book_new()
 
   // Montar array de linhas bidimensional
   const sheetData: (string | number | null | undefined)[][] = []
@@ -592,22 +606,26 @@ export function exportDreToExcel(options: DreExportOptions, filename?: string): 
     options.notes.forEach((n) => sheetData.push([n]))
   }
 
-  const ws = XLSX.utils.aoa_to_sheet(sheetData)
+  const ws = (xlsxLib.utils || XLSX.utils).aoa_to_sheet(sheetData)
 
   // Ajustar larguras das colunas
   ws['!cols'] = [{ wch: 45 }, { wch: 18 }, { wch: 22 }, { wch: 25 }]
 
-  XLSX.utils.book_append_sheet(wb, ws, 'Demonstração DRE')
+  ;(xlsxLib.utils || XLSX.utils).book_append_sheet(wb, ws, 'Demonstração DRE')
 
   const finalName = filename || `${options.title.toLowerCase().replace(/[\s—]+/g, '_')}.xlsx`
-  XLSX.writeFile(wb, finalName)
+  if (typeof xlsxLib.writeFile === 'function') {
+    xlsxLib.writeFile(wb, finalName)
+  } else {
+    XLSX.writeFile(wb, finalName)
+  }
 }
 
 /**
  * EXPORTAR COMPARAÇÃO DE REGIMES PARA EXCEL (Valores numéricos reais)
  */
 export function exportComparisonToExcel(options: ComparisonExportOptions, filename?: string): void {
-  const wb = XLSX.utils.book_new()
+  const wb = (xlsxLib.utils || XLSX.utils).book_new()
   const sheetData: (string | number | null | undefined)[][] = []
 
   sheetData.push(['IT — Inteligência Tributária'])
@@ -666,13 +684,17 @@ export function exportComparisonToExcel(options: ComparisonExportOptions, filena
     options.notes.forEach((n) => sheetData.push([n]))
   }
 
-  const ws = XLSX.utils.aoa_to_sheet(sheetData)
+  const ws = (xlsxLib.utils || XLSX.utils).aoa_to_sheet(sheetData)
   ws['!cols'] = [{ wch: 42 }, { wch: 22 }, { wch: 20 }, { wch: 22 }, { wch: 20 }, { wch: 20 }]
 
-  XLSX.utils.book_append_sheet(wb, ws, 'Comparativo de Regimes')
+  ;(xlsxLib.utils || XLSX.utils).book_append_sheet(wb, ws, 'Comparativo de Regimes')
 
   const finalName = filename || 'comparativo_regimes_tributarios.xlsx'
-  XLSX.writeFile(wb, finalName)
+  if (typeof xlsxLib.writeFile === 'function') {
+    xlsxLib.writeFile(wb, finalName)
+  } else {
+    XLSX.writeFile(wb, finalName)
+  }
 }
 
 /**
@@ -744,7 +766,7 @@ export function exportReformaToPdf(options: ReformaExportOptions, filename?: str
     ]
   })
 
-  autoTable(doc, {
+  autoTableFn(doc, {
     startY: currentY,
     head: tableHeaders,
     body: tableData,
@@ -833,7 +855,7 @@ export function exportReformaToPdf(options: ReformaExportOptions, filename?: str
  * EXPORTAR PLANO DE VOO DA REFORMA TRIBUTÁRIA PARA EXCEL
  */
 export function exportReformaToExcel(options: ReformaExportOptions, filename?: string): void {
-  const wb = XLSX.utils.book_new()
+  const wb = (xlsxLib.utils || XLSX.utils).book_new()
   const sheetData: (string | number | null | undefined)[][] = []
 
   sheetData.push(['IT — Inteligência Tributária'])
@@ -891,7 +913,7 @@ export function exportReformaToExcel(options: ReformaExportOptions, filename?: s
     options.notes.forEach((n) => sheetData.push([n]))
   }
 
-  const ws = XLSX.utils.aoa_to_sheet(sheetData)
+  const ws = (xlsxLib.utils || XLSX.utils).aoa_to_sheet(sheetData)
   ws['!cols'] = [
     { wch: 10 },
     { wch: 38 },
@@ -906,8 +928,12 @@ export function exportReformaToExcel(options: ReformaExportOptions, filename?: s
     { wch: 26 },
   ]
 
-  XLSX.utils.book_append_sheet(wb, ws, 'Plano de Voo 2026-2033')
+  ;(xlsxLib.utils || XLSX.utils).book_append_sheet(wb, ws, 'Plano de Voo 2026-2033')
 
   const finalName = filename || `plano_de_voo_reforma_tributaria_${options.selectedYear}.xlsx`
-  XLSX.writeFile(wb, finalName)
+  if (typeof xlsxLib.writeFile === 'function') {
+    xlsxLib.writeFile(wb, finalName)
+  } else {
+    XLSX.writeFile(wb, finalName)
+  }
 }
