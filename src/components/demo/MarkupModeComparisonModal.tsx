@@ -173,6 +173,10 @@ export function computeMarkupModeComparison(params: {
     baseLiquidDivisor = Math.max(0.0001, baseCostMultiplicativeTaxFactor)
   }
 
+  const activeRegimeMargin = product.marginByRegime?.[currentRegime] ?? (product.margin || 0)
+  const activeRegimeDesiredNetRev =
+    product.desiredNetRevenueByRegime?.[currentRegime] ?? (product.desiredNetRevenue || 0)
+
   // Validação: caso o modo ativo seja Custo+Margem mas não haja custo definido
   if (activeMode === 'cost_margin' && unitCost <= 0 && (!product.cost || product.cost <= 0)) {
     const activeTriadFallback: ModeTriadResult = {
@@ -183,8 +187,8 @@ export function computeMarkupModeComparison(params: {
       anchorFormatted: 'R$ 0,00',
       salePrice: 0,
       salePriceFormatted: 'Não apurado',
-      netMarginPct: product.margin || 0,
-      netMarginFormatted: `${formatNumberBR(product.margin || 0)}%`,
+      netMarginPct: activeRegimeMargin,
+      netMarginFormatted: `${formatNumberBR(activeRegimeMargin)}%`,
       netMarginDerived: false,
       notes: 'Custo unitário não cadastrado para o regime ativo.',
     }
@@ -205,7 +209,7 @@ export function computeMarkupModeComparison(params: {
   }
 
   // Validação: caso o modo ativo seja Receita Líquida mas a RL informada seja zero
-  if (activeMode === 'liquid' && (!product.desiredNetRevenue || product.desiredNetRevenue <= 0)) {
+  if (activeMode === 'liquid' && activeRegimeDesiredNetRev <= 0) {
     const activeTriadFallback: ModeTriadResult = {
       mode: 'liquid',
       modeLabel: 'Receita Líquida (Ativo)',
@@ -239,7 +243,7 @@ export function computeMarkupModeComparison(params: {
   // CASO 1: MODO ATIVO = RECEITA LÍQUIDA (Fluxo B)
   // =========================================================================
   if (activeMode === 'liquid') {
-    const desiredNetRevenue = product.desiredNetRevenue || 0
+    const desiredNetRevenue = activeRegimeDesiredNetRev
     // Cadeia DRE da RL
     const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
     const rbt12Clean =
@@ -318,7 +322,7 @@ export function computeMarkupModeComparison(params: {
     // enquanto Preço Líquido Desejado usa a meta líquida com divisor multiplicativo de deduções),
     // apura o modo Custo + Margem com a margem do produto (ou margem derivada caso 0)
     // sem forçar equivalência artificial.
-    const explicitProductMargin = product.margin || 0
+    const explicitProductMargin = activeRegimeMargin
     const altMarginPct =
       explicitProductMargin > 0
         ? explicitProductMargin
@@ -391,7 +395,7 @@ export function computeMarkupModeComparison(params: {
   // =========================================================================
   // CASO 2: MODO ATIVO = CUSTO + MARGEM
   // =========================================================================
-  const explicitMarginPct = product.margin || 0
+  const explicitMarginPct = activeRegimeMargin
   const marginFactorActive = Math.max(0.0001, 1 - explicitMarginPct / 100)
   const divisorActiveCost = Math.max(0.0001, baseCostMultiplicativeTaxFactor * marginFactorActive)
   const costAnchor = unitCost > 0 ? unitCost : product.cost || 0
@@ -442,9 +446,7 @@ export function computeMarkupModeComparison(params: {
   // MODO ALTERNATIVO: Receita Líquida
   // Se o produto tiver meta cadastrada em desiredNetRevenue, usa essa meta; caso contrário usa a implícita
   const altDesiredNetRev =
-    product.desiredNetRevenue && product.desiredNetRevenue > 0
-      ? product.desiredNetRevenue
-      : implicitNetRevenue
+    activeRegimeDesiredNetRev > 0 ? activeRegimeDesiredNetRev : implicitNetRevenue
   const alternativeSalePrice =
     baseLiquidDivisor > 0 ? Math.round((altDesiredNetRev / baseLiquidDivisor) * 100) / 100 : 0
 
@@ -452,7 +454,7 @@ export function computeMarkupModeComparison(params: {
     mode: 'liquid',
     modeLabel: 'Receita Líquida (Alternativo)',
     anchorLabel:
-      product.desiredNetRevenue && product.desiredNetRevenue > 0
+      activeRegimeDesiredNetRev > 0
         ? 'Receita Líquida Alvo (RL)'
         : 'Receita Líquida Implícita (RL)',
     anchorValue: altDesiredNetRev,

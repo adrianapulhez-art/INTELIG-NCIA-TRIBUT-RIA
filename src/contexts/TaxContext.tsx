@@ -49,9 +49,15 @@ export interface CostComposition {
 }
 
 export interface DesiredLiquidRevenueByRegime {
-  simples: number
-  presumido: number
-  real: number
+  simples?: number
+  presumido?: number
+  real?: number
+}
+
+export interface DesiredProfitMarginByRegime {
+  simples?: number
+  presumido?: number
+  real?: number
 }
 
 export interface MarkupProductItem {
@@ -60,8 +66,9 @@ export interface MarkupProductItem {
   mode: MarkupMode // 'liquid' ou 'cost_margin'
   desiredNetRevenue: number // Receita líquida desejada legada / ativa
   desiredNetRevenueByRegime?: DesiredLiquidRevenueByRegime // Receita líquida desejada independente por regime
+  marginByRegime?: DesiredProfitMarginByRegime // Margem de lucro independente por regime
   cost: number // Custo base (quando mode === 'cost_margin')
-  margin: number // Margem de lucro % (quando mode === 'cost_margin' ou margem adicional)
+  margin: number // Margem de lucro % legada / ativa (quando mode === 'cost_margin' ou margem adicional)
   quantity: number // Quantidade vendida
   costOrigin?: 'purchases' | 'manual' // Origem do custo (Compras Líquidas por regime ou digitação manual)
   manualCostOverride?: number // Valor manual fixado quando o usuário opta por override
@@ -170,6 +177,7 @@ export interface TaxStateSnapshot {
   markupMode: MarkupMode
   desiredNetRevenue: number
   desiredLiquidRevenueByRegime?: DesiredLiquidRevenueByRegime
+  marginByRegime?: DesiredProfitMarginByRegime
   additionalMargin: number
   icmsRateMarkup: number
   customTaxesMarkup: CustomTaxItem[]
@@ -272,6 +280,11 @@ export interface TaxContextType {
   setDesiredLiquidRevenueByRegime: (
     regimeOrObj: TaxRegime | DesiredLiquidRevenueByRegime,
     val?: number,
+  ) => void
+  marginByRegime: DesiredProfitMarginByRegime
+  setMarginByRegime: (
+    regimeOrObj: TaxRegime | DesiredProfitMarginByRegime,
+    val?: number | undefined,
   ) => void
   additionalMargin: number
   setAdditionalMargin: (val: number) => void
@@ -671,30 +684,27 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const setRegime = useCallback((newRegime: TaxRegime) => {
     recordUndoSnapshot()
     setRegimeState(newRegime)
-    // Atualiza desiredNetRevenue para refletir a meta do NOVO regime, sem propagação automática!
+    // Atualiza desiredNetRevenue para refletir a meta do NOVO regime, sem propagação automática (vazio/0 se nunca informado)
     setDesiredLiquidRevenueByRegimeState((prevRegimeMap) => {
       const regimeVal = prevRegimeMap[newRegime] ?? 0
       setDesiredNetRevenueState(regimeVal)
       return prevRegimeMap
     })
-    // Atualiza os produtos no modo liquid para exibir a receita do novo regime selecionado
+    // Atualiza margem ativa para refletir o NOVO regime, sem propagação automática
+    setMarginByRegimeState((prevMarginMap) => {
+      const marginVal = prevMarginMap[newRegime] ?? 0
+      setAdditionalMargin(marginVal)
+      return prevMarginMap
+    })
+    // Atualiza os produtos para exibir os valores específicos do novo regime selecionado (sem copiar do anterior)
     setMarkupProducts((prevProds) =>
       prevProds.map((p) => {
-        if (!p.desiredNetRevenueByRegime) {
-          const legacy = p.desiredNetRevenue || 0
-          return {
-            ...p,
-            desiredNetRevenueByRegime: {
-              simples: legacy,
-              presumido: legacy,
-              real: legacy,
-            },
-          }
-        }
-        const targetVal = p.desiredNetRevenueByRegime[newRegime] ?? 0
+        const targetRL = p.desiredNetRevenueByRegime?.[newRegime] ?? 0
+        const targetMargin = p.marginByRegime?.[newRegime] ?? (p.marginByRegime ? 0 : p.margin || 0)
         return {
           ...p,
-          desiredNetRevenue: targetVal,
+          desiredNetRevenue: targetRL,
+          margin: targetMargin,
         }
       }),
     )
@@ -807,6 +817,54 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     },
     [regime],
   )
+  const [marginByRegime, setMarginByRegimeState] = useState<DesiredProfitMarginByRegime>({})
+
+  const setMarginByRegime = useCallback(
+    (regimeOrObj: TaxRegime | DesiredProfitMarginByRegime, val?: number | undefined) => {
+      recordUndoSnapshot()
+      if (typeof regimeOrObj === 'object' && regimeOrObj !== null) {
+        setMarginByRegimeState({
+          simples: regimeOrObj.simples !== undefined ? Number(regimeOrObj.simples) : undefined,
+          presumido:
+            regimeOrObj.presumido !== undefined ? Number(regimeOrObj.presumido) : undefined,
+          real: regimeOrObj.real !== undefined ? Number(regimeOrObj.real) : undefined,
+        })
+        const activeVal = Number(regimeOrObj[regime]) || 0
+        setAdditionalMargin(activeVal)
+        return
+      }
+      const targetRegime = regimeOrObj as TaxRegime
+      const cleanVal =
+        val !== undefined
+          ? Math.max(0, typeof val === 'number' && Number.isFinite(val) ? val : 0)
+          : undefined
+      setMarginByRegimeState((prev) => ({
+        ...prev,
+        [targetRegime]: cleanVal,
+      }))
+      if (targetRegime === regime) {
+        setAdditionalMargin(cleanVal || 0)
+      }
+      setMarkupProducts((prev) =>
+        prev.map((p, idx) => {
+          if (idx === 0) {
+            const currentByRegime = p.marginByRegime || {}
+            const updatedByRegime = {
+              ...currentByRegime,
+              [targetRegime]: cleanVal,
+            }
+            return {
+              ...p,
+              margin: targetRegime === regime ? cleanVal || 0 : p.margin,
+              marginByRegime: updatedByRegime,
+            }
+          }
+          return p
+        }),
+      )
+    },
+    [regime],
+  )
   const [additionalMargin, setAdditionalMargin] = useState<number>(0)
   const [icmsRateMarkup, setIcmsRateMarkup] = useState<number>(0)
   const [customTaxesMarkup, setCustomTaxesMarkup] = useState<CustomTaxItem[]>([])
@@ -826,18 +884,15 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [simplesSelectedScenario, setSimplesSelectedScenarioState] =
     useState<SimplesScenarioKey>('moderado')
 
-  // Cria 1 produto padrão inicial estritamente zerado
+  // Cria 1 produto padrão inicial estritamente zerado e vazio por regime (sem defaults / herança)
   const [markupProducts, setMarkupProducts] = useState<MarkupProductItem[]>([
     {
       id: 'prod-1',
       name: 'Produto 1',
       mode: 'liquid',
       desiredNetRevenue: 0,
-      desiredNetRevenueByRegime: {
-        simples: 0,
-        presumido: 0,
-        real: 0,
-      },
+      desiredNetRevenueByRegime: {},
+      marginByRegime: {},
       cost: 0,
       margin: 0,
       quantity: 0,
@@ -1793,6 +1848,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         name: name || `Produto ${nextNum}`,
         mode: mode || markupMode || 'liquid',
         desiredNetRevenue: 0,
+        desiredNetRevenueByRegime: {},
+        marginByRegime: {},
         cost: 0,
         margin: 0,
         quantity: 0,
@@ -1817,7 +1874,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       MarkupProductItem,
       'id' | 'salePrice' | 'taxFactor' | 'completeFactor' | 'totalRevenue' | 'totalCost'
     >,
-    value: string | number | MarkupMode | CostComposition,
+    value: string | number | MarkupMode | CostComposition | undefined,
   ) => {
     recordUndoSnapshot()
     if (field === 'mode' && (value === 'liquid' || value === 'cost_margin')) {
@@ -1864,11 +1921,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Se estiver alterando desiredNetRevenue
         if (field === 'desiredNetRevenue') {
           const numVal = typeof value === 'number' ? value : parseBRNumber(String(value ?? 0))
-          const currentByRegime = item.desiredNetRevenueByRegime || {
-            simples: item.desiredNetRevenue || 0,
-            presumido: item.desiredNetRevenue || 0,
-            real: item.desiredNetRevenue || 0,
-          }
+          const currentByRegime = item.desiredNetRevenueByRegime || {}
           const updatedByRegime = {
             ...currentByRegime,
             [regime]: numVal,
@@ -1886,14 +1939,41 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         }
         if (field === 'desiredNetRevenueByRegime') {
-          const regimeMap = value as unknown as DesiredLiquidRevenueByRegime
+          const regimeMap = (value as unknown as DesiredLiquidRevenueByRegime) || {}
           return {
             ...item,
             desiredNetRevenueByRegime: regimeMap,
             desiredNetRevenue: regimeMap[regime] ?? item.desiredNetRevenue,
           }
         }
-        // Campos numéricos (margin, etc.)
+        // Se estiver alterando a margem de lucro % (Leitura B: por regime ativo)
+        if (field === 'margin') {
+          const numVal = typeof value === 'number' ? value : parseBRNumber(String(value ?? 0))
+          const currentByRegime = item.marginByRegime || {}
+          const updatedByRegime = {
+            ...currentByRegime,
+            [regime]: numVal,
+          }
+          setAdditionalMargin(numVal)
+          setMarginByRegimeState((prevMap) => ({
+            ...prevMap,
+            [regime]: numVal,
+          }))
+          return {
+            ...item,
+            margin: numVal,
+            marginByRegime: updatedByRegime,
+          }
+        }
+        if (field === 'marginByRegime') {
+          const regimeMap = (value as unknown as DesiredProfitMarginByRegime) || {}
+          return {
+            ...item,
+            marginByRegime: regimeMap,
+            margin: regimeMap[regime] ?? item.margin,
+          }
+        }
+        // Outros campos genéricos
         const numVal = typeof value === 'number' ? value : parseBRNumber(String(value ?? 0))
         return {
           ...item,
@@ -2073,11 +2153,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             name: 'Produto 1',
             mode: 'liquid',
             desiredNetRevenue: 0,
-            desiredNetRevenueByRegime: {
-              simples: 0,
-              presumido: 0,
-              real: 0,
-            },
+            desiredNetRevenueByRegime: {},
+            marginByRegime: {},
             cost: 0,
             margin: 0,
             quantity: 0,
@@ -2177,11 +2254,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: itemName || `Produto importado (${targetItem.id})`,
       mode: 'cost_margin',
       desiredNetRevenue: 0,
-      desiredNetRevenueByRegime: {
-        simples: 0,
-        presumido: 0,
-        real: 0,
-      },
+      desiredNetRevenueByRegime: {},
+      marginByRegime: {},
       cost: unitNetCost,
       costOrigin: 'purchases',
       margin: 0,
@@ -2302,6 +2376,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             name: itemName,
             mode: 'cost_margin',
             desiredNetRevenue: 0,
+            desiredNetRevenueByRegime: {},
+            marginByRegime: {},
             cost: unitNetCost,
             costOrigin: 'purchases',
             margin: 0,
@@ -3497,7 +3573,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRegime('presumido')
     setMarkupModeState('liquid')
     setDesiredNetRevenueState(0)
-    setDesiredLiquidRevenueByRegimeState({ simples: 0, presumido: 0, real: 0 })
+    setDesiredLiquidRevenueByRegimeState({})
+    setMarginByRegimeState({})
     setAdditionalMargin(0)
     setIcmsRateMarkup(0)
     setCustomTaxesMarkup([])
@@ -3507,6 +3584,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         name: 'Produto 1',
         mode: 'liquid',
         desiredNetRevenue: 0,
+        desiredNetRevenueByRegime: {},
+        marginByRegime: {},
         cost: 0,
         margin: 0,
         quantity: 0,
@@ -3668,9 +3747,33 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           real: rawRL,
         }
     setDesiredLiquidRevenueByRegimeState(loadedRLByRegime)
+    const rawMargin = snapshot.additionalMargin ?? 0
+    const loadedMarginByRegime: DesiredProfitMarginByRegime = snapshot.marginByRegime
+      ? {
+          simples:
+            snapshot.marginByRegime.simples !== undefined
+              ? Number(snapshot.marginByRegime.simples)
+              : undefined,
+          presumido:
+            snapshot.marginByRegime.presumido !== undefined
+              ? Number(snapshot.marginByRegime.presumido)
+              : undefined,
+          real:
+            snapshot.marginByRegime.real !== undefined
+              ? Number(snapshot.marginByRegime.real)
+              : undefined,
+        }
+      : rawMargin > 0
+        ? {
+            simples: rawMargin,
+            presumido: rawMargin,
+            real: rawMargin,
+          }
+        : {}
+    setMarginByRegimeState(loadedMarginByRegime)
     const targetRegime = snapshot.regime || 'presumido'
     setDesiredNetRevenueState(loadedRLByRegime[targetRegime] ?? rawRL)
-    setAdditionalMargin(snapshot.additionalMargin ?? 0)
+    setAdditionalMargin(loadedMarginByRegime[targetRegime] ?? rawMargin)
     setIcmsRateMarkup(snapshot.icmsRateMarkup ?? 0)
     setCustomTaxesMarkup(
       Array.isArray(snapshot.customTaxesMarkup) ? snapshot.customTaxesMarkup : [],
@@ -3732,14 +3835,36 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const safeCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
           const safeMargin =
             typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
+          const safeMarginByRegime: DesiredProfitMarginByRegime = p.marginByRegime
+            ? {
+                simples:
+                  p.marginByRegime.simples !== undefined
+                    ? Number(p.marginByRegime.simples)
+                    : undefined,
+                presumido:
+                  p.marginByRegime.presumido !== undefined
+                    ? Number(p.marginByRegime.presumido)
+                    : undefined,
+                real:
+                  p.marginByRegime.real !== undefined ? Number(p.marginByRegime.real) : undefined,
+              }
+            : safeMargin > 0
+              ? {
+                  simples: safeMargin,
+                  presumido: safeMargin,
+                  real: safeMargin,
+                }
+              : loadedMarginByRegime
+          const activeMarginVal = safeMarginByRegime[targetRegime] ?? safeMargin
 
           return {
             ...p,
             mode: prodMode,
             desiredNetRevenue: activeRegimeVal,
             desiredNetRevenueByRegime: safeByRegime,
+            marginByRegime: safeMarginByRegime,
             cost: safeCost,
-            margin: safeMargin,
+            margin: activeMarginVal,
             costComposition: p.costComposition || {
               directCosts: [],
               indirectCosts: [],
@@ -4042,6 +4167,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       markupMode,
       desiredNetRevenue,
       desiredLiquidRevenueByRegime,
+      marginByRegime,
       additionalMargin,
       icmsRateMarkup,
       customTaxesMarkup,
@@ -4117,6 +4243,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     regime,
     markupMode,
     desiredNetRevenue,
+    desiredLiquidRevenueByRegime,
+    marginByRegime,
     additionalMargin,
     icmsRateMarkup,
     customTaxesMarkup,
@@ -4308,6 +4436,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setDesiredNetRevenue,
         desiredLiquidRevenueByRegime,
         setDesiredLiquidRevenueByRegime,
+        marginByRegime,
+        setMarginByRegime,
         additionalMargin,
         setAdditionalMargin,
         icmsRateMarkup,

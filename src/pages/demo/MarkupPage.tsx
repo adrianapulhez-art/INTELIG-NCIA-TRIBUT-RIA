@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
-import { useTaxContext } from '@/contexts/TaxContext'
+import { useTaxContext, TaxRegime } from '@/contexts/TaxContext'
 import { useNavigate } from 'react-router-dom'
 import {
   Calculator,
@@ -59,11 +59,18 @@ import {
 } from '@/lib/specialOperationsCalculations'
 import { calculateLiquidDreChain } from '@/lib/liquidMarkupCalculations'
 
+const REGIME_DISPLAY_NAMES: Record<TaxRegime, string> = {
+  simples: 'Simples Nacional',
+  presumido: 'Lucro Presumido',
+  real: 'Lucro Real',
+}
+
 interface ProductBaseValueInputProps {
   productId: string
   isLiquid: boolean
-  value: number
-  hasCompositionValues?: boolean
+  value: number | undefined
+  regime: TaxRegime
+  hasCompositionValues: boolean
   onUpdate: (id: string, field: 'desiredNetRevenue' | 'cost', val: number) => void
 }
 
@@ -71,17 +78,21 @@ function ProductBaseValueInput({
   productId,
   isLiquid,
   value,
-  hasCompositionValues = false,
+  regime,
+  hasCompositionValues,
   onUpdate,
 }: ProductBaseValueInputProps) {
   const [isFocused, setIsFocused] = useState(false)
-  const [text, setText] = useState<string>(value > 0 ? formatNumberBR(value) : '')
+  const regimeLabel = REGIME_DISPLAY_NAMES[regime]
+  const hasValue = value !== undefined && value > 0
+  const [text, setText] = useState<string>(hasValue ? formatNumberBR(value) : '')
 
   useEffect(() => {
     if (!isFocused) {
-      setText(value > 0 ? formatNumberBR(value) : '')
+      const currentValid = value !== undefined && value > 0
+      setText(currentValid ? formatNumberBR(value) : '')
     }
-  }, [value, isFocused])
+  }, [value, isFocused, regime])
 
   const isReadOnlyCost = !isLiquid && hasCompositionValues
 
@@ -92,20 +103,18 @@ function ProductBaseValueInput({
           className="text-[11px] text-slate-300 font-semibold"
           title={
             isLiquid
-              ? 'Receita Líquida de Vendas (Receita Bruta − deduções − tributos sobre vendas). NÃO confundir com custo da mercadoria.'
+              ? `Receita Líquida Desejada para o regime ${regimeLabel}. Alimentação 100% manual por regime.`
               : 'Custo unitário base do produto'
           }
         >
-          {isLiquid ? 'Receita líquida desejada (RL Vendas)' : 'Custo do produto'}
+          {isLiquid ? `Receita Líquida Desejada — ${regimeLabel} (R$)` : 'Custo do produto'}
         </label>
         {isReadOnlyCost && (
           <span className="text-[10px] font-mono text-emerald-400 font-medium">
             · via composição de custo
           </span>
         )}
-        {isLiquid && (
-          <span className="text-[10px] font-mono text-emerald-400/80">Âncora da DRE</span>
-        )}
+        {isLiquid && <span className="text-[10px] font-mono text-emerald-400/80">Manual</span>}
       </div>
       <div className="relative">
         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
@@ -113,7 +122,7 @@ function ProductBaseValueInput({
         </span>
         <Input
           type="text"
-          placeholder="0,00"
+          placeholder="informe manualmente"
           value={text}
           readOnly={isReadOnlyCost}
           onFocus={() => {
@@ -147,7 +156,8 @@ function ProductBaseValueInput({
 interface ProductMarginInputProps {
   productId: string
   isLiquid: boolean
-  margin: number
+  margin: number | undefined
+  regime: TaxRegime
   derivedMarginPct?: number
   onUpdate: (id: string, margin: number) => void
 }
@@ -156,27 +166,33 @@ function ProductMarginInput({
   productId,
   isLiquid,
   margin,
+  regime,
   derivedMarginPct = 0,
   onUpdate,
 }: ProductMarginInputProps) {
   const [isFocused, setIsFocused] = useState(false)
-  const [text, setText] = useState<string>(margin > 0 ? formatNumberBR(margin) : '')
+  const regimeLabel = REGIME_DISPLAY_NAMES[regime]
+  const hasValue = margin !== undefined && margin > 0
+  const [text, setText] = useState<string>(hasValue ? formatNumberBR(margin) : '')
 
   useEffect(() => {
     if (!isFocused) {
       if (isLiquid) {
         setText(formatNumberBR(derivedMarginPct))
       } else {
-        setText(margin > 0 ? formatNumberBR(margin) : '')
+        const currentValid = margin !== undefined && margin > 0
+        setText(currentValid ? formatNumberBR(margin) : '')
       }
     }
-  }, [margin, isFocused, isLiquid, derivedMarginPct])
+  }, [margin, isFocused, isLiquid, derivedMarginPct, regime])
 
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-1 flex-wrap">
         <label className="text-[11px] text-slate-300 font-semibold flex items-center gap-1">
-          <span>Margem de lucro (%)</span>
+          <span>
+            {isLiquid ? 'Margem de lucro (%)' : `Margem de Lucro Desejada — ${regimeLabel} (%)`}
+          </span>
         </label>
         {isLiquid && (
           <Badge
@@ -191,7 +207,7 @@ function ProductMarginInput({
       <div className="relative">
         <Input
           type="text"
-          placeholder="0,00"
+          placeholder={isLiquid ? '0,00' : 'informe manualmente'}
           value={isLiquid ? formatNumberBR(derivedMarginPct) : text}
           disabled={isLiquid}
           readOnly={isLiquid}
@@ -221,7 +237,7 @@ function ProductMarginInput({
           title={
             isLiquid
               ? 'Margem derivada: calculada a partir do custo da mercadoria e da receita líquida informada'
-              : undefined
+              : `Margem informada manualmente para o regime ${regimeLabel}`
           }
         />
         <span
@@ -242,7 +258,6 @@ function ProductMarginInput({
     </div>
   )
 }
-
 interface VariableExpenseRowProps {
   dv: { id: string; name: string; rate: number }
   onUpdate: (id: string, field: 'name' | 'rate', value: string | number) => void
@@ -360,6 +375,9 @@ export default function MarkupPage() {
   const [showAddDvForm, setShowAddDvForm] = useState(false)
   const [newDvName, setNewDvName] = useState('')
   const [newDvRate, setNewDvRate] = useState('')
+
+  // Mensagem de bloqueio/validação da simulação manual (Leitura B)
+  const [simulationValidationError, setSimulationValidationError] = useState<string | null>(null)
 
   // Preço praticado manual para o painel "Minha precificação está correta?" (por produto selecionado ou geral)
   const [practicedPrices, setPracticedPrices] = useState<Record<string, number>>({})
@@ -1695,10 +1713,18 @@ export default function MarkupPage() {
                         return (
                           <div className="space-y-1">
                             <ProductBaseValueInput
-                              key={`base-${prod.id}-${prod.mode}`}
+                              key={`base-${prod.id}-${prod.mode}-${regime}`}
                               productId={prod.id}
                               isLiquid={isProdLiquid}
-                              value={isProdLiquid ? prod.desiredNetRevenue : prod.cost}
+                              value={
+                                isProdLiquid
+                                  ? (prod.desiredNetRevenueByRegime?.[regime] ??
+                                    (prod.desiredNetRevenueByRegime
+                                      ? undefined
+                                      : prod.desiredNetRevenue))
+                                  : prod.cost
+                              }
+                              regime={regime}
                               hasCompositionValues={hasCompValues}
                               onUpdate={(id, field, val) => {
                                 if (field === 'cost') {
@@ -1751,10 +1777,14 @@ export default function MarkupPage() {
                       })()}
                       {/* Campo 2: Margem de Lucro (%) */}
                       <ProductMarginInput
-                        key={`margin-${prod.id}`}
+                        key={`margin-${prod.id}-${regime}`}
                         productId={prod.id}
                         isLiquid={isProdLiquid}
-                        margin={prod.margin}
+                        margin={
+                          prod.marginByRegime?.[regime] ??
+                          (prod.marginByRegime ? undefined : prod.margin)
+                        }
+                        regime={regime}
                         derivedMarginPct={liquidChain?.derivedMarginPct || 0}
                         onUpdate={(id, val) => updateMarkupProduct(id, 'margin', val)}
                       />
@@ -2239,11 +2269,57 @@ export default function MarkupPage() {
             </Dialog>
           </div>
 
+          {/* Validação de Alimentação Manual por Regime (Leitura B) */}
+          {simulationValidationError && (
+            <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs font-mono flex items-center justify-between gap-3 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span className="font-semibold">{simulationValidationError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSimulationValidationError(null)}
+                className="text-rose-300 hover:text-white text-xs underline cursor-pointer"
+              >
+                Dispensar
+              </button>
+            </div>
+          )}
+
           {/* Botão Simular à Direita na Base */}
           <div className="pt-2 flex justify-end">
             <Button
               type="button"
-              onClick={simulateMarkup}
+              onClick={() => {
+                const regimeLabel = REGIME_DISPLAY_NAMES[regime]
+                // Validação Leitura B: verificar se para o regime ativo os produtos têm a entrada manual preenchida
+                for (let i = 0; i < markupProducts.length; i++) {
+                  const p = markupProducts[i]
+                  const pName = p.name?.trim() || `Produto ${i + 1}`
+                  if (p.mode === 'liquid') {
+                    const rl =
+                      p.desiredNetRevenueByRegime?.[regime] ??
+                      (p.desiredNetRevenueByRegime ? undefined : p.desiredNetRevenue)
+                    if (rl === undefined || rl <= 0) {
+                      setSimulationValidationError(
+                        `Informe manualmente a receita para o regime ${regimeLabel} antes de simular (${pName}).`,
+                      )
+                      return
+                    }
+                  } else {
+                    const mg =
+                      p.marginByRegime?.[regime] ?? (p.marginByRegime ? undefined : p.margin)
+                    if (mg === undefined || mg <= 0) {
+                      setSimulationValidationError(
+                        `Informe manualmente a margem para o regime ${regimeLabel} antes de simular (${pName}).`,
+                      )
+                      return
+                    }
+                  }
+                }
+                setSimulationValidationError(null)
+                simulateMarkup()
+              }}
               className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 cursor-pointer transition-transform active:scale-95"
             >
               <Calculator className="w-4 h-4" />

@@ -122,6 +122,26 @@ export function sanitizeSnapshotForPersistence(raw: TaxStateSnapshot | unknown):
         real: rawRL,
       }
 
+  const marginByRegime = snap.marginByRegime
+    ? {
+        simples:
+          snap.marginByRegime.simples !== undefined
+            ? Number(snap.marginByRegime.simples)
+            : undefined,
+        presumido:
+          snap.marginByRegime.presumido !== undefined
+            ? Number(snap.marginByRegime.presumido)
+            : undefined,
+        real: snap.marginByRegime.real !== undefined ? Number(snap.marginByRegime.real) : undefined,
+      }
+    : snap.additionalMargin !== undefined && snap.additionalMargin > 0
+      ? {
+          simples: snap.additionalMargin,
+          presumido: snap.additionalMargin,
+          real: snap.additionalMargin,
+        }
+      : {}
+
   let markupProducts = snap.markupProducts
   if (Array.isArray(markupProducts)) {
     markupProducts = markupProducts.map((p) => {
@@ -145,30 +165,56 @@ export function sanitizeSnapshotForPersistence(raw: TaxStateSnapshot | unknown):
 
       const desiredNetRevenueByRegime = p.desiredNetRevenueByRegime
         ? {
-            simples: Number(p.desiredNetRevenueByRegime.simples) || 0,
-            presumido: Number(p.desiredNetRevenueByRegime.presumido) || 0,
-            real: Number(p.desiredNetRevenueByRegime.real) || 0,
+            simples:
+              p.desiredNetRevenueByRegime.simples !== undefined
+                ? Number(p.desiredNetRevenueByRegime.simples)
+                : undefined,
+            presumido:
+              p.desiredNetRevenueByRegime.presumido !== undefined
+                ? Number(p.desiredNetRevenueByRegime.presumido)
+                : undefined,
+            real:
+              p.desiredNetRevenueByRegime.real !== undefined
+                ? Number(p.desiredNetRevenueByRegime.real)
+                : undefined,
           }
-        : snap.desiredLiquidRevenueByRegime
+        : desiredNetRevenue > 0
           ? {
-              simples: Number(snap.desiredLiquidRevenueByRegime.simples) || 0,
-              presumido: Number(snap.desiredLiquidRevenueByRegime.presumido) || 0,
-              real: Number(snap.desiredLiquidRevenueByRegime.real) || 0,
-            }
-          : {
               simples: desiredNetRevenue,
               presumido: desiredNetRevenue,
               real: desiredNetRevenue,
             }
+          : {}
+
+      const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
+      const pMarginByRegime = p.marginByRegime
+        ? {
+            simples:
+              p.marginByRegime.simples !== undefined ? Number(p.marginByRegime.simples) : undefined,
+            presumido:
+              p.marginByRegime.presumido !== undefined
+                ? Number(p.marginByRegime.presumido)
+                : undefined,
+            real: p.marginByRegime.real !== undefined ? Number(p.marginByRegime.real) : undefined,
+          }
+        : rawMargin > 0
+          ? {
+              simples: rawMargin,
+              presumido: rawMargin,
+              real: rawMargin,
+            }
+          : marginByRegime
+
       return {
         ...p,
         mode,
         desiredNetRevenue,
         desiredNetRevenueByRegime,
+        marginByRegime: pMarginByRegime,
         cost,
         costOrigin: p.costOrigin || (p.purchaseItemId ? 'purchases' : 'manual'),
         manualCostOverride: p.manualCostOverride,
-        margin: typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0,
+        margin: rawMargin,
       }
     })
   }
@@ -176,6 +222,7 @@ export function sanitizeSnapshotForPersistence(raw: TaxStateSnapshot | unknown):
   return {
     ...snap,
     desiredLiquidRevenueByRegime,
+    marginByRegime,
     markupProducts,
   } as TaxStateSnapshot
 }

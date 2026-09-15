@@ -110,9 +110,17 @@ export function MarkupCalculationMemoryModal({
   // Motor da Cadeia da DRE Líquida (Item 5 do escopo)
   const customTaxesSum = customTaxesMarkup.reduce((acc, t) => acc + (t.rate || 0), 0)
   const effectiveCostForLiquidChain = resolveRegimeUnitCost(currentRegime)
+
+  const desiredNetRevenueSimples =
+    product.desiredNetRevenueByRegime?.simples ?? (product.desiredNetRevenue || 0)
+  const desiredNetRevenuePresumido =
+    product.desiredNetRevenueByRegime?.presumido ?? (product.desiredNetRevenue || 0)
+  const desiredNetRevenueReal =
+    product.desiredNetRevenueByRegime?.real ?? (product.desiredNetRevenue || 0)
+
   const liquidChainSimples = isLiquid
     ? calculateLiquidDreChain({
-        desiredNetRevenue: product.desiredNetRevenue || 0,
+        desiredNetRevenue: desiredNetRevenueSimples,
         regime: 'simples',
         effectiveSimplesRate: calculatePgdas(
           (simplesAnexo as SimplesAnexoId) || 'anexo_1',
@@ -129,7 +137,7 @@ export function MarkupCalculationMemoryModal({
 
   const liquidChainPresumido = isLiquid
     ? calculateLiquidDreChain({
-        desiredNetRevenue: product.desiredNetRevenue || 0,
+        desiredNetRevenue: desiredNetRevenuePresumido,
         regime: 'presumido',
         effectiveSimplesRate: 0,
         icmsRate: icmsRateMarkup || 0,
@@ -143,7 +151,7 @@ export function MarkupCalculationMemoryModal({
 
   const liquidChainReal = isLiquid
     ? calculateLiquidDreChain({
-        desiredNetRevenue: product.desiredNetRevenue || 0,
+        desiredNetRevenue: desiredNetRevenueReal,
         regime: 'real',
         effectiveSimplesRate: 0,
         icmsRate: icmsRateMarkup || 0,
@@ -164,14 +172,18 @@ export function MarkupCalculationMemoryModal({
         : liquidChainReal
   const baseCost =
     typeof product.cost === 'number' && Number.isFinite(product.cost) ? product.cost : 0
-  const desiredNetRevenue =
-    typeof product.desiredNetRevenue === 'number' && Number.isFinite(product.desiredNetRevenue)
+  const activeDesiredNetRev =
+    product.desiredNetRevenueByRegime?.[currentRegime] ??
+    (typeof product.desiredNetRevenue === 'number' && Number.isFinite(product.desiredNetRevenue)
       ? product.desiredNetRevenue
-      : 0
+      : 0)
+  const desiredNetRevenue = activeDesiredNetRev
   const baseValue = isLiquid ? desiredNetRevenue : baseCost
 
-  const marginPct =
-    typeof product.margin === 'number' && Number.isFinite(product.margin) ? product.margin : 0
+  const activeMarginByRegime =
+    product.marginByRegime?.[currentRegime] ??
+    (typeof product.margin === 'number' && Number.isFinite(product.margin) ? product.margin : 0)
+  const marginPct = activeMarginByRegime
   const marginDecimal = marginPct / 100
   const marginFactor = 1 - marginDecimal
 
