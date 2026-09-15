@@ -13,6 +13,8 @@ import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
 import { Badge } from '@/components/ui/badge'
+import { RegimeSideBySideDreTables } from '@/components/demo/RegimeSideBySideDreTables'
+import { computeDreComparativeForRegime } from '@/components/demo/DreRegimeComparativeSection'
 
 export default function DrePresumidoPage() {
   const navigate = useNavigate()
@@ -53,6 +55,10 @@ export default function DrePresumidoPage() {
     stSubsystem,
     interstateSubsystem,
     purchasesItems,
+    getPurchaseItemUnitNetCost,
+    customTaxesMarkup,
+    totalVariableExpenseRate,
+    desiredLiquidRevenueByRegime,
   } = useTaxContext()
 
   const { totalPurchasesQuantity } = useTaxContext()
@@ -313,6 +319,51 @@ export default function DrePresumidoPage() {
         payrollResult.patronalChargesTotal
       : 0
   const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
+
+  // Motor Canônico Comparativo Unificado para Regime Presumido (2 DREs lado a lado)
+  const presumidoDreData = React.useMemo(() => {
+    return computeDreComparativeForRegime({
+      regimeKey: 'presumido',
+      markupProducts,
+      purchasesItems,
+      getPurchaseItemUnitNetCost,
+      icmsRate: icmsRateMarkup || 0,
+      customTaxesMarkup: customTaxesMarkup || [],
+      dvRate: totalVariableExpenseRate || 0,
+      simplesEffectiveRate: 0,
+      desiredLiquidRevenueByRegime,
+      calculatedPurchases,
+      totalGlobalOperatingExpenses: totalOperatingExpenses,
+      totalGlobalOperatingRevenues: totalOperatingRevenues,
+      directPayrollExpenses: payrollSalaries + payrollProLabore,
+      patronalCharges: payrollResult.patronalChargesTotal,
+      presumidoActivity,
+      realActivity: 'comercio',
+      presumidoIssRate,
+      realIssRate: 0,
+      realAdditions: 0,
+      realExclusions: 0,
+      regimeQuantity: qty,
+    })
+  }, [
+    markupProducts,
+    purchasesItems,
+    getPurchaseItemUnitNetCost,
+    icmsRateMarkup,
+    customTaxesMarkup,
+    totalVariableExpenseRate,
+    desiredLiquidRevenueByRegime,
+    calculatedPurchases,
+    totalOperatingExpenses,
+    totalOperatingRevenues,
+    payrollSalaries,
+    payrollProLabore,
+    payrollResult.patronalChargesTotal,
+    presumidoActivity,
+    presumidoIssRate,
+    qty,
+  ])
+
   return (
     <DemoLayout currentTab="dre-presumido">
       <div className="space-y-6 max-w-5xl mx-auto">
@@ -704,409 +755,14 @@ export default function DrePresumidoPage() {
         {/* Quadro Demonstração do Resultado — condicionado à simulação */}
         {isPresumidoSimulated ? (
           <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                Demonstração do Resultado
-              </h3>
-              <span className="text-xs font-mono text-emerald-400">
-                Lucro Presumido ({presumidoActivity.toUpperCase()})
-              </span>
-            </div>
-
-            {/* Tabela da DRE com colunas Unitário e Total */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs font-mono">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 text-right">
-                    <th className="py-2.5 text-left font-semibold text-slate-300">Descrição</th>
-                    <th className="py-2.5 px-3 font-semibold text-slate-300 w-36 sm:w-44">
-                      Unitário
-                    </th>
-                    <th className="py-2.5 px-3 font-semibold text-slate-300 w-36 sm:w-44">
-                      Total ({qty} un.)
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {/* 1. Receita bruta */}
-                  <tr>
-                    <td className="py-2 text-left font-medium text-slate-200">
-                      {isServices ? 'Receita bruta de serviços' : 'Receita bruta de vendas'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-200">
-                      {displayUnitGross !== null ? formatBRL(displayUnitGross) : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-200">{formatBRL(totalGross)}</td>
-                  </tr>
-
-                  {/* 2. (-) ICMS ou (-) ISSQN */}
-                  <tr>
-                    <td className="py-2 text-left text-slate-400">
-                      {isServices
-                        ? '(−) ISSQN'
-                        : interstateSubsystem.enabled &&
-                            interstateSubsystem.originUf !== interstateSubsystem.destinationUf
-                          ? `(−) ICMS (${interstateSubsystem.originUf} → ${interstateSubsystem.destinationUf})`
-                          : '(−) ICMS'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      {displayUnitMunicipalStateTax !== null
-                        ? `-${formatBRL(displayUnitMunicipalStateTax)}`
-                        : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(totalMunicipalStateTax)}
-                    </td>
-                  </tr>
-
-                  {/* Linhas de Subsistemas Especiais quando ativos */}
-                  {interstateSubsystem.enabled &&
-                    interstateSubsystem.originUf !== interstateSubsystem.destinationUf &&
-                    interstateSubsystem.isEndConsumer &&
-                    !interstateSubsystem.isTaxpayer && (
-                      <tr className="text-blue-400/90 bg-blue-500/[0.04]">
-                        <td className="py-2 text-left">
-                          (−) DIFAL destino (EC 87/15 · {interstateSubsystem.destinationUf})
-                        </td>
-                        <td className="py-2 px-3 text-right">
-                          {displayUnitDifal !== null ? `-${formatBRL(displayUnitDifal)}` : '—'}
-                        </td>
-                        <td className="py-2 px-3 text-right">
-                          -
-                          {formatBRL(
-                            (totalGross *
-                              Math.max(
-                                0,
-                                18 -
-                                  (interstateSubsystem.originUf === 'SP' &&
-                                  ['RJ', 'MG', 'RS', 'SC', 'PR'].includes(
-                                    interstateSubsystem.destinationUf,
-                                  )
-                                    ? 12
-                                    : 7),
-                              )) /
-                              100,
-                          )}
-                        </td>
-                      </tr>
-                    )}
-
-                  {stSubsystem.enabled && stSubsystem.isSaleSubstituto && (
-                    <tr className="text-amber-400/90 bg-amber-500/[0.04]">
-                      <td className="py-2 text-left">
-                        (+) ICMS-ST retido na venda (recolhido em favor do destino)
-                      </td>
-                      <td className="py-2 px-3 text-right">
-                        {displayUnitSt !== null ? formatBRL(displayUnitSt) : '—'}
-                      </td>
-                      <td className="py-2 px-3 text-right">
-                        {formatBRL(
-                          Math.max(
-                            0,
-                            totalGross * (1 + (stSubsystem.mvaPercent || 0) / 100) * 0.18 -
-                              totalGross * 0.12,
-                          ),
-                        )}
-                      </td>
-                    </tr>
-                  )}
-
-                  {/* 3. Base PIS/COFINS [cinza informativa] */}
-                  <tr className="bg-slate-900/30 text-slate-500">
-                    <td className="py-2 text-left italic">
-                      {isServices
-                        ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
-                        : 'Base PIS/COFINS (tese do século · exclui ICMS)'}
-                    </td>
-                    <td className="py-2 px-3 text-right">
-                      {displayUnitPisCofinsBase !== null
-                        ? formatBRL(displayUnitPisCofinsBase)
-                        : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-right">{formatBRL(totalPisCofinsBase)}</td>
-                  </tr>
-
-                  {/* 4. (-) PIS */}
-                  <tr>
-                    <td className="py-2 text-left text-slate-400">(−) PIS</td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      {displayUnitPis !== null ? `-${formatBRL(displayUnitPis)}` : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalPis)}</td>
-                  </tr>
-
-                  {/* 5. (-) COFINS */}
-                  <tr>
-                    <td className="py-2 text-left text-slate-400">(−) COFINS</td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      {displayUnitCofins !== null ? `-${formatBRL(displayUnitCofins)}` : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(totalCofins)}
-                    </td>
-                  </tr>
-
-                  {/* 6. = Receita líquida */}
-                  <tr className="bg-slate-950/40 font-bold text-slate-100">
-                    <td className="py-2.5 text-left">= Receita líquida</td>
-                    <td className="py-2.5 px-3 text-right text-slate-100">
-                      {displayUnitNetRevenue !== null ? formatBRL(displayUnitNetRevenue) : '—'}
-                    </td>
-                    <td className="py-2.5 px-3 text-right text-slate-100">
-                      {formatBRL(totalNetRevenue)}
-                    </td>
-                  </tr>
-
-                  {/* 7. (-) CMV */}
-                  <tr>
-                    <td className="py-2 text-left text-slate-400">
-                      <div className="flex items-center gap-2">
-                        <span>(−) CMV</span>
-                        {isAutoInventory && (
-                          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded">
-                            · automático (baixa por quantidade)
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      {displayUnitCmv !== null ? `-${formatBRL(displayUnitCmv)}` : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
-                  </tr>
-
-                  {/* Linha expansível com a discriminação específica do CMV */}
-                  <tr>
-                    <td colSpan={3} className="py-1 px-1">
-                      <CmvDetailedBreakdown
-                        forcedRegime="presumido"
-                        quantitySold={qty}
-                        title="Ver composição e deduções do CMV (Lucro Presumido)"
-                        variant="embedded"
-                      />
-                    </td>
-                  </tr>
-
-                  {/* 8. = Lucro bruto */}
-                  <tr className="bg-slate-950/40 font-bold text-slate-100">
-                    <td className="py-2.5 text-left">= Lucro bruto</td>
-                    <td className="py-2.5 px-3 text-right text-slate-100">
-                      {displayUnitGrossProfit !== null ? formatBRL(displayUnitGrossProfit) : '—'}
-                    </td>
-                    <td className="py-2.5 px-3 text-right text-slate-100">
-                      {formatBRL(totalGrossProfit)}
-                    </td>
-                  </tr>
-
-                  {/* 9. Despesas Operacionais (Tabela Central de Despesas Operacionais) */}
-                  {totalOperatingExpenses > 0 && (
-                    <tr className="text-rose-300/90 bg-rose-500/[0.03]">
-                      <td className="py-2 text-left">
-                        (−) Despesas operacionais (vendas, adm, financeiras)
-                      </td>
-                      <td className="py-2 px-3 text-right">
-                        {displayUnitOperatingExpenses !== null
-                          ? `-${formatBRL(displayUnitOperatingExpenses)}`
-                          : '—'}
-                      </td>
-                      <td className="py-2 px-3 text-right">-{formatBRL(totalOperatingExpenses)}</td>
-                    </tr>
-                  )}
-
-                  {/* 9b. Linhas de Folha e Encargos */}
-                  {payrollSalaries > 0 && (
-                    <tr>
-                      <td className="py-2 text-left text-slate-400">(−) Folha de salários</td>
-                      <td className="py-2 px-3 text-right text-slate-400">
-                        {displayUnitPayrollSalaries !== null
-                          ? `-${formatBRL(displayUnitPayrollSalaries)}`
-                          : '—'}
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-400">
-                        -{formatBRL(payrollSalaries)}
-                      </td>
-                    </tr>
-                  )}
-
-                  {payrollProLabore > 0 && (
-                    <tr>
-                      <td className="py-2 text-left text-slate-400">(−) Pró-labore dos sócios</td>
-                      <td className="py-2 px-3 text-right text-slate-400">
-                        {displayUnitPayrollProLabore !== null
-                          ? `-${formatBRL(displayUnitPayrollProLabore)}`
-                          : '—'}
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-400">
-                        -{formatBRL(payrollProLabore)}
-                      </td>
-                    </tr>
-                  )}
-
-                  {payrollResult.patronalChargesTotal > 0 && (
-                    <tr>
-                      <td className="py-2 text-left text-slate-400">
-                        (−) Encargos patronais (INSS {formatNumberBR(payrollInssRate)}% + RAT +
-                        Terceiros)
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-400">
-                        {displayUnitPatronalCharges !== null
-                          ? `-${formatBRL(displayUnitPatronalCharges)}`
-                          : '—'}
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-400">
-                        -{formatBRL(payrollResult.patronalChargesTotal)}
-                      </td>
-                    </tr>
-                  )}
-
-                  {/* 9c. (-) Outras Despesas operacionais locais */}
-                  {totalOtherExpenses > 0 && (
-                    <tr>
-                      <td className="py-2 text-left text-slate-400">
-                        (−) Outras despesas operacionais (locais)
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-400">
-                        {displayUnitOtherExpenses !== null
-                          ? `-${formatBRL(displayUnitOtherExpenses)}`
-                          : '—'}
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-400">
-                        -{formatBRL(totalOtherExpenses)}
-                      </td>
-                    </tr>
-                  )}
-
-                  {/* Total de Despesas Operacionais se vazio em detalhes */}
-                  {totalAllOperatingExpenses === 0 && (
-                    <tr>
-                      <td className="py-2 text-left text-slate-500 italic">
-                        (−) Despesas operacionais
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-500">
-                        {isMultiProduct ? '—' : 'R$ 0,00'}
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-500">R$ 0,00</td>
-                    </tr>
-                  )}
-
-                  {/* 10. (+) Receitas operacionais */}
-                  <tr
-                    className={
-                      totalAllOperatingRevenues > 0
-                        ? 'text-emerald-300/90 bg-emerald-500/[0.03]'
-                        : ''
-                    }
-                  >
-                    <td className="py-2 text-left text-slate-400">
-                      (+) Receitas operacionais (financeiras e outras)
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      {displayUnitOperatingRevenues !== null
-                        ? `+${formatBRL(displayUnitOperatingRevenues)}`
-                        : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      +{formatBRL(totalAllOperatingRevenues)}
-                    </td>
-                  </tr>
-
-                  {/* 11. = Lucro antes do imposto de renda (LAIR) */}
-                  <tr className="bg-slate-950/40 font-bold text-slate-100">
-                    <td className="py-2.5 text-left">= Lucro antes do imposto de renda (LAIR)</td>
-                    <td className="py-2.5 px-3 text-right text-slate-100">
-                      {displayUnitResultBeforeTax !== null
-                        ? formatBRL(displayUnitResultBeforeTax)
-                        : '—'}
-                    </td>
-                    <td className="py-2.5 px-3 text-right text-slate-100">
-                      {formatBRL(totalResultBeforeTax)}
-                    </td>
-                  </tr>
-
-                  {/* 11. Base presumida IRPJ [cinza, só coluna Total] */}
-                  <tr className="bg-slate-900/30 text-slate-500">
-                    <td className="py-2 text-left italic">
-                      Base presumida IRPJ ({formatNumberBR(irpjPresumptionRate)}%)
-                    </td>
-                    <td className="py-2 px-3 text-right">—</td>
-                    <td className="py-2 px-3 text-right">{formatBRL(totalIrpjBase)}</td>
-                  </tr>
-
-                  {/* 12. (-) IRPJ */}
-                  <tr>
-                    <td className="py-2 text-left text-slate-400">(−) IRPJ</td>
-                    <td className="py-2 px-3 text-right text-slate-400">—</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalIrpj)}</td>
-                  </tr>
-
-                  {/* 13. (-) Adicional de IRPJ */}
-                  <tr>
-                    <td className="py-2 text-left text-slate-400">(−) Adicional de IRPJ</td>
-                    <td className="py-2 px-3 text-right text-slate-400">—</td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      -{formatBRL(totalIrpjAdditional)}
-                    </td>
-                  </tr>
-
-                  {/* 14. Base presumida CSLL [cinza] */}
-                  <tr className="bg-slate-900/30 text-slate-500">
-                    <td className="py-2 text-left italic">
-                      Base presumida CSLL ({formatNumberBR(csllPresumptionRate)}%)
-                    </td>
-                    <td className="py-2 px-3 text-right">—</td>
-                    <td className="py-2 px-3 text-right">{formatBRL(totalCsllBase)}</td>
-                  </tr>
-
-                  {/* 15. (-) CSLL */}
-                  <tr>
-                    <td className="py-2 text-left text-slate-400">(−) CSLL</td>
-                    <td className="py-2 px-3 text-right text-slate-400">—</td>
-                    <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCsll)}</td>
-                  </tr>
-
-                  {/* 16. = Lucro líquido [fundo verde escuro, valores verde brilhante] */}
-                  <tr className="bg-emerald-950/40 text-emerald-400 font-extrabold border-t-2 border-emerald-500/40">
-                    <td className="py-3 px-2 text-left text-sm">= Lucro líquido</td>
-                    <td className="py-3 px-3 text-right text-sm text-emerald-400">
-                      {unitNetProfit !== null ? formatBRL(unitNetProfit) : '—'}
-                    </td>
-                    <td className="py-3 px-3 text-right text-sm text-emerald-400">
-                      {formatBRL(totalNetProfit)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* Cards de Resumo (3 lado a lado) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
-              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-                <span className="text-[11px] text-slate-400 font-mono block mb-1">
-                  Carga tributária total
-                </span>
-                <span className="text-xl font-bold font-mono text-slate-200">
-                  {formatBRL(totalTaxBurden)}
-                </span>
-              </div>
-
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                <span className="text-[11px] text-emerald-400 font-mono block mb-1 font-semibold">
-                  Lucro líquido
-                </span>
-                <span className="text-xl font-bold font-mono text-emerald-400">
-                  {formatBRL(totalNetProfit)}
-                </span>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-                <span className="text-[11px] text-slate-400 font-mono block mb-1">
-                  Margem líquida
-                </span>
-                <span className="text-xl font-bold font-mono text-slate-200">
-                  {formatPercentBR(netMargin)}
-                </span>
-              </div>
-            </div>
+            {/* DUAS DREs LADO A LADO: Custo + Margem e Preço Líquido Desejado */}
+            <RegimeSideBySideDreTables
+              regimeKey="presumido"
+              data={presumidoDreData}
+              activityName={presumidoActivity.toUpperCase()}
+              irpjPresumptionRate={irpjPresumptionRate}
+              csllPresumptionRate={csllPresumptionRate}
+            />
 
             {/* Botões de Exportação (PDF e Excel) */}
             <ExportReportButtons

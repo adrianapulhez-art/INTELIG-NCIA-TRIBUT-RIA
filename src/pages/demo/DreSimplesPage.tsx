@@ -31,6 +31,8 @@ import { exportDreToPdf, exportDreToExcel } from '@/lib/exportReports'
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
 import { Badge } from '@/components/ui/badge'
+import { RegimeSideBySideDreTables } from '@/components/demo/RegimeSideBySideDreTables'
+import { computeDreComparativeForRegime } from '@/components/demo/DreRegimeComparativeSection'
 
 export default function DreSimplesPage() {
   const navigate = useNavigate()
@@ -69,6 +71,10 @@ export default function DreSimplesPage() {
     stSubsystem,
     interstateSubsystem,
     purchasesItems,
+    getPurchaseItemUnitNetCost,
+    customTaxesMarkup,
+    totalVariableExpenseRate,
+    desiredLiquidRevenueByRegime,
   } = useTaxContext()
 
   // Rastreamento local de quais meses foram preenchidos via Markup
@@ -299,6 +305,45 @@ export default function DreSimplesPage() {
   // Cards de Resumo
   const totalTaxBurden = totalGross > 0 ? totalDasTotal : 0
   const netMargin = totalGross > 0 ? (totalNetProfit / totalGross) * 100 : 0
+
+  // Motor Canônico Comparativo Unificado para Regime Simples Nacional (2 DREs lado a lado)
+  const simplesDreData = React.useMemo(() => {
+    return computeDreComparativeForRegime({
+      regimeKey: 'simples',
+      markupProducts,
+      purchasesItems,
+      getPurchaseItemUnitNetCost,
+      icmsRate: 0,
+      customTaxesMarkup: customTaxesMarkup || [],
+      dvRate: totalVariableExpenseRate || 0,
+      simplesEffectiveRate: pgdas.aliquotaEfetiva || 0,
+      desiredLiquidRevenueByRegime,
+      calculatedPurchases,
+      totalGlobalOperatingExpenses: totalOperatingExpenses,
+      totalGlobalOperatingRevenues: totalOperatingRevenues,
+      directPayrollExpenses: 0,
+      patronalCharges: 0, // inclusa no DAS
+      presumidoActivity: 'comercio',
+      realActivity: 'comercio',
+      presumidoIssRate: 0,
+      realIssRate: 0,
+      realAdditions: 0,
+      realExclusions: 0,
+      regimeQuantity: qty,
+    })
+  }, [
+    markupProducts,
+    purchasesItems,
+    getPurchaseItemUnitNetCost,
+    customTaxesMarkup,
+    totalVariableExpenseRate,
+    pgdas.aliquotaEfetiva,
+    desiredLiquidRevenueByRegime,
+    calculatedPurchases,
+    totalOperatingExpenses,
+    totalOperatingRevenues,
+    qty,
+  ])
 
   const handleRbt12Blur = (e: React.FocusEvent<HTMLInputElement>) => {
     const parsed = parseBRNumber(e.target.value)
@@ -1078,336 +1123,90 @@ export default function DreSimplesPage() {
         {/* Quadro Demonstração do Resultado — Simples Nacional (condicionado à simulação) */}
         {isSimplesSimulated ? (
           <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                  Demonstração do Resultado (DRE)
-                </h3>
-                <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                  Simples Nacional
+            {/* DUAS DREs LADO A LADO: Custo + Margem e Preço Líquido Desejado */}
+            <RegimeSideBySideDreTables
+              regimeKey="simples"
+              data={simplesDreData}
+              pgdasDescription={`${currentAnexoConfig.nome} · Alíquota Efetiva ${formatPercentBR(effectiveRate)}`}
+            />
+
+            {/* Repartição da Guia Única DAS (Detalhamento dos tributos conforme PGDAS) */}
+            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5 text-emerald-400" />
+                  Repartição da Guia Única (DAS) · {currentAnexoConfig.nome} (Alíquota Efetiva:{' '}
+                  {formatPercentBR(effectiveRate)})
+                </span>
+                <span className="text-[11px] font-mono text-emerald-400">
+                  Total DAS: {formatBRL(totalDasTotal)}
                 </span>
               </div>
-              <span className="text-xs font-mono text-slate-400">
-                {currentAnexoConfig.nome} · {pgdas.faixaNome}
-              </span>
-            </div>
-
-            {/* Tabela da DRE com colunas Unitário e Total */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs font-mono">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 text-right">
-                    <th className="py-2.5 text-left font-semibold text-slate-300">Descrição</th>
-                    <th className="py-2.5 px-3 font-semibold text-slate-300 w-36 sm:w-44">
-                      Unitário
-                    </th>
-                    <th className="py-2.5 px-3 font-semibold text-slate-300 w-36 sm:w-44">
-                      Total ({qty} un.)
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {/* 1. Receita bruta de vendas / serviços */}
-                  <tr>
-                    <td className="py-2 text-left font-medium text-slate-200">
-                      {currentAnexoConfig.tipoAtividade === 'servicos'
-                        ? 'Receita bruta de serviços'
-                        : 'Receita bruta de vendas'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-200">
-                      {displayUnitGross !== null ? formatBRL(displayUnitGross) : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-200">{formatBRL(totalGross)}</td>
-                  </tr>
-
-                  {/* 2. (-) Guia Única DAS (Alíquota efetiva PGDAS) */}
-                  <tr className="bg-slate-950/30">
-                    <td className="py-2 text-left font-semibold text-emerald-400">
-                      {stSubsystem.enabled && stSubsystem.simplesStExclusive
-                        ? `(−) Simples Nacional — Guia DAS (Segregação ST / LC 123 art. 18)`
-                        : `(−) Simples Nacional — Guia Única DAS (${formatNumberBR(pgdas.aliquotaEfetiva, 2)}% efetivo)`}
-                    </td>
-                    <td className="py-2 px-3 text-right font-semibold text-emerald-400">
-                      {displayUnitDasTotal !== null
-                        ? `-${formatBRL(
-                            stSubsystem.enabled && stSubsystem.simplesStExclusive
-                              ? Math.max(0, unitDasTotal - unitIcms)
-                              : unitDasTotal,
-                          )}`
-                        : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-right font-semibold text-emerald-400">
-                      -
-                      {formatBRL(
-                        stSubsystem.enabled && stSubsystem.simplesStExclusive
-                          ? Math.max(0, totalDasTotal - totalIcms)
-                          : totalDasTotal,
-                      )}
-                    </td>
-                  </tr>
-
-                  {/* Sublinhas de detalhamento da partilha da guia DAS (cinza/itálico) */}
-                  <tr className="bg-slate-900/20 text-slate-500">
-                    <td className="py-1 pl-6 text-left italic">
-                      · IRPJ ({formatNumberBR(pgdas.reparticao.irpjRate, 2)}% da receita)
-                    </td>
-                    <td className="py-1 px-3 text-right">
-                      {displayUnitIrpj !== null ? `-${formatBRL(displayUnitIrpj)}` : '—'}
-                    </td>
-                    <td className="py-1 px-3 text-right">-{formatBRL(totalIrpj)}</td>
-                  </tr>
-                  <tr className="bg-slate-900/20 text-slate-500">
-                    <td className="py-1 pl-6 text-left italic">
-                      · CSLL ({formatNumberBR(pgdas.reparticao.csllRate, 2)}% da receita)
-                    </td>
-                    <td className="py-1 px-3 text-right">
-                      {displayUnitCsll !== null ? `-${formatBRL(displayUnitCsll)}` : '—'}
-                    </td>
-                    <td className="py-1 px-3 text-right">-{formatBRL(totalCsll)}</td>
-                  </tr>
-                  <tr className="bg-slate-900/20 text-slate-500">
-                    <td className="py-1 pl-6 text-left italic">
-                      · COFINS ({formatNumberBR(pgdas.reparticao.cofinsRate, 2)}% da receita)
-                    </td>
-                    <td className="py-1 px-3 text-right">
-                      {displayUnitCofins !== null ? `-${formatBRL(displayUnitCofins)}` : '—'}
-                    </td>
-                    <td className="py-1 px-3 text-right">-{formatBRL(totalCofins)}</td>
-                  </tr>
-                  <tr className="bg-slate-900/20 text-slate-500">
-                    <td className="py-1 pl-6 text-left italic">
-                      · PIS ({formatNumberBR(pgdas.reparticao.pisRate, 2)}% da receita)
-                    </td>
-                    <td className="py-1 px-3 text-right">
-                      {displayUnitPis !== null ? `-${formatBRL(displayUnitPis)}` : '—'}
-                    </td>
-                    <td className="py-1 px-3 text-right">-{formatBRL(totalPis)}</td>
-                  </tr>
-                  {currentAnexoConfig.cppNoDas && (
-                    <tr className="bg-slate-900/20 text-slate-500">
-                      <td className="py-1 pl-6 text-left italic">
-                        · CPP Previdenciária ({formatNumberBR(pgdas.reparticao.cppRate, 2)}% da
-                        receita)
-                      </td>
-                      <td className="py-1 px-3 text-right">
-                        {displayUnitCpp !== null ? `-${formatBRL(displayUnitCpp)}` : '—'}
-                      </td>
-                      <td className="py-1 px-3 text-right">-{formatBRL(totalCpp)}</td>
-                    </tr>
-                  )}
-                  {pgdas.reparticao.ipiRate > 0 && (
-                    <tr className="bg-slate-900/20 text-slate-500">
-                      <td className="py-1 pl-6 text-left italic">
-                        · IPI ({formatNumberBR(pgdas.reparticao.ipiRate, 2)}% da receita)
-                      </td>
-                      <td className="py-1 px-3 text-right">
-                        {displayUnitIpi !== null ? `-${formatBRL(displayUnitIpi)}` : '—'}
-                      </td>
-                      <td className="py-1 px-3 text-right">-{formatBRL(totalIpi)}</td>
-                    </tr>
-                  )}
-                  <tr className="bg-slate-900/20 text-slate-500">
-                    <td className="py-1 pl-6 text-left italic">
-                      ·{' '}
-                      {currentAnexoConfig.tributoEstadualMunicipal === 'iss'
-                        ? `ISS Municipal (${formatNumberBR(pgdas.reparticao.issRate, 2)}% da receita)`
-                        : `ICMS Estadual (${formatNumberBR(pgdas.reparticao.icmsRate, 2)}% da receita)`}
-                    </td>
-                    <td className="py-1 px-3 text-right">
-                      {currentAnexoConfig.tributoEstadualMunicipal === 'iss'
-                        ? displayUnitIss !== null
-                          ? `-${formatBRL(displayUnitIss)}`
-                          : '—'
-                        : displayUnitIcms !== null
-                          ? `-${formatBRL(displayUnitIcms)}`
-                          : '—'}
-                    </td>
-                    <td className="py-1 px-3 text-right">
-                      -
-                      {formatBRL(
-                        currentAnexoConfig.tributoEstadualMunicipal === 'iss'
-                          ? totalIss
-                          : totalIcms,
-                      )}
-                    </td>
-                  </tr>
-
-                  {/* 3. = Receita líquida */}
-                  <tr className="bg-slate-950/40 font-bold text-slate-100">
-                    <td className="py-2.5 text-left">= Receita líquida</td>
-                    <td className="py-2.5 px-3 text-right text-slate-100">
-                      {displayUnitNetRevenue !== null ? formatBRL(displayUnitNetRevenue) : '—'}
-                    </td>
-                    <td className="py-2.5 px-3 text-right text-slate-100">
-                      {formatBRL(totalNetRevenue)}
-                    </td>
-                  </tr>
-
-                  {/* 4. (-) CMV */}
-                  <tr>
-                    <td className="py-2 text-left text-slate-400">
-                      <div className="flex items-center gap-2">
-                        <span>(−) CMV (custo não creditável)</span>
-                        {isAutoInventory && (
-                          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded">
-                            · automático (baixa por quantidade)
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      {displayUnitCmv !== null ? `-${formatBRL(displayUnitCmv)}` : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">-{formatBRL(totalCmv)}</td>
-                  </tr>
-
-                  {/* Linha expansível com a discriminação específica do CMV */}
-                  <tr>
-                    <td colSpan={3} className="py-1 px-1">
-                      <CmvDetailedBreakdown
-                        forcedRegime="simples"
-                        quantitySold={qty}
-                        title="Ver composição e tributos integrados do CMV (Simples Nacional)"
-                        variant="embedded"
-                      />
-                    </td>
-                  </tr>
-
-                  {/* 5. = Lucro bruto */}
-                  <tr className="bg-slate-950/40 font-bold text-slate-100">
-                    <td className="py-2.5 text-left">= Lucro bruto</td>
-                    <td className="py-2.5 px-3 text-right text-slate-100">
-                      {displayUnitGrossProfit !== null ? formatBRL(displayUnitGrossProfit) : '—'}
-                    </td>
-                    <td className="py-2.5 px-3 text-right text-slate-100">
-                      {formatBRL(totalGrossProfit)}
-                    </td>
-                  </tr>
-
-                  {/* 6. (-) Despesas operacionais centrais */}
-                  {totalOperatingExpenses > 0 && (
-                    <tr className="text-rose-300/90 bg-rose-500/[0.03]">
-                      <td className="py-2 text-left">
-                        (−) Despesas operacionais (vendas, adm, financeiras)
-                      </td>
-                      <td className="py-2 px-3 text-right">
-                        {displayUnitOperatingExpenses !== null
-                          ? `-${formatBRL(displayUnitOperatingExpenses)}`
-                          : '—'}
-                      </td>
-                      <td className="py-2 px-3 text-right">-{formatBRL(totalOperatingExpenses)}</td>
-                    </tr>
-                  )}
-
-                  {/* 6b. (-) Despesas operacionais locais */}
-                  {totalLocalExpenses > 0 && (
-                    <tr>
-                      <td className="py-2 text-left text-slate-400">
-                        (−) Despesas operacionais locais (aba Simples)
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-400">
-                        {displayUnitLocalExpenses !== null
-                          ? `-${formatBRL(displayUnitLocalExpenses)}`
-                          : '—'}
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-400">
-                        -{formatBRL(totalLocalExpenses)}
-                      </td>
-                    </tr>
-                  )}
-
-                  {totalAllOperatingExpenses === 0 && (
-                    <tr>
-                      <td className="py-2 text-left text-slate-500 italic">
-                        (−) Despesas operacionais
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-500">
-                        {isMultiProduct ? '—' : 'R$ 0,00'}
-                      </td>
-                      <td className="py-2 px-3 text-right text-slate-500">R$ 0,00</td>
-                    </tr>
-                  )}
-
-                  {/* 6c. (+) Receitas operacionais */}
-                  <tr
-                    className={
-                      totalAllOperatingRevenues > 0
-                        ? 'text-emerald-300/90 bg-emerald-500/[0.03]'
-                        : ''
-                    }
-                  >
-                    <td className="py-2 text-left text-slate-400">
-                      (+) Receitas operacionais (financeiras e outras)
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      {displayUnitOperatingRevenues !== null
-                        ? `+${formatBRL(displayUnitOperatingRevenues)}`
-                        : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-400">
-                      +{formatBRL(totalAllOperatingRevenues)}
-                    </td>
-                  </tr>
-
-                  {/* 6d. = Lucro antes do IR (LAIR) */}
-                  <tr className="bg-slate-950/40 font-bold text-slate-100">
-                    <td className="py-2 text-left">= Lucro antes do imposto de renda (LAIR)</td>
-                    <td className="py-2 px-3 text-right text-slate-100">
-                      {displayUnitLair !== null ? formatBRL(displayUnitLair) : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-100">{formatBRL(totalLair)}</td>
-                  </tr>
-
-                  {/* 7. = Lucro líquido [fundo verde escuro, valores verde brilhante] */}
-                  <tr className="bg-emerald-950/40 text-emerald-400 font-extrabold border-t-2 border-emerald-500/40">
-                    <td className="py-3 px-2 text-left text-sm">= Lucro líquido</td>
-                    <td className="py-3 px-3 text-right text-sm text-emerald-400">
-                      {displayUnitNetProfit !== null ? formatBRL(displayUnitNetProfit) : '—'}
-                    </td>
-                    <td className="py-3 px-3 text-right text-sm text-emerald-400">
-                      {formatBRL(totalNetProfit)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* Cards de Resumo (3 lado a lado, mesmo padrão) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-800">
-              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-                <span className="text-[11px] text-slate-400 font-mono block mb-1">
-                  Carga tributária total (DAS)
-                </span>
-                <span className="text-xl font-bold font-mono text-slate-200">
-                  {formatBRL(totalTaxBurden)}
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono block mt-1">
-                  {formatNumberBR(pgdas.aliquotaEfetiva, 2)}% da receita bruta
-                </span>
-              </div>
-
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                <span className="text-[11px] text-emerald-400 font-mono block mb-1 font-semibold">
-                  Lucro líquido
-                </span>
-                <span className="text-xl font-bold font-mono text-emerald-400">
-                  {formatBRL(totalNetProfit)}
-                </span>
-                <span className="text-[10px] text-emerald-400/80 font-mono block mt-1">
-                  Resultado final do período
-                </span>
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-                <span className="text-[11px] text-slate-400 font-mono block mb-1">
-                  Margem líquida
-                </span>
-                <span className="text-xl font-bold font-mono text-slate-200">
-                  {formatPercentBR(netMargin)}
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono block mt-1">
-                  Lucro líquido ÷ Receita bruta
-                </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+                {pgdas.reparticao.irpjRate > 0 && (
+                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[10px]">
+                      IRPJ ({formatPercentBR(pgdas.reparticao.irpjRate)})
+                    </span>
+                    <span className="text-slate-200 font-semibold">{formatBRL(totalIrpj)}</span>
+                  </div>
+                )}
+                {pgdas.reparticao.csllRate > 0 && (
+                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[10px]">
+                      CSLL ({formatPercentBR(pgdas.reparticao.csllRate)})
+                    </span>
+                    <span className="text-slate-200 font-semibold">{formatBRL(totalCsll)}</span>
+                  </div>
+                )}
+                {pgdas.reparticao.cofinsRate > 0 && (
+                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[10px]">
+                      COFINS ({formatPercentBR(pgdas.reparticao.cofinsRate)})
+                    </span>
+                    <span className="text-slate-200 font-semibold">{formatBRL(totalCofins)}</span>
+                  </div>
+                )}
+                {pgdas.reparticao.pisRate > 0 && (
+                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[10px]">
+                      PIS ({formatPercentBR(pgdas.reparticao.pisRate)})
+                    </span>
+                    <span className="text-slate-200 font-semibold">{formatBRL(totalPis)}</span>
+                  </div>
+                )}
+                {pgdas.reparticao.cppRate > 0 && (
+                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[10px]">
+                      CPP ({formatPercentBR(pgdas.reparticao.cppRate)})
+                    </span>
+                    <span className="text-slate-200 font-semibold">{formatBRL(totalCpp)}</span>
+                  </div>
+                )}
+                {pgdas.reparticao.icmsRate > 0 && (
+                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[10px]">
+                      ICMS ({formatPercentBR(pgdas.reparticao.icmsRate)})
+                    </span>
+                    <span className="text-slate-200 font-semibold">{formatBRL(totalIcms)}</span>
+                  </div>
+                )}
+                {pgdas.reparticao.ipiRate > 0 && (
+                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[10px]">
+                      IPI ({formatPercentBR(pgdas.reparticao.ipiRate)})
+                    </span>
+                    <span className="text-slate-200 font-semibold">{formatBRL(totalIpi)}</span>
+                  </div>
+                )}
+                {pgdas.reparticao.issRate > 0 && (
+                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
+                    <span className="text-slate-400 block text-[10px]">
+                      ISS ({formatPercentBR(pgdas.reparticao.issRate)})
+                    </span>
+                    <span className="text-slate-200 font-semibold">{formatBRL(totalIss)}</span>
+                  </div>
+                )}
               </div>
             </div>
 
