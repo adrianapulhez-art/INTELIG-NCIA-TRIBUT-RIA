@@ -2296,6 +2296,12 @@ export default function MarkupPage() {
                 for (let i = 0; i < markupProducts.length; i++) {
                   const p = markupProducts[i]
                   const pName = p.name?.trim() || `Produto ${i + 1}`
+                  if (!p.quantity || p.quantity <= 0) {
+                    setSimulationValidationError(
+                      `Informe manualmente a quantidade vendida antes de simular (${pName}).`,
+                    )
+                    return
+                  }
                   if (p.mode === 'liquid') {
                     const rl =
                       p.desiredNetRevenueByRegime?.[regime] ??

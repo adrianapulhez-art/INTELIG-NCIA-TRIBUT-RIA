@@ -2259,7 +2259,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       cost: unitNetCost,
       costOrigin: 'purchases',
       margin: 0,
-      quantity: qtyPurchased,
+      quantity: 0,
       costComposition: {
         directCosts:
           unitNetCost > 0
@@ -2278,7 +2278,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       taxFactor: 0,
       completeFactor: 0,
       totalRevenue: 0,
-      totalCost: unitNetCost * qtyPurchased,
+      totalCost: 0,
     }
 
     // Sincroniza o modo global predominante do Markup com o modo dos itens importados ('cost_margin')
@@ -2381,7 +2381,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             cost: unitNetCost,
             costOrigin: 'purchases',
             margin: 0,
-            quantity: qty,
+            quantity: 0,
             costComposition: {
               directCosts:
                 unitNetCost > 0
@@ -2400,7 +2400,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             taxFactor: 0,
             completeFactor: 0,
             totalRevenue: 0,
-            totalCost: unitNetCost * qty,
+            totalCost: 0,
           })
         }
       })

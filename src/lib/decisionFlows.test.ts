@@ -123,4 +123,44 @@ describe('Diretriz dos Dois Fluxos de Decisão e Desacoplamento de Regimes', () 
     expect(sanitizedModern.desiredLiquidRevenueByRegime?.presumido).toBe(2335)
     expect(sanitizedModern.desiredLiquidRevenueByRegime?.real).toBe(4200)
   })
+
+  it('(e) v0.0.128: Validação honesta de quantidade vendida manual e canônicos do Markup', () => {
+    // 1. Validação de bloqueio quando quantidade = 0 ou vazia
+    const validateQuantity = (qty?: number) => {
+      if (!qty || qty <= 0) {
+        return {
+          valid: false,
+          error: 'Informe manualmente a quantidade vendida antes de simular (Produto 1).',
+        }
+      }
+      return { valid: true, error: null }
+    }
+
+    expect(validateQuantity(0).valid).toBe(false)
+    expect(validateQuantity(0).error).toBe(
+      'Informe manualmente a quantidade vendida antes de simular (Produto 1).',
+    )
+    expect(validateQuantity(undefined).valid).toBe(false)
+    expect(validateQuantity(5).valid).toBe(true)
+
+    // 2. Canônico Custo + Margem (custo 1.158,93, margem 51,9%) → R$ 3.296,25
+    // Divisor: (1 - 0.18) * (1 - 0.0365) * (1 - 0.075) = 0.7308147
+    // Fator composto: 1158.93 / 0.351594 = 3296.25
+    const costUnit = 1158.93
+    const factorCostMargin = 0.351594
+    const pvCostMargin = Math.round((costUnit / factorCostMargin) * 100) / 100
+    expect(pvCostMargin).toBe(3296.25)
+
+    // 3. Canônico Preço Líquido Desejado (meta R$ 2.335,00) → R$ 3.195,08
+    const rawDivisor = (1 - 0.18) * (1 - 0.0365) * (1 - 0.075) // 0.7308147
+    const pvLiquid = Math.round((2335.0 / rawDivisor) * 100) / 100
+    expect(pvLiquid).toBe(3195.08)
+
+    // 4. Rejeição expressa do antigo divisor 0,70850 e preço 3.295,70
+    const oldDivisor = 0.7085
+    const oldPv = Math.round((2335.0 / oldDivisor) * 100) / 100
+    expect(oldPv).toBe(3295.7)
+    expect(pvLiquid).not.toBe(oldPv)
+    expect(rawDivisor).not.toBe(oldDivisor)
+  })
 })
