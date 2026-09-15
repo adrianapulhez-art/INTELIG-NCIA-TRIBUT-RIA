@@ -124,24 +124,65 @@ describe('Diretriz dos Dois Fluxos de Decisão e Desacoplamento de Regimes', () 
     expect(sanitizedModern.desiredLiquidRevenueByRegime?.real).toBe(4200)
   })
 
-  it('(e) v0.0.128: Validação honesta de quantidade vendida manual e canônicos do Markup', () => {
-    // 1. Validação de bloqueio quando quantidade = 0 ou vazia
-    const validateQuantity = (qty?: number) => {
-      if (!qty || qty <= 0) {
+  it('(e) v0.0.129: Isolamento da quantidade vendida por regime, validação honesta e canônicos', () => {
+    // 1. Validação com isolamento por regime
+    const validateQuantityForRegime = (
+      p: {
+        name?: string
+        quantity?: number
+        quantityByRegime?: { simples?: number; presumido?: number; real?: number }
+      },
+      regime: 'presumido' | 'real' | 'simples',
+    ) => {
+      const pName = p.name?.trim() || 'Produto 1'
+      const qty = p.quantityByRegime?.[regime] ?? (p.quantityByRegime ? undefined : p.quantity)
+      if (qty === undefined || qty <= 0) {
         return {
           valid: false,
-          error: 'Informe manualmente a quantidade vendida antes de simular (Produto 1).',
+          error: `Informe manualmente a quantidade vendida antes de simular (${pName}).`,
         }
       }
       return { valid: true, error: null }
     }
 
-    expect(validateQuantity(0).valid).toBe(false)
-    expect(validateQuantity(0).error).toBe(
-      'Informe manualmente a quantidade vendida antes de simular (Produto 1).',
+    // Isolamento: 10 un. no Presumido → Real e Simples vazios, sem herdar
+    const itemPresumidoOnly = {
+      name: 'Notebook Dell',
+      quantity: 10,
+      quantityByRegime: {
+        presumido: 10,
+      },
+    }
+
+    expect(validateQuantityForRegime(itemPresumidoOnly, 'presumido').valid).toBe(true)
+    expect(validateQuantityForRegime(itemPresumidoOnly, 'real').valid).toBe(false)
+    expect(validateQuantityForRegime(itemPresumidoOnly, 'real').error).toBe(
+      'Informe manualmente a quantidade vendida antes de simular (Notebook Dell).',
     )
-    expect(validateQuantity(undefined).valid).toBe(false)
-    expect(validateQuantity(5).valid).toBe(true)
+    expect(validateQuantityForRegime(itemPresumidoOnly, 'simples').valid).toBe(false)
+    expect(validateQuantityForRegime(itemPresumidoOnly, 'simples').error).toBe(
+      'Informe manualmente a quantidade vendida antes de simular (Notebook Dell).',
+    )
+
+    // Ao informar quantidade para o Lucro Real, libera apenas para o Lucro Real
+    const itemUpdatedReal = {
+      ...itemPresumidoOnly,
+      quantityByRegime: {
+        ...itemPresumidoOnly.quantityByRegime,
+        real: 15,
+      },
+    }
+    expect(validateQuantityForRegime(itemUpdatedReal, 'real').valid).toBe(true)
+    expect(validateQuantityForRegime(itemUpdatedReal, 'simples').valid).toBe(false)
+
+    // Round-trip de cenário legado (só `quantity`) opera sem distorção
+    const legacyItem = {
+      name: 'Item Histórico',
+      quantity: 50,
+    }
+    expect(validateQuantityForRegime(legacyItem, 'presumido').valid).toBe(true)
+    expect(validateQuantityForRegime(legacyItem, 'real').valid).toBe(true)
+    expect(validateQuantityForRegime(legacyItem, 'simples').valid).toBe(true)
 
     // 2. Canônico Custo + Margem (custo 1.158,93, margem 51,9%) → R$ 3.296,25
     // Divisor: (1 - 0.18) * (1 - 0.0365) * (1 - 0.075) = 0.7308147

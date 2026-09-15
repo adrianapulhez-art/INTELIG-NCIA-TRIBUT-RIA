@@ -449,10 +449,14 @@ export default function ComparisonPage() {
           let totalUnits = 0
 
           for (const p of validProducts) {
-            const productQty =
-              typeof p.quantity === 'number' && Number.isFinite(p.quantity)
-                ? Math.max(0, p.quantity)
-                : 0
+            const rawProductQty =
+              p.quantityByRegime?.[regimeKey] ??
+              (p.quantityByRegime
+                ? 0
+                : typeof p.quantity === 'number' && Number.isFinite(p.quantity)
+                  ? Math.max(0, p.quantity)
+                  : 0)
+            const productQty = Math.max(0, rawProductQty)
             const itemMeta =
               p.desiredNetRevenueByRegime?.[regimeKey] ??
               desiredLiquidRevenueByRegime?.[regimeKey] ??
@@ -542,12 +546,18 @@ export default function ComparisonPage() {
         let totalUnits = 0
 
         for (const p of validProducts) {
-          const productQty =
-            typeof p.quantity === 'number' && Number.isFinite(p.quantity)
-              ? Math.max(0, p.quantity)
-              : 0
+          const rawProductQty =
+            p.quantityByRegime?.[regimeKey] ??
+            (p.quantityByRegime
+              ? 0
+              : typeof p.quantity === 'number' && Number.isFinite(p.quantity)
+                ? Math.max(0, p.quantity)
+                : 0)
+          const productQty = Math.max(0, rawProductQty)
           const unitCost = getProductUnitCost(p, regimeKey)
-          const pMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
+          const pMargin =
+            p.marginByRegime?.[regimeKey] ??
+            (typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0)
           const divisor = computeCostMarginDivisor(regimeKey, pMargin)
 
           const unitSalePrice =

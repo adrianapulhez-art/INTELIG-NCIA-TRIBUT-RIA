@@ -410,19 +410,22 @@ export function runManualSoldQuantityValidationTests(): {
     received: number | boolean | string
   }[]
 } {
-  // 1. Simulação da validação da /demo/markup
+  // 1. Simulação da validação da /demo/markup com suporte a quantidade por regime (v0.0.129)
   const validateProductForSimulation = (
     p: {
       name?: string
       quantity?: number
+      quantityByRegime?: { simples?: number; presumido?: number; real?: number }
       mode: 'liquid' | 'cost_margin'
       margin?: number
       desiredNetRevenue?: number
     },
+    regime: 'presumido' | 'real' | 'simples' = 'presumido',
     regimeName = 'Lucro Presumido',
   ): { valid: boolean; error: string | null } => {
     const pName = p.name?.trim() || 'Produto 1'
-    if (!p.quantity || p.quantity <= 0) {
+    const qty = p.quantityByRegime?.[regime] ?? (p.quantityByRegime ? undefined : p.quantity)
+    if (qty === undefined || qty <= 0) {
       return {
         valid: false,
         error: `Informe manualmente a quantidade vendida antes de simular (${pName}).`,
@@ -490,34 +493,79 @@ export function runManualSoldQuantityValidationTests(): {
   const oldPv = Math.round((desiredNetRevenue / oldDivisor) * 100) / 100 // 3295.70
   const isOldRejected = rawDivisorPresumido !== oldDivisor && pvLiquidCanonical !== 3295.7
 
+  // Testes de isolamento por regime (v0.0.129)
+  // 10 un. no Presumido → Real e Simples vazios, sem herdar
+  const isolatedProd = {
+    name: 'Produto Isolado',
+    mode: 'cost_margin' as const,
+    margin: 51.9,
+    quantity: 10,
+    quantityByRegime: {
+      presumido: 10,
+    },
+  }
+  const validPresumido = validateProductForSimulation(isolatedProd, 'presumido')
+  const validReal = validateProductForSimulation(isolatedProd, 'real')
+  const validSimples = validateProductForSimulation(isolatedProd, 'simples')
+
+  // Cenário legado com fallback apenas quando quantityByRegime ausente
+  const legacyProd = {
+    name: 'Produto Legado',
+    mode: 'cost_margin' as const,
+    margin: 51.9,
+    quantity: 25,
+  }
+  const validLegacyPresumido = validateProductForSimulation(legacyProd, 'presumido')
+  const validLegacyReal = validateProductForSimulation(legacyProd, 'real')
+
   const tests = [
     {
-      test: 'v0.0.128: Produto importado sem quantidade bloqueia simulação com mensagem honesta',
+      test: 'v0.0.129: Produto importado sem quantidade bloqueia simulação com mensagem honesta',
       expected: false,
       received: validationUnfilled.valid,
     },
     {
-      test: 'v0.0.128: Mensagem de validação orienta preenchimento manual da quantidade',
+      test: 'v0.0.129: Mensagem de validação orienta preenchimento manual da quantidade',
       expected: 'Informe manualmente a quantidade vendida antes de simular (Celular Samsung).',
       received: validationUnfilled.error || '',
     },
     {
-      test: 'v0.0.128: Após preencher quantidade manualmente, simulação é liberada (valid = true)',
+      test: 'v0.0.129: Após preencher quantidade manualmente, simulação é liberada (valid = true)',
       expected: true,
       received: validationFilled.valid,
     },
     {
-      test: 'v0.0.128 Canônico Custo + Margem: Custo R$ 1.158,93 com margem 51,9% resulta em PV R$ 3.296,25',
+      test: 'v0.0.129 Isolamento: 10 un. no Presumido é válido para Presumido',
+      expected: true,
+      received: validPresumido.valid,
+    },
+    {
+      test: 'v0.0.129 Isolamento: 10 un. no Presumido bloqueia no Lucro Real (sem herdar)',
+      expected: false,
+      received: validReal.valid,
+    },
+    {
+      test: 'v0.0.129 Isolamento: 10 un. no Presumido bloqueia no Simples Nacional (sem herdar)',
+      expected: false,
+      received: validSimples.valid,
+    },
+    {
+      test: 'v0.0.129 Retrocompatibilidade: Cenário legado sem quantityByRegime usa quantity escalar como fallback',
+      expected: true,
+      received: validLegacyPresumido.valid && validLegacyReal.valid,
+    },
+    {
+      test: 'v0.0.129 Canônico Custo + Margem: Custo R$ 1.158,93 com margem 51,9% resulta em PV R$ 3.296,25',
       expected: 3296.25,
       received: pvCostMarginCanonical,
     },
     {
-      test: 'v0.0.128 Canônico Preço Líquido: Meta R$ 2.335,00 resulta em PV R$ 3.195,08',
+      test: 'v0.0.129 Canônico Preço Líquido: Meta R$ 2.335,00 resulta em PV R$ 3.195,08',
       expected: 3195.08,
       received: pvLiquidCanonical,
     },
     {
-      test: 'v0.0.128 Rejeição expressa: Divisor aditivo antigo 0,70850 e PV 3.295,70 permanecem estritamente rejeitados',
+      test: 'v0.0.129 Rejeição expressa: Divisor aditivo antigo 0,70850 e PV 3.295,70 permanecem estritamente rejeitados',
       expected: true,
       received: isOldRejected && oldPv === 3295.7,
     },

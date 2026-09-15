@@ -60,6 +60,12 @@ export interface DesiredProfitMarginByRegime {
   real?: number
 }
 
+export interface SoldQuantityByRegime {
+  simples?: number
+  presumido?: number
+  real?: number
+}
+
 export interface MarkupProductItem {
   id: string
   name: string
@@ -67,6 +73,7 @@ export interface MarkupProductItem {
   desiredNetRevenue: number // Receita líquida desejada legada / ativa
   desiredNetRevenueByRegime?: DesiredLiquidRevenueByRegime // Receita líquida desejada independente por regime
   marginByRegime?: DesiredProfitMarginByRegime // Margem de lucro independente por regime
+  quantityByRegime?: SoldQuantityByRegime // Quantidade vendida independente por regime
   cost: number // Custo base (quando mode === 'cost_margin')
   margin: number // Margem de lucro % legada / ativa (quando mode === 'cost_margin' ou margem adicional)
   quantity: number // Quantidade vendida
@@ -701,10 +708,13 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prevProds.map((p) => {
         const targetRL = p.desiredNetRevenueByRegime?.[newRegime] ?? 0
         const targetMargin = p.marginByRegime?.[newRegime] ?? (p.marginByRegime ? 0 : p.margin || 0)
+        const targetQty =
+          p.quantityByRegime?.[newRegime] ?? (p.quantityByRegime ? 0 : p.quantity || 0)
         return {
           ...p,
           desiredNetRevenue: targetRL,
           margin: targetMargin,
+          quantity: targetQty,
         }
       }),
     )
@@ -893,6 +903,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       desiredNetRevenue: 0,
       desiredNetRevenueByRegime: {},
       marginByRegime: {},
+      quantityByRegime: {},
       cost: 0,
       margin: 0,
       quantity: 0,
@@ -1850,6 +1861,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         desiredNetRevenue: 0,
         desiredNetRevenueByRegime: {},
         marginByRegime: {},
+        quantityByRegime: {},
         cost: 0,
         margin: 0,
         quantity: 0,
@@ -1903,7 +1915,24 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         if (field === 'quantity') {
           const parsed = typeof value === 'number' ? value : parseInt(String(value), 10)
-          return { ...item, quantity: isNaN(parsed) || parsed < 0 ? 0 : parsed }
+          const cleanQty = isNaN(parsed) || parsed < 0 ? 0 : parsed
+          const currentByRegime = item.quantityByRegime || {}
+          return {
+            ...item,
+            quantity: cleanQty,
+            quantityByRegime: {
+              ...currentByRegime,
+              [regime]: cleanQty,
+            },
+          }
+        }
+        if (field === 'quantityByRegime') {
+          const regimeMap = (value as unknown as SoldQuantityByRegime) || {}
+          return {
+            ...item,
+            quantityByRegime: regimeMap,
+            quantity: regimeMap[regime] ?? item.quantity,
+          }
         }
         if (field === 'costComposition') {
           return { ...item, costComposition: value as CostComposition }
@@ -2155,6 +2184,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             desiredNetRevenue: 0,
             desiredNetRevenueByRegime: {},
             marginByRegime: {},
+            quantityByRegime: {},
             cost: 0,
             margin: 0,
             quantity: 0,
@@ -2256,6 +2286,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       desiredNetRevenue: 0,
       desiredNetRevenueByRegime: {},
       marginByRegime: {},
+      quantityByRegime: {},
       cost: unitNetCost,
       costOrigin: 'purchases',
       margin: 0,
@@ -2378,6 +2409,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             desiredNetRevenue: 0,
             desiredNetRevenueByRegime: {},
             marginByRegime: {},
+            quantityByRegime: {},
             cost: unitNetCost,
             costOrigin: 'purchases',
             margin: 0,
@@ -3586,6 +3618,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         desiredNetRevenue: 0,
         desiredNetRevenueByRegime: {},
         marginByRegime: {},
+        quantityByRegime: {},
         cost: 0,
         margin: 0,
         quantity: 0,
@@ -3856,6 +3889,32 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 }
               : loadedMarginByRegime
           const activeMarginVal = safeMarginByRegime[targetRegime] ?? safeMargin
+          const safeQuantity =
+            typeof p.quantity === 'number' && Number.isFinite(p.quantity)
+              ? Math.max(0, p.quantity)
+              : 0
+          const safeQuantityByRegime: SoldQuantityByRegime = p.quantityByRegime
+            ? {
+                simples:
+                  p.quantityByRegime.simples !== undefined
+                    ? Number(p.quantityByRegime.simples)
+                    : undefined,
+                presumido:
+                  p.quantityByRegime.presumido !== undefined
+                    ? Number(p.quantityByRegime.presumido)
+                    : undefined,
+                real:
+                  p.quantityByRegime.real !== undefined
+                    ? Number(p.quantityByRegime.real)
+                    : undefined,
+              }
+            : safeQuantity > 0
+              ? {
+                  [targetRegime]: safeQuantity,
+                }
+              : {}
+          const activeQuantityVal =
+            safeQuantityByRegime[targetRegime] ?? (p.quantityByRegime ? 0 : safeQuantity)
 
           return {
             ...p,
@@ -3863,8 +3922,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             desiredNetRevenue: activeRegimeVal,
             desiredNetRevenueByRegime: safeByRegime,
             marginByRegime: safeMarginByRegime,
+            quantityByRegime: safeQuantityByRegime,
             cost: safeCost,
             margin: activeMarginVal,
+            quantity: activeQuantityVal,
             costComposition: p.costComposition || {
               directCosts: [],
               indirectCosts: [],
@@ -3887,6 +3948,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             presumido: defaultMode === 'liquid' ? legacyVal : 0,
             real: defaultMode === 'liquid' ? legacyVal : 0,
           },
+          marginByRegime: {},
+          quantityByRegime: {},
           cost: defaultMode === 'cost_margin' ? legacyVal : 0,
           margin: snapshot.additionalMargin || 0,
           quantity: 0,

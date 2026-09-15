@@ -736,11 +736,17 @@ export default function MarkupPage() {
     )
 
     // Helper para calcular produtos por regime, respeitando o modo líquido (divisor aditivo tributos+DV sem fator margem) vs custo+margem
-    const calcForTaxFactor = (taxFactorMultiplicative: number, liquidDivisorBase: number) => {
+    const calcForTaxFactor = (
+      taxFactorMultiplicative: number,
+      liquidDivisorBase: number,
+      regimeKey: 'presumido' | 'real' | 'simples',
+    ) => {
       let totalRev = 0
       let totalQty = 0
       const prods = markupProducts.map((p) => {
-        const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
+        const rawMargin =
+          p.marginByRegime?.[regimeKey] ??
+          (typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0)
         const marginFactor = 1 - rawMargin / 100
         const isLiquidProd = p.mode === 'liquid'
         const baseFactor = isLiquidProd ? liquidDivisorBase : taxFactorMultiplicative
@@ -755,10 +761,13 @@ export default function MarkupPage() {
           completeFactor = baseFactor
         }
         const safeFactor = completeFactor > 0.0001 ? completeFactor : 0
-        const baseValue = isLiquidProd
-          ? typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
+        const desiredNetRevForRegime =
+          p.desiredNetRevenueByRegime?.[regimeKey] ??
+          (typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
             ? p.desiredNetRevenue
-            : 0
+            : 0)
+        const baseValue = isLiquidProd
+          ? desiredNetRevForRegime
           : typeof p.cost === 'number' && Number.isFinite(p.cost)
             ? p.cost
             : 0
@@ -766,10 +775,14 @@ export default function MarkupPage() {
         const roundedPrice = Number.isFinite(rawSalePrice)
           ? Math.round(rawSalePrice * 100) / 100
           : 0
-        const qty =
-          typeof p.quantity === 'number' && Number.isFinite(p.quantity)
-            ? Math.max(0, p.quantity)
-            : 0
+        const rawQty =
+          p.quantityByRegime?.[regimeKey] ??
+          (p.quantityByRegime
+            ? 0
+            : typeof p.quantity === 'number' && Number.isFinite(p.quantity)
+              ? Math.max(0, p.quantity)
+              : 0)
+        const qty = Math.max(0, rawQty)
         const rawRev = roundedPrice * qty
         const rev = Number.isFinite(rawRev) ? Math.round(rawRev * 100) / 100 : 0
         totalRev += rev
@@ -784,9 +797,13 @@ export default function MarkupPage() {
       return { prods, totalRev: Math.round(totalRev * 100) / 100, totalQty }
     }
 
-    const calcPresumido = calcForTaxFactor(baseTaxFactorPresumido, liquidDivisorPresumidoBase)
-    const calcReal = calcForTaxFactor(baseTaxFactorReal, liquidDivisorRealBase)
-    const calcSimples = calcForTaxFactor(baseTaxFactorSimples, liquidDivisorSimplesBase)
+    const calcPresumido = calcForTaxFactor(
+      baseTaxFactorPresumido,
+      liquidDivisorPresumidoBase,
+      'presumido',
+    )
+    const calcReal = calcForTaxFactor(baseTaxFactorReal, liquidDivisorRealBase, 'real')
+    const calcSimples = calcForTaxFactor(baseTaxFactorSimples, liquidDivisorSimplesBase, 'simples')
 
     return {
       hasSimplesData,
@@ -1794,21 +1811,31 @@ export default function MarkupPage() {
                         <label className="text-[11px] text-slate-300 font-semibold">
                           Quantidade vendida
                         </label>
-                        <Input
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          value={prod.quantity > 0 ? String(prod.quantity) : ''}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value, 10)
-                            updateMarkupProduct(
-                              prod.id,
-                              'quantity',
-                              isNaN(val) || val < 0 ? 0 : val,
-                            )
-                          }}
-                          className="text-right text-xs h-8 field-input-interactive"
-                        />
+                        {(() => {
+                          const currentQty =
+                            prod.quantityByRegime?.[regime] ??
+                            (prod.quantityByRegime ? undefined : prod.quantity)
+                          return (
+                            <Input
+                              key={`quantity-${prod.id}-${regime}`}
+                              type="number"
+                              min="0"
+                              placeholder="informe manualmente"
+                              value={
+                                currentQty !== undefined && currentQty > 0 ? String(currentQty) : ''
+                              }
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10)
+                                updateMarkupProduct(
+                                  prod.id,
+                                  'quantity',
+                                  isNaN(val) || val < 0 ? 0 : val,
+                                )
+                              }}
+                              className="text-right text-xs h-8 field-input-interactive"
+                            />
+                          )
+                        })()}
                       </div>
 
                       {/* Campo 4: Preço Resultante e Total (atualizado após Simular) */}
@@ -2296,7 +2323,9 @@ export default function MarkupPage() {
                 for (let i = 0; i < markupProducts.length; i++) {
                   const p = markupProducts[i]
                   const pName = p.name?.trim() || `Produto ${i + 1}`
-                  if (!p.quantity || p.quantity <= 0) {
+                  const qtyActiveRegime =
+                    p.quantityByRegime?.[regime] ?? (p.quantityByRegime ? undefined : p.quantity)
+                  if (qtyActiveRegime === undefined || qtyActiveRegime <= 0) {
                     setSimulationValidationError(
                       `Informe manualmente a quantidade vendida antes de simular (${pName}).`,
                     )
@@ -2720,7 +2749,18 @@ export default function MarkupPage() {
                             (x) => x.id === pPres.id,
                           )
                           const origProd = markupProducts.find((x) => x.id === pPres.id)
-                          const qty = origProd?.quantity || 0
+                          const qtyPres =
+                            origProd?.quantityByRegime?.presumido ??
+                            (origProd?.quantityByRegime ? 0 : origProd?.quantity || 0)
+                          const qtyReal =
+                            origProd?.quantityByRegime?.real ??
+                            (origProd?.quantityByRegime ? 0 : origProd?.quantity || 0)
+                          const qtySimp =
+                            origProd?.quantityByRegime?.simples ??
+                            (origProd?.quantityByRegime ? 0 : origProd?.quantity || 0)
+                          const qtyActive =
+                            origProd?.quantityByRegime?.[regime] ??
+                            (origProd?.quantityByRegime ? 0 : origProd?.quantity || 0)
 
                           // Menor preço unitário individual deste produto
                           const cand: { regime: string; price: number }[] = [
@@ -2741,24 +2781,32 @@ export default function MarkupPage() {
                                 <span className="text-slate-500 font-bold mr-1.5">#{idx + 1}</span>
                                 {pPres.name || `Produto ${idx + 1}`}
                               </td>
-                              <td className="py-2.5 px-3 text-right text-slate-400">{qty} un.</td>
+                              <td className="py-2.5 px-3 text-right text-slate-400">
+                                <span
+                                  title={`P: ${qtyPres} un. | R: ${qtyReal} un. | S: ${qtySimp} un.`}
+                                >
+                                  {qtyActive} un.
+                                </span>
+                              </td>
                               <td className="py-2.5 px-3 text-right">
                                 <span className="font-bold text-slate-100">
                                   {formatBRL(pPres.salePrice)}
                                 </span>
-                                {qty > 0 && (
-                                  <span className="text-[10px] text-slate-500 block">
-                                    Tot: {formatBRL(pPres.totalRevenue)}
-                                  </span>
-                                )}
+                                <span className="text-[10px] text-slate-500 block">
+                                  {qtyPres > 0
+                                    ? `Tot: ${formatBRL(pPres.totalRevenue)} (${qtyPres} un.)`
+                                    : 'Sem qtd informada'}
+                                </span>
                               </td>
                               <td className="py-2.5 px-3 text-right">
                                 <span className="font-bold text-slate-100">
                                   {pReal ? formatBRL(pReal.salePrice) : '—'}
                                 </span>
-                                {qty > 0 && pReal && (
+                                {pReal && (
                                   <span className="text-[10px] text-slate-500 block">
-                                    Tot: {formatBRL(pReal.totalRevenue)}
+                                    {qtyReal > 0
+                                      ? `Tot: ${formatBRL(pReal.totalRevenue)} (${qtyReal} un.)`
+                                      : 'Sem qtd informada'}
                                   </span>
                                 )}
                               </td>
@@ -2775,11 +2823,11 @@ export default function MarkupPage() {
                                         </Badge>
                                       )}
                                     </div>
-                                    {qty > 0 && (
-                                      <span className="text-[10px] text-slate-500 block">
-                                        Tot: {formatBRL(pSimp.totalRevenue)}
-                                      </span>
-                                    )}
+                                    <span className="text-[10px] text-slate-500 block">
+                                      {qtySimp > 0
+                                        ? `Tot: ${formatBRL(pSimp.totalRevenue)} (${qtySimp} un.)`
+                                        : 'Sem qtd informada'}
+                                    </span>
                                   </>
                                 ) : (
                                   <span className="text-slate-500">—</span>
