@@ -248,11 +248,10 @@ export function MarkupCalculationMemoryModal({
   const sumCustomTaxesRate = customTaxesMarkup.reduce((acc, t) => acc + (t.rate || 0), 0)
 
   // Divisor Simples:
-  // Se modo liquid: fórmula gross-up aditiva para tributos + DV, EXCLUSIVAMENTE (1 - %DAS - %customTaxes - %DV)
-  // SEM fator (1 - margem) pois a margem é derivada da Receita Líquida (âncora).
+  // Se modo liquid: multiplicativo de deduções (1 - DAS) × (1 - DV) × customTaxesFactor, SEM fator margem
   // Se custo+margem: multiplicativo: (1 - DAS) * (1 - DV) * (1 - Margem) * customTaxesFactor
   const rawDivisorSimples = isLiquid
-    ? Math.max(0.0001, 1 - (effectiveSimplesRate + sumCustomTaxesRate + dvRate) / 100)
+    ? Math.max(0.0001, dasTaxFactor * dvFactor * customTaxesFactor)
     : dasTaxFactor * dvFactor * marginFactor * customTaxesFactor
   // Blindagem: se tributo aplicável (dasTaxFactor < 1), completeFactor nunca pode ser 1.0
   const divisorSimples = Math.max(0.0001, rawDivisorSimples)
@@ -284,8 +283,9 @@ export function MarkupCalculationMemoryModal({
 
   const totalTaxesPresumidoRate =
     icmsRateClean + pisPresumidoRate + cofinsPresumidoRate + sumCustomTaxesRate
+  // Modo liquid: (1 - ICMS) * (1 - 0,0365) * (1 - DV) * customTaxesFactor
   const rawDivisorPresumido = isLiquid
-    ? Math.max(0.0001, 1 - (totalTaxesPresumidoRate + dvRate) / 100)
+    ? Math.max(0.0001, icmsFactorPresumido * (1 - 0.0365) * dvFactor * customTaxesFactor)
     : taxFactorPresumidoDecomposto * dvFactor * marginFactor
   const divisorPresumido = Math.max(0.0001, rawDivisorPresumido)
   const salePricePresumido =
@@ -319,8 +319,9 @@ export function MarkupCalculationMemoryModal({
     icmsFactorReal * pisFactorReal * cofinsFactorReal * customTaxesFactor
 
   const totalTaxesRealRate = icmsRateClean + pisRealRate + cofinsRealRate + sumCustomTaxesRate
+  // Modo liquid: (1 - ICMS) * (1 - 0,0925) * (1 - DV) * customTaxesFactor
   const rawDivisorReal = isLiquid
-    ? Math.max(0.0001, 1 - (totalTaxesRealRate + dvRate) / 100)
+    ? Math.max(0.0001, icmsFactorReal * (1 - 0.0925) * dvFactor * customTaxesFactor)
     : taxFactorRealDecomposto * dvFactor * marginFactor
   const divisorReal = Math.max(0.0001, rawDivisorReal)
   const salePriceReal =
@@ -525,18 +526,18 @@ export function MarkupCalculationMemoryModal({
                   <code className="text-emerald-400">
                     {isLiquid ? (
                       <>
-                        Divisor = (1 − Alíquota Efetiva DAS − %DV)
+                        Divisor = (1 − DAS%) × (1 − DV%)
                         <br />
                         Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
                       </>
                     ) : (
                       <>
-                        Divisor = (1 − Alíquota Efetiva DAS) × (1 − DV Total) × (1 − Margem%)
+                        Divisor = (1 − DAS%) × (1 − DV%) × (1 − Margem%)
                         <br />
                         Preço Sugerido = Custo Unitário ÷ Divisor
                       </>
                     )}
-                  </code>
+                  </code>{' '}
                 </div>
                 <p className="text-[11px] text-slate-300 leading-relaxed">
                   No Simples Nacional, os tributos sobre receita (ICMS, PIS, COFINS, IRPJ, CSLL e
@@ -761,7 +762,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                       <span className="text-[10px] text-slate-400">
                         {isLiquid
-                          ? `(1 − ${formatPercentBR(effectiveSimplesRate, 4)} − ${formatPercentBR(dvRate)}) = (1 − DAS − %DV)`
+                          ? `(1 − ${formatPercentBR(effectiveSimplesRate, 4)}) × (1 − ${formatPercentBR(dvRate)}) = (1 − DAS) × (1 − DV)`
                           : `(1 − ${formatPercentBR(effectiveSimplesRate, 4)}) × (1 − ${formatPercentBR(dvRate)}) × (1 − ${formatPercentBR(marginPct)}) = (1 − DAS) × (1 − DV) × (1 − Margem)`}
                       </span>
                     </div>
@@ -1005,7 +1006,7 @@ export function MarkupCalculationMemoryModal({
                   <code className="text-emerald-400">
                     {isLiquid ? (
                       <>
-                        Divisor = (1 − Σ%Tributos − %DV)
+                        Divisor = (1 − ICMS%) × (1 − 0,0365) × (1 − DV%)
                         <br />
                         Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
                       </>
@@ -1186,7 +1187,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                       <span className="text-[10px] text-slate-400">
                         {isLiquid
-                          ? `(1 − ${formatPercentBR(totalTaxesPresumidoRate)} − ${formatPercentBR(dvRate)}) = (1 − Σ%Tributos − %DV)`
+                          ? `(1 − ${formatPercentBR(icmsRateClean)}) × (1 − 3,65%) × (1 − ${formatPercentBR(dvRate)}) = (1 − ICMS) × (1 − PIS/COFINS) × (1 − DV)`
                           : '(1 − ICMS%) × (1 − PIS%) × (1 − COFINS%) × (1 − DV) × (1 − Margem)'}
                       </span>
                     </div>
@@ -1408,7 +1409,7 @@ export function MarkupCalculationMemoryModal({
                   <code className="text-emerald-400">
                     {isLiquid ? (
                       <>
-                        Divisor = (1 − Σ%Tributos − %DV)
+                        Divisor = (1 − ICMS%) × (1 − 0,0925) × (1 − DV%)
                         <br />
                         Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
                       </>
@@ -1585,7 +1586,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                       <span className="text-[10px] text-slate-400">
                         {isLiquid
-                          ? `(1 − ${formatPercentBR(totalTaxesRealRate)} − ${formatPercentBR(dvRate)}) = (1 − Σ%Tributos − %DV)`
+                          ? `(1 − ${formatPercentBR(icmsRateClean)}) × (1 − 9,25%) × (1 − ${formatPercentBR(dvRate)}) = (1 − ICMS) × (1 − PIS/COFINS) × (1 − DV)`
                           : '(1 − ICMS%) × (1 − PIS%) × (1 − COFINS%) × (1 − DV) × (1 − Margem)'}
                       </span>
                     </div>

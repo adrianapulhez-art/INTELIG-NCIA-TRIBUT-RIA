@@ -511,11 +511,13 @@ export default function MarkupPage() {
   const pisRate = isSimples ? 0 : regime === 'presumido' ? 0.65 : 1.65
   const cofinsRate = isSimples ? 0 : regime === 'presumido' ? 3.0 : 7.6
   const icmsFactor = 1 - (icmsRateMarkup || 0) / 100
+  // Fator PIS/COFINS unificado: 1 - (pisRate + cofinsRate) / 100
+  const pisCofinsFactor = isSimples ? 1 : 1 - (pisRate + cofinsRate) / 100
   const pisFactor = isSimples ? 1 : 1 - pisRate / 100
   const cofinsFactor = isSimples ? 1 : 1 - cofinsRate / 100
 
   // Fator tributário base
-  let baseTaxFactor = icmsFactor * pisFactor * cofinsFactor
+  let baseTaxFactor = icmsFactor * pisCofinsFactor
   for (const tax of customTaxesMarkup) {
     baseTaxFactor *= 1 - (tax.rate || 0) / 100
   }
@@ -682,28 +684,23 @@ export default function MarkupPage() {
     const dvRate = totalVariableExpenseRate || 0
     const dvFactor = 1 - dvRate / 100
 
-    // 1. Lucro Presumido: PIS 0,65% (0.0065) e COFINS 3,00% (0.0300) cumulativo, ICMS informado
-    const pisFactorPresumido = 1 - 0.0065
-    const cofinsFactorPresumido = 1 - 0.03
+    // 1. Lucro Presumido: PIS/COFINS fator único 0,9635 (1 - 0,0365), ICMS informado
+    const pisCofinsFactorPresumido = 1 - 0.0365 // 0.9635
     const baseTaxFactorPresumido =
-      icmsF *
-      pisFactorPresumido *
-      cofinsFactorPresumido *
-      customTaxesFactor *
-      (dvFactor > 0 ? dvFactor : 1)
-    const totalTaxesPresumidoRate = cleanIcms + 0.65 + 3.0 + sumCustomTaxesPct
+      icmsF * pisCofinsFactorPresumido * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
     const liquidDivisorPresumidoBase = Math.max(
       0.0001,
-      1 - (totalTaxesPresumidoRate + dvRate) / 100,
+      icmsF * pisCofinsFactorPresumido * (dvFactor > 0 ? dvFactor : 1) * customTaxesFactor,
     )
 
-    // 2. Lucro Real: PIS 1,65% (0.0165) e COFINS 7,60% (0.0760) não cumulativo, ICMS informado
-    const pisFactorReal = 1 - 0.0165
-    const cofinsFactorReal = 1 - 0.076
+    // 2. Lucro Real: PIS/COFINS unificado 0,9075 (1 - 0,0925 [1,65% + 7,60%]), ICMS informado
+    const pisCofinsFactorReal = 1 - 0.0925 // 0.9075
     const baseTaxFactorReal =
-      icmsF * pisFactorReal * cofinsFactorReal * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
-    const totalTaxesRealRate = cleanIcms + 1.65 + 7.6 + sumCustomTaxesPct
-    const liquidDivisorRealBase = Math.max(0.0001, 1 - (totalTaxesRealRate + dvRate) / 100)
+      icmsF * pisCofinsFactorReal * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
+    const liquidDivisorRealBase = Math.max(
+      0.0001,
+      icmsF * pisCofinsFactorReal * (dvFactor > 0 ? dvFactor : 1) * customTaxesFactor,
+    )
 
     // 3. Simples Nacional: Alíquota efetiva do PGDAS calculada sobre RBT12 e Anexo do TaxContext
     // Se RBT12 zerado ou não informado, aplica a alíquota nominal da 1ª faixa como fallback legal (nunca 0%)
@@ -715,8 +712,10 @@ export default function MarkupPage() {
     // fator Simples = (1 - alíquota efetiva) * customTaxesFactor * dvFactor
     const baseTaxFactorSimples =
       (1 - effectiveSimplesRate / 100) * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
-    const totalTaxesSimplesRate = effectiveSimplesRate + sumCustomTaxesPct
-    const liquidDivisorSimplesBase = Math.max(0.0001, 1 - (totalTaxesSimplesRate + dvRate) / 100)
+    const liquidDivisorSimplesBase = Math.max(
+      0.0001,
+      (1 - effectiveSimplesRate / 100) * (dvFactor > 0 ? dvFactor : 1) * customTaxesFactor,
+    )
 
     // Helper para calcular produtos por regime, respeitando o modo líquido (divisor aditivo tributos+DV sem fator margem) vs custo+margem
     const calcForTaxFactor = (taxFactorMultiplicative: number, liquidDivisorBase: number) => {

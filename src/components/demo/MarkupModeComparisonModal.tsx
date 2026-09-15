@@ -138,8 +138,13 @@ export function computeMarkupModeComparison(params: {
     customTaxesFactor *= 1 - (ct.rate || 0) / 100
   }
 
-  // Divisores base de cada regime (modo liquid: aditivo (1 - tributos - DV); modo custo+margem: decomposto)
-  let baseLiquidDivisor = 0.7085
+  // Divisores base de cada regime:
+  // Modo Preço Líquido Desejado: multiplicativo de deduções (tributos + DV), SEM fator margem
+  // Presumido: (1 - ICMS) * (1 - 0,0365) * (1 - DV) * customTaxesFactor
+  // Real: (1 - ICMS) * (1 - 0,0925) * (1 - DV) * customTaxesFactor
+  // Simples: (1 - alíquota efetiva PGDAS) * (1 - DV) * customTaxesFactor
+  // Modo Custo + Margem: divisor multiplicativo com todos os fatores (deduções + margem)
+  let baseLiquidDivisor = 0.7308147
   let baseCostMultiplicativeTaxFactor = 1
 
   if (currentRegime === 'simples') {
@@ -148,29 +153,24 @@ export function computeMarkupModeComparison(params: {
       effectiveSimplesRbt12 && effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
     const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
     const effectiveSimplesRate = pgdasRes.aliquotaEfetiva
-    const totalSimplesTaxRate = effectiveSimplesRate + customTaxesSum
-    baseLiquidDivisor = Math.max(0.0001, 1 - (totalSimplesTaxRate + dvRate) / 100)
     baseCostMultiplicativeTaxFactor =
       (1 - effectiveSimplesRate / 100) * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
+    baseLiquidDivisor = Math.max(0.0001, baseCostMultiplicativeTaxFactor)
   } else if (currentRegime === 'presumido') {
     const icms = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
-    const totalPresumidoTaxRate = icms + 0.65 + 3.0 + customTaxesSum
-    baseLiquidDivisor = Math.max(0.0001, 1 - (totalPresumidoTaxRate + dvRate) / 100)
     const icmsFactor = 1 - icms / 100
-    const pisFactor = 1 - 0.0065
-    const cofinsFactor = 1 - 0.03
+    const pisCofinsFactor = 1 - 0.0365 // 0.9635
     baseCostMultiplicativeTaxFactor =
-      icmsFactor * pisFactor * cofinsFactor * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
+      icmsFactor * pisCofinsFactor * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
+    baseLiquidDivisor = Math.max(0.0001, baseCostMultiplicativeTaxFactor)
   } else {
     // Lucro Real
     const icms = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
-    const totalRealTaxRate = icms + 1.65 + 7.6 + customTaxesSum
-    baseLiquidDivisor = Math.max(0.0001, 1 - (totalRealTaxRate + dvRate) / 100)
     const icmsFactor = 1 - icms / 100
-    const pisFactor = 1 - 0.0165
-    const cofinsFactor = 1 - 0.076
+    const pisCofinsFactor = 1 - 0.0925 // 0.9075
     baseCostMultiplicativeTaxFactor =
-      icmsFactor * pisFactor * cofinsFactor * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
+      icmsFactor * pisCofinsFactor * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
+    baseLiquidDivisor = Math.max(0.0001, baseCostMultiplicativeTaxFactor)
   }
 
   // Validação: caso o modo ativo seja Custo+Margem mas não haja custo definido
@@ -313,21 +313,23 @@ export function computeMarkupModeComparison(params: {
       }
     }
 
-    // Margem de entrada EQUIVALENTE para convergência real no preço de venda:
-    // Modo Custo + Margem: PV = unitCost / (baseCostMultiplicativeTaxFactor * (1 - mEntrada/100))
-    // Para PV == activeSalePrice:
-    // 1 - mEntrada/100 = unitCost / (baseCostMultiplicativeTaxFactor * activeSalePrice)
-    // mEntrada = (1 - unitCost / (baseCostMultiplicativeTaxFactor * activeSalePrice)) * 100
-    const denom = baseCostMultiplicativeTaxFactor * activeSalePrice
-    const equivalentEntryMarginRaw = denom > 0 ? (1 - unitCost / denom) * 100 : 0
-    const equivalentEntryMarginPct = Math.round(equivalentEntryMarginRaw * 100) / 100
-
-    // Divisor alternativo com a margem equivalente calculada
-    const safeMarginFactor = Math.max(0.0001, 1 - equivalentEntryMarginPct / 100)
-    const divisorAlt = Math.max(0.0001, baseCostMultiplicativeTaxFactor * safeMarginFactor)
+    // Modo Alternativo Custo + Margem:
+    // Como os modos têm formulações estruturalmente independentes (Custo + Margem usa custo + margem comercial,
+    // enquanto Preço Líquido Desejado usa a meta líquida com divisor multiplicativo de deduções),
+    // apura o modo Custo + Margem com a margem do produto (ou margem derivada caso 0)
+    // sem forçar equivalência artificial.
+    const explicitProductMargin = product.margin || 0
+    const altMarginPct =
+      explicitProductMargin > 0
+        ? explicitProductMargin
+        : implicitMarginPct > 0
+          ? implicitMarginPct
+          : 0
+    const altMarginFactor = Math.max(0.0001, 1 - altMarginPct / 100)
+    const divisorAlt = Math.max(0.0001, baseCostMultiplicativeTaxFactor * altMarginFactor)
     const alternativeSalePrice = Math.round((unitCost / divisorAlt) * 100) / 100
 
-    // Margem líquida apurada canônica do alternativo (pós-IRPJ/CSLL sobre RL aditiva)
+    // Margem líquida apurada do alternativo (pós-IRPJ/CSLL sobre RL multiplicativa)
     const altRL = Math.round(alternativeSalePrice * baseLiquidDivisor * 100) / 100
     const altGrossProfit = Math.round((altRL - unitCost) * 100) / 100
     let altLle = altGrossProfit
@@ -343,35 +345,33 @@ export function computeMarkupModeComparison(params: {
       altLle = Math.round((altGrossProfit - (irpj + csll)) * 100) / 100
     }
     const altCanonicalMarginPct =
-      altRL > 0 ? Math.round((altLle / altRL) * 10000) / 100 : implicitMarginPct
+      altRL > 0 ? Math.round((altLle / altRL) * 10000) / 100 : altMarginPct
 
     const isConvergent = Math.abs(activeSalePrice - alternativeSalePrice) < 0.05
 
-    // Adiciona margem de entrada equivalente também na tríade ativa para rotulagem clara
-    activeTriad.entryMarginPct = equivalentEntryMarginPct
-    activeTriad.entryMarginFormatted = `${formatNumberBR(equivalentEntryMarginPct)}% (equivalente)`
-    activeTriad.entryMarginLabel = 'Margem de Entrada Equivalente'
+    // Adiciona margem de entrada do produto na tríade ativa para rotulagem clara
+    activeTriad.entryMarginPct = explicitProductMargin
+    activeTriad.entryMarginFormatted = `${formatNumberBR(explicitProductMargin)}%`
+    activeTriad.entryMarginLabel = 'Margem de Entrada'
 
     const alternativeTriad: ModeTriadResult = {
       mode: 'cost_margin',
       modeLabel: 'Custo + Margem (Alternativo)',
-      anchorLabel: 'Custo Unitário + Margem Equivalente',
+      anchorLabel: 'Custo Unitário + Margem',
       anchorValue: unitCost,
-      anchorFormatted: `${formatBRL(unitCost)} (+ ${formatNumberBR(equivalentEntryMarginPct)}% margem)`,
+      anchorFormatted: `${formatBRL(unitCost)} (+ ${formatNumberBR(altMarginPct)}% margem)`,
       salePrice: alternativeSalePrice,
       salePriceFormatted: formatBRL(alternativeSalePrice),
-      entryMarginPct: equivalentEntryMarginPct,
-      entryMarginFormatted: isConvergent
-        ? `${formatNumberBR(equivalentEntryMarginPct)}% (convergente)`
-        : `${formatNumberBR(equivalentEntryMarginPct)}%`,
-      entryMarginLabel: 'Margem de Entrada Equivalente',
+      entryMarginPct: altMarginPct,
+      entryMarginFormatted: `${formatNumberBR(altMarginPct)}%`,
+      entryMarginLabel: 'Margem de Entrada',
       netMarginPct: altCanonicalMarginPct,
       netMarginFormatted: `${formatNumberBR(altCanonicalMarginPct)}%`,
       netMarginDerived: true,
       lle: altLle,
       isViable: altLle >= 0,
       notes:
-        'Calculado com o CMV apurado no regime e a margem de entrada equivalente necessária para reproduzir exatamente o mesmo preço de venda.',
+        'Calculado de forma independente no modo Custo + Margem com o CMV e a margem cadastrada, seguindo sua própria lógica multiplicativa.',
     }
 
     return {
@@ -398,11 +398,10 @@ export function computeMarkupModeComparison(params: {
   const activeSalePrice = Math.round((costAnchor / divisorActiveCost) * 100) / 100
 
   // No modo Custo + Margem, derivar a Receita Líquida resultante do preço praticado:
-  // RL implícita = Preço de Venda × divisor do gross-up (1 - Σtributos - %DV)
+  // RL implícita = Preço de Venda × divisor do gross-up multiplicativo
   const implicitNetRevenue = Math.round(activeSalePrice * baseLiquidDivisor * 100) / 100
 
-  // Margem líquida apurada canônica (pós-IRPJ/CSLL sobre RL aditiva)
-  // LLE = RL implícita - CMV - tributos diretos (IRPJ/CSLL)
+  // Margem líquida apurada
   const grossProfitActive = Math.round((implicitNetRevenue - costAnchor) * 100) / 100
   let activeLle = grossProfitActive
   if (currentRegime === 'presumido') {
@@ -440,17 +439,24 @@ export function computeMarkupModeComparison(params: {
     notes: 'Âncora definida pelo custo de aquisição/produção com margem percentual direta.',
   }
 
-  // MODO ALTERNATIVO: Receita Líquida (usando a meta líquida implícita honesta)
-  // Gross-up da meta líquida: RBV = RL implícita ÷ baseLiquidDivisor
+  // MODO ALTERNATIVO: Receita Líquida
+  // Se o produto tiver meta cadastrada em desiredNetRevenue, usa essa meta; caso contrário usa a implícita
+  const altDesiredNetRev =
+    product.desiredNetRevenue && product.desiredNetRevenue > 0
+      ? product.desiredNetRevenue
+      : implicitNetRevenue
   const alternativeSalePrice =
-    baseLiquidDivisor > 0 ? Math.round((implicitNetRevenue / baseLiquidDivisor) * 100) / 100 : 0
+    baseLiquidDivisor > 0 ? Math.round((altDesiredNetRev / baseLiquidDivisor) * 100) / 100 : 0
 
   const alternativeTriad: ModeTriadResult = {
     mode: 'liquid',
     modeLabel: 'Receita Líquida (Alternativo)',
-    anchorLabel: 'Receita Líquida Implícita (RL)',
-    anchorValue: implicitNetRevenue,
-    anchorFormatted: formatBRL(implicitNetRevenue),
+    anchorLabel:
+      product.desiredNetRevenue && product.desiredNetRevenue > 0
+        ? 'Receita Líquida Alvo (RL)'
+        : 'Receita Líquida Implícita (RL)',
+    anchorValue: altDesiredNetRev,
+    anchorFormatted: formatBRL(altDesiredNetRev),
     salePrice: alternativeSalePrice,
     salePriceFormatted: formatBRL(alternativeSalePrice),
     entryMarginPct: explicitMarginPct,
@@ -462,7 +468,7 @@ export function computeMarkupModeComparison(params: {
     lle: activeLle,
     isViable: activeLle >= 0,
     notes:
-      'Calculado a partir da receita líquida aditiva que o preço do modo Custo + Margem produz, convergindo no mesmo nível de preço e rentabilidade.',
+      'Calculado no modo Preço Líquido Desejado pela sua própria lógica multiplicativa (RL ÷ divisor de deduções).',
   }
 
   return {
@@ -903,32 +909,16 @@ export function MarkupModeComparisonModal({
         <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] font-mono text-slate-400 space-y-1">
           <div className="flex items-center gap-1.5 text-slate-200 font-bold">
             <HelpCircle className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Como funciona a premissa honesta de comparação?</span>
+            <span>Independência lógica entre os modos de precificação</span>
           </div>
           <p>
-            {activeMode === 'liquid' ? (
-              <>
-                Como o modo ativo é <strong>Receita Líquida</strong>, a calculadora parte da sua
-                meta líquida ({activeTriad.anchorFormatted}), utiliza o divisor aditivo canônico do
-                regime ({formatNumberBR(comparison.divisorActive, 5)}) e gera o preço de venda (
-                {activeTriad.salePriceFormatted}) com margem líquida apurada de{' '}
-                {activeTriad.netMarginFormatted}. O modo alternativo Custo + Margem calcula a{' '}
-                <strong>margem de entrada equivalente</strong> (
-                {alternativeTriad.entryMarginFormatted}) necessária sob a semântica de formação de
-                preço para reproduzir com <strong>convergência real</strong> o mesmo preço de venda
-                ({alternativeTriad.salePriceFormatted}), mantendo a métrica canônica de margem
-                líquida apurada unificada.
-              </>
-            ) : (
-              <>
-                Como o modo ativo é <strong>Custo + Margem</strong>, a calculadora parte do custo (
-                {activeTriad.anchorFormatted}) e da margem de entrada (
-                {activeTriad.entryMarginFormatted}). O modo alternativo extrai a meta líquida
-                implícita aditiva ({alternativeTriad?.anchorFormatted}) sob o divisor aditivo
-                canônico ({formatNumberBR(comparison.divisorAlternative, 5)}), garantindo a
-                comparabilidade exata de preço e rentabilidade sob as duas óticas.
-              </>
-            )}
+            Os resultados advindos dos cálculos de <strong>Preço de Vendas Líquido</strong> e{' '}
+            <strong>Custo + Margem</strong> são independentes e seguem cada um sua própria lógica
+            multiplicativa: o modo <strong>Custo + Margem</strong> divide o custo pelo produto de
+            todos os fatores (inclusive margem), enquanto o modo{' '}
+            <strong>Preço Líquido Desejado</strong> divide a receita líquida exclusivamente pelos
+            fatores de dedução (tributos e DV). Exibem-se os dois preços reais e a diferença Δ entre
+            eles com total transparência matemática.
           </p>
         </div>
 

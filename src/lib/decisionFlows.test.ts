@@ -27,7 +27,7 @@ describe('Diretriz dos Dois Fluxos de Decisão e Desacoplamento de Regimes', () 
     expect(updated.real).not.toBe(updated.presumido)
   })
 
-  it('(b) Canônico Presumido blindado = R$ 3.295,70 (RL 2.335,00 · ICMS 18% · PIS 0,65% · COFINS 3% · DV 7,5% · margem 0%)', () => {
+  it('(b) Modo Preço Líquido Desejado Presumido = R$ 3.195,08 (RL 2.335,00 · ICMS 18% · PIS/COFINS 0,9635 · DV 7,5%)', () => {
     const chain = calculateLiquidDreChain({
       desiredNetRevenue: 2335.0,
       regime: 'presumido',
@@ -36,10 +36,10 @@ describe('Diretriz dos Dois Fluxos de Decisão e Desacoplamento de Regimes', () 
       unitCost: 1547.0,
     })
 
-    expect(chain.rbv).toBeCloseTo(3295.7, 2)
-    expect(chain.taxesValue).toBeCloseTo(713.52, 2)
+    expect(chain.rbv).toBeCloseTo(3195.08, 2)
+    expect(chain.taxesValue).toBeCloseTo(691.73, 2)
     expect(chain.desiredNetRevenue).toBeCloseTo(2335.0, 2)
-    expect(chain.deductionsValue).toBeCloseTo(247.18, 2)
+    expect(chain.deductionsValue).toBeCloseTo(239.63, 2)
   })
 
   it('(c) Fluxo A: mesmo preço de mercado nos 3 regimes gera lucros diferentes coerentes com custos líquidos e alíquotas', () => {

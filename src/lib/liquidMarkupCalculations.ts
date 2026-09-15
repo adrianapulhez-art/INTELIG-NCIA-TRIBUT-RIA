@@ -66,8 +66,34 @@ export function calculateLiquidDreChain(input: LiquidDreChainInput): LiquidDreCh
   const taxPctDecimal = taxRate / 100
   const dvPctDecimal = dvRate / 100
 
-  // 2. Gross-up: RBV = RL / (1 - %Tributos - %Deduções)
-  const grossUpDivisor = Math.max(0.0001, 1 - taxPctDecimal - dvPctDecimal)
+  // 2. Gross-up: Preço Líquido Desejado segue lógica multiplicativa com fatores de dedução por regime
+  // Presumido: (1 - ICMS) * (1 - 0,0365) * (1 - DV) * customTaxesFactor
+  // Real: (1 - ICMS) * (1 - 0,0925) * (1 - DV) * customTaxesFactor
+  // Simples: (1 - alíquota efetiva) * (1 - DV) * customTaxesFactor
+  const icmsFactor = 1 - icms / 100
+  const dvFactor = 1 - dvPctDecimal
+  const customTaxesFactor = 1 - customTaxes / 100
+  let calculatedDivisor = 1
+  if (regime === 'simples') {
+    const sRate = Math.max(0, input.effectiveSimplesRate || 0)
+    calculatedDivisor =
+      (1 - sRate / 100) *
+      (dvFactor > 0 ? dvFactor : 1) *
+      (customTaxesFactor > 0 ? customTaxesFactor : 1)
+  } else if (regime === 'presumido') {
+    calculatedDivisor =
+      (icmsFactor > 0 ? icmsFactor : 1) *
+      (1 - 0.0365) *
+      (dvFactor > 0 ? dvFactor : 1) *
+      (customTaxesFactor > 0 ? customTaxesFactor : 1)
+  } else {
+    calculatedDivisor =
+      (icmsFactor > 0 ? icmsFactor : 1) *
+      (1 - 0.0925) *
+      (dvFactor > 0 ? dvFactor : 1) *
+      (customTaxesFactor > 0 ? customTaxesFactor : 1)
+  }
+  const grossUpDivisor = Math.max(0.0001, calculatedDivisor)
   const rbv = rl > 0 && grossUpDivisor > 0 ? Math.round((rl / grossUpDivisor) * 100) / 100 : 0
 
   // Valores tributários e deduções

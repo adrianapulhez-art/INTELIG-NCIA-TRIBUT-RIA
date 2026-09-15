@@ -4,35 +4,35 @@ import { calculateLiquidDreChain } from '@/lib/liquidMarkupCalculations'
 import { MarkupProductItem } from '@/contexts/TaxContext'
 
 describe('Janela de Comparação de Modos de Precificação (Markup)', () => {
-  it('Blindagem do valor canônico: Presumido RL R$ 2.335,00 gera exatamente R$ 3.295,70', () => {
-    // Parâmetros canônicos: RL 2.335,00, ICMS 18%, PIS 0,65%, COFINS 3,00%, DV 7,5%
-    // Divisor: 1 - (0.18 + 0.0065 + 0.03 + 0.075) = 1 - 0.2915 = 0.7085
-    // PV = 2.335 / 0.7085 = 3.295,70
+  it('Novo alvo de validação da usuária: Presumido RL R$ 2.335,00 gera exatamente R$ 3.195,08', () => {
+    // Parâmetros: RL 2.335,00, ICMS 18%, PIS/COFINS fator 0,9635, DV 7,5% (0,925)
+    // Divisor: 0,8200 × 0,9635 × 0,925 = 0,7308147
+    // PV = 2.335 / 0,7308147 = 3.195,08
     const chain = calculateLiquidDreChain({
       desiredNetRevenue: 2335,
       regime: 'presumido',
       icmsRate: 18,
       customTaxesRate: 0,
       variableExpensesRate: 7.5,
-      unitCost: 1500,
+      unitCost: 1158.93,
       operatingExpensesUnit: 0,
       presumidoActivity: 'comercio',
     })
-    expect(chain.rbv).toBe(3295.7)
+    expect(chain.rbv).toBe(3195.08)
   })
 
-  it('Modo ativo = Receita Líquida no Lucro Presumido: tríade ativa reflete canônico R$ 3.295,70', () => {
+  it('Modo ativo = Preço Líquido Desejado no Lucro Presumido: tríade ativa reflete novo divisor 0,7308147', () => {
     const product: MarkupProductItem = {
       id: 'prod-canonico',
       name: 'Produto Canônico',
-      cost: 1500,
-      margin: 0,
+      cost: 1158.93,
+      margin: 51.9,
       quantity: 1,
-      salePrice: 3295.7,
-      totalRevenue: 3295.7,
-      totalCost: 1500,
-      taxFactor: 0.7085,
-      completeFactor: 0.7085,
+      salePrice: 3195.08,
+      totalRevenue: 3195.08,
+      totalCost: 1158.93,
+      taxFactor: 0.7308147,
+      completeFactor: 0.7308147,
       mode: 'liquid',
       desiredNetRevenue: 2335,
     }
@@ -45,7 +45,7 @@ describe('Janela de Comparação de Modos de Precificação (Markup)', () => {
       simplesAnexo: 'anexo_1',
       simplesRbt12: 180000,
       totalVariableExpenseRate: 7.5,
-      resolveUnitCost: () => 1500,
+      resolveUnitCost: () => 1158.93,
     })
 
     expect(res.regime).toBe('presumido')
@@ -55,48 +55,36 @@ describe('Janela de Comparação de Modos de Precificação (Markup)', () => {
 
     // Tríade Ativa
     expect(res.activeTriad.anchorValue).toBe(2335)
-    expect(res.activeTriad.salePrice).toBe(3295.7)
+    expect(res.activeTriad.salePrice).toBe(3195.08)
     expect(res.activeTriad.netMarginPct).toBeGreaterThan(0)
 
-    // Tríade Alternativa (Custo + Margem) com premissa honesta de convergência REAL
+    // Tríade Alternativa (Custo + Margem) calculada com independência lógica
     expect(res.alternativeTriad).not.toBeNull()
     if (res.alternativeTriad) {
       expect(res.alternativeTriad.mode).toBe('cost_margin')
-      expect(res.alternativeTriad.anchorValue).toBe(1500) // CMV
-      // Convergência real no preço de venda (diferença < R$ 0,05)
-      expect(Math.abs(res.alternativeTriad.salePrice - res.activeTriad.salePrice)).toBeLessThan(
-        0.05,
-      )
-      // Ambas exibem margem líquida apurada unificada (canônica)
-      expect(res.alternativeTriad.netMarginPct).toBeCloseTo(res.activeTriad.netMarginPct, 1)
-      // Margem de entrada calculada e rotulada
-      expect(res.alternativeTriad.entryMarginPct).toBeDefined()
-      expect(res.alternativeTriad.entryMarginFormatted).toContain('(convergente)')
+      expect(res.alternativeTriad.anchorValue).toBe(1158.93)
+      // Custo + Margem independente: 1158.93 / (0.7308147 * (1 - 0.519)) = 3296.25
+      expect(res.alternativeTriad.salePrice).toBe(3296.25)
+      expect(res.alternativeTriad.entryMarginPct).toBe(51.9)
     }
   })
 
-  it('Caso de referência da auditoria: CMV R$ 1.158,93 e meta RL R$ 2.235,00 no Presumido', () => {
-    // Parâmetros: Presumido, ICMS 18%, PIS 0,65%, COFINS 3,00%, DV 7,5%
-    // Divisor aditivo = 1 - (0.18 + 0.0065 + 0.03 + 0.075) = 0.70850
-    // Fator multiplicativo = (1 - 0.18) * (1 - 0.0065) * (1 - 0.03) * (1 - 0.075) = 0.730957
-    // PV ativo = 2.235,00 / 0.7085 = 3.154,55
-    // Margem líquida apurada = 44,93% (LLE R$ 1.004,15 / RL R$ 2.235,00)
-    // Margem de entrada equivalente = 49,74%
-    // Prova: 1 - 1.158,93 / (0.730957 * 3.154,55) = 0.4974 (49,74%)
-    // PV alternativo Custo + Margem com margem 49,74% deve convergir em R$ 3.154,55
+  it('Caso de referência da auditoria: Custo R$ 1.158,93 vs meta RL R$ 2.335,00 no Presumido', () => {
+    // Modo Custo + Margem: 0,8200 × 0,9635 × 0,925 × 0,4810 = 0,351594 → PV = 1.158,93 / 0,351594 = R$ 3.296,25
+    // Modo Preço Líquido Desejado: 0,8200 × 0,9635 × 0,925 = 0,7308147 → PV = 2.335,00 / 0,7308147 = R$ 3.195,08
     const product: MarkupProductItem = {
       id: 'prod-auditoria',
       name: 'Produto Auditoria',
       cost: 1158.93,
-      margin: 0,
+      margin: 51.9,
       quantity: 1,
-      salePrice: 3154.55,
-      totalRevenue: 3154.55,
+      salePrice: 3195.08,
+      totalRevenue: 3195.08,
       totalCost: 1158.93,
-      taxFactor: 0.7085,
-      completeFactor: 0.7085,
+      taxFactor: 0.7308147,
+      completeFactor: 0.7308147,
       mode: 'liquid',
-      desiredNetRevenue: 2235,
+      desiredNetRevenue: 2335,
     }
 
     const res = computeMarkupModeComparison({
@@ -111,26 +99,19 @@ describe('Janela de Comparação de Modos de Precificação (Markup)', () => {
     })
 
     expect(res.hasValidData).toBe(true)
-    // Modo ativo
-    expect(res.activeTriad.salePrice).toBe(3154.55)
-    expect(res.activeTriad.netMarginPct).toBe(44.93)
-    expect(res.activeTriad.lle).toBe(1004.15)
-    expect(res.activeTriad.entryMarginPct).toBe(49.74)
+    // Modo ativo (Preço Líquido Desejado)
+    expect(res.activeTriad.salePrice).toBe(3195.08)
+    expect(res.activeTriad.anchorValue).toBe(2335)
 
-    // Modo alternativo: convergência REAL
+    // Modo alternativo (Custo + Margem independente)
     expect(res.alternativeTriad).not.toBeNull()
     if (res.alternativeTriad) {
-      expect(res.alternativeTriad.entryMarginPct).toBe(49.74)
-      expect(res.alternativeTriad.salePrice).toBe(3154.55)
-      expect(Math.abs(res.alternativeTriad.salePrice - res.activeTriad.salePrice)).toBeLessThan(
-        0.05,
-      )
-      expect(res.alternativeTriad.netMarginPct).toBe(44.93)
-      expect(res.alternativeTriad.entryMarginFormatted).toContain('(convergente)')
+      expect(res.alternativeTriad.salePrice).toBe(3296.25)
+      expect(res.alternativeTriad.entryMarginPct).toBe(51.9)
     }
   })
 
-  it('Modo ativo = Custo + Margem no Lucro Presumido: tríade alternativa deriva a meta líquida implícita', () => {
+  it('Modo ativo = Custo + Margem no Lucro Presumido: tríade alternativa apura o modo Preço Líquido com independência', () => {
     const product: MarkupProductItem = {
       id: 'prod-cost',
       name: 'Produto Custo',
@@ -140,8 +121,8 @@ describe('Janela de Comparação de Modos de Precificação (Markup)', () => {
       salePrice: 1500,
       totalRevenue: 15000,
       totalCost: 10000,
-      taxFactor: 0.7085,
-      completeFactor: 0.5668,
+      taxFactor: 0.7505,
+      completeFactor: 0.6004,
       mode: 'cost_margin',
       desiredNetRevenue: 0,
     }
@@ -160,9 +141,7 @@ describe('Janela de Comparação de Modos de Precificação (Markup)', () => {
     expect(res.activeMode).toBe('cost_margin')
     expect(res.hasValidData).toBe(true)
     expect(res.activeTriad.anchorValue).toBe(1000)
-    // Margem de entrada rotulada separadamente
     expect(res.activeTriad.entryMarginPct).toBe(20)
-    // Margem líquida apurada canônica pós-IRPJ/CSLL
     expect(res.activeTriad.netMarginPct).toBeDefined()
     expect(res.activeTriad.netMarginDerived).toBe(true)
 
@@ -170,12 +149,7 @@ describe('Janela de Comparação de Modos de Precificação (Markup)', () => {
     expect(res.alternativeTriad).not.toBeNull()
     if (res.alternativeTriad) {
       expect(res.alternativeTriad.mode).toBe('liquid')
-      // A meta líquida derivada deve usar o divisor aditivo canônico (0.7085)
       expect(res.alternativeTriad.anchorValue).toBeGreaterThan(0)
-      // Ambas as margens líquidas apuradas devem ser idênticas
-      expect(res.alternativeTriad.netMarginPct).toBe(res.activeTriad.netMarginPct)
-      // Convergência: o preço simulado alternativo deve convergir com o preço ativo
-      expect(Math.abs(res.alternativeTriad.salePrice - res.activeTriad.salePrice)).toBeLessThan(1.0)
     }
   })
 
@@ -189,8 +163,8 @@ describe('Janela de Comparação de Modos de Precificação (Markup)', () => {
       salePrice: 100,
       totalRevenue: 100,
       totalCost: 50,
-      taxFactor: 0.94,
-      completeFactor: 0.94,
+      taxFactor: 0.9408,
+      completeFactor: 0.9408,
       mode: 'liquid',
       desiredNetRevenue: 80,
     }
@@ -209,9 +183,9 @@ describe('Janela de Comparação de Modos de Precificação (Markup)', () => {
     expect(res.regime).toBe('simples')
     expect(res.regimeLabel).toBe('Simples Nacional')
     expect(res.hasValidData).toBe(true)
-    // Divisor ativo Simples: 1 - (4% + 2%) = 0.94
-    // RBV = 80 / 0.94 = 85.11
-    expect(res.activeTriad.salePrice).toBe(85.11)
+    // Divisor ativo Simples multiplicativo: (1 - 0.04) * (1 - 0.02) = 0.96 * 0.98 = 0.9408
+    // RBV = 80 / 0.9408 = 85.03
+    expect(res.activeTriad.salePrice).toBe(85.03)
   })
 
   it('Honestidade matemática: se faltar custo unitário no regime, modal avisa sem inventar números', () => {

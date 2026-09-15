@@ -165,17 +165,24 @@ export const ResultBaseComparison: React.FC<ResultBaseComparisonProps> = ({
     return typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
   }
 
-  // Divisor aditivo do modo Liquid: 1 - (Σtributos + %DV)/100
+  // Divisor multiplicativo do modo Preço Líquido Desejado: fatores de dedução (tributos + DV), SEM margem
+  // Presumido: (1 - ICMS) * (1 - 0,0365 [0,65% + 3,00%]) * (1 - DV) * customTaxesFactor
+  // Real: (1 - ICMS) * (1 - 0,0925 [1,65% + 7,60%]) * (1 - DV) * customTaxesFactor
+  // Simples: (1 - alíquota efetiva PGDAS) * (1 - DV) * customTaxesFactor
   const computeLiquidDivisor = (regimeKey: 'presumido' | 'real' | 'simples') => {
-    let taxesRate = 0
+    const icmsFactor = 1 - icms / 100
+    const dvFactor = 1 - dvRate / 100
+    let divisor = 1
     if (regimeKey === 'presumido') {
-      taxesRate = icms + 0.65 + 3.0 + sumCustomTaxesPct
+      divisor = icmsFactor * (1 - 0.0365) * (dvFactor > 0 ? dvFactor : 1)
     } else if (regimeKey === 'real') {
-      taxesRate = icms + 1.65 + 7.6 + sumCustomTaxesPct
+      divisor = icmsFactor * (1 - 0.0925) * (dvFactor > 0 ? dvFactor : 1)
     } else {
-      taxesRate = simplesEffectiveRate + sumCustomTaxesPct
+      divisor = (1 - simplesEffectiveRate / 100) * (dvFactor > 0 ? dvFactor : 1)
     }
-    const divisor = 1 - (taxesRate + dvRate) / 100
+    for (const tax of customTaxesMarkup) {
+      divisor *= 1 - (tax.rate || 0) / 100
+    }
     return Math.max(0.0001, divisor)
   }
 

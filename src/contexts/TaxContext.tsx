@@ -3137,11 +3137,29 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     baseTaxFactor *= dvFactor > 0 ? dvFactor : 1
     if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
 
-    // Fator tributário aditivo para o modo líquido: (1 - Σ%tributos - %DV)
-    // No modo liquid: gross-up aditivo exclusivo para tributos + DV, SEM fator (1 - margem)
-    // porque a margem é derivada da Receita Líquida (âncora) e não entra no divisor
-    // Fórmula correta RBV: RL ÷ (1 − Σ%Tributos − %DV)
-    const baseLiquidDivisorWithoutMargin = Math.max(0.0001, 1 - (sumTaxesRatePct + dvRatePct) / 100)
+    // Modo Preço Líquido Desejado: divisor multiplicativo APENAS com fatores de dedução (tributos + DV), SEM fator de margem.
+    // Lucro Presumido: (1−ICMS) × (1−0,0365) × (1−DV) × customTaxesFactor
+    // Lucro Real: (1−ICMS) × (1−0,0925) × (1−DV) × customTaxesFactor
+    // Simples Nacional: (1−alíquota efetiva PGDAS) × (1−DV) × customTaxesFactor
+    let baseLiquidDivisorWithoutMargin = 1
+    if (regime === 'simples') {
+      const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+      const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
+      const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
+      baseLiquidDivisorWithoutMargin = 1 - pgdasRes.aliquotaEfetiva / 100
+    } else if (regime === 'presumido') {
+      const cleanIcms = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
+      baseLiquidDivisorWithoutMargin = (1 - cleanIcms / 100) * (1 - 0.0365)
+    } else {
+      const cleanIcms = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
+      baseLiquidDivisorWithoutMargin = (1 - cleanIcms / 100) * (1 - 0.0925)
+    }
+    for (const tax of customTaxesMarkup) {
+      const taxRate = Number.isFinite(tax.rate) ? tax.rate : 0
+      baseLiquidDivisorWithoutMargin *= 1 - taxRate / 100
+    }
+    baseLiquidDivisorWithoutMargin *= dvFactor > 0 ? dvFactor : 1
+    baseLiquidDivisorWithoutMargin = Math.max(0.0001, baseLiquidDivisorWithoutMargin)
     if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
     // Se não há dados preenchidos, não ativa a simulação automaticamente
     if (!hasAnyFilledProduct) {
@@ -3351,7 +3369,26 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const dvFactorManual = 1 - dvRatePct / 100
     baseTaxFactor *= dvFactorManual > 0 ? dvFactorManual : 1
 
-    const baseLiquidDivisorWithoutMargin = Math.max(0.0001, 1 - (sumTaxesRatePct + dvRatePct) / 100)
+    // Modo Preço Líquido Desejado: divisor multiplicativo com fatores de dedução por regime
+    let baseLiquidDivisorWithoutMargin = 1
+    if (regime === 'simples') {
+      const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+      const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
+      const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
+      baseLiquidDivisorWithoutMargin = 1 - pgdasRes.aliquotaEfetiva / 100
+    } else if (regime === 'presumido') {
+      const cleanIcms = icmsRateMarkup || 0
+      baseLiquidDivisorWithoutMargin = (1 - cleanIcms / 100) * (1 - 0.0365)
+    } else {
+      const cleanIcms = icmsRateMarkup || 0
+      baseLiquidDivisorWithoutMargin = (1 - cleanIcms / 100) * (1 - 0.0925)
+    }
+    for (const tax of customTaxesMarkup) {
+      const tRate = tax.rate || 0
+      baseLiquidDivisorWithoutMargin *= 1 - tRate / 100
+    }
+    baseLiquidDivisorWithoutMargin *= dvFactorManual > 0 ? dvFactorManual : 1
+    baseLiquidDivisorWithoutMargin = Math.max(0.0001, baseLiquidDivisorWithoutMargin)
 
     let consolidatedRevenue = 0
     let consolidatedQty = 0
