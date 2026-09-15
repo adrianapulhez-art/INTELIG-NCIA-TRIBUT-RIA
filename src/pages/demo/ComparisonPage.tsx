@@ -36,6 +36,7 @@ import { exportComparisonToPdf, exportComparisonToExcel } from '@/lib/exportRepo
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { PageHero } from '@/components/demo/PageHero'
 import { ResultBaseComparison } from '@/components/demo/ResultBaseComparison'
+import { DreRegimeComparativeSection } from '@/components/demo/DreRegimeComparativeSection'
 
 export default function ComparisonPage() {
   const navigate = useNavigate()
@@ -3092,6 +3093,35 @@ export default function ComparisonPage() {
             </div>
           </div>
         )}
+
+        {/* DRE COMPARATIVA POR REGIME TRIBUTÁRIO (Solicitação Usuária Adriana: Unitário vs Consolidado em 4 colunas / 2 pares por regime) */}
+        <DreRegimeComparativeSection
+          markupProducts={markupProducts}
+          purchasesItems={purchasesItems}
+          getPurchaseItemUnitNetCost={getPurchaseItemUnitNetCost}
+          icmsRateMarkup={icmsRateMarkup}
+          customTaxesMarkup={customTaxesMarkup}
+          totalVariableExpenseRate={totalVariableExpenseRate}
+          simplesAnexo={simplesAnexo}
+          simplesRbt12={rawSimplesRbt12}
+          effectiveSimplesRbt12={effectiveSimplesRbt12}
+          desiredLiquidRevenueByRegime={desiredLiquidRevenueByRegime}
+          calculatedPurchases={calculatedPurchases}
+          totalGlobalOperatingExpenses={totalGlobalOperatingExpenses}
+          totalGlobalOperatingRevenues={totalGlobalOperatingRevenues}
+          directPayrollExpenses={directPayrollExpenses}
+          patronalCharges={patronalCharges}
+          presumidoActivity={presumidoActivity}
+          realActivity={realActivity}
+          presumidoIssRate={presumidoIssRate}
+          realIssRate={realIssRate}
+          realAdditions={realAdditions}
+          realExclusions={realExclusions}
+          presumidoQuantitySold={presumidoQuantitySold}
+          realQuantitySold={realQuantitySold}
+          simplesQuantitySold={simplesQuantitySold}
+          qty={qty}
+        />
 
         {/* COMPARAÇÃO DE RESULTADO POR BASE DE PRECIFICAÇÃO (Camada recolhida por padrão) */}
         <ResultBaseComparison
