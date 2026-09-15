@@ -608,8 +608,8 @@ export function computeDreComparativeForRegime(params: {
 /**
  * Componente Visual da DRE Comparativa por Regime Tributário
  * Replicado nos 3 regimes com exatamente a estrutura solicitada pela usuária Adriana:
- * - Par 1, subtítulo "DRE - Preço líquido desejado": Coluna 01 (unitário) | Coluna 02 (consolidado)
- * - Par 2, subtítulo "DRE - Custo + Margem": Coluna 01 (unitário) | Coluna 02 (consolidado)
+ * - Par 1, subtítulo "DRE - Preço líquido desejado": (unitário) | (consolidado)
+ * - Par 2, subtítulo "DRE - Custo + Margem": (unitário) | (consolidado)
  */
 export const DreRegimeComparativeSection: React.FC<DreRegimeComparativeProps> = ({
   markupProducts,
@@ -638,8 +638,8 @@ export const DreRegimeComparativeSection: React.FC<DreRegimeComparativeProps> = 
   simplesQuantitySold,
   qty,
 }) => {
-  // Camada colapsável: aberta por padrão para atender à solicitação prioritária da usuária Adriana
-  const [isOpen, setIsOpen] = useState<boolean>(true)
+  // Camada colapsável: recolhida por padrão
+  const [isOpen, setIsOpen] = useState<boolean>(false)
 
   // Alíquotas e divisores compartilhados
   const currentAnexoId = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
@@ -816,19 +816,19 @@ export const DreRegimeComparativeSection: React.FC<DreRegimeComparativeProps> = 
                   DRE - Custo + Margem
                 </th>
               </tr>
-              {/* Linha das Colunas (Coluna 01 e Coluna 02) */}
+              {/* Linha das Colunas (unitário e consolidado) */}
               <tr className="border-b border-slate-800 text-[11px] text-slate-400">
                 <th className="py-2 px-2.5 text-right font-semibold text-slate-300 bg-emerald-500/[0.04]">
-                  Coluna 01 (unitário)
+                  (unitário)
                 </th>
                 <th className="py-2 px-2.5 text-right font-semibold text-slate-300 bg-emerald-500/[0.04] border-r border-slate-800">
-                  Coluna 02 (consolidado)
+                  (consolidado)
                 </th>
                 <th className="py-2 px-2.5 text-right font-semibold text-slate-300 bg-blue-500/[0.04]">
-                  Coluna 01 (unitário)
+                  (unitário)
                 </th>
                 <th className="py-2 px-2.5 text-right font-semibold text-slate-300 bg-blue-500/[0.04]">
-                  Coluna 02 (consolidado)
+                  (consolidado)
                 </th>
               </tr>
             </thead>
@@ -1159,7 +1159,7 @@ export const DreRegimeComparativeSection: React.FC<DreRegimeComparativeProps> = 
           />
         </button>
         <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
-          Preço Líquido Desejado vs. Custo + Margem · Coluna 01 (unitário) / Coluna 02 (consolidado)
+          Preço Líquido Desejado vs. Custo + Margem · (unitário) / (consolidado)
         </span>
       </div>
 
