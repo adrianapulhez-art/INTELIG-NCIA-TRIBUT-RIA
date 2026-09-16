@@ -639,9 +639,12 @@ export function computeDreComparativeForRegime(params: {
       const pQty = resolveProductQty(p)
       const effectiveItemQty = pQty > 0 ? pQty : 0
 
-      // Preço de venda canônico da Calculadora de Markup para modo Liquid
+      // Preço de venda canônico da Calculadora de Markup para modo Liquid (BLINDADO - v0.0.139)
+      // Chaveamento rigoroso: modo Liquid lê estritamente do modo Liquid da Markup.
+      // PROIBIDO fallback para Custo + Margem.
       const candidateLiquidPrice =
-        (p as any).salePriceByRegime?.[regimeKey] ??
+        (p as any).salePriceLiquidByRegime?.[regimeKey] ??
+        (p.mode === 'liquid' ? (p as any).salePriceByRegime?.[regimeKey] : undefined) ??
         (p as any).salePriceLiquid ??
         (p.mode === 'liquid' &&
         typeof p.salePrice === 'number' &&
@@ -793,12 +796,22 @@ export function computeDreComparativeForRegime(params: {
       const effectiveItemQty = pQty > 0 ? pQty : 0
       const unitCost = getProductUnitCost(p)
 
-      // Regra canônica: o motor comparativo consome DIRETAMENTE o preço de venda da Markup
-      // (única fonte da verdade), por produto e por regime. NUNCA recalcula via divisor divergente.
+      // Regra canônica (v0.0.139): o quadro Custo + Margem lê ESTRITAMENTE do modo Custo + Margem
+      // da Markup (única fonte da verdade). PROIBIDO fallback para salePriceLiquid ou para o valor do outro modo.
+      // Chaveamento rigoroso:
+      // 1. salePriceCostMarginByRegime?.[regimeKey]
+      // 2. Se o produto estiver no modo 'cost_margin': salePriceByRegime?.[regimeKey]
+      // 3. salePriceCostMargin (escalar específico de C+M)
+      // 4. Se o produto estiver explicitamente em mode === 'cost_margin' e tiver salePrice numérico válido
+      // PROIBIDO fallback para salePriceLiquid ou para salePrice quando em mode 'liquid'.
       const candidatePrice =
-        (p as any).salePriceByRegime?.[regimeKey] ??
+        (p as any).salePriceCostMarginByRegime?.[regimeKey] ??
+        (p.mode === 'cost_margin' ? (p as any).salePriceByRegime?.[regimeKey] : undefined) ??
         (p as any).salePriceCostMargin ??
-        (typeof p.salePrice === 'number' && Number.isFinite(p.salePrice) && p.salePrice > 0
+        (p.mode === 'cost_margin' &&
+        typeof p.salePrice === 'number' &&
+        Number.isFinite(p.salePrice) &&
+        p.salePrice > 0
           ? p.salePrice
           : undefined)
 
@@ -811,6 +824,7 @@ export function computeDreComparativeForRegime(params: {
         unitSalePrice = Math.round(candidatePrice * 100) / 100
       } else {
         // Fallback defensivo: composição multiplicativa canônica exata da Calculadora de Markup
+        // NUNCA emprestar o preço líquido se a chave estiver vazia/ausente.
         const pMargin =
           p.marginByRegime?.[regimeKey] ??
           (typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0)

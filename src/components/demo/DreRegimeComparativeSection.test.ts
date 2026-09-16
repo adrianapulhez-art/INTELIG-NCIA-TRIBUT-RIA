@@ -520,6 +520,8 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
       salePriceByRegime?: { presumido: number; real: number; simples: number }
       salePriceCostMargin?: number
       salePriceLiquid?: number
+      salePriceLiquidByRegime?: { presumido: number; real: number; simples: number }
+      salePriceCostMarginByRegime?: { presumido: number; real: number; simples: number }
     } = {
       id: 'prod-celular',
       name: 'Celular',
@@ -539,6 +541,11 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
       },
       salePriceCostMargin: 3296.23,
       salePriceLiquid: 3195.06,
+      salePriceLiquidByRegime: {
+        presumido: 3195.06,
+        real: 3392.23,
+        simples: 2738.34,
+      },
       taxFactor: 0,
       completeFactor: 0,
       totalRevenue: 3296.23 * 22,
@@ -549,6 +556,8 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
       salePriceByRegime?: { presumido: number; real: number; simples: number }
       salePriceCostMargin?: number
       salePriceLiquid?: number
+      salePriceLiquidByRegime?: { presumido: number; real: number; simples: number }
+      salePriceCostMarginByRegime?: { presumido: number; real: number; simples: number }
     } = {
       id: 'prod-capa',
       name: 'Capa',
@@ -568,6 +577,11 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
       },
       salePriceCostMargin: 85.53,
       salePriceLiquid: 82.1,
+      salePriceLiquidByRegime: {
+        presumido: 82.1,
+        real: 87.17,
+        simples: 70.36,
+      },
       taxFactor: 0,
       completeFactor: 0,
       totalRevenue: 85.53 * 25,
@@ -634,13 +648,53 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
     expect(simplesData.liquid.unit.grossRevenue).toBeCloseTo(2808.7, 2)
     expect(simplesData.liquid.consolidated.grossRevenue).toBeCloseTo(62002.48, 2)
 
+    // --- ASSERTIVAS DE DIVERGÊNCIA CUSTO + MARGEM vs RECEITA LÍQUIDA (v0.0.139) ---
+    // O quadro "DRE pelo Custo + Margem" jamais pode exibir os valores do modo Receita Líquida.
+    // As duas tabelas divergem por construção em todos os regimes.
+    expect(presData.costMargin.unit.grossRevenue).not.toBeCloseTo(
+      presData.liquid.unit.grossRevenue,
+      2,
+    )
+    expect(presData.costMargin.consolidated.grossRevenue).not.toBeCloseTo(
+      presData.liquid.consolidated.grossRevenue,
+      2,
+    )
+    expect(realData.costMargin.unit.grossRevenue).not.toBeCloseTo(
+      realData.liquid.unit.grossRevenue,
+      2,
+    )
+    expect(realData.costMargin.consolidated.grossRevenue).not.toBeCloseTo(
+      realData.liquid.consolidated.grossRevenue,
+      2,
+    )
+    expect(simplesData.costMargin.unit.grossRevenue).not.toBeCloseTo(
+      simplesData.liquid.unit.grossRevenue,
+      2,
+    )
+    expect(simplesData.costMargin.consolidated.grossRevenue).not.toBeCloseTo(
+      simplesData.liquid.consolidated.grossRevenue,
+      2,
+    )
+
+    // Rejeição expressa: Custo + Margem nunca pode assumir os valores do modo Receita Líquida
+    // Presumido RL: unit 3.277,16 / cons 72.343,82
+    expect(presData.costMargin.unit.grossRevenue).not.toBeCloseTo(3277.16, 2)
+    expect(presData.costMargin.consolidated.grossRevenue).not.toBeCloseTo(72343.82, 2)
+    // Real RL: unit 3.479,40 / cons 76.808,31
+    expect(realData.costMargin.unit.grossRevenue).not.toBeCloseTo(3479.4, 2)
+    expect(realData.costMargin.consolidated.grossRevenue).not.toBeCloseTo(76808.31, 2)
+    // Simples RL: unit 2.808,70 / cons 62.002,48
+    expect(simplesData.costMargin.unit.grossRevenue).not.toBeCloseTo(2808.7, 2)
+    expect(simplesData.costMargin.consolidated.grossRevenue).not.toBeCloseTo(62002.48, 2)
+
     // --- ASSERTIVAS DE REJEIÇÃO EXPRESSA ---
-    // Os valores de média proibida (consolidado ÷ 47), o valor inflado por soma aditiva
-    // e os novos valores divergentes NÃO PODEM OCORRER:
-    // 3.382,43, 74.670,08, 3.258,98, 71.944,82
+    // Os valores de média proibida (consolidado ÷ 47), o valor inflado por soma aditiva,
+    // o divisor antigo 0,70850 e os novos valores divergentes NÃO PODEM OCORRER:
+    // 1.672,01 · 1.319,20 · 1.638,77 · 1.539,23 · 77.022,06 · 78.584,34 · 3.382,43 · 74.670,08 · 3.258,98 · 71.944,82 · 0,70850
     // Rejeição expressa em todas as saídas unitárias e consolidadas dos 3 regimes (C+M e RL)
     const rejectedValues = [
       1672.01, 1319.2, 1638.77, 1539.23, 77022.06, 78584.34, 3382.43, 74670.08, 3258.98, 71944.82,
+      0.7085,
     ]
 
     for (const rej of rejectedValues) {
