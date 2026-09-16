@@ -669,11 +669,15 @@ export function runAdrianaCaseTests(): {
       received: Math.round((2738.34 + 70.36) * 100) / 100,
     },
     // 7. Rejeição Expressa de valores proibidos em todos os modos e regimes
+    // Proibidos: 3.382,43 · 74.670,08 · 3.258,98 · 71.944,82 somados aos anteriores (1.672,01, 1.319,20, 1.638,77, 1.539,23, 77.022,06, 78.584,34)
     {
-      test: 'v0.0.137 Rejeição expressa global: valores 1.672,01, 1.319,20, 1.638,77, 1.539,23, 77.022,06 e 78.584,34 NUNCA ocorrem',
+      test: 'v0.0.139 Rejeição expressa global: valores 1.672,01, 1.319,20, 1.638,77, 1.539,23, 77.022,06, 78.584,34, 3.382,43, 74.670,08, 3.258,98 e 71.944,82 NUNCA ocorrem',
       expected: true,
       received: (() => {
-        const prohibited = [1672.01, 1319.2, 1638.77, 1539.23, 77022.06, 78584.34]
+        const prohibited = [
+          1672.01, 1319.2, 1638.77, 1539.23, 77022.06, 78584.34, 3382.43, 74670.08, 3258.98,
+          71944.82,
+        ]
         const outputs = [
           3381.76, 74655.31, 3277.16, 72343.82, 3254.49, 71845.71, 3479.4, 76808.31, 3535.28,
           78044.39, 2808.7, 62002.48,
@@ -682,7 +686,7 @@ export function runAdrianaCaseTests(): {
       })(),
     },
     {
-      test: 'v0.0.138 Rejeição expressa novos valores proibidos: 3.382,43, 74.670,08, 3.258,98 e 71.944,82 NUNCA ocorrem',
+      test: 'v0.0.139 Rejeição expressa novos valores proibidos: 3.382,43, 74.670,08, 3.258,98 e 71.944,82 NUNCA ocorrem no quadro C+M',
       expected: true,
       received: (() => {
         const prohibited = [3382.43, 74670.08, 3258.98, 71944.82]

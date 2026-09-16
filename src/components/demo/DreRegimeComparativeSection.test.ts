@@ -692,8 +692,10 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
     // o divisor antigo 0,70850 e os novos valores divergentes NÃO PODEM OCORRER:
     // 1.672,01 · 1.319,20 · 1.638,77 · 1.539,23 · 77.022,06 · 78.584,34 · 3.382,43 · 74.670,08 · 3.258,98 · 71.944,82 · 0,70850
     // Rejeição expressa em todas as saídas unitárias e consolidadas dos 3 regimes (C+M e RL)
+    // Valores proibidos obrigatórios: 3.382,43 · 74.670,08 · 3.258,98 · 71.944,82
+    // somando-se às rejeições já existentes: 1.672,01 · 1.319,20 · 1.638,77 · 1.539,23 · 77.022,06 · 78.584,34 · 0,70850
     const rejectedValues = [
-      1672.01, 1319.2, 1638.77, 1539.23, 77022.06, 78584.34, 3382.43, 74670.08, 3258.98, 71944.82,
+      3382.43, 74670.08, 3258.98, 71944.82, 1672.01, 1319.2, 1638.77, 1539.23, 77022.06, 78584.34,
       0.7085,
     ]
 
