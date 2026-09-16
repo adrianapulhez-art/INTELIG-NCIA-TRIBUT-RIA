@@ -541,14 +541,15 @@ export function runAdrianaCaseTests(): {
       expected: 3296.25,
       received: pvCelularCM,
     },
-    // v0.0.136: Pacote Canônico da Adriana e Rejeições Expressas
+    // v0.0.136 / v0.0.137: Pacote Canônico da Adriana (3 Regimes × 2 Modos: C+M e RL)
+    // 1. Presumido C+M: Unitário 3.381,76 / Consolidado 74.655,31
     {
-      test: 'v0.0.136 Invariante Unitário × Q = Consolidado Celular Presumido (3.296,23 × 22 = 72.517,06)',
+      test: 'v0.0.136 Invariante Unitário × Q = Consolidado Celular Presumido C+M (3.296,23 × 22 = 72.517,06)',
       expected: 72517.06,
       received: Math.round(3296.23 * 22 * 100) / 100,
     },
     {
-      test: 'v0.0.136 Invariante Unitário × Q = Consolidado Capa Presumido (85,53 × 25 = 2.138,25)',
+      test: 'v0.0.136 Invariante Unitário × Q = Consolidado Capa Presumido C+M (85,53 × 25 = 2.138,25)',
       expected: 2138.25,
       received: Math.round(85.53 * 25 * 100) / 100,
     },
@@ -562,6 +563,80 @@ export function runAdrianaCaseTests(): {
       expected: 3381.76,
       received: Math.round((3296.23 + 85.53) * 100) / 100,
     },
+    // 2. Presumido RL: Unitário 3.277,16 / Consolidado 72.343,82
+    {
+      test: 'v0.0.137 Invariante Unitário × Q = Consolidado Celular Presumido RL (3.195,06 × 22 = 70.291,32)',
+      expected: 70291.32,
+      received: Math.round(3195.06 * 22 * 100) / 100,
+    },
+    {
+      test: 'v0.0.137 Invariante Unitário × Q = Consolidado Capa Presumido RL (82,10 × 25 = 2.052,50)',
+      expected: 2052.5,
+      received: Math.round(82.1 * 25 * 100) / 100,
+    },
+    {
+      test: 'v0.0.137 Presumido RL Consolidado Canônico = 72.343,82',
+      expected: 72343.82,
+      received: Math.round((70291.32 + 2052.5) * 100) / 100,
+    },
+    {
+      test: 'v0.0.137 Presumido RL Unitário Canônico (Soma dos itens) = 3.277,16',
+      expected: 3277.16,
+      received: Math.round((3195.06 + 82.1) * 100) / 100,
+    },
+    // 3. Real C+M: Unitário 3.254,49 / Consolidado 71.845,71
+    {
+      test: 'v0.0.137 Invariante Unitário × Q = Consolidado Celular Real C+M (3.172,18 × 22 = 69.787,96)',
+      expected: 69787.96,
+      received: Math.round(3172.18 * 22 * 100) / 100,
+    },
+    {
+      test: 'v0.0.137 Invariante Unitário × Q = Consolidado Capa Real C+M (82,31 × 25 = 2.057,75)',
+      expected: 2057.75,
+      received: Math.round(82.31 * 25 * 100) / 100,
+    },
+    {
+      test: 'v0.0.137 Real C+M Consolidado Canônico = 71.845,71',
+      expected: 71845.71,
+      received: Math.round((69787.96 + 2057.75) * 100) / 100,
+    },
+    {
+      test: 'v0.0.137 Real C+M Unitário Canônico (Soma dos itens) = 3.254,49',
+      expected: 3254.49,
+      received: Math.round((3172.18 + 82.31) * 100) / 100,
+    },
+    // 4. Real RL: Unitário 3.479,40 / Consolidado 76.808,31
+    {
+      test: 'v0.0.137 Invariante Unitário × Q = Consolidado Celular Real RL (3.392,23 × 22 = 74.629,06)',
+      expected: 74629.06,
+      received: Math.round(3392.23 * 22 * 100) / 100,
+    },
+    {
+      test: 'v0.0.137 Invariante Unitário × Q = Consolidado Capa Real RL (87,17 × 25 = 2.179,25)',
+      expected: 2179.25,
+      received: Math.round(87.17 * 25 * 100) / 100,
+    },
+    {
+      test: 'v0.0.137 Real RL Consolidado Canônico = 76.808,31',
+      expected: 76808.31,
+      received: Math.round((74629.06 + 2179.25) * 100) / 100,
+    },
+    {
+      test: 'v0.0.137 Real RL Unitário Canônico (Soma dos itens) = 3.479,40',
+      expected: 3479.4,
+      received: Math.round((3392.23 + 87.17) * 100) / 100,
+    },
+    // 5. Simples C+M: Unitário 3.535,28 / Consolidado 78.044,39
+    {
+      test: 'v0.0.136 Invariante Unitário × Q = Consolidado Celular Simples C+M (3.445,87 × 22 = 75.809,14)',
+      expected: 75809.14,
+      received: Math.round(3445.87 * 22 * 100) / 100,
+    },
+    {
+      test: 'v0.0.136 Invariante Unitário × Q = Consolidado Capa Simples C+M (89,41 × 25 = 2.235,25)',
+      expected: 2235.25,
+      received: Math.round(89.41 * 25 * 100) / 100,
+    },
     {
       test: 'v0.0.136 Simples C+M Consolidado Canônico = 78.044,39',
       expected: 78044.39,
@@ -572,20 +647,54 @@ export function runAdrianaCaseTests(): {
       expected: 3535.28,
       received: Math.round((3445.87 + 89.41) * 100) / 100,
     },
+    // 6. Simples RL: Unitário 2.808,70 / Consolidado 62.002,48
     {
-      test: 'v0.0.136 Rejeição expressa da média Simples C+M (1.672,01) e total inflado (78.584,34)',
-      expected: true,
-      received: !(
-        [1672.01, 78584.34].includes(Math.round((75809.14 + 2235.25) * 100) / 100) ||
-        [1672.01, 78584.34].includes(Math.round((3445.87 + 89.41) * 100) / 100)
-      ),
+      test: 'v0.0.137 Invariante Unitário × Q = Consolidado Celular Simples RL (2.738,34 × 22 = 60.243,48)',
+      expected: 60243.48,
+      received: Math.round(2738.34 * 22 * 100) / 100,
     },
     {
-      test: 'v0.0.136 Rejeição expressa dos valores de média 1.638,77, 1.539,23, 1.319,20 e total inflado 77.022,06',
+      test: 'v0.0.137 Invariante Unitário × Q = Consolidado Capa Simples RL (70,36 × 25 = 1.759,00)',
+      expected: 1759.0,
+      received: Math.round(70.36 * 25 * 100) / 100,
+    },
+    {
+      test: 'v0.0.137 Simples RL Consolidado Canônico = 62.002,48',
+      expected: 62002.48,
+      received: Math.round((60243.48 + 1759.0) * 100) / 100,
+    },
+    {
+      test: 'v0.0.137 Simples RL Unitário Canônico (Soma dos itens) = 2.808,70',
+      expected: 2808.7,
+      received: Math.round((2738.34 + 70.36) * 100) / 100,
+    },
+    // 7. Rejeição Expressa de valores proibidos em todos os modos e regimes
+    {
+      test: 'v0.0.137 Rejeição expressa global: valores 1.672,01, 1.319,20, 1.638,77, 1.539,23, 77.022,06 e 78.584,34 NUNCA ocorrem',
       expected: true,
-      received: ![1638.77, 1539.23, 1319.2, 77022.06].includes(
-        Math.round((3296.23 + 85.53) * 100) / 100,
-      ),
+      received: (() => {
+        const prohibited = [1672.01, 1319.2, 1638.77, 1539.23, 77022.06, 78584.34]
+        const outputs = [
+          3381.76, 74655.31, 3277.16, 72343.82, 3254.49, 71845.71, 3479.4, 76808.31, 3535.28,
+          78044.39, 2808.7, 62002.48,
+        ]
+        return prohibited.every((p) => !outputs.includes(p))
+      })(),
+    },
+    {
+      test: 'v0.0.137 Linha de totais unitários = soma dos produtos (nunca consolidado ÷ 47)',
+      expected: true,
+      received: (() => {
+        const pairs = [
+          { unit: 3381.76, cons: 74655.31 },
+          { unit: 3277.16, cons: 72343.82 },
+          { unit: 3254.49, cons: 71845.71 },
+          { unit: 3479.4, cons: 76808.31 },
+          { unit: 3535.28, cons: 78044.39 },
+          { unit: 2808.7, cons: 62002.48 },
+        ]
+        return pairs.every((pair) => pair.unit !== Math.round((pair.cons / 47) * 100) / 100)
+      })(),
     },
   ]
 

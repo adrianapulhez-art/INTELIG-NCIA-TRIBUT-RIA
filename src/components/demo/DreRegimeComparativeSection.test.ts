@@ -607,16 +607,27 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
 
     // --- ASSERTIVAS DE REJEIÇÃO EXPRESSA ---
     // Os valores de média proibida (consolidado ÷ 47) e o valor inflado por soma aditiva NÃO PODEM OCORRER
+    // Rejeição expressa em todas as saídas unitárias e consolidadas dos 3 regimes (C+M e RL)
     const rejectedValues = [1672.01, 1319.2, 1638.77, 1539.23, 77022.06, 78584.34]
 
     for (const rej of rejectedValues) {
+      // Lucro Presumido
       expect(presData.costMargin.unit.grossRevenue).not.toBeCloseTo(rej, 2)
+      expect(presData.costMargin.consolidated.grossRevenue).not.toBeCloseTo(rej, 2)
       expect(presData.liquid.unit.grossRevenue).not.toBeCloseTo(rej, 2)
+      expect(presData.liquid.consolidated.grossRevenue).not.toBeCloseTo(rej, 2)
+
+      // Lucro Real
       expect(realData.costMargin.unit.grossRevenue).not.toBeCloseTo(rej, 2)
+      expect(realData.costMargin.consolidated.grossRevenue).not.toBeCloseTo(rej, 2)
       expect(realData.liquid.unit.grossRevenue).not.toBeCloseTo(rej, 2)
+      expect(realData.liquid.consolidated.grossRevenue).not.toBeCloseTo(rej, 2)
+
+      // Simples Nacional
       expect(simplesData.costMargin.unit.grossRevenue).not.toBeCloseTo(rej, 2)
-      expect(simplesData.liquid.unit.grossRevenue).not.toBeCloseTo(rej, 2)
       expect(simplesData.costMargin.consolidated.grossRevenue).not.toBeCloseTo(rej, 2)
+      expect(simplesData.liquid.unit.grossRevenue).not.toBeCloseTo(rej, 2)
+      expect(simplesData.liquid.consolidated.grossRevenue).not.toBeCloseTo(rej, 2)
     }
 
     // --- INVARIANTE Unitário × Q = Consolidado DENTRO DE CADA PRODUTO ---
@@ -633,5 +644,59 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
     expect(p1ConsSimp).toBe(75809.14)
     expect(p2ConsSimp).toBe(2235.25)
     expect(p1ConsSimp + p2ConsSimp).toBe(78044.39)
+
+    // Real C+M: 3.172,18 * 22 = 69.787,96 e 82,31 * 25 = 2.057,75 -> soma = 71.845,71
+    const p1ConsReal = Math.round(3172.18 * 22 * 100) / 100
+    const p2ConsReal = Math.round(82.31 * 25 * 100) / 100
+    expect(p1ConsReal).toBe(69787.96)
+    expect(p2ConsReal).toBe(2057.75)
+    expect(p1ConsReal + p2ConsReal).toBe(71845.71)
+
+    // Presumido RL: 3.195,06 * 22 = 70.291,32 e 82,10 * 25 = 2.052,50 -> soma = 72.343,82
+    const p1ConsPresRL = Math.round(3195.06 * 22 * 100) / 100
+    const p2ConsPresRL = Math.round(82.1 * 25 * 100) / 100
+    expect(p1ConsPresRL).toBe(70291.32)
+    expect(p2ConsPresRL).toBe(2052.5)
+    expect(p1ConsPresRL + p2ConsPresRL).toBe(72343.82)
+
+    // Real RL: 3.392,23 * 22 = 74.629,06 e 87,17 * 25 = 2.179,25 -> soma = 76.808,31
+    const p1ConsRealRL = Math.round(3392.23 * 22 * 100) / 100
+    const p2ConsRealRL = Math.round(87.17 * 25 * 100) / 100
+    expect(p1ConsRealRL).toBe(74629.06)
+    expect(p2ConsRealRL).toBe(2179.25)
+    expect(p1ConsRealRL + p2ConsRealRL).toBe(76808.31)
+
+    // Simples RL: 2.738,34 * 22 = 60.243,48 e 70,36 * 25 = 1.759,00 -> soma = 62.002,48
+    const p1ConsSimpRL = Math.round(2738.34 * 22 * 100) / 100
+    const p2ConsSimpRL = Math.round(70.36 * 25 * 100) / 100
+    expect(p1ConsSimpRL).toBe(60243.48)
+    expect(p2ConsSimpRL).toBe(1759.0)
+    expect(p1ConsSimpRL + p2ConsSimpRL).toBe(62002.48)
+
+    // Linha de totais unitários = SOMA dos produtos (nunca consolidado ÷ 47)
+    expect(presData.costMargin.unit.grossRevenue).not.toBeCloseTo(
+      presData.costMargin.consolidated.grossRevenue / 47,
+      2,
+    )
+    expect(presData.liquid.unit.grossRevenue).not.toBeCloseTo(
+      presData.liquid.consolidated.grossRevenue / 47,
+      2,
+    )
+    expect(realData.costMargin.unit.grossRevenue).not.toBeCloseTo(
+      realData.costMargin.consolidated.grossRevenue / 47,
+      2,
+    )
+    expect(realData.liquid.unit.grossRevenue).not.toBeCloseTo(
+      realData.liquid.consolidated.grossRevenue / 47,
+      2,
+    )
+    expect(simplesData.costMargin.unit.grossRevenue).not.toBeCloseTo(
+      simplesData.costMargin.consolidated.grossRevenue / 47,
+      2,
+    )
+    expect(simplesData.liquid.unit.grossRevenue).not.toBeCloseTo(
+      simplesData.liquid.consolidated.grossRevenue / 47,
+      2,
+    )
   })
 })
