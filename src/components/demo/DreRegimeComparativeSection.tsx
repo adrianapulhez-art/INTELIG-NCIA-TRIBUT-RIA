@@ -638,14 +638,35 @@ export function computeDreComparativeForRegime(params: {
     for (const p of validProducts) {
       const pQty = resolveProductQty(p)
       const effectiveItemQty = pQty > 0 ? pQty : 0
-      const itemMeta =
-        p.desiredNetRevenueByRegime?.[regimeKey] ??
-        desiredLiquidRevenueByRegime?.[regimeKey] ??
-        p.desiredNetRevenue ??
-        0
-      const divisor = computeLiquidDivisor()
-      const unitSalePrice =
-        divisor > 0.0001 && itemMeta > 0 ? Math.round((itemMeta / divisor) * 100) / 100 : 0
+
+      // Preço de venda canônico da Calculadora de Markup para modo Liquid
+      const candidateLiquidPrice =
+        (p as any).salePriceByRegime?.[regimeKey] ??
+        (p as any).salePriceLiquid ??
+        (p.mode === 'liquid' &&
+        typeof p.salePrice === 'number' &&
+        Number.isFinite(p.salePrice) &&
+        p.salePrice > 0
+          ? p.salePrice
+          : undefined)
+
+      let unitSalePrice = 0
+      if (
+        typeof candidateLiquidPrice === 'number' &&
+        Number.isFinite(candidateLiquidPrice) &&
+        candidateLiquidPrice > 0
+      ) {
+        unitSalePrice = Math.round(candidateLiquidPrice * 100) / 100
+      } else {
+        const itemMeta =
+          p.desiredNetRevenueByRegime?.[regimeKey] ??
+          desiredLiquidRevenueByRegime?.[regimeKey] ??
+          p.desiredNetRevenue ??
+          0
+        const divisor = computeLiquidDivisor()
+        unitSalePrice =
+          divisor > 0.0001 && itemMeta > 0 ? Math.round((itemMeta / divisor) * 100) / 100 : 0
+      }
       const unitCost = getProductUnitCost(p)
 
       // Apuração unitária do item
@@ -771,12 +792,32 @@ export function computeDreComparativeForRegime(params: {
       const pQty = resolveProductQty(p)
       const effectiveItemQty = pQty > 0 ? pQty : 0
       const unitCost = getProductUnitCost(p)
-      const pMargin =
-        p.marginByRegime?.[regimeKey] ??
-        (typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0)
-      const divisor = computeCostMarginDivisor(pMargin)
-      const unitSalePrice =
-        divisor > 0.0001 && unitCost > 0 ? Math.round((unitCost / divisor) * 100) / 100 : 0
+
+      // Regra canônica: o motor comparativo consome DIRETAMENTE o preço de venda da Markup
+      // (única fonte da verdade), por produto e por regime. NUNCA recalcula via divisor divergente.
+      const candidatePrice =
+        (p as any).salePriceByRegime?.[regimeKey] ??
+        (p as any).salePriceCostMargin ??
+        (typeof p.salePrice === 'number' && Number.isFinite(p.salePrice) && p.salePrice > 0
+          ? p.salePrice
+          : undefined)
+
+      let unitSalePrice = 0
+      if (
+        typeof candidatePrice === 'number' &&
+        Number.isFinite(candidatePrice) &&
+        candidatePrice > 0
+      ) {
+        unitSalePrice = Math.round(candidatePrice * 100) / 100
+      } else {
+        // Fallback defensivo: composição multiplicativa canônica exata da Calculadora de Markup
+        const pMargin =
+          p.marginByRegime?.[regimeKey] ??
+          (typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0)
+        const divisor = computeCostMarginDivisor(pMargin)
+        unitSalePrice =
+          divisor > 0.0001 && unitCost > 0 ? Math.round((unitCost / divisor) * 100) / 100 : 0
+      }
 
       // Apuração unitária do item
       const itemUnitDre = computeProductUnitDre(unitSalePrice, unitCost)

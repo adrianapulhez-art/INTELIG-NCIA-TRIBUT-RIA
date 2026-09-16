@@ -509,7 +509,18 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
     // Custos e Metas/Margens:
     // Celular: custo 1158.93, margem 51.9%, meta líquida 2335.00
     // Capa: custo 30.00, margem 51.9%, meta líquida 60.00
-    const prodCelular: MarkupProductItem = {
+    // Preços canônicos calculados pela Calculadora de Markup por regime:
+    // Presumido C+M: Celular 3.296,23 / Capa 85,53 (Total unit: 3.381,76 / Consolidado: 74.655,31)
+    // Real C+M: Celular 3.172,18 / Capa 82,31 (Total unit: 3.254,49 / Consolidado: 71.845,71)
+    // Simples C+M: Celular 3.445,87 / Capa 89,41 (Total unit: 3.535,28 / Consolidado: 78.044,39)
+    // Presumido RL: Celular 3.195,06 / Capa 82,10 (Total unit: 3.277,16 / Consolidado: 72.343,82)
+    // Real RL: Celular 3.392,23 / Capa 87,17 (Total unit: 3.479,40 / Consolidado: 76.808,31)
+    // Simples RL: Celular 2.738,34 / Capa 70,36 (Total unit: 2.808,70 / Consolidado: 62.002,48)
+    const prodCelular: MarkupProductItem & {
+      salePriceByRegime?: { presumido: number; real: number; simples: number }
+      salePriceCostMargin?: number
+      salePriceLiquid?: number
+    } = {
       id: 'prod-celular',
       name: 'Celular',
       mode: 'cost_margin',
@@ -521,13 +532,24 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
       marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
       quantityByRegime: { presumido: 22, real: 22, simples: 22 },
       salePrice: 3296.23,
+      salePriceByRegime: {
+        presumido: 3296.23,
+        real: 3172.18,
+        simples: 3445.87,
+      },
+      salePriceCostMargin: 3296.23,
+      salePriceLiquid: 3195.06,
       taxFactor: 0,
       completeFactor: 0,
       totalRevenue: 3296.23 * 22,
       totalCost: 1158.93 * 22,
     }
 
-    const prodCapa: MarkupProductItem = {
+    const prodCapa: MarkupProductItem & {
+      salePriceByRegime?: { presumido: number; real: number; simples: number }
+      salePriceCostMargin?: number
+      salePriceLiquid?: number
+    } = {
       id: 'prod-capa',
       name: 'Capa',
       mode: 'cost_margin',
@@ -539,6 +561,13 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
       marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
       quantityByRegime: { presumido: 25, real: 25, simples: 25 },
       salePrice: 85.53,
+      salePriceByRegime: {
+        presumido: 85.53,
+        real: 82.31,
+        simples: 89.41,
+      },
+      salePriceCostMargin: 85.53,
+      salePriceLiquid: 82.1,
       taxFactor: 0,
       completeFactor: 0,
       totalRevenue: 85.53 * 25,
@@ -606,9 +635,13 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
     expect(simplesData.liquid.consolidated.grossRevenue).toBeCloseTo(62002.48, 2)
 
     // --- ASSERTIVAS DE REJEIÇÃO EXPRESSA ---
-    // Os valores de média proibida (consolidado ÷ 47) e o valor inflado por soma aditiva NÃO PODEM OCORRER
+    // Os valores de média proibida (consolidado ÷ 47), o valor inflado por soma aditiva
+    // e os novos valores divergentes NÃO PODEM OCORRER:
+    // 3.382,43, 74.670,08, 3.258,98, 71.944,82
     // Rejeição expressa em todas as saídas unitárias e consolidadas dos 3 regimes (C+M e RL)
-    const rejectedValues = [1672.01, 1319.2, 1638.77, 1539.23, 77022.06, 78584.34]
+    const rejectedValues = [
+      1672.01, 1319.2, 1638.77, 1539.23, 77022.06, 78584.34, 3382.43, 74670.08, 3258.98, 71944.82,
+    ]
 
     for (const rej of rejectedValues) {
       // Lucro Presumido

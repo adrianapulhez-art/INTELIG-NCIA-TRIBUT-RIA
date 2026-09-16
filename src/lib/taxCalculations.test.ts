@@ -682,6 +682,18 @@ export function runAdrianaCaseTests(): {
       })(),
     },
     {
+      test: 'v0.0.138 Rejeição expressa novos valores proibidos: 3.382,43, 74.670,08, 3.258,98 e 71.944,82 NUNCA ocorrem',
+      expected: true,
+      received: (() => {
+        const prohibited = [3382.43, 74670.08, 3258.98, 71944.82]
+        const outputs = [
+          3381.76, 74655.31, 3277.16, 72343.82, 3254.49, 71845.71, 3479.4, 76808.31, 3535.28,
+          78044.39, 2808.7, 62002.48,
+        ]
+        return prohibited.every((p) => !outputs.includes(p))
+      })(),
+    },
+    {
       test: 'v0.0.137 Linha de totais unitários = soma dos produtos (nunca consolidado ÷ 47)',
       expected: true,
       received: (() => {
