@@ -391,4 +391,124 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
     expect(liqUnit.cmv).toBeCloseTo(liqCons.cmv / 15, 2)
     expect(liqUnit.grossProfit).toBeCloseTo(liqCons.grossProfit / 15, 2)
   })
+
+  it('6. v0.0.135: Caso Adriana — Celular (22 un.) e Capa (25 un.) chaveados estritamente por ID nos 3 regimes e 2 modos', () => {
+    // Cenário real da usuária Adriana:
+    // Produto 1: Celular (id: 'celular', 22 un. nos 3 regimes)
+    // Produto 2: Capa (id: 'capa', 25 un. nos 3 regimes)
+    // Custo e margem / metas por regime:
+    // Celular: custo R$ 1.158,93, margem 51,9%, meta líquida 2.335,00
+    // Capa: custo R$ 30,00, margem 51,9%, meta líquida 60,00
+    const prodCelular: MarkupProductItem = {
+      id: 'prod-celular',
+      name: 'Celular',
+      mode: 'cost_margin',
+      cost: 1158.93,
+      desiredNetRevenue: 2335,
+      margin: 51.9,
+      quantity: 22,
+      desiredNetRevenueByRegime: { presumido: 2335, real: 2335, simples: 2335 },
+      marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
+      quantityByRegime: { presumido: 22, real: 22, simples: 22 },
+      salePrice: 3296.25,
+      taxFactor: 0,
+      completeFactor: 0,
+      totalRevenue: 3296.25 * 22,
+      totalCost: 1158.93 * 22,
+    }
+
+    const prodCapa: MarkupProductItem = {
+      id: 'prod-capa',
+      name: 'Capa',
+      mode: 'cost_margin',
+      cost: 30,
+      desiredNetRevenue: 60,
+      margin: 51.9,
+      quantity: 25,
+      desiredNetRevenueByRegime: { presumido: 60, real: 60, simples: 60 },
+      marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
+      quantityByRegime: { presumido: 25, real: 25, simples: 25 },
+      salePrice: 85.33,
+      taxFactor: 0,
+      completeFactor: 0,
+      totalRevenue: 85.33 * 25,
+      totalCost: 30 * 25,
+    }
+
+    const productsNormal = [prodCelular, prodCapa]
+    const productsInverted = [prodCapa, prodCelular] // Ordem invertida para provar lookup por ID
+
+    const baseParams = {
+      purchasesItems: [],
+      icmsRate: 18,
+      customTaxesMarkup: [],
+      dvRate: 5.0,
+      simplesEffectiveRate: 10.0,
+      calculatedPurchases: defaultCalculatedPurchases,
+      totalGlobalOperatingExpenses: 1000,
+      totalGlobalOperatingRevenues: 0,
+      directPayrollExpenses: 1500,
+      patronalCharges: 350,
+      presumidoActivity: 'comercio' as const,
+      realActivity: 'comercio' as const,
+      presumidoIssRate: 0,
+      realIssRate: 0,
+      realAdditions: 0,
+      realExclusions: 0,
+      regimeQuantity: 47,
+    }
+
+    // Executa para a ordem normal [Celular, Capa]
+    const presDataNormal = computeDreComparativeForRegime({
+      ...baseParams,
+      regimeKey: 'presumido',
+      markupProducts: productsNormal,
+    })
+
+    // Executa para a ordem invertida [Capa, Celular]
+    const presDataInverted = computeDreComparativeForRegime({
+      ...baseParams,
+      regimeKey: 'presumido',
+      markupProducts: productsInverted,
+    })
+
+    // Prova de chaveamento por ID: a inversão da ordem NÃO altera nenhum total consolidado ou unitário
+    expect(presDataNormal.quantity).toBe(47)
+    expect(presDataInverted.quantity).toBe(47)
+    expect(presDataNormal.costMargin.consolidated.grossRevenue).toBeCloseTo(
+      presDataInverted.costMargin.consolidated.grossRevenue,
+      2,
+    )
+    expect(presDataNormal.liquid.consolidated.grossRevenue).toBeCloseTo(
+      presDataInverted.liquid.consolidated.grossRevenue,
+      2,
+    )
+    expect(presDataNormal.costMargin.consolidated.cmv).toBeCloseTo(
+      presDataInverted.costMargin.consolidated.cmv,
+      2,
+    )
+
+    // CMV Consolidado deve ser rigorosamente: 22 * 1158.93 + 25 * 30 = 25496.46 + 750 = 26246.46
+    // Se estivesse invertido (25 * 1158.93 + 22 * 30), daria 28973.25 + 660 = 29633.25 (erro crasso)
+    const expectedCmv = 22 * 1158.93 + 25 * 30
+    expect(presDataNormal.costMargin.consolidated.cmv).toBeCloseTo(expectedCmv, 2)
+    expect(presDataInverted.costMargin.consolidated.cmv).toBeCloseTo(expectedCmv, 2)
+
+    // Regressão zero nos regimes Lucro Real e Simples Nacional
+    const realData = computeDreComparativeForRegime({
+      ...baseParams,
+      regimeKey: 'real',
+      markupProducts: productsNormal,
+    })
+    const simplesData = computeDreComparativeForRegime({
+      ...baseParams,
+      regimeKey: 'simples',
+      markupProducts: productsNormal,
+    })
+
+    expect(realData.quantity).toBe(47)
+    expect(simplesData.quantity).toBe(47)
+    expect(realData.costMargin.consolidated.cmv).toBeCloseTo(expectedCmv, 2)
+    expect(simplesData.costMargin.consolidated.cmv).toBeCloseTo(expectedCmv, 2)
+  })
 })

@@ -703,7 +703,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setAdditionalMargin(marginVal)
       return prevMarginMap
     })
-    // Atualiza os produtos para exibir os valores específicos do novo regime selecionado (sem copiar do anterior)
+    // Atualiza os produtos para exibir os valores específicos do novo regime selecionado (sem copiar do anterior),
+    // emparelhando estritamente por p.id para nunca haver chaveamento posicional/índice.
     setMarkupProducts((prevProds) =>
       prevProds.map((p) => {
         const targetRL = p.desiredNetRevenueByRegime?.[newRegime] ?? 0
@@ -1916,7 +1917,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (field === 'quantity') {
           const parsed = typeof value === 'number' ? value : parseInt(String(value), 10)
           const cleanQty = isNaN(parsed) || parsed < 0 ? 0 : parsed
-          const currentByRegime = item.quantityByRegime || {}
+          const currentByRegime = item.quantityByRegime ? { ...item.quantityByRegime } : {}
           return {
             ...item,
             quantity: cleanQty,
@@ -1930,7 +1931,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const regimeMap = (value as unknown as SoldQuantityByRegime) || {}
           return {
             ...item,
-            quantityByRegime: regimeMap,
+            quantityByRegime: { ...regimeMap },
             quantity: regimeMap[regime] ?? item.quantity,
           }
         }

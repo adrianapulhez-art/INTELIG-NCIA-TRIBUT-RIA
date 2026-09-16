@@ -450,6 +450,7 @@ export default function ComparisonPage() {
           let totalUnits = 0
 
           for (const p of validProducts) {
+            // Leitura estrita por p.id e quantityByRegime do regime em apuração
             const rawProductQty =
               p.quantityByRegime?.[regimeKey] ??
               (p.quantityByRegime
@@ -469,7 +470,7 @@ export default function ComparisonPage() {
               divisor > 0.0001 && itemMeta > 0 ? Math.round((itemMeta / divisor) * 100) / 100 : 0
 
             // Regra canônica: se a quantidade do produto é 0 para o regime, o consolidado é 0,00
-            // NUNCA fallback para 1.
+            // NUNCA fallback para 1. Leitura por p.id estrita.
             const effectiveItemQty = productQty > 0 ? productQty : 0
             if (effectiveItemQty > 0) {
               const itemRev = Math.round(unitSalePrice * effectiveItemQty * 100) / 100
@@ -551,6 +552,7 @@ export default function ComparisonPage() {
         let totalUnits = 0
 
         for (const p of validProducts) {
+          // Leitura estrita por p.id e quantityByRegime do regime em apuração
           const rawProductQty =
             p.quantityByRegime?.[regimeKey] ??
             (p.quantityByRegime
@@ -569,7 +571,7 @@ export default function ComparisonPage() {
             divisor > 0.0001 && unitCost > 0 ? Math.round((unitCost / divisor) * 100) / 100 : 0
 
           // Regra canônica: se a quantidade do produto é 0 para o regime, o consolidado é 0,00
-          // NUNCA fallback para 1.
+          // NUNCA fallback para 1. Leitura por p.id estrita.
           const effectiveItemQty = productQty > 0 ? productQty : 0
           if (effectiveItemQty > 0) {
             const itemRev = Math.round(unitSalePrice * effectiveItemQty * 100) / 100

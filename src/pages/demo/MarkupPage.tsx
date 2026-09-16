@@ -744,11 +744,15 @@ export default function MarkupPage() {
       let totalRev = 0
       let totalQty = 0
       const prods = markupProducts.map((p) => {
+        // Resolução estrita por id para blindar contra qualquer desalinhamento
+        const origProd = markupProducts.find((mp) => mp.id === p.id) || p
         const rawMargin =
-          p.marginByRegime?.[regimeKey] ??
-          (typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0)
+          origProd.marginByRegime?.[regimeKey] ??
+          (typeof origProd.margin === 'number' && Number.isFinite(origProd.margin)
+            ? origProd.margin
+            : 0)
         const marginFactor = 1 - rawMargin / 100
-        const isLiquidProd = p.mode === 'liquid'
+        const isLiquidProd = origProd.mode === 'liquid'
         const baseFactor = isLiquidProd ? liquidDivisorBase : taxFactorMultiplicative
 
         // No modo liquid: divisor exclusivo do gross-up (1 - Σtributos - %DV), sem fator margem
@@ -762,25 +766,26 @@ export default function MarkupPage() {
         }
         const safeFactor = completeFactor > 0.0001 ? completeFactor : 0
         const desiredNetRevForRegime =
-          p.desiredNetRevenueByRegime?.[regimeKey] ??
-          (typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
-            ? p.desiredNetRevenue
+          origProd.desiredNetRevenueByRegime?.[regimeKey] ??
+          (typeof origProd.desiredNetRevenue === 'number' &&
+          Number.isFinite(origProd.desiredNetRevenue)
+            ? origProd.desiredNetRevenue
             : 0)
         const baseValue = isLiquidProd
           ? desiredNetRevForRegime
-          : typeof p.cost === 'number' && Number.isFinite(p.cost)
-            ? p.cost
+          : typeof origProd.cost === 'number' && Number.isFinite(origProd.cost)
+            ? origProd.cost
             : 0
         const rawSalePrice = safeFactor > 0 && baseValue > 0 ? baseValue / safeFactor : 0
         const roundedPrice = Number.isFinite(rawSalePrice)
           ? Math.round(rawSalePrice * 100) / 100
           : 0
         const rawQty =
-          p.quantityByRegime?.[regimeKey] ??
-          (p.quantityByRegime
+          origProd.quantityByRegime?.[regimeKey] ??
+          (origProd.quantityByRegime
             ? 0
-            : typeof p.quantity === 'number' && Number.isFinite(p.quantity)
-              ? Math.max(0, p.quantity)
+            : typeof origProd.quantity === 'number' && Number.isFinite(origProd.quantity)
+              ? Math.max(0, origProd.quantity)
               : 0)
         const qty = Math.max(0, rawQty)
         const rawRev = roundedPrice * qty
@@ -788,8 +793,8 @@ export default function MarkupPage() {
         totalRev += rev
         totalQty += qty
         return {
-          id: p.id,
-          name: p.name,
+          id: origProd.id,
+          name: origProd.name,
           salePrice: roundedPrice,
           totalRevenue: rev,
         }
@@ -2748,7 +2753,7 @@ export default function MarkupPage() {
                           const pSimp = regimeComparison.prodsSimples?.find(
                             (x) => x.id === pPres.id,
                           )
-                          const origProd = markupProducts.find((x) => x.id === pPres.id)
+                          const origProd = markupProducts.find((mp) => mp.id === pPres.id)
                           const qtyPres =
                             origProd?.quantityByRegime?.presumido ??
                             (origProd?.quantityByRegime ? 0 : origProd?.quantity || 0)
@@ -2779,10 +2784,11 @@ export default function MarkupPage() {
                             <tr key={pPres.id} className="hover:bg-slate-800/40 transition-colors">
                               <td className="py-2.5 px-3 text-left font-medium text-slate-200">
                                 <span className="text-slate-500 font-bold mr-1.5">#{idx + 1}</span>
-                                {pPres.name || `Produto ${idx + 1}`}
+                                {origProd?.name || pPres.name || `Produto ${idx + 1}`}
                               </td>
                               <td className="py-2.5 px-3 text-right text-slate-400">
                                 <span
+                                  data-product-id={pPres.id}
                                   title={`P: ${qtyPres} un. | R: ${qtyReal} un. | S: ${qtySimp} un.`}
                                 >
                                   {qtyActive} un.
