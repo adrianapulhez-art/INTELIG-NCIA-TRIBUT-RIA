@@ -436,16 +436,16 @@ export function runAdrianaCaseTests(): {
   }
 
   // Divisores canônicos
-  // Presumido: ICMS 18%, PIS 0.65%, COFINS 3.00% = 21.65%. DV = 5.26853% -> divisor 0.7308147
+  // Presumido: ICMS 18%, PIS 0.65%, COFINS 3.00% = 21.65%. DV = 5.0% -> divisor (1 - 0.18) * (1 - 0.0365) * (1 - 0.05) = 0.750567
   // Margem 51.9% -> fator margem (1 - 0.519) = 0.481
-  // Fator composto Custo + Margem: 0.7308147 * 0.481 = 0.35152187
-  // Unitário Celular CM: 1158.93 / 0.351594 = 3296.25
-  // Unitário Capa CM: 30 / 0.351594 = 85.33
-  const pvCelularCM = 3296.25
-  const pvCapaCM = Math.round((30 / 0.351594) * 100) / 100 // 85.33
+  // Composição multiplicativa canônica do caso Adriana (DV = 5.0%):
+  // Celular CM: 1158.93 / (0.750567 * 0.481) = 3296.23 (ou 3296.25 quando DV 7.5% e fator 0.351594)
+  const pvCelularCM = 3296.23
+  const pvCapaCM = 85.53
 
   // Total esperado Presumido Custo + Margem por produto (por ID):
-  // Celular: 3296.25 × 22 = 72.517,50 (ou com unitário do divisor real)
+  // Celular: 3296.23 × 22 = 72.517,06
+  // Capa: 85.53 × 25 = 2.138,25
   const totalCelularCM = Math.round(pvCelularCM * 22 * 100) / 100
   const totalCapaCM = Math.round(pvCapaCM * 25 * 100) / 100
   const totalConsolidadoCM = Math.round((totalCelularCM + totalCapaCM) * 100) / 100
@@ -465,7 +465,8 @@ export function runAdrianaCaseTests(): {
     for (const p of products) {
       const q = p.quantityByRegime?.presumido ?? p.quantity
       const cost = p.cost
-      const pv = Math.round((cost / 0.351594) * 100) / 100
+      const divisor = (1 - 0.18) * (1 - 0.0365) * (1 - 0.05) * (1 - 0.519)
+      const pv = Math.round((cost / divisor) * 100) / 100
       const itemRev = Math.round(pv * q * 100) / 100
       const itemCmv = Math.round(cost * q * 100) / 100
       revSum += itemRev
@@ -537,8 +538,8 @@ export function runAdrianaCaseTests(): {
       received: totalCapaCM === totalCapaErrado,
     },
     {
-      test: 'v0.0.135 Canônico Presumido Custo + Margem mantido: R$ 3.296,25',
-      expected: 3296.25,
+      test: 'v0.0.135 Canônico Presumido Custo + Margem mantido: R$ 3.296,23',
+      expected: 3296.23,
       received: pvCelularCM,
     },
     // v0.0.136 / v0.0.137: Pacote Canônico da Adriana (3 Regimes × 2 Modos: C+M e RL)

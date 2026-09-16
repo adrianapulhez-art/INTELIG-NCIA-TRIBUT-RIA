@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { computeDreComparativeForRegime } from '@/components/demo/DreRegimeComparativeSection'
-import { MarkupProductItem, PurchaseItem } from '@/contexts/TaxContext'
+import {
+  MarkupProductItem,
+  PurchaseItem,
+  calculateMarkupProductsCanonically,
+} from '@/contexts/TaxContext'
 
 describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
   // Cenário Canônico de Referência:
@@ -10,7 +14,7 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
   // Preço Líquido: 2.335,00 / 0.7308147 = R$ 3.195,08
   // Divisor Custo + Margem Presumido: 0.7308147 * (1 - 0.519) = 0.7308147 * 0.481 = 0.351594
   // Preço Custo + Margem: 1.158,93 / 0.351594 = R$ 3.296,25
-  const sampleProducts: MarkupProductItem[] = [
+  const rawSampleProducts: MarkupProductItem[] = [
     {
       id: 'prod-canonico-1',
       name: 'Produto Canônico Teste',
@@ -34,13 +38,21 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
         simples: 20,
       },
       quantity: 10,
-      salePrice: 3296.25,
-      taxFactor: 0.7308147,
-      completeFactor: 0.351594,
-      totalRevenue: 32962.5,
-      totalCost: 11589.3,
+      salePrice: 0,
+      taxFactor: 0,
+      completeFactor: 0,
+      totalRevenue: 0,
+      totalCost: 0,
     },
   ]
+
+  // Gerado pelo motor canônico da Markup (sem injeção manual)
+  const sampleProducts = calculateMarkupProductsCanonically(rawSampleProducts, {
+    regime: 'presumido',
+    icmsRate: 18,
+    dvRate: 7.5,
+    customTaxes: [],
+  })
 
   const defaultCalculatedPurchases = {
     unitCostPresumidoEffective: 1158.93,
@@ -391,7 +403,7 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
     // Custo e margem / metas por regime:
     // Celular: custo R$ 1.158,93, margem 51,9%, meta líquida 2.335,00
     // Capa: custo R$ 30,00, margem 51,9%, meta líquida 60,00
-    const prodCelular: MarkupProductItem = {
+    const rawProdCelular: MarkupProductItem = {
       id: 'prod-celular',
       name: 'Celular',
       mode: 'cost_margin',
@@ -402,14 +414,14 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
       desiredNetRevenueByRegime: { presumido: 2335, real: 2335, simples: 2335 },
       marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
       quantityByRegime: { presumido: 22, real: 22, simples: 22 },
-      salePrice: 3296.25,
+      salePrice: 0,
       taxFactor: 0,
       completeFactor: 0,
-      totalRevenue: 3296.25 * 22,
-      totalCost: 1158.93 * 22,
+      totalRevenue: 0,
+      totalCost: 0,
     }
 
-    const prodCapa: MarkupProductItem = {
+    const rawProdCapa: MarkupProductItem = {
       id: 'prod-capa',
       name: 'Capa',
       mode: 'cost_margin',
@@ -420,12 +432,21 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
       desiredNetRevenueByRegime: { presumido: 60, real: 60, simples: 60 },
       marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
       quantityByRegime: { presumido: 25, real: 25, simples: 25 },
-      salePrice: 85.33,
+      salePrice: 0,
       taxFactor: 0,
       completeFactor: 0,
-      totalRevenue: 85.33 * 25,
-      totalCost: 30 * 25,
+      totalRevenue: 0,
+      totalCost: 0,
     }
+
+    const calculatedAdriana = calculateMarkupProductsCanonically([rawProdCelular, rawProdCapa], {
+      icmsRate: 18,
+      dvRate: 5.0,
+      customTaxes: [],
+      simplesAnexo: 'anexo_1',
+      effectiveSimplesRbt12: 180000,
+    })
+    const [prodCelular, prodCapa] = calculatedAdriana
 
     const productsNormal = [prodCelular, prodCapa]
     const productsInverted = [prodCapa, prodCelular] // Ordem invertida para provar lookup por ID
@@ -505,24 +526,12 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
   })
 
   it('7. v0.0.136: Pacote Canônico da Usuária Adriana — Validação centavo a centavo e rejeição expressa de médias', () => {
-    // Celular 22 un., Capa 25 un., total 47 un.
-    // Custos e Metas/Margens:
-    // Celular: custo 1158.93, margem 51.9%, meta líquida 2335.00
-    // Capa: custo 30.00, margem 51.9%, meta líquida 60.00
-    // Preços canônicos calculados pela Calculadora de Markup por regime:
-    // Presumido C+M: Celular 3.296,23 / Capa 85,53 (Total unit: 3.381,76 / Consolidado: 74.655,31)
-    // Real C+M: Celular 3.172,18 / Capa 82,31 (Total unit: 3.254,49 / Consolidado: 71.845,71)
-    // Simples C+M: Celular 3.445,87 / Capa 89,41 (Total unit: 3.535,28 / Consolidado: 78.044,39)
-    // Presumido RL: Celular 3.195,06 / Capa 82,10 (Total unit: 3.277,16 / Consolidado: 72.343,82)
-    // Real RL: Celular 3.392,23 / Capa 87,17 (Total unit: 3.479,40 / Consolidado: 76.808,31)
-    // Simples RL: Celular 2.738,34 / Capa 70,36 (Total unit: 2.808,70 / Consolidado: 62.002,48)
-    const prodCelular: MarkupProductItem & {
-      salePriceByRegime?: { presumido: number; real: number; simples: number }
-      salePriceCostMargin?: number
-      salePriceLiquid?: number
-      salePriceLiquidByRegime?: { presumido: number; real: number; simples: number }
-      salePriceCostMarginByRegime?: { presumido: number; real: number; simples: number }
-    } = {
+    // PARTE 3 — Teste contra o FLUXO REAL Markup -> DRE:
+    // Monta os produtos brutos SEM injetar salePriceByRegime nem salePriceLiquidByRegime
+    // Roda o motor real da Markup (calculateMarkupProductsCanonically)
+    // Verifica que os campos canônicos foram gravados pelo motor
+    // Roda o motor da DRE que lê EXCLUSIVAMENTE esses campos
+    const rawProdCelular: MarkupProductItem = {
       id: 'prod-celular',
       name: 'Celular',
       mode: 'cost_margin',
@@ -533,32 +542,14 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
       desiredNetRevenueByRegime: { presumido: 2335, real: 2335, simples: 2335 },
       marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
       quantityByRegime: { presumido: 22, real: 22, simples: 22 },
-      salePrice: 3296.23,
-      salePriceByRegime: {
-        presumido: 3296.23,
-        real: 3172.18,
-        simples: 3445.87,
-      },
-      salePriceCostMargin: 3296.23,
-      salePriceLiquid: 3195.06,
-      salePriceLiquidByRegime: {
-        presumido: 3195.06,
-        real: 3392.23,
-        simples: 2738.34,
-      },
+      salePrice: 0,
       taxFactor: 0,
       completeFactor: 0,
-      totalRevenue: 3296.23 * 22,
-      totalCost: 1158.93 * 22,
+      totalRevenue: 0,
+      totalCost: 0,
     }
 
-    const prodCapa: MarkupProductItem & {
-      salePriceByRegime?: { presumido: number; real: number; simples: number }
-      salePriceCostMargin?: number
-      salePriceLiquid?: number
-      salePriceLiquidByRegime?: { presumido: number; real: number; simples: number }
-      salePriceCostMarginByRegime?: { presumido: number; real: number; simples: number }
-    } = {
+    const rawProdCapa: MarkupProductItem = {
       id: 'prod-capa',
       name: 'Capa',
       mode: 'cost_margin',
@@ -569,24 +560,41 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
       desiredNetRevenueByRegime: { presumido: 60, real: 60, simples: 60 },
       marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
       quantityByRegime: { presumido: 25, real: 25, simples: 25 },
-      salePrice: 85.53,
-      salePriceByRegime: {
-        presumido: 85.53,
-        real: 82.31,
-        simples: 89.41,
-      },
-      salePriceCostMargin: 85.53,
-      salePriceLiquid: 82.1,
-      salePriceLiquidByRegime: {
-        presumido: 82.1,
-        real: 87.17,
-        simples: 70.36,
-      },
+      salePrice: 0,
       taxFactor: 0,
       completeFactor: 0,
-      totalRevenue: 85.53 * 25,
-      totalCost: 30 * 25,
+      totalRevenue: 0,
+      totalCost: 0,
     }
+
+    // Executa o motor real da Calculadora de Markup
+    const calculatedMarkupProducts = calculateMarkupProductsCanonically(
+      [rawProdCelular, rawProdCapa],
+      {
+        icmsRate: 18,
+        dvRate: 5.0,
+        customTaxes: [],
+        simplesAnexo: 'anexo_1',
+        effectiveSimplesRbt12: 180000, // 1ª faixa: 4.0%
+      },
+    )
+
+    const [prodCelular, prodCapa] = calculatedMarkupProducts
+
+    // Prova no teste de integração que a Markup REALMENTE gravou os 6 campos por regime x modo
+    expect(prodCelular.salePriceCostMarginByRegime?.presumido).toBe(3296.23)
+    expect(prodCelular.salePriceCostMarginByRegime?.real).toBe(3172.18)
+    expect(prodCelular.salePriceCostMarginByRegime?.simples).toBe(3445.87)
+    expect(prodCelular.salePriceLiquidByRegime?.presumido).toBe(3195.06)
+    expect(prodCelular.salePriceLiquidByRegime?.real).toBe(3392.23)
+    expect(prodCelular.salePriceLiquidByRegime?.simples).toBe(2738.34)
+
+    expect(prodCapa.salePriceCostMarginByRegime?.presumido).toBe(85.53)
+    expect(prodCapa.salePriceCostMarginByRegime?.real).toBe(82.31)
+    expect(prodCapa.salePriceCostMarginByRegime?.simples).toBe(89.41)
+    expect(prodCapa.salePriceLiquidByRegime?.presumido).toBe(82.1)
+    expect(prodCapa.salePriceLiquidByRegime?.real).toBe(87.17)
+    expect(prodCapa.salePriceLiquidByRegime?.simples).toBe(70.36)
 
     const baseParams = {
       purchasesItems: [],

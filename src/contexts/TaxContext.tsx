@@ -66,6 +66,155 @@ export interface SoldQuantityByRegime {
   real?: number
 }
 
+export interface SalePriceByRegimeMap {
+  presumido?: number
+  real?: number
+  simples?: number
+}
+
+/**
+ * Motor canônico puro de cálculo de preços Markup por regime x modo (Integração Markup -> DRE)
+ * Calcula e grava para cada produto os preços dos 3 regimes x 2 modos:
+ * - salePriceCostMarginByRegime: { presumido, real, simples }
+ * - salePriceLiquidByRegime: { presumido, real, simples }
+ * Usado tanto no TaxContext reativo/manual quanto nos testes de integração e componentes DRE.
+ */
+export function calculateMarkupProductsCanonically(
+  products: MarkupProductItem[],
+  options: {
+    regime?: TaxRegime
+    icmsRate?: number
+    dvRate?: number
+    customTaxes?: CustomTaxItem[]
+    simplesAnexo?: SimplesAnexoId
+    simplesRbt12?: number
+    effectiveSimplesRbt12?: number
+  } = {},
+): MarkupProductItem[] {
+  const activeRegime: TaxRegime = options.regime || 'presumido'
+  const cleanIcms = Number.isFinite(options.icmsRate) ? options.icmsRate! : 0
+  const cleanDvRate = Number.isFinite(options.dvRate) ? options.dvRate! : 0
+  const dvFactor = 1 - cleanDvRate / 100
+  const safeDvFactor = dvFactor > 0 ? dvFactor : 1
+
+  let customTaxesFactor = 1
+  if (Array.isArray(options.customTaxes)) {
+    for (const tax of options.customTaxes) {
+      const taxRate = Number.isFinite(tax.rate) ? tax.rate : 0
+      customTaxesFactor *= 1 - taxRate / 100
+    }
+  }
+
+  const anexoClean = (options.simplesAnexo as SimplesAnexoId) || 'anexo_1'
+  const rbt12Clean =
+    (options.effectiveSimplesRbt12 && options.effectiveSimplesRbt12 > 0
+      ? options.effectiveSimplesRbt12
+      : options.simplesRbt12) || 0
+  const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
+  const simplesEffectiveDas = pgdasRes.aliquotaEfetiva
+
+  const divPresumidoWithoutMargin = Math.max(
+    0.0001,
+    (1 - cleanIcms / 100) * (1 - 0.0365) * safeDvFactor * customTaxesFactor,
+  )
+  const divRealWithoutMargin = Math.max(
+    0.0001,
+    (1 - cleanIcms / 100) * (1 - 0.0925) * safeDvFactor * customTaxesFactor,
+  )
+  const divSimplesWithoutMargin = Math.max(
+    0.0001,
+    (1 - simplesEffectiveDas / 100) * safeDvFactor * customTaxesFactor,
+  )
+
+  const getDivisorWithoutMarginForRegime = (targetRegime: TaxRegime) => {
+    if (targetRegime === 'presumido') return divPresumidoWithoutMargin
+    if (targetRegime === 'real') return divRealWithoutMargin
+    return divSimplesWithoutMargin
+  }
+
+  const allRegimes: TaxRegime[] = ['presumido', 'real', 'simples']
+
+  return products.map((p) => {
+    const costMarginByRegime: Record<TaxRegime, number> = { presumido: 0, real: 0, simples: 0 }
+    const liquidByRegime: Record<TaxRegime, number> = { presumido: 0, real: 0, simples: 0 }
+
+    for (const r of allRegimes) {
+      const rCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+      const rMargin =
+        p.marginByRegime && p.marginByRegime[r] !== undefined
+          ? p.marginByRegime[r]!
+          : typeof p.margin === 'number' && Number.isFinite(p.margin)
+            ? p.margin
+            : 0
+      const rLiquidMeta =
+        p.desiredNetRevenueByRegime && p.desiredNetRevenueByRegime[r] !== undefined
+          ? p.desiredNetRevenueByRegime[r]!
+          : typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
+            ? p.desiredNetRevenue
+            : 0
+
+      const rDivWithoutMargin = getDivisorWithoutMarginForRegime(r)
+      const rDivCostMargin = Math.max(0.0001, rDivWithoutMargin * (1 - rMargin / 100))
+
+      const priceCostMargin =
+        rDivCostMargin > 0.0001 && rCost > 0 ? Math.round((rCost / rDivCostMargin) * 100) / 100 : 0
+      const priceLiquid =
+        rDivWithoutMargin > 0.0001 && rLiquidMeta > 0
+          ? Math.round((rLiquidMeta / rDivWithoutMargin) * 100) / 100
+          : 0
+
+      costMarginByRegime[r] = priceCostMargin
+      liquidByRegime[r] = priceLiquid
+    }
+
+    const isLiquidProd = p.mode === 'liquid'
+    const activeSalePrice = isLiquidProd
+      ? liquidByRegime[activeRegime]
+      : costMarginByRegime[activeRegime]
+    const activeTaxFactor = getDivisorWithoutMarginForRegime(activeRegime)
+    const activeMargin =
+      p.marginByRegime && p.marginByRegime[activeRegime] !== undefined
+        ? p.marginByRegime[activeRegime]!
+        : typeof p.margin === 'number' && Number.isFinite(p.margin)
+          ? p.margin
+          : 0
+    const activeCompleteFactor = isLiquidProd
+      ? activeTaxFactor
+      : Math.max(0.0001, activeTaxFactor * (1 - activeMargin / 100))
+
+    const qty =
+      p.quantityByRegime && p.quantityByRegime[activeRegime] !== undefined
+        ? Math.max(0, Number(p.quantityByRegime[activeRegime]) || 0)
+        : typeof p.quantity === 'number' && Number.isFinite(p.quantity)
+          ? Math.max(0, p.quantity)
+          : 0
+
+    const rev = Math.round(activeSalePrice * qty * 100) / 100
+    const pCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+    const costItem = Math.round(pCost * qty * 100) / 100
+
+    const salePriceByRegimeMap: SalePriceByRegimeMap = {
+      presumido: isLiquidProd ? liquidByRegime.presumido : costMarginByRegime.presumido,
+      real: isLiquidProd ? liquidByRegime.real : costMarginByRegime.real,
+      simples: isLiquidProd ? liquidByRegime.simples : costMarginByRegime.simples,
+    }
+
+    return {
+      ...p,
+      salePrice: activeSalePrice,
+      taxFactor: activeTaxFactor,
+      completeFactor: activeCompleteFactor,
+      totalRevenue: rev,
+      totalCost: costItem,
+      salePriceCostMarginByRegime: costMarginByRegime,
+      salePriceLiquidByRegime: liquidByRegime,
+      salePriceByRegime: salePriceByRegimeMap,
+      salePriceCostMargin: costMarginByRegime[activeRegime],
+      salePriceLiquid: liquidByRegime[activeRegime],
+    }
+  })
+}
+
 export interface MarkupProductItem {
   id: string
   name: string
@@ -84,11 +233,17 @@ export interface MarkupProductItem {
   // Subsistema de Composição do Custo (modo cost_margin)
   costComposition?: CostComposition
   // Resultados calculados individualmente ao clicar em Simular:
-  salePrice: number // Preço de venda calculado
+  salePrice: number // Preço de venda calculado do regime ativo
   taxFactor: number
   completeFactor: number
   totalRevenue: number // salePrice * quantity
   totalCost: number // cost * quantity (no modo cost_margin)
+  // Armazenamento canônico por regime x modo (integração Markup -> DRE)
+  salePriceCostMarginByRegime?: SalePriceByRegimeMap
+  salePriceLiquidByRegime?: SalePriceByRegimeMap
+  salePriceByRegime?: SalePriceByRegimeMap
+  salePriceCostMargin?: number
+  salePriceLiquid?: number
 }
 
 export interface AdditionalCostItem {
@@ -707,10 +862,24 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // emparelhando estritamente por p.id para nunca haver chaveamento posicional/índice.
     setMarkupProducts((prevProds) =>
       prevProds.map((p) => {
-        const targetRL = p.desiredNetRevenueByRegime?.[newRegime] ?? 0
-        const targetMargin = p.marginByRegime?.[newRegime] ?? (p.marginByRegime ? 0 : p.margin || 0)
+        const targetRL =
+          p.desiredNetRevenueByRegime && p.desiredNetRevenueByRegime[newRegime] !== undefined
+            ? p.desiredNetRevenueByRegime[newRegime]!
+            : p.desiredNetRevenueByRegime && Object.keys(p.desiredNetRevenueByRegime).length > 0
+              ? 0
+              : p.desiredNetRevenue || 0
+        const targetMargin =
+          p.marginByRegime && p.marginByRegime[newRegime] !== undefined
+            ? p.marginByRegime[newRegime]!
+            : p.marginByRegime && Object.keys(p.marginByRegime).length > 0
+              ? 0
+              : p.margin || 0
         const targetQty =
-          p.quantityByRegime?.[newRegime] ?? (p.quantityByRegime ? 0 : p.quantity || 0)
+          p.quantityByRegime && p.quantityByRegime[newRegime] !== undefined
+            ? p.quantityByRegime[newRegime]!
+            : p.quantityByRegime && Object.keys(p.quantityByRegime).length > 0
+              ? 0
+              : p.quantity || 0
         return {
           ...p,
           desiredNetRevenue: targetRL,
@@ -3201,75 +3370,46 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return (p.mode === 'liquid' ? desired > 0 : costVal > 0) || qty > 0 || mrg > 0
     })
 
-    // Alíquotas base conforme regime
-    let baseTaxFactor = 1
-    let sumTaxesRatePct = 0
-
-    let rbt12Fallback = false
-    if (regime === 'simples') {
-      // Simples Nacional: DAS efetivo calculado via PGDAS (LC 123/2006) com RBT12 e Anexo.
-      // Se RBT12 <= 0, calculatePgdas aplica fallback automático para alíquota nominal da 1ª faixa (nunca 0%).
-      const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
-      const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
-      if (rbt12Clean <= 0) {
-        rbt12Fallback = true
-      }
-      const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
-      const effectiveDasRate = pgdasRes.aliquotaEfetiva
-      sumTaxesRatePct = effectiveDasRate
-      baseTaxFactor = 1 - effectiveDasRate / 100
-    } else {
-      // Lucro Presumido ou Lucro Real
-      const pisRate = regime === 'presumido' ? 0.0065 : 0.0165
-      const cofinsRate = regime === 'presumido' ? 0.03 : 0.076
-      const cleanIcms = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
-      sumTaxesRatePct = cleanIcms + pisRate * 100 + cofinsRate * 100
-      const icmsFactor = 1 - cleanIcms / 100
-      const pisFactor = 1 - pisRate
-      const cofinsFactor = 1 - cofinsRate
-      baseTaxFactor = icmsFactor * pisFactor * cofinsFactor
-    }
-    if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
-
-    // Tributos customizados
-    let sumCustomTaxesPct = 0
-    for (const tax of customTaxesMarkup) {
-      const taxRate = Number.isFinite(tax.rate) ? tax.rate : 0
-      sumCustomTaxesPct += taxRate
-      baseTaxFactor *= 1 - taxRate / 100
-    }
-    sumTaxesRatePct += sumCustomTaxesPct
-
-    // Despesas Variáveis (DV)
+    // Helpers de apuração multiplicativa canônica por regime (Parte 1: 3 regimes x 2 modos)
+    const cleanIcms = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
     const dvRatePct = Number.isFinite(totalVariableExpenseRate) ? totalVariableExpenseRate : 0
     const dvFactor = 1 - dvRatePct / 100
-    baseTaxFactor *= dvFactor > 0 ? dvFactor : 1
-    if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
+    const safeDvFactor = dvFactor > 0 ? dvFactor : 1
 
-    // Modo Preço Líquido Desejado: divisor multiplicativo APENAS com fatores de dedução (tributos + DV), SEM fator de margem.
-    // Lucro Presumido: (1−ICMS) × (1−0,0365) × (1−DV) × customTaxesFactor
-    // Lucro Real: (1−ICMS) × (1−0,0925) × (1−DV) × customTaxesFactor
-    // Simples Nacional: (1−alíquota efetiva PGDAS) × (1−DV) × customTaxesFactor
-    let baseLiquidDivisorWithoutMargin = 1
-    if (regime === 'simples') {
-      const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
-      const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
-      const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
-      baseLiquidDivisorWithoutMargin = 1 - pgdasRes.aliquotaEfetiva / 100
-    } else if (regime === 'presumido') {
-      const cleanIcms = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
-      baseLiquidDivisorWithoutMargin = (1 - cleanIcms / 100) * (1 - 0.0365)
-    } else {
-      const cleanIcms = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
-      baseLiquidDivisorWithoutMargin = (1 - cleanIcms / 100) * (1 - 0.0925)
-    }
+    let customTaxesFactor = 1
     for (const tax of customTaxesMarkup) {
       const taxRate = Number.isFinite(tax.rate) ? tax.rate : 0
-      baseLiquidDivisorWithoutMargin *= 1 - taxRate / 100
+      customTaxesFactor *= 1 - taxRate / 100
     }
-    baseLiquidDivisorWithoutMargin *= dvFactor > 0 ? dvFactor : 1
-    baseLiquidDivisorWithoutMargin = Math.max(0.0001, baseLiquidDivisorWithoutMargin)
-    if (!Number.isFinite(baseTaxFactor)) baseTaxFactor = 1
+
+    const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+    const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
+    const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
+    const simplesEffectiveDas = pgdasRes.aliquotaEfetiva
+
+    // Divisores de tributos + DV por regime
+    const divPresumidoWithoutMargin = Math.max(
+      0.0001,
+      (1 - cleanIcms / 100) * (1 - 0.0365) * safeDvFactor * customTaxesFactor,
+    )
+    const divRealWithoutMargin = Math.max(
+      0.0001,
+      (1 - cleanIcms / 100) * (1 - 0.0925) * safeDvFactor * customTaxesFactor,
+    )
+    const divSimplesWithoutMargin = Math.max(
+      0.0001,
+      (1 - simplesEffectiveDas / 100) * safeDvFactor * customTaxesFactor,
+    )
+
+    const getDivisorWithoutMarginForRegime = (targetRegime: TaxRegime) => {
+      if (targetRegime === 'presumido') return divPresumidoWithoutMargin
+      if (targetRegime === 'real') return divRealWithoutMargin
+      return divSimplesWithoutMargin
+    }
+
+    const baseTaxFactor = getDivisorWithoutMarginForRegime(regime)
+    const baseLiquidDivisorWithoutMargin = baseTaxFactor
+
     // Se não há dados preenchidos, não ativa a simulação automaticamente
     if (!hasAnyFilledProduct) {
       // Se já estava desligado e tudo está zerado, apenas mantém zerado
@@ -3283,72 +3423,112 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return
     }
 
-    // Calcular valores de cada produto
+    // Calcular valores de cada produto nos 3 regimes x 2 modos (armazenamento canônico)
     let totalRev = 0
     let totalQty = 0
     let totalCostVal = 0
 
     const updated = markupProducts.map((p) => {
-      let currentCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
-      if (p.costOrigin !== 'manual' && p.manualCostOverride === undefined && p.purchaseItemId) {
-        const item = (
-          computedPurchasesItems.length > 0 ? computedPurchasesItems : purchasesItems
-        ).find((pi) => pi.id === p.purchaseItemId)
-        if (item) {
-          const unitRegimeCost = getPurchaseItemUnitNetCost(item, regime)
-          if (unitRegimeCost > 0) {
-            currentCost = unitRegimeCost
+      const costMarginByRegime: Record<TaxRegime, number> = { presumido: 0, real: 0, simples: 0 }
+      const liquidByRegime: Record<TaxRegime, number> = { presumido: 0, real: 0, simples: 0 }
+
+      const allRegimes: TaxRegime[] = ['presumido', 'real', 'simples']
+
+      for (const r of allRegimes) {
+        // Custo do regime r
+        let rCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+        if (p.costOrigin !== 'manual' && p.manualCostOverride === undefined && p.purchaseItemId) {
+          const item = (
+            computedPurchasesItems.length > 0 ? computedPurchasesItems : purchasesItems
+          ).find((pi) => pi.id === p.purchaseItemId)
+          if (item) {
+            const unitRegimeCost = getPurchaseItemUnitNetCost(item, r)
+            if (unitRegimeCost > 0) {
+              rCost = unitRegimeCost
+            }
           }
         }
-      }
 
-      const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
-      const marginFactor = 1 - rawMargin / 100
+        // Margem do regime r
+        const rMargin =
+          p.marginByRegime && p.marginByRegime[r] !== undefined
+            ? p.marginByRegime[r]!
+            : typeof p.margin === 'number' && Number.isFinite(p.margin)
+              ? p.margin
+              : 0
 
-      const isLiquidProd = p.mode === 'liquid'
-      const productTaxFactor = isLiquidProd ? baseLiquidDivisorWithoutMargin : baseTaxFactor
+        // Meta líquida do regime r
+        const rLiquidMeta =
+          p.desiredNetRevenueByRegime && p.desiredNetRevenueByRegime[r] !== undefined
+            ? p.desiredNetRevenueByRegime[r]!
+            : typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
+              ? p.desiredNetRevenue
+              : 0
 
-      // No modo liquid, o divisor do gross-up é EXCLUSIVAMENTE (1 − Σ%Tributos − %DV), SEM fator (1 − margem)
-      let completeFactor = isLiquidProd ? productTaxFactor : productTaxFactor * marginFactor
-      // Assert defensivo: se houver imposto aplicável e completeFactor >= 1, usa productTaxFactor sem margem
-      if (productTaxFactor < 1 && completeFactor >= 1) {
-        completeFactor = productTaxFactor
-      }
-      if (!Number.isFinite(completeFactor)) completeFactor = 0
+        const rDivWithoutMargin = getDivisorWithoutMarginForRegime(r)
+        const rDivCostMargin = Math.max(0.0001, rDivWithoutMargin * (1 - rMargin / 100))
 
-      let baseValue = 0
-      if (isLiquidProd) {
-        baseValue =
-          typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
-            ? p.desiredNetRevenue
+        const priceCostMargin =
+          rDivCostMargin > 0.0001 && rCost > 0
+            ? Math.round((rCost / rDivCostMargin) * 100) / 100
             : 0
-      } else {
-        baseValue = currentCost
+        const priceLiquid =
+          rDivWithoutMargin > 0.0001 && rLiquidMeta > 0
+            ? Math.round((rLiquidMeta / rDivWithoutMargin) * 100) / 100
+            : 0
+
+        costMarginByRegime[r] = priceCostMargin
+        liquidByRegime[r] = priceLiquid
       }
 
-      // Blindagem contra divisão por zero / NaN / Infinity: safeFactor > 0.0001
-      const safeFactor = completeFactor > 0.0001 ? completeFactor : 0
-      const rawSalePrice = safeFactor > 0 && baseValue > 0 ? baseValue / safeFactor : 0
-      const salePrice = Number.isFinite(rawSalePrice) ? Math.round(rawSalePrice * 100) / 100 : 0
+      // Preço de venda do regime ATIVO para a interface
+      const isLiquidProd = p.mode === 'liquid'
+      const activeSalePrice = isLiquidProd ? liquidByRegime[regime] : costMarginByRegime[regime]
+      const activeTaxFactor = getDivisorWithoutMarginForRegime(regime)
+      const activeMargin =
+        p.marginByRegime && p.marginByRegime[regime] !== undefined
+          ? p.marginByRegime[regime]!
+          : typeof p.margin === 'number' && Number.isFinite(p.margin)
+            ? p.margin
+            : 0
+      const activeCompleteFactor = isLiquidProd
+        ? activeTaxFactor
+        : Math.max(0.0001, activeTaxFactor * (1 - activeMargin / 100))
+
       const qty =
-        typeof p.quantity === 'number' && Number.isFinite(p.quantity) ? Math.max(0, p.quantity) : 0
-      const rawRev = salePrice * qty
-      const rev = Number.isFinite(rawRev) ? Math.round(rawRev * 100) / 100 : 0
+        p.quantityByRegime && p.quantityByRegime[regime] !== undefined
+          ? Math.max(0, Number(p.quantityByRegime[regime]) || 0)
+          : typeof p.quantity === 'number' && Number.isFinite(p.quantity)
+            ? Math.max(0, p.quantity)
+            : 0
+
+      const rev = Math.round(activeSalePrice * qty * 100) / 100
       const pCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
-      const rawCostItem = pCost * qty
-      const costItem = Number.isFinite(rawCostItem) ? Math.round(rawCostItem * 100) / 100 : 0
+      const costItem = Math.round(pCost * qty * 100) / 100
 
       totalRev += rev
       totalQty += qty
       totalCostVal += costItem
 
+      // Mapeamento compatível para salePriceByRegime (regime ativo ou respectivo do modo do produto)
+      const salePriceByRegimeMap: SalePriceByRegimeMap = {
+        presumido: isLiquidProd ? liquidByRegime.presumido : costMarginByRegime.presumido,
+        real: isLiquidProd ? liquidByRegime.real : costMarginByRegime.real,
+        simples: isLiquidProd ? liquidByRegime.simples : costMarginByRegime.simples,
+      }
+
       return {
         ...p,
-        salePrice,
-        taxFactor: productTaxFactor,
-        completeFactor,
+        salePrice: activeSalePrice,
+        taxFactor: activeTaxFactor,
+        completeFactor: activeCompleteFactor,
         totalRevenue: rev,
         totalCost: costItem,
+        salePriceCostMarginByRegime: costMarginByRegime,
+        salePriceLiquidByRegime: liquidByRegime,
+        salePriceByRegime: salePriceByRegimeMap,
+        salePriceCostMargin: costMarginByRegime[regime],
+        salePriceLiquid: liquidByRegime[regime],
       }
     })
 
@@ -3443,67 +3623,112 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // SIMULAÇÃO DO MARKUP MANUAL (mantido para atender cliques no botão "Simular", garantindo reciprocidade)
   const simulateMarkup = () => {
-    let baseTaxFactor = 1
-    let sumTaxesRatePct = 0
-    let rbt12Fallback = false
-    if (regime === 'simples') {
-      const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
-      const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
-      if (rbt12Clean <= 0) {
-        rbt12Fallback = true
-      }
-      const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
-      sumTaxesRatePct = pgdasRes.aliquotaEfetiva
-      baseTaxFactor = 1 - pgdasRes.aliquotaEfetiva / 100
-    } else {
-      const pisRate = regime === 'presumido' ? 0.0065 : 0.0165
-      const cofinsRate = regime === 'presumido' ? 0.03 : 0.076
-      const cleanIcms = icmsRateMarkup || 0
-      sumTaxesRatePct = cleanIcms + pisRate * 100 + cofinsRate * 100
-      const icmsFactor = 1 - cleanIcms / 100
-      const pisFactor = 1 - pisRate
-      const cofinsFactor = 1 - cofinsRate
-      baseTaxFactor = icmsFactor * pisFactor * cofinsFactor
-    }
+    const cleanIcms = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
+    const dvRatePct = Number.isFinite(totalVariableExpenseRate) ? totalVariableExpenseRate : 0
+    const dvFactor = 1 - dvRatePct / 100
+    const safeDvFactor = dvFactor > 0 ? dvFactor : 1
 
-    let sumCustomTaxesPct = 0
+    let customTaxesFactor = 1
     for (const tax of customTaxesMarkup) {
-      const tRate = tax.rate || 0
-      sumCustomTaxesPct += tRate
-      baseTaxFactor *= 1 - tRate / 100
+      const taxRate = Number.isFinite(tax.rate) ? tax.rate : 0
+      customTaxesFactor *= 1 - taxRate / 100
     }
-    sumTaxesRatePct += sumCustomTaxesPct
 
-    const dvRatePct = totalVariableExpenseRate || 0
-    const dvFactorManual = 1 - dvRatePct / 100
-    baseTaxFactor *= dvFactorManual > 0 ? dvFactorManual : 1
+    const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+    const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
+    const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
+    const simplesEffectiveDas = pgdasRes.aliquotaEfetiva
 
-    // Modo Preço Líquido Desejado: divisor multiplicativo com fatores de dedução por regime
-    let baseLiquidDivisorWithoutMargin = 1
-    if (regime === 'simples') {
-      const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
-      const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
-      const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
-      baseLiquidDivisorWithoutMargin = 1 - pgdasRes.aliquotaEfetiva / 100
-    } else if (regime === 'presumido') {
-      const cleanIcms = icmsRateMarkup || 0
-      baseLiquidDivisorWithoutMargin = (1 - cleanIcms / 100) * (1 - 0.0365)
-    } else {
-      const cleanIcms = icmsRateMarkup || 0
-      baseLiquidDivisorWithoutMargin = (1 - cleanIcms / 100) * (1 - 0.0925)
+    const divPresumidoWithoutMargin = Math.max(
+      0.0001,
+      (1 - cleanIcms / 100) * (1 - 0.0365) * safeDvFactor * customTaxesFactor,
+    )
+    const divRealWithoutMargin = Math.max(
+      0.0001,
+      (1 - cleanIcms / 100) * (1 - 0.0925) * safeDvFactor * customTaxesFactor,
+    )
+    const divSimplesWithoutMargin = Math.max(
+      0.0001,
+      (1 - simplesEffectiveDas / 100) * safeDvFactor * customTaxesFactor,
+    )
+
+    const getDivisorWithoutMarginForRegime = (targetRegime: TaxRegime) => {
+      if (targetRegime === 'presumido') return divPresumidoWithoutMargin
+      if (targetRegime === 'real') return divRealWithoutMargin
+      return divSimplesWithoutMargin
     }
-    for (const tax of customTaxesMarkup) {
-      const tRate = tax.rate || 0
-      baseLiquidDivisorWithoutMargin *= 1 - tRate / 100
-    }
-    baseLiquidDivisorWithoutMargin *= dvFactorManual > 0 ? dvFactorManual : 1
-    baseLiquidDivisorWithoutMargin = Math.max(0.0001, baseLiquidDivisorWithoutMargin)
 
     let consolidatedRevenue = 0
     let consolidatedQty = 0
     let consolidatedCost = 0
 
     const updatedProducts = markupProducts.map((p) => {
+      const costMarginByRegime: Record<TaxRegime, number> = { presumido: 0, real: 0, simples: 0 }
+      const liquidByRegime: Record<TaxRegime, number> = { presumido: 0, real: 0, simples: 0 }
+      const allRegimes: TaxRegime[] = ['presumido', 'real', 'simples']
+
+      for (const r of allRegimes) {
+        let rCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
+        if (p.costOrigin !== 'manual' && p.manualCostOverride === undefined && p.purchaseItemId) {
+          const item = (
+            computedPurchasesItems.length > 0 ? computedPurchasesItems : purchasesItems
+          ).find((pi) => pi.id === p.purchaseItemId)
+          if (item) {
+            const unitRegimeCost = getPurchaseItemUnitNetCost(item, r)
+            if (unitRegimeCost > 0) {
+              rCost = unitRegimeCost
+            }
+          }
+        }
+        const rMargin =
+          p.marginByRegime && p.marginByRegime[r] !== undefined
+            ? p.marginByRegime[r]!
+            : typeof p.margin === 'number' && Number.isFinite(p.margin)
+              ? p.margin
+              : 0
+        const rLiquidMeta =
+          p.desiredNetRevenueByRegime && p.desiredNetRevenueByRegime[r] !== undefined
+            ? p.desiredNetRevenueByRegime[r]!
+            : typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
+              ? p.desiredNetRevenue
+              : 0
+        const rDivWithoutMargin = getDivisorWithoutMarginForRegime(r)
+        const rDivCostMargin = Math.max(0.0001, rDivWithoutMargin * (1 - rMargin / 100))
+
+        const priceCostMargin =
+          rDivCostMargin > 0.0001 && rCost > 0
+            ? Math.round((rCost / rDivCostMargin) * 100) / 100
+            : 0
+        const priceLiquid =
+          rDivWithoutMargin > 0.0001 && rLiquidMeta > 0
+            ? Math.round((rLiquidMeta / rDivWithoutMargin) * 100) / 100
+            : 0
+
+        costMarginByRegime[r] = priceCostMargin
+        liquidByRegime[r] = priceLiquid
+      }
+
+      const isLiquidProd = p.mode === 'liquid'
+      const activeSalePrice = isLiquidProd ? liquidByRegime[regime] : costMarginByRegime[regime]
+      const activeTaxFactor = getDivisorWithoutMarginForRegime(regime)
+      const activeMargin =
+        p.marginByRegime && p.marginByRegime[regime] !== undefined
+          ? p.marginByRegime[regime]!
+          : typeof p.margin === 'number' && Number.isFinite(p.margin)
+            ? p.margin
+            : 0
+      const activeCompleteFactor = isLiquidProd
+        ? activeTaxFactor
+        : Math.max(0.0001, activeTaxFactor * (1 - activeMargin / 100))
+
+      const qty =
+        p.quantityByRegime && p.quantityByRegime[regime] !== undefined
+          ? Math.max(0, Number(p.quantityByRegime[regime]) || 0)
+          : typeof p.quantity === 'number' && Number.isFinite(p.quantity)
+            ? Math.max(0, p.quantity)
+            : 0
+
+      const totalRev = Math.round(activeSalePrice * qty * 100) / 100
       let currentCost = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
       if (p.costOrigin !== 'manual' && p.manualCostOverride === undefined && p.purchaseItemId) {
         const item = (
@@ -3516,53 +3741,31 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         }
       }
-      const rawMargin = typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0
-      const marginFactor = 1 - rawMargin / 100
-
-      const isLiquidProd = p.mode === 'liquid'
-      const productTaxFactor = isLiquidProd ? baseLiquidDivisorWithoutMargin : baseTaxFactor
-
-      // No modo liquid, o divisor do gross-up é EXCLUSIVAMENTE (1 − Σ%Tributos − %DV), SEM fator (1 − margem)
-      let completeFactor = isLiquidProd ? productTaxFactor : productTaxFactor * marginFactor
-      // Assert defensivo: se houver imposto aplicável e completeFactor >= 1, usa productTaxFactor sem margem
-      if (productTaxFactor < 1 && completeFactor >= 1) {
-        completeFactor = productTaxFactor
-      }
-      if (!Number.isFinite(completeFactor)) completeFactor = 0
-
-      let baseValue = 0
-      if (isLiquidProd) {
-        baseValue =
-          typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
-            ? p.desiredNetRevenue
-            : 0
-      } else {
-        baseValue = typeof p.cost === 'number' && Number.isFinite(p.cost) ? p.cost : 0
-      }
-
-      const safeFactor = completeFactor > 0.0001 ? completeFactor : 0
-      const rawSalePrice = safeFactor > 0 && baseValue > 0 ? baseValue / safeFactor : 0
-      const roundedPrice = Number.isFinite(rawSalePrice) ? Math.round(rawSalePrice * 100) / 100 : 0
-      const qty =
-        typeof p.quantity === 'number' && Number.isFinite(p.quantity) ? Math.max(0, p.quantity) : 0
-      const rawRev = roundedPrice * qty
-      const totalRev = Number.isFinite(rawRev) ? Math.round(rawRev * 100) / 100 : 0
-      const pCost = currentCost
-      const rawTotalCost = pCost * qty
-      const totalCost = Number.isFinite(rawTotalCost) ? Math.round(rawTotalCost * 100) / 100 : 0
+      const totalCost = Math.round(currentCost * qty * 100) / 100
 
       consolidatedRevenue += totalRev
       consolidatedQty += qty
       consolidatedCost += totalCost
 
+      const salePriceByRegimeMap: SalePriceByRegimeMap = {
+        presumido: isLiquidProd ? liquidByRegime.presumido : costMarginByRegime.presumido,
+        real: isLiquidProd ? liquidByRegime.real : costMarginByRegime.real,
+        simples: isLiquidProd ? liquidByRegime.simples : costMarginByRegime.simples,
+      }
+
       return {
         ...p,
         cost: currentCost,
-        salePrice: roundedPrice,
-        taxFactor: productTaxFactor,
-        completeFactor,
+        salePrice: activeSalePrice,
+        taxFactor: activeTaxFactor,
+        completeFactor: activeCompleteFactor,
         totalRevenue: totalRev,
         totalCost,
+        salePriceCostMarginByRegime: costMarginByRegime,
+        salePriceLiquidByRegime: liquidByRegime,
+        salePriceByRegime: salePriceByRegimeMap,
+        salePriceCostMargin: costMarginByRegime[regime],
+        salePriceLiquid: liquidByRegime[regime],
       }
     })
 
@@ -3572,7 +3775,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTotalConsolidatedCost(Math.round(consolidatedCost * 100) / 100)
 
     const firstProduct = updatedProducts[0]
-    const activeHeaderTaxFactor = firstProduct ? firstProduct.taxFactor : baseTaxFactor
+    const activeHeaderTaxFactor = firstProduct
+      ? firstProduct.taxFactor
+      : getDivisorWithoutMarginForRegime(regime)
     let legacyCompleteFactor = firstProduct
       ? firstProduct.completeFactor
       : activeHeaderTaxFactor * (1 - (additionalMargin || 0) / 100)

@@ -639,18 +639,19 @@ export function computeDreComparativeForRegime(params: {
       const pQty = resolveProductQty(p)
       const effectiveItemQty = pQty > 0 ? pQty : 0
 
-      // Preço de venda canônico da Calculadora de Markup para modo Liquid (BLINDADO - v0.0.139)
-      // Chaveamento rigoroso: modo Liquid lê estritamente do modo Liquid da Markup.
-      // PROIBIDO fallback para Custo + Margem.
+      // PARTE 2: DRE lê EXCLUSIVAMENTE os campos canônicos da Markup, sem fallback permissivo nem empréstimo
       const candidateLiquidPrice =
-        (p as any).salePriceLiquidByRegime?.[regimeKey] ??
-        (p.mode === 'liquid' ? (p as any).salePriceByRegime?.[regimeKey] : undefined) ??
-        (p as any).salePriceLiquid ??
+        (typeof p.salePriceLiquidByRegime?.[regimeKey] === 'number' &&
+        p.salePriceLiquidByRegime[regimeKey]! > 0
+          ? p.salePriceLiquidByRegime[regimeKey]!
+          : undefined) ??
         (p.mode === 'liquid' &&
-        typeof p.salePrice === 'number' &&
-        Number.isFinite(p.salePrice) &&
-        p.salePrice > 0
-          ? p.salePrice
+        typeof p.salePriceByRegime?.[regimeKey] === 'number' &&
+        p.salePriceByRegime[regimeKey]! > 0
+          ? p.salePriceByRegime[regimeKey]!
+          : undefined) ??
+        (typeof p.salePriceLiquid === 'number' && p.salePriceLiquid > 0
+          ? p.salePriceLiquid
           : undefined)
 
       let unitSalePrice = 0
@@ -660,15 +661,6 @@ export function computeDreComparativeForRegime(params: {
         candidateLiquidPrice > 0
       ) {
         unitSalePrice = Math.round(candidateLiquidPrice * 100) / 100
-      } else {
-        const itemMeta =
-          p.desiredNetRevenueByRegime?.[regimeKey] ??
-          desiredLiquidRevenueByRegime?.[regimeKey] ??
-          p.desiredNetRevenue ??
-          0
-        const divisor = computeLiquidDivisor()
-        unitSalePrice =
-          divisor > 0.0001 && itemMeta > 0 ? Math.round((itemMeta / divisor) * 100) / 100 : 0
       }
       const unitCost = getProductUnitCost(p)
 
@@ -706,7 +698,7 @@ export function computeDreComparativeForRegime(params: {
     if (revSum <= 0 && liquidSumUnits.grossRevenue <= 0) {
       liquidHasValid = false
       liquidInvalidReason =
-        'Preço Líquido Desejado (meta líquida) não preenchido para este regime no Markup.'
+        'Preço Líquido Desejado não calculado no Markup para este regime. Calcule o produto na Calculadora de Markup.'
     }
 
     liquidTotalGross = Math.round(revSum * 100) / 100
@@ -796,30 +788,19 @@ export function computeDreComparativeForRegime(params: {
       const effectiveItemQty = pQty > 0 ? pQty : 0
       const unitCost = getProductUnitCost(p)
 
-      // Regra canônica (v0.0.139): o quadro Custo + Margem lê ESTRITAMENTE do modo Custo + Margem
-      // da Markup — salePriceByRegime?.[regimeKey] com o campo salePriceCostMargin (fallback: salePrice do mesmo modo).
-      // É PROIBIDO usar salePriceLiquid ou qualquer valor do modo Receita Líquida.
+      // PARTE 2: DRE lê EXCLUSIVAMENTE os campos canônicos da Markup, sem fallback permissivo nem derivação defensiva
       const candidatePrice =
-        (typeof (p as any).salePriceCostMarginByRegime?.[regimeKey] === 'number' &&
-        (p as any).salePriceCostMarginByRegime[regimeKey] > 0
-          ? (p as any).salePriceCostMarginByRegime[regimeKey]
-          : undefined) ??
-        (typeof (p as any).salePriceByRegime?.[regimeKey] === 'number' &&
-        (p as any).salePriceByRegime[regimeKey] > 0 &&
-        (p.mode === 'cost_margin' ||
-          ((p as any).salePriceByRegime[regimeKey] !== (p as any).salePriceLiquid &&
-            (p as any).salePriceByRegime[regimeKey] !==
-              (p as any).salePriceLiquidByRegime?.[regimeKey]))
-          ? (p as any).salePriceByRegime[regimeKey]
-          : undefined) ??
-        (typeof (p as any).salePriceCostMargin === 'number' && (p as any).salePriceCostMargin > 0
-          ? (p as any).salePriceCostMargin
+        (typeof p.salePriceCostMarginByRegime?.[regimeKey] === 'number' &&
+        p.salePriceCostMarginByRegime[regimeKey]! > 0
+          ? p.salePriceCostMarginByRegime[regimeKey]!
           : undefined) ??
         (p.mode === 'cost_margin' &&
-        typeof p.salePrice === 'number' &&
-        Number.isFinite(p.salePrice) &&
-        p.salePrice > 0
-          ? p.salePrice
+        typeof p.salePriceByRegime?.[regimeKey] === 'number' &&
+        p.salePriceByRegime[regimeKey]! > 0
+          ? p.salePriceByRegime[regimeKey]!
+          : undefined) ??
+        (typeof p.salePriceCostMargin === 'number' && p.salePriceCostMargin > 0
+          ? p.salePriceCostMargin
           : undefined)
 
       let unitSalePrice = 0
@@ -829,16 +810,6 @@ export function computeDreComparativeForRegime(params: {
         candidatePrice > 0
       ) {
         unitSalePrice = Math.round(candidatePrice * 100) / 100
-      } else {
-        // Fallback defensivo: composição multiplicativa canônica exata da Calculadora de Markup
-        // (Presumido: ICMS × PIS/COFINS cumulativo 0,9635; Real: 0,9075 não-cumulativo; Simples: alíquota efetiva PGDAS;
-        // cada uma × DV, impostos customizados e margem) — NUNCA emprestar o preço do outro modo.
-        const pMargin =
-          p.marginByRegime?.[regimeKey] ??
-          (typeof p.margin === 'number' && Number.isFinite(p.margin) ? p.margin : 0)
-        const divisor = computeCostMarginDivisor(pMargin)
-        unitSalePrice =
-          divisor > 0.0001 && unitCost > 0 ? Math.round((unitCost / divisor) * 100) / 100 : 0
       }
 
       // Apuração unitária do item
@@ -873,10 +844,10 @@ export function computeDreComparativeForRegime(params: {
       }
     }
 
-    if (cmvSum <= 0 && revSum <= 0 && costMarginSumUnits.grossRevenue <= 0) {
+    if (revSum <= 0 && costMarginSumUnits.grossRevenue <= 0) {
       costMarginHasValid = false
       costMarginInvalidReason =
-        'Custo unitário da mercadoria não cadastrado para este regime. Cadastre o custo ou importe da Calculadora de Compras.'
+        'Preço de Custo + Margem não calculado no Markup para este regime. Calcule o produto na Calculadora de Markup.'
     }
 
     costMarginTotalGross = Math.round(revSum * 100) / 100
@@ -1459,20 +1430,21 @@ export const DreRegimeComparativeSection: React.FC<DreRegimeComparativeProps> = 
             <span>
               {!liquid.hasValidData && costMargin.hasValidData && (
                 <>
-                  Meta do <strong>Preço Líquido Desejado</strong> não preenchida para este regime no
-                  Markup.
+                  <strong>Preço Líquido Desejado</strong> — (não calculado): preencha a meta líquida
+                  deste regime na Calculadora de Markup para integrar a esta DRE.
                 </>
               )}
               {liquid.hasValidData && !costMargin.hasValidData && (
                 <>
-                  Custo unitário do modo <strong>Custo + Margem</strong> não preenchido para este
-                  regime no Markup.
+                  <strong>Custo + Margem</strong> — (não calculado): preencha o custo e a margem
+                  deste regime na Calculadora de Markup para integrar a esta DRE.
                 </>
               )}
               {!liquid.hasValidData && !costMargin.hasValidData && (
                 <>
-                  Cadastre o custo e a meta líquida deste regime no Markup para habilitar a
-                  comparação completa.
+                  Valores de <strong>Preço Líquido Desejado</strong> e{' '}
+                  <strong>Custo + Margem</strong> — (não calculados). Simule os produtos na
+                  Calculadora de Markup para alimentar esta DRE comparativa.
                 </>
               )}
             </span>
