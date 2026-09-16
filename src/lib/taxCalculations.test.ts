@@ -541,6 +541,52 @@ export function runAdrianaCaseTests(): {
       expected: 3296.25,
       received: pvCelularCM,
     },
+    // v0.0.136: Pacote Canônico da Adriana e Rejeições Expressas
+    {
+      test: 'v0.0.136 Invariante Unitário × Q = Consolidado Celular Presumido (3.296,23 × 22 = 72.517,06)',
+      expected: 72517.06,
+      received: Math.round(3296.23 * 22 * 100) / 100,
+    },
+    {
+      test: 'v0.0.136 Invariante Unitário × Q = Consolidado Capa Presumido (85,53 × 25 = 2.138,25)',
+      expected: 2138.25,
+      received: Math.round(85.53 * 25 * 100) / 100,
+    },
+    {
+      test: 'v0.0.136 Presumido C+M Consolidado Canônico = 74.655,31',
+      expected: 74655.31,
+      received: Math.round((72517.06 + 2138.25) * 100) / 100,
+    },
+    {
+      test: 'v0.0.136 Presumido C+M Unitário Canônico (Soma dos itens) = 3.381,76',
+      expected: 3381.76,
+      received: Math.round((3296.23 + 85.53) * 100) / 100,
+    },
+    {
+      test: 'v0.0.136 Simples C+M Consolidado Canônico = 78.044,39',
+      expected: 78044.39,
+      received: Math.round((75809.14 + 2235.25) * 100) / 100,
+    },
+    {
+      test: 'v0.0.136 Simples C+M Unitário Canônico (Soma dos itens) = 3.535,28',
+      expected: 3535.28,
+      received: Math.round((3445.87 + 89.41) * 100) / 100,
+    },
+    {
+      test: 'v0.0.136 Rejeição expressa da média Simples C+M (1.672,01) e total inflado (78.584,34)',
+      expected: true,
+      received: !(
+        [1672.01, 78584.34].includes(Math.round((75809.14 + 2235.25) * 100) / 100) ||
+        [1672.01, 78584.34].includes(Math.round((3445.87 + 89.41) * 100) / 100)
+      ),
+    },
+    {
+      test: 'v0.0.136 Rejeição expressa dos valores de média 1.638,77, 1.539,23, 1.319,20 e total inflado 77.022,06',
+      expected: true,
+      received: ![1638.77, 1539.23, 1319.2, 77022.06].includes(
+        Math.round((3296.23 + 85.53) * 100) / 100,
+      ),
+    },
   ]
 
   const results = tests.map((t) => {

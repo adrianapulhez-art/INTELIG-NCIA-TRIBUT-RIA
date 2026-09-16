@@ -351,8 +351,8 @@ export const RegimeSideBySideDreTables: React.FC<RegimeSideBySideDreTablesProps>
               </Badge>
             </div>
             <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-              Unitário = Consolidado ÷ {quantity > 0 ? quantity : 1} un. · Consolidado = Unitário ×{' '}
-              {quantity > 0 ? quantity : 1} un.
+              Unitário = soma dos unitários apurados item a item por produto · Consolidado =
+              Σ(unitário × quantidade) ({quantity > 0 ? quantity : 0} un.)
             </p>
           </div>
         </div>

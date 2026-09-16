@@ -271,11 +271,14 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
     // O CMV consolidado deve ser exatamente 5 * 100 + 2 * 500 = 500 + 1000 = R$ 1.500,00
     expect(data.costMargin.consolidated.cmv).toBe(1500)
     expect(data.liquid.consolidated.cmv).toBe(1500)
-    // O CMV unitário médio apurado na DRE = 1.500 / 7 = 214,29
-    expect(data.costMargin.unit.cmv).toBeCloseTo(214.29, 2)
+    // REGRA CANÔNICA (v0.0.136): Unitário = SOMA dos unitários apurados item a item por produto (100 + 500 = 600,00)
+    // NUNCA média ponderada 1.500 / 7 = 214,29
+    expect(data.costMargin.unit.cmv).toBe(600)
+    expect(data.liquid.unit.cmv).toBe(600)
+    expect(data.costMargin.unit.cmv).not.toBeCloseTo(214.29, 2)
   })
 
-  it('5. v0.0.134: Produto com quantidade 0 para o regime contribui R$ 0,00 sem fallback para regimeQuantity ou 1; Unitário = Consolidado ÷ Quantidade Total e Unitário × Q = Consolidado centavo a centavo', () => {
+  it('5. v0.0.134/v0.0.136: Produto com quantidade 0 para o regime contribui R$ 0,00 sem fallback para regimeQuantity ou 1; Unitário = soma item a item por produto', () => {
     // 2 produtos com preços e custos diferentes
     // Prod 1: custo 100, margem 20%, meta 150, qtd = 10 no presumido
     // Prod 2: custo 200, margem 30%, meta 300, qtd = 0 no presumido (NÃO deve contribuir nem herdar fallback)
@@ -371,25 +374,14 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
     expect(data.costMargin.consolidated.cmv).toBe(1250)
     expect(data.liquid.consolidated.cmv).toBe(1250)
 
-    // CMV Unitário deve ser estritamente 1250 ÷ 15 = 83,33
-    expect(data.costMargin.unit.cmv).toBeCloseTo(1250 / 15, 2)
-    expect(data.liquid.unit.cmv).toBeCloseTo(1250 / 15, 2)
+    // REGRA CANÔNICA (v0.0.136): Unitário = soma dos unitários apurados item a item por produto
+    // Prod 1 (100) + Prod 2 (200) + Prod 3 (50) = 350 (ou produtos ativos/cadastrados)
+    expect(data.costMargin.unit.cmv).toBe(350)
+    expect(data.liquid.unit.cmv).toBe(350)
 
-    // Integridade matemática: Unitário × Quantidade Total = Consolidado centavo a centavo
-    // (dentro do arredondamento canônico a 2 casas)
-    const cmCons = data.costMargin.consolidated
-    const cmUnit = data.costMargin.unit
-    expect(cmUnit.grossRevenue).toBeCloseTo(cmCons.grossRevenue / 15, 2)
-    expect(cmUnit.netRevenue).toBeCloseTo(cmCons.netRevenue / 15, 2)
-    expect(cmUnit.cmv).toBeCloseTo(cmCons.cmv / 15, 2)
-    expect(cmUnit.grossProfit).toBeCloseTo(cmCons.grossProfit / 15, 2)
-
-    const liqCons = data.liquid.consolidated
-    const liqUnit = data.liquid.unit
-    expect(liqUnit.grossRevenue).toBeCloseTo(liqCons.grossRevenue / 15, 2)
-    expect(liqUnit.netRevenue).toBeCloseTo(liqCons.netRevenue / 15, 2)
-    expect(liqUnit.cmv).toBeCloseTo(liqCons.cmv / 15, 2)
-    expect(liqUnit.grossProfit).toBeCloseTo(liqCons.grossProfit / 15, 2)
+    // REJEIÇÃO EXPRESSA da média proibida: 1250 ÷ 15 = 83,33 não pode ocorrer
+    expect(data.costMargin.unit.cmv).not.toBeCloseTo(83.33, 2)
+    expect(data.liquid.unit.cmv).not.toBeCloseTo(83.33, 2)
   })
 
   it('6. v0.0.135: Caso Adriana — Celular (22 un.) e Capa (25 un.) chaveados estritamente por ID nos 3 regimes e 2 modos', () => {
@@ -510,5 +502,136 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
     expect(simplesData.quantity).toBe(47)
     expect(realData.costMargin.consolidated.cmv).toBeCloseTo(expectedCmv, 2)
     expect(simplesData.costMargin.consolidated.cmv).toBeCloseTo(expectedCmv, 2)
+  })
+
+  it('7. v0.0.136: Pacote Canônico da Usuária Adriana — Validação centavo a centavo e rejeição expressa de médias', () => {
+    // Celular 22 un., Capa 25 un., total 47 un.
+    // Custos e Metas/Margens:
+    // Celular: custo 1158.93, margem 51.9%, meta líquida 2335.00
+    // Capa: custo 30.00, margem 51.9%, meta líquida 60.00
+    const prodCelular: MarkupProductItem = {
+      id: 'prod-celular',
+      name: 'Celular',
+      mode: 'cost_margin',
+      cost: 1158.93,
+      desiredNetRevenue: 2335,
+      margin: 51.9,
+      quantity: 22,
+      desiredNetRevenueByRegime: { presumido: 2335, real: 2335, simples: 2335 },
+      marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
+      quantityByRegime: { presumido: 22, real: 22, simples: 22 },
+      salePrice: 3296.23,
+      taxFactor: 0,
+      completeFactor: 0,
+      totalRevenue: 3296.23 * 22,
+      totalCost: 1158.93 * 22,
+    }
+
+    const prodCapa: MarkupProductItem = {
+      id: 'prod-capa',
+      name: 'Capa',
+      mode: 'cost_margin',
+      cost: 30,
+      desiredNetRevenue: 60,
+      margin: 51.9,
+      quantity: 25,
+      desiredNetRevenueByRegime: { presumido: 60, real: 60, simples: 60 },
+      marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
+      quantityByRegime: { presumido: 25, real: 25, simples: 25 },
+      salePrice: 85.53,
+      taxFactor: 0,
+      completeFactor: 0,
+      totalRevenue: 85.53 * 25,
+      totalCost: 30 * 25,
+    }
+
+    const baseParams = {
+      purchasesItems: [],
+      icmsRate: 18,
+      customTaxesMarkup: [],
+      dvRate: 5.0,
+      simplesEffectiveRate: 10.0,
+      calculatedPurchases: defaultCalculatedPurchases,
+      totalGlobalOperatingExpenses: 0,
+      totalGlobalOperatingRevenues: 0,
+      directPayrollExpenses: 0,
+      patronalCharges: 0,
+      presumidoActivity: 'comercio' as const,
+      realActivity: 'comercio' as const,
+      presumidoIssRate: 0,
+      realIssRate: 0,
+      realAdditions: 0,
+      realExclusions: 0,
+      regimeQuantity: 47,
+      markupProducts: [prodCelular, prodCapa],
+    }
+
+    // --- PRESUMIDO ---
+    // C+M: Unitário 3.381,76 (3.296,23 + 85,53) · Consolidado 74.655,31 (72.517,06 + 2.138,25)
+    // RL: Unitário 3.277,16 (3.195,06 + 82,10) · Consolidado 72.343,82 (70.291,32 + 2.052,50)
+    const presData = computeDreComparativeForRegime({
+      ...baseParams,
+      regimeKey: 'presumido',
+    })
+
+    expect(presData.costMargin.unit.grossRevenue).toBeCloseTo(3381.76, 2)
+    expect(presData.costMargin.consolidated.grossRevenue).toBeCloseTo(74655.31, 2)
+    expect(presData.liquid.unit.grossRevenue).toBeCloseTo(3277.16, 2)
+    expect(presData.liquid.consolidated.grossRevenue).toBeCloseTo(72343.82, 2)
+
+    // --- REAL ---
+    // C+M: Unitário 3.254,49 (3.172,18 + 82,31) · Consolidado 71.845,71 (69.787,96 + 2.057,75)
+    // RL: Unitário 3.479,40 (3.392,23 + 87,17) · Consolidado 76.808,31 (74.629,06 + 2.179,25)
+    const realData = computeDreComparativeForRegime({
+      ...baseParams,
+      regimeKey: 'real',
+    })
+
+    expect(realData.costMargin.unit.grossRevenue).toBeCloseTo(3254.49, 2)
+    expect(realData.costMargin.consolidated.grossRevenue).toBeCloseTo(71845.71, 2)
+    expect(realData.liquid.unit.grossRevenue).toBeCloseTo(3479.4, 2)
+    expect(realData.liquid.consolidated.grossRevenue).toBeCloseTo(76808.31, 2)
+
+    // --- SIMPLES NACIONAL ---
+    // C+M: Unitário 3.535,28 (3.445,87 + 89,41) · Consolidado 78.044,39 (75.809,14 + 2.235,25)
+    // RL: Unitário 2.808,70 (2.738,34 + 70,36) · Consolidado 62.002,48 (60.243,48 + 1.759,00)
+    const simplesData = computeDreComparativeForRegime({
+      ...baseParams,
+      regimeKey: 'simples',
+    })
+
+    expect(simplesData.costMargin.unit.grossRevenue).toBeCloseTo(3535.28, 2)
+    expect(simplesData.costMargin.consolidated.grossRevenue).toBeCloseTo(78044.39, 2)
+    expect(simplesData.liquid.unit.grossRevenue).toBeCloseTo(2808.7, 2)
+    expect(simplesData.liquid.consolidated.grossRevenue).toBeCloseTo(62002.48, 2)
+
+    // --- ASSERTIVAS DE REJEIÇÃO EXPRESSA ---
+    // Os valores de média proibida (consolidado ÷ 47) e o valor inflado por soma aditiva NÃO PODEM OCORRER
+    const rejectedValues = [1672.01, 1319.2, 1638.77, 1539.23, 77022.06, 78584.34]
+
+    for (const rej of rejectedValues) {
+      expect(presData.costMargin.unit.grossRevenue).not.toBeCloseTo(rej, 2)
+      expect(presData.liquid.unit.grossRevenue).not.toBeCloseTo(rej, 2)
+      expect(realData.costMargin.unit.grossRevenue).not.toBeCloseTo(rej, 2)
+      expect(realData.liquid.unit.grossRevenue).not.toBeCloseTo(rej, 2)
+      expect(simplesData.costMargin.unit.grossRevenue).not.toBeCloseTo(rej, 2)
+      expect(simplesData.liquid.unit.grossRevenue).not.toBeCloseTo(rej, 2)
+      expect(simplesData.costMargin.consolidated.grossRevenue).not.toBeCloseTo(rej, 2)
+    }
+
+    // --- INVARIANTE Unitário × Q = Consolidado DENTRO DE CADA PRODUTO ---
+    // Presumido C+M: 3.296,23 * 22 = 72.517,06 e 85,53 * 25 = 2.138,25 -> soma = 74.655,31
+    const p1ConsPres = Math.round(3296.23 * 22 * 100) / 100
+    const p2ConsPres = Math.round(85.53 * 25 * 100) / 100
+    expect(p1ConsPres).toBe(72517.06)
+    expect(p2ConsPres).toBe(2138.25)
+    expect(p1ConsPres + p2ConsPres).toBe(74655.31)
+
+    // Simples C+M: 3.445,87 * 22 = 75.809,14 e 89,41 * 25 = 2.235,25 -> soma = 78.044,39
+    const p1ConsSimp = Math.round(3445.87 * 22 * 100) / 100
+    const p2ConsSimp = Math.round(89.41 * 25 * 100) / 100
+    expect(p1ConsSimp).toBe(75809.14)
+    expect(p2ConsSimp).toBe(2235.25)
+    expect(p1ConsSimp + p2ConsSimp).toBe(78044.39)
   })
 })

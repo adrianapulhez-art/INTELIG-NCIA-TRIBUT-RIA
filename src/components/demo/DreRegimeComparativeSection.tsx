@@ -223,23 +223,29 @@ export function computeDreComparativeForRegime(params: {
     return Math.max(0.0001, divisor)
   }
 
-  // Divisor do modo Custo + Margem: (1 - (Σtributos + %DV)/100) * (1 - margem/100)
+  // Divisor do modo Custo + Margem: composição MULTIPLICATIVA de fatores (idêntica à da Calculadora de Markup)
+  // Presumido: (1 - ICMS/100) * (1 - 0,0365) * (1 - DV/100) * customTaxesFactor * (1 - margem/100)
+  // Real: (1 - ICMS/100) * (1 - 0,0925) * (1 - DV/100) * customTaxesFactor * (1 - margem/100)
+  // Simples: (1 - alíquota efetiva PGDAS/100) * (1 - DV/100) * customTaxesFactor * (1 - margem/100)
   const computeCostMarginDivisor = (margin: number) => {
-    let sumCustom = 0
-    for (const t of customTaxesMarkup) sumCustom += t.rate || 0
+    let baseTaxFactor = 1
+    const icmsFactor = 1 - icmsRate / 100
+    const dvFactor = 1 - dvRate / 100
 
-    let taxesRate = 0
     if (regimeKey === 'presumido') {
-      taxesRate = icmsRate + 0.65 + 3.0 + sumCustom
+      baseTaxFactor = icmsFactor * (1 - 0.0365) * (dvFactor > 0 ? dvFactor : 1)
     } else if (regimeKey === 'real') {
-      taxesRate = icmsRate + 1.65 + 7.6 + sumCustom
+      baseTaxFactor = icmsFactor * (1 - 0.0925) * (dvFactor > 0 ? dvFactor : 1)
     } else {
-      taxesRate = simplesEffectiveRate + sumCustom
+      baseTaxFactor = (1 - simplesEffectiveRate / 100) * (dvFactor > 0 ? dvFactor : 1)
     }
-    const taxDvFactor = 1 - (taxesRate + dvRate) / 100
+    for (const tax of customTaxesMarkup) {
+      baseTaxFactor *= 1 - (tax.rate || 0) / 100
+    }
+
     const safeMargin = typeof margin === 'number' && Number.isFinite(margin) ? margin : 0
     const marginFactor = safeMargin > 0 ? 1 - safeMargin / 100 : 1
-    return Math.max(0.0001, taxDvFactor * marginFactor)
+    return Math.max(0.0001, baseTaxFactor * marginFactor)
   }
 
   // Helper para resolver a quantidade vendida de um produto para este regime
@@ -479,6 +485,122 @@ export function computeDreComparativeForRegime(params: {
     }
   }
 
+  // Helper para apurar uma linha da DRE para um produto individual (quantidade = 1)
+  const computeProductUnitDre = (unitGross: number, unitCmv: number): DreColumnValues => {
+    if (unitGross <= 0 && unitCmv <= 0) {
+      return {
+        grossRevenue: 0,
+        taxesTotal: 0,
+        icmsOrIss: 0,
+        pis: 0,
+        cofins: 0,
+        dasTotal: 0,
+        patronalCharges: 0,
+        netRevenue: 0,
+        cmv: 0,
+        grossProfit: 0,
+        operatingExpenses: 0,
+        lair: 0,
+        irpj: 0,
+        irpjAdditional: 0,
+        csll: 0,
+        netProfit: 0,
+        netMargin: 0,
+      }
+    }
+
+    let icmsOrIss = 0
+    let pis = 0
+    let cofins = 0
+    let dasTotal = 0
+
+    if (regimeKey === 'presumido') {
+      const isServices = presumidoActivity === 'servicos'
+      const issRate = isServices ? presumidoIssRate : 0
+      icmsOrIss =
+        Math.round(
+          (isServices ? (unitGross * issRate) / 100 : (unitGross * icmsRate) / 100) * 100,
+        ) / 100
+      const pisCofinsBase = isServices
+        ? unitGross
+        : Math.round(Math.max(0, unitGross - icmsOrIss) * 100) / 100
+      pis = Math.round(((pisCofinsBase * 0.65) / 100) * 100) / 100
+      cofins = Math.round(((pisCofinsBase * 3.0) / 100) * 100) / 100
+    } else if (regimeKey === 'real') {
+      const isServices = realActivity === 'servicos'
+      const issRate = isServices ? realIssRate : 0
+      icmsOrIss =
+        Math.round(
+          (isServices ? (unitGross * issRate) / 100 : (unitGross * icmsRate) / 100) * 100,
+        ) / 100
+      const pisCofinsBase = isServices
+        ? unitGross
+        : Math.round(Math.max(0, unitGross - icmsOrIss) * 100) / 100
+      pis = Math.round(((pisCofinsBase * 1.65) / 100) * 100) / 100
+      cofins = Math.round(((pisCofinsBase * 7.6) / 100) * 100) / 100
+    } else {
+      const effectiveRateDec = simplesEffectiveRate / 100
+      dasTotal = Math.round(unitGross * effectiveRateDec * 100) / 100
+    }
+
+    const netRevenue =
+      regimeKey === 'simples'
+        ? Math.round((unitGross - dasTotal) * 100) / 100
+        : Math.round((unitGross - icmsOrIss - pis - cofins) * 100) / 100
+
+    const grossProfit = Math.round((netRevenue - unitCmv) * 100) / 100
+    const lair = grossProfit // Nível produto (despesas fixas não são por unidade)
+
+    let irpj = 0
+    let irpjAdditional = 0
+    let csll = 0
+
+    if (regimeKey === 'presumido') {
+      const isServices = presumidoActivity === 'servicos'
+      const irpjPresumptionRate = isServices ? 32.0 : 8.0
+      const csllPresumptionRate = isServices ? 32.0 : 12.0
+      const irpjBase = (unitGross * irpjPresumptionRate) / 100
+      const csllBase = (unitGross * csllPresumptionRate) / 100
+      irpj = Math.round(((irpjBase * 15.0) / 100) * 100) / 100
+      csll = Math.round(((csllBase * 9.0) / 100) * 100) / 100
+    } else if (regimeKey === 'real') {
+      const taxableRealProfit = Math.max(0, lair)
+      irpj = Math.round(((taxableRealProfit * 15.0) / 100) * 100) / 100
+      csll = Math.round(((taxableRealProfit * 9.0) / 100) * 100) / 100
+    }
+
+    const irpjCsllTotal = irpj + irpjAdditional + csll
+    const netProfit =
+      regimeKey === 'simples' ? lair : Math.round((lair - irpjCsllTotal) * 100) / 100
+
+    const taxesTotal =
+      regimeKey === 'simples'
+        ? dasTotal
+        : Math.round((icmsOrIss + pis + cofins + irpjCsllTotal) * 100) / 100
+
+    const netMargin = unitGross > 0 ? Math.round((netProfit / unitGross) * 100 * 100) / 100 : 0
+
+    return {
+      grossRevenue: unitGross,
+      taxesTotal,
+      icmsOrIss,
+      pis,
+      cofins,
+      dasTotal,
+      patronalCharges: 0,
+      netRevenue,
+      cmv: unitCmv,
+      grossProfit,
+      operatingExpenses: 0,
+      lair,
+      irpj,
+      irpjAdditional,
+      csll,
+      netProfit,
+      netMargin,
+    }
+  }
+
   // ===========================================================================
   // PAR 1: DRE - Preço líquido desejado
   // Base: Gross-up multiplicativo SEM margem: RBV = Meta Líquida ÷ divisor de deduções
@@ -488,14 +610,33 @@ export function computeDreComparativeForRegime(params: {
   let liquidHasValid = true
   let liquidInvalidReason: string | undefined
 
+  // Acumuladores de soma dos unitários apurados item a item
+  let liquidSumUnits: DreColumnValues = {
+    grossRevenue: 0,
+    taxesTotal: 0,
+    icmsOrIss: 0,
+    pis: 0,
+    cofins: 0,
+    dasTotal: 0,
+    patronalCharges: 0,
+    netRevenue: 0,
+    cmv: 0,
+    grossProfit: 0,
+    operatingExpenses: 0,
+    lair: 0,
+    irpj: 0,
+    irpjAdditional: 0,
+    csll: 0,
+    netProfit: 0,
+    netMargin: 0,
+  }
+
   if (validProducts.length > 0) {
     let revSum = 0
     let cmvSum = 0
 
     for (const p of validProducts) {
       const pQty = resolveProductQty(p)
-      // Regra canônica: se a quantidade do produto é 0 para o regime, o consolidado daquele item é 0,00
-      // NUNCA fallback para regimeQuantity ou 1.
       const effectiveItemQty = pQty > 0 ? pQty : 0
       const itemMeta =
         p.desiredNetRevenueByRegime?.[regimeKey] ??
@@ -507,13 +648,38 @@ export function computeDreComparativeForRegime(params: {
         divisor > 0.0001 && itemMeta > 0 ? Math.round((itemMeta / divisor) * 100) / 100 : 0
       const unitCost = getProductUnitCost(p)
 
+      // Apuração unitária do item
+      const itemUnitDre = computeProductUnitDre(unitSalePrice, unitCost)
+      liquidSumUnits.grossRevenue =
+        Math.round((liquidSumUnits.grossRevenue + itemUnitDre.grossRevenue) * 100) / 100
+      liquidSumUnits.taxesTotal =
+        Math.round((liquidSumUnits.taxesTotal + itemUnitDre.taxesTotal) * 100) / 100
+      liquidSumUnits.icmsOrIss =
+        Math.round((liquidSumUnits.icmsOrIss + itemUnitDre.icmsOrIss) * 100) / 100
+      liquidSumUnits.pis = Math.round((liquidSumUnits.pis + itemUnitDre.pis) * 100) / 100
+      liquidSumUnits.cofins = Math.round((liquidSumUnits.cofins + itemUnitDre.cofins) * 100) / 100
+      liquidSumUnits.dasTotal =
+        Math.round((liquidSumUnits.dasTotal + itemUnitDre.dasTotal) * 100) / 100
+      liquidSumUnits.netRevenue =
+        Math.round((liquidSumUnits.netRevenue + itemUnitDre.netRevenue) * 100) / 100
+      liquidSumUnits.cmv = Math.round((liquidSumUnits.cmv + itemUnitDre.cmv) * 100) / 100
+      liquidSumUnits.grossProfit =
+        Math.round((liquidSumUnits.grossProfit + itemUnitDre.grossProfit) * 100) / 100
+      liquidSumUnits.lair = Math.round((liquidSumUnits.lair + itemUnitDre.lair) * 100) / 100
+      liquidSumUnits.irpj = Math.round((liquidSumUnits.irpj + itemUnitDre.irpj) * 100) / 100
+      liquidSumUnits.irpjAdditional =
+        Math.round((liquidSumUnits.irpjAdditional + itemUnitDre.irpjAdditional) * 100) / 100
+      liquidSumUnits.csll = Math.round((liquidSumUnits.csll + itemUnitDre.csll) * 100) / 100
+      liquidSumUnits.netProfit =
+        Math.round((liquidSumUnits.netProfit + itemUnitDre.netProfit) * 100) / 100
+
       if (effectiveItemQty > 0) {
         revSum += Math.round(unitSalePrice * effectiveItemQty * 100) / 100
         cmvSum += Math.round(unitCost * effectiveItemQty * 100) / 100
       }
     }
 
-    if (revSum <= 0) {
+    if (revSum <= 0 && liquidSumUnits.grossRevenue <= 0) {
       liquidHasValid = false
       liquidInvalidReason =
         'Preço Líquido Desejado (meta líquida) não preenchido para este regime no Markup.'
@@ -538,8 +704,17 @@ export function computeDreComparativeForRegime(params: {
       else fallbackCost = calculatedPurchases.unitCostSimplesEffective
 
       liquidTotalCmv = Math.round(fallbackCost * safeQty * 100) / 100
+
+      const singleUnitDre = computeProductUnitDre(unitSalePrice, fallbackCost)
+      liquidSumUnits = singleUnitDre
     }
   }
+
+  // Margem líquida percentual unitária do modo liquid
+  liquidSumUnits.netMargin =
+    liquidSumUnits.grossRevenue > 0
+      ? Math.round((liquidSumUnits.netProfit / liquidSumUnits.grossRevenue) * 100 * 100) / 100
+      : 0
 
   const liquidPair = buildDrePair(
     liquidTotalGross,
@@ -548,6 +723,16 @@ export function computeDreComparativeForRegime(params: {
     liquidHasValid,
     liquidInvalidReason,
   )
+
+  // Sobrepõe a coluna unit com o somatório item a item por produto da regra canônica
+  if (liquidPair.hasValidData && validProducts.length > 0) {
+    liquidPair.unit = {
+      ...liquidSumUnits,
+      // Despesas operacionais e encargos globais não rateados no unitário de produto
+      operatingExpenses: 0,
+      patronalCharges: 0,
+    }
+  }
 
   // ===========================================================================
   // PAR 2: DRE - Custo + Margem
@@ -558,14 +743,32 @@ export function computeDreComparativeForRegime(params: {
   let costMarginHasValid = true
   let costMarginInvalidReason: string | undefined
 
+  let costMarginSumUnits: DreColumnValues = {
+    grossRevenue: 0,
+    taxesTotal: 0,
+    icmsOrIss: 0,
+    pis: 0,
+    cofins: 0,
+    dasTotal: 0,
+    patronalCharges: 0,
+    netRevenue: 0,
+    cmv: 0,
+    grossProfit: 0,
+    operatingExpenses: 0,
+    lair: 0,
+    irpj: 0,
+    irpjAdditional: 0,
+    csll: 0,
+    netProfit: 0,
+    netMargin: 0,
+  }
+
   if (validProducts.length > 0) {
     let revSum = 0
     let cmvSum = 0
 
     for (const p of validProducts) {
       const pQty = resolveProductQty(p)
-      // Regra canônica: se a quantidade do produto é 0 para o regime, o consolidado daquele item é 0,00
-      // NUNCA fallback para regimeQuantity ou 1.
       const effectiveItemQty = pQty > 0 ? pQty : 0
       const unitCost = getProductUnitCost(p)
       const pMargin =
@@ -575,13 +778,39 @@ export function computeDreComparativeForRegime(params: {
       const unitSalePrice =
         divisor > 0.0001 && unitCost > 0 ? Math.round((unitCost / divisor) * 100) / 100 : 0
 
+      // Apuração unitária do item
+      const itemUnitDre = computeProductUnitDre(unitSalePrice, unitCost)
+      costMarginSumUnits.grossRevenue =
+        Math.round((costMarginSumUnits.grossRevenue + itemUnitDre.grossRevenue) * 100) / 100
+      costMarginSumUnits.taxesTotal =
+        Math.round((costMarginSumUnits.taxesTotal + itemUnitDre.taxesTotal) * 100) / 100
+      costMarginSumUnits.icmsOrIss =
+        Math.round((costMarginSumUnits.icmsOrIss + itemUnitDre.icmsOrIss) * 100) / 100
+      costMarginSumUnits.pis = Math.round((costMarginSumUnits.pis + itemUnitDre.pis) * 100) / 100
+      costMarginSumUnits.cofins =
+        Math.round((costMarginSumUnits.cofins + itemUnitDre.cofins) * 100) / 100
+      costMarginSumUnits.dasTotal =
+        Math.round((costMarginSumUnits.dasTotal + itemUnitDre.dasTotal) * 100) / 100
+      costMarginSumUnits.netRevenue =
+        Math.round((costMarginSumUnits.netRevenue + itemUnitDre.netRevenue) * 100) / 100
+      costMarginSumUnits.cmv = Math.round((costMarginSumUnits.cmv + itemUnitDre.cmv) * 100) / 100
+      costMarginSumUnits.grossProfit =
+        Math.round((costMarginSumUnits.grossProfit + itemUnitDre.grossProfit) * 100) / 100
+      costMarginSumUnits.lair = Math.round((costMarginSumUnits.lair + itemUnitDre.lair) * 100) / 100
+      costMarginSumUnits.irpj = Math.round((costMarginSumUnits.irpj + itemUnitDre.irpj) * 100) / 100
+      costMarginSumUnits.irpjAdditional =
+        Math.round((costMarginSumUnits.irpjAdditional + itemUnitDre.irpjAdditional) * 100) / 100
+      costMarginSumUnits.csll = Math.round((costMarginSumUnits.csll + itemUnitDre.csll) * 100) / 100
+      costMarginSumUnits.netProfit =
+        Math.round((costMarginSumUnits.netProfit + itemUnitDre.netProfit) * 100) / 100
+
       if (effectiveItemQty > 0) {
         revSum += Math.round(unitSalePrice * effectiveItemQty * 100) / 100
         cmvSum += Math.round(unitCost * effectiveItemQty * 100) / 100
       }
     }
 
-    if (cmvSum <= 0 && revSum <= 0) {
+    if (cmvSum <= 0 && revSum <= 0 && costMarginSumUnits.grossRevenue <= 0) {
       costMarginHasValid = false
       costMarginInvalidReason =
         'Custo unitário da mercadoria não cadastrado para este regime. Cadastre o custo ou importe da Calculadora de Compras.'
@@ -604,8 +833,18 @@ export function computeDreComparativeForRegime(params: {
       const safeQty = effectiveRegimeQty > 0 ? effectiveRegimeQty : 1
       costMarginTotalGross = Math.round(unitSalePrice * safeQty * 100) / 100
       costMarginTotalCmv = Math.round(fallbackCost * safeQty * 100) / 100
+
+      const singleUnitDre = computeProductUnitDre(unitSalePrice, fallbackCost)
+      costMarginSumUnits = singleUnitDre
     }
   }
+
+  // Margem líquida percentual unitária do modo cost_margin
+  costMarginSumUnits.netMargin =
+    costMarginSumUnits.grossRevenue > 0
+      ? Math.round((costMarginSumUnits.netProfit / costMarginSumUnits.grossRevenue) * 100 * 100) /
+        100
+      : 0
 
   const costMarginPair = buildDrePair(
     costMarginTotalGross,
@@ -614,6 +853,15 @@ export function computeDreComparativeForRegime(params: {
     costMarginHasValid,
     costMarginInvalidReason,
   )
+
+  // Sobrepõe a coluna unit com o somatório item a item por produto da regra canônica
+  if (costMarginPair.hasValidData && validProducts.length > 0) {
+    costMarginPair.unit = {
+      ...costMarginSumUnits,
+      operatingExpenses: 0,
+      patronalCharges: 0,
+    }
+  }
 
   return {
     regimeKey,
@@ -818,7 +1066,7 @@ export const DreRegimeComparativeSection: React.FC<DreRegimeComparativeProps> = 
             </div>
           </div>
           <div className="text-[11px] font-mono text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800 shrink-0">
-            Consolidado = Unitário × {quantity} un.
+            Unitário = soma dos unitários apurados item a item por produto · {quantity} un.
           </div>
         </div>
 
@@ -1202,8 +1450,8 @@ export const DreRegimeComparativeSection: React.FC<DreRegimeComparativeProps> = 
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>
                 <strong>Apresentação Comparativa por Regime:</strong> cada regime conta com 4
-                colunas em 2 pares lado a lado (Unitário ÷ Qtd. do regime · Consolidado = Unitário ×
-                Qtd.).
+                colunas em 2 pares lado a lado (Unitário = soma dos unitários apurados item a item
+                por produto · Consolidado = Σ(unitário × quantidade)).
               </span>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-slate-400 shrink-0">
