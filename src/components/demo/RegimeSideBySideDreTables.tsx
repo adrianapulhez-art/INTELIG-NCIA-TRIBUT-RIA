@@ -44,6 +44,7 @@ const SingleDreTable: React.FC<SingleDreTableProps> = ({
   headerBadgeColor,
 }) => {
   const { unit, consolidated, hasValidData, invalidReason } = colData
+  // safeQty usa a quantidade real sincronizada do regime
   const safeQty = quantity > 0 ? quantity : 1
 
   const badgeBg =

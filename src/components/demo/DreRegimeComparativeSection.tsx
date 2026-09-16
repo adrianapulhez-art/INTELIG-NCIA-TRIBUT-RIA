@@ -254,14 +254,26 @@ export function computeDreComparativeForRegime(params: {
     if (typeof p.quantity === 'number' && Number.isFinite(p.quantity) && p.quantity > 0) {
       return p.quantity
     }
-    return regimeQuantity > 0 ? regimeQuantity : 0
+    return 0
   }
 
-  // Quantidade total efetiva para o regime
+  // Soma estrita das quantidades dos produtos válidos para o regime
+  const sumProductQuantities = validProducts.reduce((acc, p) => acc + resolveProductQty(p), 0)
+
+  // Quantidade total efetiva para o regime:
+  // Se houver produtos cadastrados, a quantidade DEVE ser estritamente a soma das quantidades dos produtos (Σ QuantidadeVendida_i)
+  // para garantir sincronização entre numerador (consolidado) e denominador (divisor da coluna unitária).
+  // Apenas em fallback sem produtos recorre a regimeQuantity escalar legado.
   const effectiveRegimeQty =
-    regimeQuantity > 0
-      ? regimeQuantity
-      : validProducts.reduce((acc, p) => acc + resolveProductQty(p), 0)
+    validProducts.length > 0
+      ? sumProductQuantities > 0
+        ? sumProductQuantities
+        : regimeQuantity > 0
+          ? regimeQuantity
+          : 0
+      : regimeQuantity > 0
+        ? regimeQuantity
+        : 0
 
   // Sub-função para apurar toda a DRE a partir de (totalGross, totalCmv, qty)
   const buildDrePair = (
@@ -482,7 +494,9 @@ export function computeDreComparativeForRegime(params: {
 
     for (const p of validProducts) {
       const pQty = resolveProductQty(p)
-      const effectiveItemQty = pQty > 0 ? pQty : regimeQuantity > 0 ? regimeQuantity : 1
+      // Regra canônica: se a quantidade do produto é 0 para o regime, o consolidado daquele item é 0,00
+      // NUNCA fallback para regimeQuantity ou 1.
+      const effectiveItemQty = pQty > 0 ? pQty : 0
       const itemMeta =
         p.desiredNetRevenueByRegime?.[regimeKey] ??
         desiredLiquidRevenueByRegime?.[regimeKey] ??
@@ -493,8 +507,10 @@ export function computeDreComparativeForRegime(params: {
         divisor > 0.0001 && itemMeta > 0 ? Math.round((itemMeta / divisor) * 100) / 100 : 0
       const unitCost = getProductUnitCost(p)
 
-      revSum += Math.round(unitSalePrice * effectiveItemQty * 100) / 100
-      cmvSum += Math.round(unitCost * effectiveItemQty * 100) / 100
+      if (effectiveItemQty > 0) {
+        revSum += Math.round(unitSalePrice * effectiveItemQty * 100) / 100
+        cmvSum += Math.round(unitCost * effectiveItemQty * 100) / 100
+      }
     }
 
     if (revSum <= 0) {
@@ -548,7 +564,9 @@ export function computeDreComparativeForRegime(params: {
 
     for (const p of validProducts) {
       const pQty = resolveProductQty(p)
-      const effectiveItemQty = pQty > 0 ? pQty : regimeQuantity > 0 ? regimeQuantity : 1
+      // Regra canônica: se a quantidade do produto é 0 para o regime, o consolidado daquele item é 0,00
+      // NUNCA fallback para regimeQuantity ou 1.
+      const effectiveItemQty = pQty > 0 ? pQty : 0
       const unitCost = getProductUnitCost(p)
       const pMargin =
         p.marginByRegime?.[regimeKey] ??
@@ -557,8 +575,10 @@ export function computeDreComparativeForRegime(params: {
       const unitSalePrice =
         divisor > 0.0001 && unitCost > 0 ? Math.round((unitCost / divisor) * 100) / 100 : 0
 
-      revSum += Math.round(unitSalePrice * effectiveItemQty * 100) / 100
-      cmvSum += Math.round(unitCost * effectiveItemQty * 100) / 100
+      if (effectiveItemQty > 0) {
+        revSum += Math.round(unitSalePrice * effectiveItemQty * 100) / 100
+        cmvSum += Math.round(unitCost * effectiveItemQty * 100) / 100
+      }
     }
 
     if (cmvSum <= 0 && revSum <= 0) {
@@ -658,7 +678,7 @@ export const DreRegimeComparativeSection: React.FC<DreRegimeComparativeProps> = 
       : 0
   const simplesEffectiveRate = pgdas.aliquotaEfetiva || 0
 
-  // Resolver quantidades por regime com prioridade: quantityByRegime dos produtos > quantidade local > qty geral
+  // Resolver quantidades por regime com prioridade: soma das quantidades dos produtos no regime > quantidade local > qty geral
   const resolveRegimeQty = (regimeKey: 'presumido' | 'real' | 'simples') => {
     if (Array.isArray(markupProducts) && markupProducts.length > 0) {
       let sum = 0
@@ -670,6 +690,17 @@ export const DreRegimeComparativeSection: React.FC<DreRegimeComparativeProps> = 
         }
       }
       if (hasExplicitByRegime) return sum
+
+      // Se não há quantityByRegime explícito, soma p.quantity dos produtos
+      const productSum = markupProducts.reduce(
+        (acc, p) =>
+          acc +
+          (typeof p.quantity === 'number' && Number.isFinite(p.quantity)
+            ? Math.max(0, p.quantity)
+            : 0),
+        0,
+      )
+      if (productSum > 0) return productSum
     }
     if (regimeKey === 'presumido' && presumidoQuantitySold && presumidoQuantitySold > 0) {
       return presumidoQuantitySold

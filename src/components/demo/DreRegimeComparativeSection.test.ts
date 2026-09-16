@@ -274,4 +274,121 @@ describe('DRE Comparativa por Regime Tributário (Adriana 0.0.130)', () => {
     // O CMV unitário médio apurado na DRE = 1.500 / 7 = 214,29
     expect(data.costMargin.unit.cmv).toBeCloseTo(214.29, 2)
   })
+
+  it('5. v0.0.134: Produto com quantidade 0 para o regime contribui R$ 0,00 sem fallback para regimeQuantity ou 1; Unitário = Consolidado ÷ Quantidade Total e Unitário × Q = Consolidado centavo a centavo', () => {
+    // 2 produtos com preços e custos diferentes
+    // Prod 1: custo 100, margem 20%, meta 150, qtd = 10 no presumido
+    // Prod 2: custo 200, margem 30%, meta 300, qtd = 0 no presumido (NÃO deve contribuir nem herdar fallback)
+    // Prod 3: custo 50, margem 10%, meta 80, qtd = 5 no presumido
+    const products: MarkupProductItem[] = [
+      {
+        id: 'p1',
+        name: 'Produto Ativo 1',
+        mode: 'cost_margin',
+        cost: 100,
+        desiredNetRevenue: 150,
+        margin: 20,
+        desiredNetRevenueByRegime: { presumido: 150 },
+        marginByRegime: { presumido: 20 },
+        quantityByRegime: { presumido: 10 },
+        quantity: 10,
+        salePrice: 0,
+        taxFactor: 0,
+        completeFactor: 0,
+        totalRevenue: 0,
+        totalCost: 1000,
+      },
+      {
+        id: 'p2',
+        name: 'Produto Inativo no Presumido',
+        mode: 'cost_margin',
+        cost: 200,
+        desiredNetRevenue: 300,
+        margin: 30,
+        desiredNetRevenueByRegime: { presumido: 300 },
+        marginByRegime: { presumido: 30 },
+        quantityByRegime: { presumido: 0 }, // QUANTIDADE ZERO
+        quantity: 0,
+        salePrice: 0,
+        taxFactor: 0,
+        completeFactor: 0,
+        totalRevenue: 0,
+        totalCost: 0,
+      },
+      {
+        id: 'p3',
+        name: 'Produto Ativo 2',
+        mode: 'cost_margin',
+        cost: 50,
+        desiredNetRevenue: 80,
+        margin: 10,
+        desiredNetRevenueByRegime: { presumido: 80 },
+        marginByRegime: { presumido: 10 },
+        quantityByRegime: { presumido: 5 },
+        quantity: 5,
+        salePrice: 0,
+        taxFactor: 0,
+        completeFactor: 0,
+        totalRevenue: 0,
+        totalCost: 250,
+      },
+    ]
+
+    const data = computeDreComparativeForRegime({
+      regimeKey: 'presumido',
+      markupProducts: products,
+      purchasesItems: [],
+      icmsRate: 18,
+      customTaxesMarkup: [],
+      dvRate: 5,
+      simplesEffectiveRate: 10,
+      calculatedPurchases: {
+        unitCostPresumidoEffective: 0,
+        unitCostRealEffective: 0,
+        unitCostSimplesEffective: 0,
+        cmvPresumido: 0,
+        cmvReal: 0,
+        cmvSimples: 0,
+      },
+      totalGlobalOperatingExpenses: 0,
+      totalGlobalOperatingRevenues: 0,
+      directPayrollExpenses: 0,
+      patronalCharges: 0,
+      presumidoActivity: 'comercio',
+      realActivity: 'comercio',
+      presumidoIssRate: 0,
+      realIssRate: 0,
+      realAdditions: 0,
+      realExclusions: 0,
+      regimeQuantity: 47, // Quantidade legada que NÃO pode contaminar a soma real dos produtos (10 + 0 + 5 = 15)
+    })
+
+    // Quantidade total efetiva sincronizada com a soma dos produtos válidos (10 + 0 + 5 = 15)
+    expect(data.quantity).toBe(15)
+
+    // CMV Consolidado deve ser estritamente: 10 * 100 + 0 * 200 + 5 * 50 = 1000 + 0 + 250 = 1250
+    // Se o p2 tivesse fallback para 47 ou 1, o CMV seria 1250 + 200*47 ou 1250 + 200.
+    expect(data.costMargin.consolidated.cmv).toBe(1250)
+    expect(data.liquid.consolidated.cmv).toBe(1250)
+
+    // CMV Unitário deve ser estritamente 1250 ÷ 15 = 83,33
+    expect(data.costMargin.unit.cmv).toBeCloseTo(1250 / 15, 2)
+    expect(data.liquid.unit.cmv).toBeCloseTo(1250 / 15, 2)
+
+    // Integridade matemática: Unitário × Quantidade Total = Consolidado centavo a centavo
+    // (dentro do arredondamento canônico a 2 casas)
+    const cmCons = data.costMargin.consolidated
+    const cmUnit = data.costMargin.unit
+    expect(cmUnit.grossRevenue).toBeCloseTo(cmCons.grossRevenue / 15, 2)
+    expect(cmUnit.netRevenue).toBeCloseTo(cmCons.netRevenue / 15, 2)
+    expect(cmUnit.cmv).toBeCloseTo(cmCons.cmv / 15, 2)
+    expect(cmUnit.grossProfit).toBeCloseTo(cmCons.grossProfit / 15, 2)
+
+    const liqCons = data.liquid.consolidated
+    const liqUnit = data.liquid.unit
+    expect(liqUnit.grossRevenue).toBeCloseTo(liqCons.grossRevenue / 15, 2)
+    expect(liqUnit.netRevenue).toBeCloseTo(liqCons.netRevenue / 15, 2)
+    expect(liqUnit.cmv).toBeCloseTo(liqCons.cmv / 15, 2)
+    expect(liqUnit.grossProfit).toBeCloseTo(liqCons.grossProfit / 15, 2)
+  })
 })

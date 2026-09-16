@@ -468,15 +468,19 @@ export default function ComparisonPage() {
             const unitSalePrice =
               divisor > 0.0001 && itemMeta > 0 ? Math.round((itemMeta / divisor) * 100) / 100 : 0
 
-            const effectiveItemQty = productQty > 0 ? productQty : 1
-            const itemRev = Math.round(unitSalePrice * effectiveItemQty * 100) / 100
-
-            totalRev += itemRev
-            totalUnits += effectiveItemQty
+            // Regra canônica: se a quantidade do produto é 0 para o regime, o consolidado é 0,00
+            // NUNCA fallback para 1.
+            const effectiveItemQty = productQty > 0 ? productQty : 0
+            if (effectiveItemQty > 0) {
+              const itemRev = Math.round(unitSalePrice * effectiveItemQty * 100) / 100
+              totalRev += itemRev
+              totalUnits += effectiveItemQty
+            }
           }
 
           const roundedTotal = Math.round(totalRev * 100) / 100
-          const effectiveDivQty = qty > 0 ? qty : totalUnits > 0 ? totalUnits : 1
+          // Denominador sincronizado estritamente com a soma das quantidades dos produtos no regime
+          const effectiveDivQty = totalUnits > 0 ? totalUnits : qty > 0 ? qty : 1
           const roundedUnit =
             effectiveDivQty > 0
               ? Math.round((roundedTotal / effectiveDivQty) * 100) / 100
@@ -564,15 +568,19 @@ export default function ComparisonPage() {
           const unitSalePrice =
             divisor > 0.0001 && unitCost > 0 ? Math.round((unitCost / divisor) * 100) / 100 : 0
 
-          const effectiveItemQty = productQty > 0 ? productQty : 1
-          const itemRev = Math.round(unitSalePrice * effectiveItemQty * 100) / 100
-
-          totalRev += itemRev
-          totalUnits += effectiveItemQty
+          // Regra canônica: se a quantidade do produto é 0 para o regime, o consolidado é 0,00
+          // NUNCA fallback para 1.
+          const effectiveItemQty = productQty > 0 ? productQty : 0
+          if (effectiveItemQty > 0) {
+            const itemRev = Math.round(unitSalePrice * effectiveItemQty * 100) / 100
+            totalRev += itemRev
+            totalUnits += effectiveItemQty
+          }
         }
 
         const roundedTotal = Math.round(totalRev * 100) / 100
-        const effectiveDivQty = qty > 0 ? qty : totalUnits > 0 ? totalUnits : 1
+        // Denominador sincronizado estritamente com a soma das quantidades dos produtos no regime
+        const effectiveDivQty = totalUnits > 0 ? totalUnits : qty > 0 ? qty : 1
         const roundedUnit =
           effectiveDivQty > 0
             ? Math.round((roundedTotal / effectiveDivQty) * 100) / 100
