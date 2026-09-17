@@ -237,21 +237,21 @@ export default function PurchasesPage() {
           </div>
 
           {/* (A) Seletor de Regime Tributário das Compras (Laranja Aprovado) */}
-          <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/30 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <span className="text-xs font-mono font-semibold uppercase text-emerald-400 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/30">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <span className="text-xs sm:text-sm font-mono font-semibold uppercase text-emerald-400 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
                 Regime tributário da empresa compradora
               </span>
 
-              {/* Botões Presumido / Real / Simples Nacional (padrão laranja estrito) */}
-              <div className="inline-flex flex-wrap rounded-lg bg-slate-950/80 p-1 border border-orange-500/30 gap-1">
+              {/* Botões Presumido / Real / Simples Nacional (padrão laranja estrito ampliado) */}
+              <div className="inline-flex flex-wrap rounded-xl bg-slate-950/80 p-1.5 border border-orange-500/30 gap-1.5 shadow-inner">
                 <button
                   type="button"
                   onClick={() => setRegime('presumido')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold font-mono transition-all cursor-pointer ${
+                  className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-sm sm:text-base font-semibold font-mono transition-all cursor-pointer ${
                     regime === 'presumido'
-                      ? 'bg-orange-500 text-slate-950 font-bold shadow-sm shadow-orange-500/20'
+                      ? 'bg-orange-500 text-slate-950 font-bold shadow-md shadow-orange-500/25'
                       : 'text-orange-200/80 hover:text-orange-100 hover:bg-orange-500/10'
                   }`}
                 >
@@ -260,9 +260,9 @@ export default function PurchasesPage() {
                 <button
                   type="button"
                   onClick={() => setRegime('real')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold font-mono transition-all cursor-pointer ${
+                  className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-sm sm:text-base font-semibold font-mono transition-all cursor-pointer ${
                     regime === 'real'
-                      ? 'bg-orange-500 text-slate-950 font-bold shadow-sm shadow-orange-500/20'
+                      ? 'bg-orange-500 text-slate-950 font-bold shadow-md shadow-orange-500/25'
                       : 'text-orange-200/80 hover:text-orange-100 hover:bg-orange-500/10'
                   }`}
                 >
@@ -271,9 +271,9 @@ export default function PurchasesPage() {
                 <button
                   type="button"
                   onClick={() => setRegime('simples')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold font-mono transition-all cursor-pointer ${
+                  className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg text-sm sm:text-base font-semibold font-mono transition-all cursor-pointer ${
                     regime === 'simples'
-                      ? 'bg-orange-500 text-slate-950 font-bold shadow-sm shadow-orange-500/20'
+                      ? 'bg-orange-500 text-slate-950 font-bold shadow-md shadow-orange-500/25'
                       : 'text-orange-200/80 hover:text-orange-100 hover:bg-orange-500/10'
                   }`}
                 >
@@ -281,27 +281,6 @@ export default function PurchasesPage() {
                 </button>
               </div>
             </div>
-
-            <p className="text-xs text-slate-400 leading-relaxed font-mono">
-              {regime === 'simples' ? (
-                <span>
-                  💡 <strong>Simples Nacional:</strong> em regra geral, os tributos da compra{' '}
-                  <strong className="text-emerald-400">não são recuperáveis</strong> e integram
-                  integralmente o custo das mercadorias vendidas (CMV), recolhendo-se os tributos
-                  pela guia única do DAS sobre o faturamento.
-                </span>
-              ) : regime === 'presumido' ? (
-                <span>
-                  💡 <strong>Lucro Presumido:</strong> apenas o ICMS e ICMS sobre frete são
-                  recuperáveis; PIS e COFINS integram o custo das compras.
-                </span>
-              ) : (
-                <span>
-                  💡 <strong>Lucro Real:</strong> ICMS, PIS e COFINS (inclusive sobre frete) são
-                  recuperáveis e deduzem as compras na apuração do CMV.
-                </span>
-              )}
-            </p>
           </div>
 
           {/* (B) Bloco de ITENS DE COMPRA (Subsistema em Camadas: Tabela Compacta Frontal + Modal Completo) */}
