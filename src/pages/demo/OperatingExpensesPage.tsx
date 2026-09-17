@@ -23,8 +23,6 @@ import {
   Building,
   Landmark,
   CheckCircle2,
-  HelpCircle,
-  Eye,
   Tag,
   DollarSign,
   Info,
@@ -82,8 +80,6 @@ export default function OperatingExpensesPage() {
     setPayrollTerceirosRate,
   } = useTaxContext()
 
-  // Modal para detalhamento / discriminação geral por tipo (camada analítica existente)
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   // Subcamada Modal: Folha e Pró-labore
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false)
 
@@ -113,34 +109,6 @@ export default function OperatingExpensesPage() {
     terceirosRate: payrollTerceirosRate,
   })
   const hasPayrollValues = (payrollSalaries || 0) > 0 || (payrollProLabore || 0) > 0
-
-  // Totais por categoria de Despesas
-  const expensesByCategory = React.useMemo(() => {
-    const cats: Record<OperatingExpenseCategory, number> = {
-      vendas: 0,
-      administrativas: 0,
-      financeiras: 0,
-      outras: 0,
-    }
-    operatingExpenses.forEach((item) => {
-      const val = Number.isFinite(item.value) && item.value > 0 ? item.value : 0
-      cats[item.category || 'administrativas'] += val
-    })
-    return cats
-  }, [operatingExpenses])
-
-  // Totais por categoria de Receitas
-  const revenuesByCategory = React.useMemo(() => {
-    const cats: Record<OperatingRevenueCategory, number> = {
-      financeiras: 0,
-      outras: 0,
-    }
-    operatingRevenues.forEach((item) => {
-      const val = Number.isFinite(item.value) && item.value > 0 ? item.value : 0
-      cats[item.category || 'outras'] += val
-    })
-    return cats
-  }, [operatingRevenues])
 
   // Abrir camada de adição de Despesa
   const handleOpenAddExpense = (initialSize: CompanySize = 'small') => {
@@ -268,96 +236,6 @@ export default function OperatingExpensesPage() {
             </div>
           </div>
 
-          {/* Destaque Informativo da Estrutura DRE + Chips de Camadas */}
-          <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/25 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs font-mono">
-            <div className="space-y-1">
-              <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                Integração Direta com Todas as DREs (Presumido, Real, Simples) & Comparação
-              </span>
-              <p className="text-slate-400 font-sans text-[11px] leading-relaxed">
-                As despesas e receitas operacionais são lançadas por camadas com discriminação
-                contábil (Vendas, Administrativas, Financeiras, Outras) e modelos prontos por porte
-                (pequeno, médio e grande porte). O resultado apura diretamente o{' '}
-                <strong className="text-emerald-300">Lucro antes do Imposto de Renda (LAIR)</strong>
-                .
-              </p>
-            </div>
-
-            {/* Chips em Camadas (padrão do sistema) */}
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              {/* Chip 1: Folha e Pró-labore (Subcamada Compacta) */}
-              <button
-                type="button"
-                onClick={() => setIsPayrollModalOpen(true)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer shadow-sm ${
-                  hasPayrollValues
-                    ? 'bg-emerald-500/[0.18] border-emerald-400/80 text-emerald-100 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-emerald-500/15 ring-1 ring-emerald-500/30'
-                    : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/50'
-                }`}
-                title="Abrir camada compacta de edição de Folha de Salários, Pró-labore e Encargos Patronais"
-              >
-                <Users className="w-3.5 h-3.5 text-emerald-300" />
-                <span className="font-semibold">Folha & Pró-labore</span>
-                <Badge
-                  className={`text-[10px] px-1.5 py-0 border-0 font-semibold ${
-                    hasPayrollValues
-                      ? 'bg-emerald-500/35 text-emerald-100'
-                      : 'bg-slate-800 text-slate-400'
-                  }`}
-                >
-                  {hasPayrollValues ? formatBRL(payrollResult.totalLaborExpense) : 'Não preenchido'}
-                </Badge>
-                <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
-              </button>
-
-              {/* Chip 2: Discriminação por Categoria */}
-              <button
-                type="button"
-                onClick={() => setIsCategoryModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer shadow-sm bg-orange-500/[0.14] border-orange-400/80 text-orange-200 hover:bg-orange-500/25 hover:border-orange-300 shadow-orange-500/10 ring-1 ring-orange-500/20"
-                title="Abrir camada com a discriminação analítica por categoria e regras fiscais"
-              >
-                <Layers className="w-3.5 h-3.5 text-orange-300" />
-                <span className="font-semibold text-orange-100">Discriminar por Tipo</span>
-                <Badge className="text-[10px] px-1.5 py-0 border-0 font-semibold bg-orange-500/35 text-orange-100">
-                  {operatingExpenses.length + operatingRevenues.length} itens
-                </Badge>
-                <ChevronRight className="w-3 h-3 text-orange-300/70 ml-0.5" />
-              </button>
-
-              {/* Chip 3: Adicionar Despesa (Camada Oculta) */}
-              <button
-                type="button"
-                onClick={() => handleOpenAddExpense('small')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer shadow-sm bg-rose-500/[0.14] border-rose-400/80 text-rose-200 hover:bg-rose-500/25 hover:border-rose-300 shadow-rose-500/10 ring-1 ring-rose-500/20"
-                title="Abrir camada para adicionar despesa com discriminação e exemplos prontos"
-              >
-                <TrendingDown className="w-3.5 h-3.5 text-rose-300" />
-                <span className="font-semibold text-rose-100">+ Despesa</span>
-                <Badge className="text-[10px] px-1.5 py-0 border-0 font-semibold bg-rose-500/35 text-rose-100">
-                  {operatingExpenses.length}
-                </Badge>
-                <ChevronRight className="w-3 h-3 text-rose-300/70 ml-0.5" />
-              </button>
-
-              {/* Chip 4: Adicionar Receita (Camada Oculta) */}
-              <button
-                type="button"
-                onClick={() => handleOpenAddRevenue('small')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer shadow-sm bg-emerald-500/[0.14] border-emerald-400/80 text-emerald-200 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-emerald-500/10 ring-1 ring-emerald-500/20"
-                title="Abrir camada para adicionar receita com discriminação e exemplos prontos"
-              >
-                <TrendingUp className="w-3.5 h-3.5 text-emerald-300" />
-                <span className="font-semibold text-emerald-100">+ Receita</span>
-                <Badge className="text-[10px] px-1.5 py-0 border-0 font-semibold bg-emerald-500/35 text-emerald-100">
-                  {operatingRevenues.length}
-                </Badge>
-                <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
-              </button>
-            </div>
-          </div>
-
           {/* Painel de Resumo / Cards de Totais Operacionais */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Total Despesas */}
@@ -438,7 +316,7 @@ export default function OperatingExpensesPage() {
 
           {/* TABELA 1: DESPESAS OPERACIONAIS (Frontal Enxuta com Discriminação em Badge) */}
           <div className="space-y-3 pt-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-md bg-rose-500/10 flex items-center justify-center text-rose-400">
                   <TrendingDown className="w-4 h-4" />
@@ -453,16 +331,49 @@ export default function OperatingExpensesPage() {
                 </div>
               </div>
 
-              {/* Botão de Adicionar Despesa que abre a camada */}
-              <div className="flex items-center gap-2">
-                <Button
+              {/* Botões do Cabeçalho: Folha & Pró-labore + Adicionar Despesa */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Botão Folha & Pró-labore com badge do total */}
+                <button
                   type="button"
-                  size="sm"
-                  onClick={() => handleOpenAddExpense('small')}
-                  className="h-8 text-xs bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold shadow-md shadow-orange-500/20 cursor-pointer"
+                  onClick={() => setIsPayrollModalOpen(true)}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-mono transition-all cursor-pointer shadow-sm ${
+                    hasPayrollValues
+                      ? 'bg-emerald-500/[0.18] border-emerald-400/80 text-emerald-100 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-emerald-500/15 ring-1 ring-emerald-500/30'
+                      : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/50'
+                  }`}
+                  title="Abrir camada compacta de edição de Folha de Salários, Pró-labore e Encargos Patronais"
                 >
-                  <Plus className="w-3.5 h-3.5 mr-1" />+ Adicionar Despesa
-                </Button>
+                  <Users className="w-4 h-4 text-emerald-300" />
+                  <span className="font-semibold">Folha & Pró-labore</span>
+                  <Badge
+                    className={`text-[10px] px-1.5 py-0 border-0 font-semibold ${
+                      hasPayrollValues
+                        ? 'bg-emerald-500/35 text-emerald-100'
+                        : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    {hasPayrollValues
+                      ? formatBRL(payrollResult.totalLaborExpense)
+                      : 'Não preenchido'}
+                  </Badge>
+                  <ChevronRight className="w-3.5 h-3.5 text-emerald-300/70" />
+                </button>
+
+                {/* Botão + Adicionar Despesa (Destaque em Vermelho/Rosa conforme print) */}
+                <button
+                  type="button"
+                  onClick={() => handleOpenAddExpense('small')}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-rose-500/60 bg-rose-950/40 hover:bg-rose-900/50 text-rose-100 hover:text-white hover:border-rose-400 font-bold text-xs sm:text-sm shadow-md shadow-rose-950/40 transition-all cursor-pointer"
+                  title="Adicionar despesa operacional"
+                >
+                  <TrendingDown className="w-4 h-4 text-rose-300" />
+                  <span>+ Despesa</span>
+                  <Badge className="text-[10px] px-2 py-0.5 border-0 font-bold bg-rose-500/30 text-rose-200 rounded-full">
+                    {operatingExpenses.length}
+                  </Badge>
+                  <ChevronRight className="w-3.5 h-3.5 text-rose-300/70" />
+                </button>
               </div>
             </div>
 
@@ -586,7 +497,7 @@ export default function OperatingExpensesPage() {
 
           {/* TABELA 2: RECEITAS OPERACIONAIS (Frontal Enxuta com Discriminação em Badge) */}
           <div className="space-y-3 pt-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-md bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                   <TrendingUp className="w-4 h-4" />
@@ -601,16 +512,21 @@ export default function OperatingExpensesPage() {
                 </div>
               </div>
 
-              {/* Botão de Adicionar Receita que abre a camada */}
+              {/* Botão + Adicionar Receita (Destaque em Verde conforme print) */}
               <div className="flex items-center gap-2">
-                <Button
+                <button
                   type="button"
-                  size="sm"
                   onClick={() => handleOpenAddRevenue('small')}
-                  className="h-8 text-xs bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold shadow-md shadow-orange-500/20 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-500/60 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-100 hover:text-white hover:border-emerald-400 font-bold text-xs sm:text-sm shadow-md shadow-emerald-950/40 transition-all cursor-pointer"
+                  title="Adicionar receita operacional"
                 >
-                  <Plus className="w-3.5 h-3.5 mr-1" />+ Adicionar Receita
-                </Button>
+                  <TrendingUp className="w-4 h-4 text-emerald-300" />
+                  <span>+ Receita</span>
+                  <Badge className="text-[10px] px-2 py-0.5 border-0 font-bold bg-emerald-500/30 text-emerald-200 rounded-full">
+                    {operatingRevenues.length}
+                  </Badge>
+                  <ChevronRight className="w-3.5 h-3.5 text-emerald-300/70" />
+                </button>
               </div>
             </div>
 
@@ -759,7 +675,6 @@ export default function OperatingExpensesPage() {
           </div>
         </div>
       </div>
-
       {/* ===================================================================== */}
       {/* CAMADA OCULTA 1: ADICIONAR DESPESA COM DISCRIMINAÇÃO E EXEMPLOS PRONTOS */}
       {/* ===================================================================== */}
@@ -996,40 +911,39 @@ export default function OperatingExpensesPage() {
                   apuração do Lucro Real e cálculo do LALUR.
                 </span>
               </div>
-            </div>
 
-            {/* Ações da Camada */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-              <span className="text-xs font-mono text-slate-400">
-                Lançadas no momento:{' '}
-                <strong className="text-white">{operatingExpenses.length}</strong>
-              </span>
+              {/* Ação principal de adicionar logo após o formulário curto */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                <span className="text-xs font-mono text-slate-400">
+                  Lançadas no momento:{' '}
+                  <strong className="text-white">{operatingExpenses.length}</strong>
+                </span>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsAddExpenseModalOpen(false)}
-                  className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white cursor-pointer"
-                >
-                  Fechar
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleSaveCustomExpense}
-                  className="text-xs bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold shadow-md shadow-orange-500/20 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  Salvar Despesa
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAddExpenseModalOpen(false)}
+                    className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white cursor-pointer"
+                  >
+                    Fechar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSaveCustomExpense}
+                    className="text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold shadow-md shadow-rose-600/30 cursor-pointer px-4"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    Adicionar Despesa
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-
       {/* ===================================================================== */}
       {/* CAMADA OCULTA 2: ADICIONAR RECEITA COM DISCRIMINAÇÃO E EXEMPLOS PRONTOS */}
       {/* ===================================================================== */}
@@ -1264,43 +1178,39 @@ export default function OperatingExpensesPage() {
                   compõem o resultado líquido apurado.
                 </span>
               </div>
-            </div>
 
-            {/* Ações da Camada */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-              <span className="text-xs font-mono text-slate-400">
-                Lançadas no momento:{' '}
-                <strong className="text-white">{operatingRevenues.length}</strong>
-              </span>
+              {/* Ação principal de adicionar logo após o formulário curto */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                <span className="text-xs font-mono text-slate-400">
+                  Lançadas no momento:{' '}
+                  <strong className="text-white">{operatingRevenues.length}</strong>
+                </span>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsAddRevenueModalOpen(false)}
-                  className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white cursor-pointer"
-                >
-                  Fechar
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleSaveCustomRevenue}
-                  className="text-xs bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold shadow-md shadow-orange-500/20 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  Salvar Receita
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsAddRevenueModalOpen(false)}
+                    className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white cursor-pointer"
+                  >
+                    Fechar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSaveCustomRevenue}
+                    className="text-xs bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-600/30 cursor-pointer px-4"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    Adicionar Receita
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* ===================================================================== */}
-      {/* CAMADA OCULTA 3: DISCRIMINAÇÃO POR CATEGORIA E REGRAS FISCAIS */}
-      {/* ===================================================================== */}
       {/* ===================================================================== */}
       {/* SUBCAMADA MODAL: FOLHA DE SALÁRIOS, PRÓ-LABORE E ENCARGOS PATRONAIS */}
       {/* ===================================================================== */}
@@ -1365,100 +1275,7 @@ export default function OperatingExpensesPage() {
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
-
-      <Dialog open={isCategoryModalOpen} onOpenChange={setIsCategoryModalOpen}>
-        <DialogContent className="max-w-2xl bg-[#091511] border border-emerald-500/30 text-slate-100 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-              <Layers className="w-5 h-5 text-orange-400" />
-              Detalhamento por Categoria Operacional
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
-              Discriminação contábil estruturada para integração com as DREs e apuração do Lucro
-              Real.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-5 pt-2">
-            {/* Bloco de Despesas */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-mono uppercase font-bold text-rose-400 flex items-center justify-between">
-                <span>Despesas Operacionais por Categoria</span>
-                <span>{formatBRL(totalOperatingExpenses)}</span>
-              </h4>
-              <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
-                  <div className="text-slate-400 text-[11px]">Com Vendas</div>
-                  <div className="font-bold text-rose-300 mt-0.5">
-                    {formatBRL(expensesByCategory.vendas)}
-                  </div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
-                  <div className="text-slate-400 text-[11px]">Administrativas</div>
-                  <div className="font-bold text-rose-300 mt-0.5">
-                    {formatBRL(expensesByCategory.administrativas)}
-                  </div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
-                  <div className="text-slate-400 text-[11px]">Financeiras (Dedutíveis no Real)</div>
-                  <div className="font-bold text-rose-300 mt-0.5">
-                    {formatBRL(expensesByCategory.financeiras)}
-                  </div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
-                  <div className="text-slate-400 text-[11px]">Outras Despesas</div>
-                  <div className="font-bold text-rose-300 mt-0.5">
-                    {formatBRL(expensesByCategory.outras)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bloco de Receitas */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-mono uppercase font-bold text-emerald-400 flex items-center justify-between">
-                <span>Receitas Operacionais por Categoria</span>
-                <span>{formatBRL(totalOperatingRevenues)}</span>
-              </h4>
-              <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
-                  <div className="text-slate-400 text-[11px]">Financeiras</div>
-                  <div className="font-bold text-emerald-300 mt-0.5">
-                    {formatBRL(revenuesByCategory.financeiras)}
-                  </div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
-                  <div className="text-slate-400 text-[11px]">Outras Receitas</div>
-                  <div className="font-bold text-emerald-300 mt-0.5">
-                    {formatBRL(revenuesByCategory.outras)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/25 text-xs text-orange-200">
-              💡 <strong>Regras Fiscais:</strong> No Lucro Real, as despesas operacionais
-              necessárias e comprovadas reduzem o LAIR que serve de partida para o LALUR; receitas
-              financeiras e operacionais acrescem a base tributável. No Lucro Presumido e Simples, o
-              cálculo principal parte da receita bruta / faturamento, com o LAIR figurando na
-              estrutura analítica da demonstração.
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsCategoryModalOpen(false)}
-                className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white cursor-pointer"
-              >
-                Fechar Detalhamento
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      </Dialog>{' '}
     </DemoLayout>
   )
 }
