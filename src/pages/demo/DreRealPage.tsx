@@ -27,11 +27,6 @@ export default function DreRealPage() {
     totalConsolidatedRevenue,
     totalConsolidatedQuantity,
     totalConsolidatedCost,
-    totalServicesGrossRevenue,
-    totalServicesCsp,
-    totalServicesQuantity,
-    hasServiceRevenue,
-    serviceIssRate,
     markupProducts,
     calculatedPurchases,
     initialInventory,
@@ -85,17 +80,6 @@ export default function DreRealPage() {
     }
   }, [regime, setRegime])
 
-  const [issInput, setIssInput] = useState<string>(
-    realIssRate > 0 ? formatNumberBR(realIssRate) : '',
-  )
-  const [isIssFocused, setIsIssFocused] = useState(false)
-
-  React.useEffect(() => {
-    if (!isIssFocused) {
-      setIssInput(realIssRate > 0 ? formatNumberBR(realIssRate) : '')
-    }
-  }, [realIssRate, isIssFocused])
-
   // Quantidade automática conectada diretamente ao Markup/Compras
   const automaticQuantity =
     totalConsolidatedQuantity > 0
@@ -124,9 +108,6 @@ export default function DreRealPage() {
         ? 'via Compras'
         : 'sem quantidade cadastrada'
 
-  const isServices = realActivity === 'servicos' || hasServiceRevenue
-  const effectiveIssRate = isServices ? (serviceIssRate > 0 ? serviceIssRate : realIssRate) : 0
-
   // Quantidade de referência
   const initialQtyVal = automaticQuantity
 
@@ -141,19 +122,16 @@ export default function DreRealPage() {
     ? totalConsolidatedRevenue
     : Math.round((simulatedSalePrice || 0) * (initialQtyVal > 0 ? initialQtyVal : 0) * 100) / 100
 
-  // Se houver serviços prestados cadastrados, soma à receita bruta consolidada
-  const totalGross = Math.round((baseProductGross + (totalServicesGrossRevenue || 0)) * 100) / 100
+  const totalGross = Math.round(baseProductGross * 100) / 100
   const activeGrossRevenue = totalGross
-  const totalEffectiveQty = (initialQtyVal > 0 ? initialQtyVal : 0) + (totalServicesQuantity || 0)
+  const totalEffectiveQty = initialQtyVal > 0 ? initialQtyVal : 0
   const unitGrossRevenue =
     totalEffectiveQty > 0
       ? Math.round((totalGross / totalEffectiveQty) * 100) / 100
       : simulatedSalePrice || 0
 
   const isMultiProduct =
-    (purchasesItems && purchasesItems.length > 1) ||
-    (markupProducts && markupProducts.length > 1) ||
-    (hasServiceRevenue && baseProductGross > 0)
+    (purchasesItems && purchasesItems.length > 1) || (markupProducts && markupProducts.length > 1)
 
   const baseProductCmv =
     calculatedPurchases.cmvReal > 0
@@ -162,8 +140,7 @@ export default function DreRealPage() {
         ? totalConsolidatedCost
         : 0
 
-  // CSP total de serviços compõe a linha de custo das DREs análogo ao CMV
-  const consolidatedCMV = Math.round((baseProductCmv + (totalServicesCsp || 0)) * 100) / 100
+  const consolidatedCMV = Math.round(baseProductCmv * 100) / 100
   const unitCMV = isMultiProduct
     ? null
     : effectiveSoldQtyForCmv > 0
@@ -172,7 +149,6 @@ export default function DreRealPage() {
 
   // Alíquotas fixas do Lucro Real
   const icmsRate = icmsRateMarkup || 0
-  const issRate = effectiveIssRate
   const pisRate = 1.65
   const cofinsRate = 7.6
   const irpjRate = 15.0
@@ -208,17 +184,11 @@ export default function DreRealPage() {
   // CÁLCULOS UNITÁRIOS (PADRONIZADOS POR UNIDADE COM 2 CASAS DECIMAIS)
   // 1. Receita bruta unitária
   const unitGross = unitGrossRevenue
-  // 2. Tributo municipal/estadual unitário (ICMS para comércio/indústria, ISSQN para serviços)
-  const unitMunicipalStateTax =
-    Math.round((isServices ? (unitGross * issRate) / 100 : (unitGross * icmsRate) / 100) * 100) /
-    100
+  // 2. Tributo estadual unitário (ICMS)
+  const unitMunicipalStateTax = Math.round(((unitGross * icmsRate) / 100) * 100) / 100
 
-  // 3. Base PIS/COFINS unitária:
-  // Se Comércio/Indústria: Tese do século (exclui o ICMS)
-  // Se Serviços: Tese do século NÃO se aplica ao ISS — base é a receita bruta
-  const unitPisCofinsBase = isServices
-    ? unitGross
-    : Math.round(Math.max(0, unitGross - unitMunicipalStateTax) * 100) / 100
+  // 3. Base PIS/COFINS unitária: Tese do século (exclui o ICMS)
+  const unitPisCofinsBase = Math.round(Math.max(0, unitGross - unitMunicipalStateTax) * 100) / 100
 
   // 4. PIS não cumulativo unitário
   const unitPis = Math.round(((unitPisCofinsBase * pisRate) / 100) * 100) / 100
@@ -365,10 +335,6 @@ export default function DreRealPage() {
       realAdditions: totalAdditions,
       realExclusions: totalExclusions,
       regimeQuantity: qty,
-      totalServicesGrossRevenue,
-      totalServicesCsp,
-      totalServicesQuantity,
-      serviceIssRate,
     })
   }, [
     markupProducts,
@@ -389,10 +355,6 @@ export default function DreRealPage() {
     totalAdditions,
     totalExclusions,
     qty,
-    totalServicesGrossRevenue,
-    totalServicesCsp,
-    totalServicesQuantity,
-    serviceIssRate,
   ])
 
   return (
@@ -401,11 +363,7 @@ export default function DreRealPage() {
         {/* Destaque Central Topo: Hero Banner estilo ADAPTA ONE */}
         <PageHero
           title="DRE — LUCRO REAL"
-          subtitle={
-            isServices
-              ? 'Receita de serviços com ISSQN. PIS e COFINS não cumulativos sobre receita bruta, IRPJ e CSLL sobre o lucro real ajustado.'
-              : 'PIS e COFINS não cumulativos com a tese do século (ICMS fora da base). IRPJ e CSLL sobre o lucro real ajustado.'
-          }
+          subtitle="PIS e COFINS não cumulativos com a tese do século (ICMS fora da base). IRPJ e CSLL sobre o lucro real ajustado."
           badge="REGIME NÃO CUMULATIVO · AJUSTES LALUR"
           icon={Calculator}
         />
@@ -493,11 +451,6 @@ export default function DreRealPage() {
                     title: 'Indústria',
                     subtitle: 'ICMS sobre a receita',
                   },
-                  {
-                    key: 'servicos',
-                    title: 'Serviços',
-                    subtitle: 'ISSQN sobre a receita',
-                  },
                 ] as const
               ).map((act) => {
                 const isSelected = realActivity === act.key
@@ -523,46 +476,6 @@ export default function DreRealPage() {
                 )
               })}
             </div>
-
-            {/* Campo aberto para Alíquota do ISSQN se atividade for Serviços */}
-            {isServices && (
-              <div className="p-3.5 rounded-xl bg-slate-950/60 border border-emerald-500/30 space-y-2 mt-3 animate-in fade-in duration-200">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <label className="text-xs font-semibold text-emerald-300 block">
-                      Alíquota do ISSQN (%)
-                    </label>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      Informe o percentual municipal do ISS (ex.: 2,00% a 5,00%) incidente sobre a
-                      receita de serviços.
-                    </span>
-                  </div>
-                  <div className="relative w-36 sm:w-40">
-                    <Input
-                      type="text"
-                      placeholder="0,00"
-                      value={issInput}
-                      onFocus={() => setIsIssFocused(true)}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        setIssInput(val)
-                        setRealIssRate(parseBRNumber(val))
-                      }}
-                      onBlur={(e) => {
-                        setIsIssFocused(false)
-                        const val = parseBRNumber(e.target.value)
-                        setRealIssRate(val)
-                        setIssInput(val > 0 ? formatNumberBR(val) : '')
-                      }}
-                      className="pr-7 text-right bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-orange-300 pointer-events-none">
-                      %
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Quadro Informativo de 4 Grandezas: Receita (Unitária / Consolidada) e CMV (Unitário / Consolidado) */}
@@ -693,17 +606,10 @@ export default function DreRealPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 font-mono text-xs">
-              {isServices ? (
-                <div className="p-2.5 rounded-lg bg-slate-900/60 border border-emerald-500/40">
-                  <span className="text-[10px] text-emerald-400 block">ISSQN</span>
-                  <span className="text-emerald-300 font-semibold">{formatNumberBR(issRate)}%</span>
-                </div>
-              ) : (
-                <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block">ICMS</span>
-                  <span className="text-slate-200 font-semibold">{formatNumberBR(icmsRate)}%</span>
-                </div>
-              )}
+              <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
+                <span className="text-[10px] text-slate-400 block">ICMS</span>
+                <span className="text-slate-200 font-semibold">{formatNumberBR(icmsRate)}%</span>
+              </div>
               <div className="p-2.5 rounded-lg bg-slate-900/60 border border-emerald-500/20">
                 <span className="text-[10px] text-emerald-400 block">PIS não cumulativo</span>
                 <span className="text-emerald-300 font-semibold">{formatNumberBR(pisRate)}%</span>
@@ -818,21 +724,17 @@ export default function DreRealPage() {
                   ],
                   rows: [
                     {
-                      description: isServices
-                        ? 'Receita bruta de serviços'
-                        : 'Receita bruta de vendas',
+                      description: 'Receita bruta de vendas',
                       unitValue: isMultiProduct ? '—' : unitGross,
                       totalValue: totalGross,
                     },
                     {
-                      description: isServices ? '(−) ISSQN' : '(−) ICMS',
+                      description: '(−) ICMS',
                       unitValue: isMultiProduct ? '—' : -unitMunicipalStateTax,
                       totalValue: -totalMunicipalStateTax,
                     },
                     {
-                      description: isServices
-                        ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
-                        : 'Base PIS/COFINS (tese do século · exclui ICMS)',
+                      description: 'Base PIS/COFINS (tese do século · exclui ICMS)',
                       unitValue: isMultiProduct ? '—' : unitPisCofinsBase,
                       totalValue: totalPisCofinsBase,
                       isInformative: true,
@@ -1044,21 +946,17 @@ export default function DreRealPage() {
                   ],
                   rows: [
                     {
-                      description: isServices
-                        ? 'Receita bruta de serviços'
-                        : 'Receita bruta de vendas',
+                      description: 'Receita bruta de vendas',
                       unitValue: isMultiProduct ? '—' : unitGross,
                       totalValue: totalGross,
                     },
                     {
-                      description: isServices ? '(−) ISSQN' : '(−) ICMS',
+                      description: '(−) ICMS',
                       unitValue: isMultiProduct ? '—' : -unitMunicipalStateTax,
                       totalValue: -totalMunicipalStateTax,
                     },
                     {
-                      description: isServices
-                        ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
-                        : 'Base PIS/COFINS (tese do século · exclui ICMS)',
+                      description: 'Base PIS/COFINS (tese do século · exclui ICMS)',
                       unitValue: isMultiProduct ? '—' : unitPisCofinsBase,
                       totalValue: totalPisCofinsBase,
                     },

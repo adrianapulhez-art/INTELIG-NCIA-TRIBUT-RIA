@@ -23,7 +23,6 @@ import {
   calculateRbt12InicioAtividade,
   SUBLIMITE_SIMPLES,
 } from '@/lib/simplesCalculations'
-import { determineSimplesServiceAnexo } from '@/lib/servicesCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
@@ -76,12 +75,6 @@ export default function DreSimplesPage() {
     customTaxesMarkup,
     totalVariableExpenseRate,
     desiredLiquidRevenueByRegime,
-    serviceItems,
-    serviceIssRate,
-    totalServicesGrossRevenue,
-    totalServicesCsp,
-    totalServicesQuantity,
-    hasServiceRevenue,
   } = useTaxContext()
 
   // Rastreamento local de quais meses foram preenchidos via Markup
@@ -165,19 +158,16 @@ export default function DreSimplesPage() {
     ? totalConsolidatedRevenue
     : Math.round((simulatedSalePrice || 0) * (qty > 0 ? qty : 0) * 100) / 100
 
-  // Se houver serviços prestados cadastrados, soma à receita bruta consolidada
-  const totalGross = Math.round((baseProductGross + (totalServicesGrossRevenue || 0)) * 100) / 100
+  const totalGross = Math.round(baseProductGross * 100) / 100
   const activeGrossRevenue = totalGross
-  const totalEffectiveQty = (qty > 0 ? qty : 0) + (totalServicesQuantity || 0)
+  const totalEffectiveQty = qty > 0 ? qty : 0
   const unitGrossRevenue =
     totalEffectiveQty > 0
       ? Math.round((totalGross / totalEffectiveQty) * 100) / 100
       : simulatedSalePrice || 0
 
   const isMultiProduct =
-    (purchasesItems && purchasesItems.length > 1) ||
-    (markupProducts && markupProducts.length > 1) ||
-    (hasServiceRevenue && baseProductGross > 0)
+    (purchasesItems && purchasesItems.length > 1) || (markupProducts && markupProducts.length > 1)
 
   const baseProductCmv =
     calculatedPurchases.cmvSimples > 0
@@ -186,8 +176,7 @@ export default function DreSimplesPage() {
         ? totalConsolidatedCost
         : 0
 
-  // CSP total de serviços compõe a linha de custo das DREs análogo ao CMV
-  const consolidatedCMV = Math.round((baseProductCmv + (totalServicesCsp || 0)) * 100) / 100
+  const consolidatedCMV = Math.round(baseProductCmv * 100) / 100
   const unitCMV = isMultiProduct
     ? null
     : effectiveSoldQtyForCmv > 0
@@ -204,12 +193,6 @@ export default function DreSimplesPage() {
   const fatorRResult = useMemo(
     () => calculateFatorR(simplesPayroll12m, effectiveSimplesRbt12),
     [simplesPayroll12m, effectiveSimplesRbt12],
-  )
-
-  // Enquadramento de serviços por Fator R consumindo o resultado existente sem recalcular
-  const serviceAnexoRecommendation = useMemo(
-    () => determineSimplesServiceAnexo(fatorRResult.fatorRPercent),
-    [fatorRResult.fatorRPercent],
   )
 
   // Anexo atual selecionado
@@ -354,10 +337,6 @@ export default function DreSimplesPage() {
       realAdditions: 0,
       realExclusions: 0,
       regimeQuantity: qty,
-      totalServicesGrossRevenue,
-      totalServicesCsp,
-      totalServicesQuantity,
-      serviceIssRate,
     })
   }, [
     markupProducts,
@@ -371,10 +350,6 @@ export default function DreSimplesPage() {
     totalOperatingExpenses,
     totalOperatingRevenues,
     qty,
-    totalServicesGrossRevenue,
-    totalServicesCsp,
-    totalServicesQuantity,
-    serviceIssRate,
   ])
 
   const handleRbt12Blur = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -1284,16 +1259,6 @@ export default function DreSimplesPage() {
                       unitValue: isMultiProduct ? '—' : unitGross,
                       totalValue: totalGross,
                     },
-                    ...(hasServiceRevenue
-                      ? [
-                          {
-                            description: '  · Receita de Serviços',
-                            unitValue: isMultiProduct ? '—' : totalServicesGrossRevenue || 0,
-                            totalValue: totalServicesGrossRevenue || 0,
-                            isInformative: true,
-                          },
-                        ]
-                      : []),
                     {
                       description: `(−) Guia única DAS (${formatNumberBR(pgdas.aliquotaEfetiva, 2)}% efetivo)`,
                       unitValue: isMultiProduct ? '—' : -unitDasTotal,
@@ -1369,16 +1334,6 @@ export default function DreSimplesPage() {
                       unitValue: isMultiProduct ? '—' : unitCmvVal !== null ? -unitCmvVal : '—',
                       totalValue: -totalCmv,
                     },
-                    ...(hasServiceRevenue && (totalServicesCsp || 0) > 0
-                      ? [
-                          {
-                            description: '  · Custo dos Serviços Prestados (CSP)',
-                            unitValue: isMultiProduct ? '—' : -(totalServicesCsp || 0),
-                            totalValue: -(totalServicesCsp || 0),
-                            isInformative: true,
-                          },
-                        ]
-                      : []),
                     {
                       description: '(=) Lucro bruto',
                       unitValue: isMultiProduct
@@ -1468,9 +1423,6 @@ export default function DreSimplesPage() {
                   notes: [
                     'Guia única DAS calculada com base na fórmula legal PGDAS: [(RBT12 × Alíquota Nominal) − Parcela a Deduzir] ÷ RBT12.',
                     'Partilha percentual dos tributos federais, estaduais e municipais em conformidade com as tabelas anexas da LC 123/2006.',
-                    hasServiceRevenue
-                      ? `Receita de serviços incluída na guia única DAS. O ISSQN sobre serviços encontra-se embutido na repartição percentual do DAS (Anexo ${serviceAnexoRecommendation.recommendedAnexo === 'anexo_3' ? 'III' : 'V'}), vedada cobrança segregada de ISS fora da guia única no Simples.`
-                      : '',
                     currentAnexoConfig.sujeitoFatorR
                       ? `Atividade sujeita ao Fator R (${fatorRResult.fatorRPercent.toFixed(2)}%). Enquadramento: ${
                           fatorRResult.isElegibleAnexo3 ? 'Anexo III (≥ 28%)' : 'Anexo V (< 28%)'
@@ -1521,15 +1473,6 @@ export default function DreSimplesPage() {
                       unitValue: isMultiProduct ? '—' : unitGross,
                       totalValue: totalGross,
                     },
-                    ...(hasServiceRevenue
-                      ? [
-                          {
-                            description: '  · Receita de Serviços',
-                            unitValue: isMultiProduct ? '—' : totalServicesGrossRevenue || 0,
-                            totalValue: totalServicesGrossRevenue || 0,
-                          },
-                        ]
-                      : []),
                     {
                       description: `(−) Guia única DAS (${formatNumberBR(pgdas.aliquotaEfetiva, 2)}% efetivo)`,
                       unitValue: isMultiProduct ? '—' : -unitDasTotal,
@@ -1597,15 +1540,6 @@ export default function DreSimplesPage() {
                       unitValue: isMultiProduct ? '—' : unitCmvVal !== null ? -unitCmvVal : '—',
                       totalValue: -totalCmv,
                     },
-                    ...(hasServiceRevenue && (totalServicesCsp || 0) > 0
-                      ? [
-                          {
-                            description: '  · Custo dos Serviços Prestados (CSP)',
-                            unitValue: isMultiProduct ? '—' : -(totalServicesCsp || 0),
-                            totalValue: -(totalServicesCsp || 0),
-                          },
-                        ]
-                      : []),
                     {
                       description: '(=) Lucro bruto',
                       unitValue: isMultiProduct

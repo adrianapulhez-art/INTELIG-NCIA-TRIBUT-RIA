@@ -25,11 +25,6 @@ export default function DrePresumidoPage() {
     totalConsolidatedRevenue,
     totalConsolidatedQuantity,
     totalConsolidatedCost,
-    totalServicesGrossRevenue,
-    totalServicesCsp,
-    totalServicesQuantity,
-    hasServiceRevenue,
-    serviceIssRate,
     markupProducts,
     calculatedPurchases,
     initialInventory,
@@ -74,20 +69,6 @@ export default function DrePresumidoPage() {
       setRegime('presumido')
     }
   }, [regime, setRegime])
-
-  const [issInput, setIssInput] = useState<string>(
-    presumidoIssRate > 0 ? formatNumberBR(presumidoIssRate) : '',
-  )
-  const [isIssFocused, setIsIssFocused] = useState(false)
-
-  React.useEffect(() => {
-    if (!isIssFocused) {
-      setIssInput(presumidoIssRate > 0 ? formatNumberBR(presumidoIssRate) : '')
-    }
-  }, [presumidoIssRate, isIssFocused])
-
-  const isServices = presumidoActivity === 'servicos' || hasServiceRevenue
-  const effectiveIssRate = isServices ? (serviceIssRate > 0 ? serviceIssRate : presumidoIssRate) : 0
 
   // QUANTIDADE VENDIDA AUTOMÁTICA (linkada diretamente com Markup e Compras):
   // Prioriza a quantidade definida nos produtos do Markup (totalConsolidatedQuantity);
@@ -134,19 +115,16 @@ export default function DrePresumidoPage() {
     ? totalConsolidatedRevenue
     : Math.round((simulatedSalePrice || 0) * (qty > 0 ? qty : 0) * 100) / 100
 
-  // Se houver serviços prestados cadastrados, soma à receita bruta consolidada
-  const totalGross = Math.round((baseProductGross + (totalServicesGrossRevenue || 0)) * 100) / 100
+  const totalGross = Math.round(baseProductGross * 100) / 100
   const activeGrossRevenue = totalGross
-  const totalEffectiveQty = (qty > 0 ? qty : 0) + (totalServicesQuantity || 0)
+  const totalEffectiveQty = qty > 0 ? qty : 0
   const unitGrossRevenue =
     totalEffectiveQty > 0
       ? Math.round((totalGross / totalEffectiveQty) * 100) / 100
       : simulatedSalePrice || 0
 
   const isMultiProduct =
-    (purchasesItems && purchasesItems.length > 1) ||
-    (markupProducts && markupProducts.length > 1) ||
-    (hasServiceRevenue && baseProductGross > 0)
+    (purchasesItems && purchasesItems.length > 1) || (markupProducts && markupProducts.length > 1)
 
   const baseProductCmv =
     calculatedPurchases.cmvPresumido > 0
@@ -155,8 +133,7 @@ export default function DrePresumidoPage() {
         ? totalConsolidatedCost
         : 0
 
-  // CSP total de serviços compõe a linha de custo das DREs análogo ao CMV
-  const consolidatedCMV = Math.round((baseProductCmv + (totalServicesCsp || 0)) * 100) / 100
+  const consolidatedCMV = Math.round(baseProductCmv * 100) / 100
   const unitCMV = isMultiProduct
     ? null
     : effectiveSoldQtyForCmv > 0
@@ -164,15 +141,12 @@ export default function DrePresumidoPage() {
       : calculatedPurchases.unitCostPresumidoEffective || 0
 
   // Atividade e alíquotas de presunção (Lei 9.249/95 art. 15 e 20)
-  // Comércio: IRPJ 8%, CSLL 12%
-  // Indústria: IRPJ 8%, CSLL 12%
-  // Serviços: IRPJ 32%, CSLL 32%
-  const irpjPresumptionRate = isServices ? 32.0 : 8.0
-  const csllPresumptionRate = isServices ? 32.0 : 12.0
+  // Comércio e Indústria: IRPJ 8%, CSLL 12%
+  const irpjPresumptionRate = 8.0
+  const csllPresumptionRate = 12.0
 
   // Alíquotas fixas da legislação
-  const icmsRate = icmsRateMarkup || 0 // Vem da alíquota livre da calculadora
-  const issRate = effectiveIssRate
+  const icmsRate = icmsRateMarkup || 0
   const pisRate = 0.65
   const cofinsRate = 3.0
   const irpjRate = 15.0
@@ -206,14 +180,10 @@ export default function DrePresumidoPage() {
   // CÁLCULOS UNITÁRIOS (PADRONIZADOS POR UNIDADE COM 2 CASAS DECIMAIS)
   // 1. Receita bruta unitária
   const unitGross = unitGrossRevenue
-  // 2. Tributo municipal/estadual unitário
-  const unitMunicipalStateTax =
-    Math.round((isServices ? (unitGross * issRate) / 100 : (unitGross * icmsRate) / 100) * 100) /
-    100
+  // 2. Tributo estadual unitário (ICMS)
+  const unitMunicipalStateTax = Math.round(((unitGross * icmsRate) / 100) * 100) / 100
   // 3. Base PIS/COFINS unitária (tese do século exclui ICMS)
-  const unitPisCofinsBase = isServices
-    ? unitGross
-    : Math.round(Math.max(0, unitGross - unitMunicipalStateTax) * 100) / 100
+  const unitPisCofinsBase = Math.round(Math.max(0, unitGross - unitMunicipalStateTax) * 100) / 100
   // 4. PIS unitário
   const unitPis = Math.round(((unitPisCofinsBase * pisRate) / 100) * 100) / 100
   // 5. COFINS unitário
@@ -361,10 +331,6 @@ export default function DrePresumidoPage() {
       realAdditions: 0,
       realExclusions: 0,
       regimeQuantity: qty,
-      totalServicesGrossRevenue,
-      totalServicesCsp,
-      totalServicesQuantity,
-      serviceIssRate,
     })
   }, [
     markupProducts,
@@ -383,10 +349,6 @@ export default function DrePresumidoPage() {
     presumidoActivity,
     presumidoIssRate,
     qty,
-    totalServicesGrossRevenue,
-    totalServicesCsp,
-    totalServicesQuantity,
-    serviceIssRate,
   ])
 
   return (
@@ -395,11 +357,7 @@ export default function DrePresumidoPage() {
         {/* Destaque Central Topo: Hero Banner estilo ADAPTA ONE */}
         <PageHero
           title="DRE — LUCRO PRESUMIDO"
-          subtitle={
-            isServices
-              ? 'Receita de serviços com ISSQN e presunções específicas (32%). Valores por unidade e conforme a quantidade informada.'
-              : 'PIS e COFINS calculados com a tese do século (ICMS excluído da base). Valores por unidade e conforme a quantidade informada.'
-          }
+          subtitle="PIS e COFINS calculados com a tese do século (ICMS excluído da base). Valores por unidade e conforme a quantidade informada."
           badge="LEI 9.249/95 · REGIME CUMULATIVO"
           icon={Calculator}
         />
@@ -486,11 +444,6 @@ export default function DrePresumidoPage() {
                     title: 'Indústria',
                     subtitle: 'ICMS sobre a receita',
                   },
-                  {
-                    key: 'servicos',
-                    title: 'Serviços',
-                    subtitle: 'ISSQN sobre a receita',
-                  },
                 ] as const
               ).map((act) => {
                 const isSelected = presumidoActivity === act.key
@@ -516,46 +469,6 @@ export default function DrePresumidoPage() {
                 )
               })}
             </div>
-
-            {/* Campo aberto para Alíquota do ISSQN se atividade for Serviços */}
-            {isServices && (
-              <div className="p-3.5 rounded-xl bg-slate-950/60 border border-emerald-500/30 space-y-2 mt-3 animate-in fade-in duration-200">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <label className="text-xs font-semibold text-emerald-300 block">
-                      Alíquota do ISSQN (%)
-                    </label>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      Informe o percentual municipal do ISS (ex.: 2,00% a 5,00%) incidente sobre a
-                      receita de serviços.
-                    </span>
-                  </div>
-                  <div className="relative w-36 sm:w-40">
-                    <Input
-                      type="text"
-                      placeholder="0,00"
-                      value={issInput}
-                      onFocus={() => setIsIssFocused(true)}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        setIssInput(val)
-                        setPresumidoIssRate(parseBRNumber(val))
-                      }}
-                      onBlur={(e) => {
-                        setIsIssFocused(false)
-                        const val = parseBRNumber(e.target.value)
-                        setPresumidoIssRate(val)
-                        setIssInput(val > 0 ? formatNumberBR(val) : '')
-                      }}
-                      className="pr-7 text-right bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30"
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-orange-300 pointer-events-none">
-                      %
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Quadro Informativo de 4 Grandezas: Receita (Unitária / Consolidada) e CMV (Unitário / Consolidado) */}
@@ -686,17 +599,10 @@ export default function DrePresumidoPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 font-mono text-xs">
-              {isServices ? (
-                <div className="p-2.5 rounded-lg bg-slate-900/60 border border-emerald-500/40">
-                  <span className="text-[10px] text-emerald-400 block">ISSQN</span>
-                  <span className="text-emerald-300 font-semibold">{formatNumberBR(issRate)}%</span>
-                </div>
-              ) : (
-                <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
-                  <span className="text-[10px] text-slate-400 block">ICMS</span>
-                  <span className="text-slate-200 font-semibold">{formatNumberBR(icmsRate)}%</span>
-                </div>
-              )}
+              <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
+                <span className="text-[10px] text-slate-400 block">ICMS</span>
+                <span className="text-slate-200 font-semibold">{formatNumberBR(icmsRate)}%</span>
+              </div>
               <div className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
                 <span className="text-[10px] text-slate-400 block">PIS</span>
                 <span className="text-slate-200 font-semibold">{formatNumberBR(pisRate)}%</span>
@@ -818,21 +724,17 @@ export default function DrePresumidoPage() {
                   ],
                   rows: [
                     {
-                      description: isServices
-                        ? 'Receita bruta de serviços'
-                        : 'Receita bruta de vendas',
+                      description: 'Receita bruta de vendas',
                       unitValue: isMultiProduct ? '—' : unitGross,
                       totalValue: totalGross,
                     },
                     {
-                      description: isServices ? '(−) ISSQN' : '(−) ICMS',
+                      description: '(−) ICMS',
                       unitValue: isMultiProduct ? '—' : -unitMunicipalStateTax,
                       totalValue: -totalMunicipalStateTax,
                     },
                     {
-                      description: isServices
-                        ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
-                        : 'Base PIS/COFINS (tese do século · exclui ICMS)',
+                      description: 'Base PIS/COFINS (tese do século · exclui ICMS)',
                       unitValue: isMultiProduct ? '—' : unitPisCofinsBase,
                       totalValue: totalPisCofinsBase,
                       isInformative: true,
@@ -1012,9 +914,7 @@ export default function DrePresumidoPage() {
                   ],
                   notes: [
                     'PIS e COFINS cumulativos calculados às alíquotas de 0,65% e 3,00%.',
-                    isServices
-                      ? 'Em serviços, a exclusão do ICMS da base do PIS/COFINS (Tema 69/STF) não se aplica ao ISSQN.'
-                      : 'Exclusão do ICMS destacado da base de cálculo do PIS e da COFINS conforme jurisprudência pacificada pelo STF (Tema 69).',
+                    'Exclusão do ICMS destacado da base de cálculo do PIS e da COFINS conforme jurisprudência pacificada pelo STF (Tema 69).',
                     'Adicional de IRPJ de 10% aplicado sobre a parcela da base de cálculo presumida trimestral que exceder R$ 60.000,00.',
                     'Encargos patronais previdenciários e de terceiros apurados de acordo com as alíquotas configuradas no módulo de Folha e Pró-labore.',
                   ],
@@ -1046,21 +946,17 @@ export default function DrePresumidoPage() {
                   ],
                   rows: [
                     {
-                      description: isServices
-                        ? 'Receita bruta de serviços'
-                        : 'Receita bruta de vendas',
+                      description: 'Receita bruta de vendas',
                       unitValue: isMultiProduct ? '—' : unitGross,
                       totalValue: totalGross,
                     },
                     {
-                      description: isServices ? '(−) ISSQN' : '(−) ICMS',
+                      description: '(−) ICMS',
                       unitValue: isMultiProduct ? '—' : -unitMunicipalStateTax,
                       totalValue: -totalMunicipalStateTax,
                     },
                     {
-                      description: isServices
-                        ? 'Base PIS/COFINS (receita bruta s/ exclusão de ISS)'
-                        : 'Base PIS/COFINS (tese do século · exclui ICMS)',
+                      description: 'Base PIS/COFINS (tese do século · exclui ICMS)',
                       unitValue: isMultiProduct ? '—' : unitPisCofinsBase,
                       totalValue: totalPisCofinsBase,
                     },
@@ -1225,9 +1121,7 @@ export default function DrePresumidoPage() {
                   ],
                   notes: [
                     'PIS e COFINS cumulativos calculados às alíquotas de 0,65% e 3,00%.',
-                    isServices
-                      ? 'Em serviços, a exclusão do ICMS da base do PIS/COFINS (Tema 69/STF) não se aplica ao ISSQN.'
-                      : 'Exclusão do ICMS destacado da base de cálculo do PIS e da COFINS conforme jurisprudência pacificada pelo STF (Tema 69).',
+                    'Exclusão do ICMS destacado da base de cálculo do PIS e da COFINS conforme jurisprudência pacificada pelo STF (Tema 69).',
                     'Adicional de IRPJ de 10% aplicado sobre a parcela da base de cálculo presumida trimestral que exceder R$ 60.000,00.',
                     'Encargos patronais previdenciários e de terceiros apurados de acordo com as alíquotas configuradas no módulo de Folha e Pró-labore.',
                   ],

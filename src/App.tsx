@@ -20,7 +20,6 @@ import DreSimplesPage from './pages/demo/DreSimplesPage'
 import ComparisonPage from './pages/demo/ComparisonPage'
 import ReformaPage from './pages/demo/ReformaPage'
 import ClientsPage from './pages/demo/ClientsPage'
-import ServicesPage from './pages/demo/ServicesPage'
 import { Navigate } from 'react-router-dom'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
@@ -117,14 +116,6 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ClientsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/demo/servicos"
-              element={
-                <ProtectedRoute>
-                  <ServicesPage />
                 </ProtectedRoute>
               }
             />

@@ -106,10 +106,6 @@ export default function ComparisonPage() {
     totalOperatingRevenues,
     stSubsystem,
     interstateSubsystem,
-    totalServicesGrossRevenue,
-    totalServicesCsp,
-    totalServicesQuantity,
-    serviceIssRate,
   } = useTaxContext()
 
   const { totalPurchasesQuantity } = useTaxContext()
@@ -684,11 +680,10 @@ export default function ComparisonPage() {
   // 1. CÁLCULO LUCRO PRESUMIDO
   // -------------------------------------------------------------
   const presumidoData = useMemo(() => {
-    const isServices = presumidoActivity === 'servicos'
-    const irpjPresumptionRate = isServices ? 32.0 : 8.0
-    const csllPresumptionRate = isServices ? 32.0 : 12.0
+    const isServices = false
+    const irpjPresumptionRate = 8.0
+    const csllPresumptionRate = 12.0
     const icmsRate = icmsRateMarkup || 0
-    const issRate = isServices ? presumidoIssRate : 0
     const pisRate = 0.65
     const cofinsRate = 3.0
     const irpjRate = 15.0
@@ -697,13 +692,9 @@ export default function ComparisonPage() {
     const csllRate = 9.0
 
     const unitGross = presumidoUnitGross
-    const unitMunicipalStateTax =
-      Math.round((isServices ? (unitGross * issRate) / 100 : (unitGross * icmsRate) / 100) * 100) /
-      100
+    const unitMunicipalStateTax = Math.round(((unitGross * icmsRate) / 100) * 100) / 100
 
-    const unitPisCofinsBase = isServices
-      ? unitGross
-      : Math.round(Math.max(0, unitGross - unitMunicipalStateTax) * 100) / 100
+    const unitPisCofinsBase = Math.round(Math.max(0, unitGross - unitMunicipalStateTax) * 100) / 100
 
     const unitPis = Math.round(((unitPisCofinsBase * pisRate) / 100) * 100) / 100
     const unitCofins = Math.round(((unitPisCofinsBase * cofinsRate) / 100) * 100) / 100
@@ -799,9 +790,8 @@ export default function ComparisonPage() {
   // 2. CÁLCULO LUCRO REAL
   // -------------------------------------------------------------
   const realData = useMemo(() => {
-    const isServices = realActivity === 'servicos'
+    const isServices = false
     const icmsRate = icmsRateMarkup || 0
-    const issRate = isServices ? realIssRate : 0
     const pisRate = 1.65
     const cofinsRate = 7.6
     const irpjRate = 15.0
@@ -810,13 +800,9 @@ export default function ComparisonPage() {
     const csllRate = 9.0
 
     const unitGross = realUnitGross
-    const unitMunicipalStateTax =
-      Math.round((isServices ? (unitGross * issRate) / 100 : (unitGross * icmsRate) / 100) * 100) /
-      100
+    const unitMunicipalStateTax = Math.round(((unitGross * icmsRate) / 100) * 100) / 100
 
-    const unitPisCofinsBase = isServices
-      ? unitGross
-      : Math.round(Math.max(0, unitGross - unitMunicipalStateTax) * 100) / 100
+    const unitPisCofinsBase = Math.round(Math.max(0, unitGross - unitMunicipalStateTax) * 100) / 100
 
     const unitPis = Math.round(((unitPisCofinsBase * pisRate) / 100) * 100) / 100
     const unitCofins = Math.round(((unitPisCofinsBase * cofinsRate) / 100) * 100) / 100
@@ -1236,7 +1222,6 @@ export default function ComparisonPage() {
                     >
                       <option value="comercio">Comércio (ICMS · IRPJ 8% / CSLL 12%)</option>
                       <option value="industria">Indústria (ICMS · IRPJ 8% / CSLL 12%)</option>
-                      <option value="servicos">Serviços (ISSQN · IRPJ 32% / CSLL 32%)</option>
                     </select>
                     <span className="text-[10px] text-slate-500 font-mono">
                       Presunção Lei 9.249/95
@@ -3135,10 +3120,6 @@ export default function ComparisonPage() {
           realQuantitySold={realQuantitySold}
           simplesQuantitySold={simplesQuantitySold}
           qty={qty}
-          totalServicesGrossRevenue={totalServicesGrossRevenue}
-          totalServicesCsp={totalServicesCsp}
-          totalServicesQuantity={totalServicesQuantity}
-          serviceIssRate={serviceIssRate}
         />
         {/* COMPARAÇÃO DE RESULTADO POR BASE DE PRECIFICAÇÃO (Camada recolhida por padrão) */}
         <ResultBaseComparison
@@ -3199,20 +3180,16 @@ export default function ComparisonPage() {
                   </div>
                   <ul className="space-y-1.5 text-slate-400 list-disc list-inside leading-relaxed">
                     <li>
-                      <strong className="text-slate-300">Presunção por atividade:</strong>{' '}
-                      {presumidoData.isServices
-                        ? 'IRPJ 32% e CSLL 32% sobre a receita bruta (serviços).'
-                        : 'IRPJ 8% e CSLL 12% sobre a receita bruta (comércio/indústria).'}
+                      <strong className="text-slate-300">Presunção por atividade:</strong> IRPJ 8% e
+                      CSLL 12% sobre a receita bruta (comércio/indústria).
                     </li>
                     <li>
                       <strong className="text-slate-300">PIS/COFINS cumulativo:</strong> 0,65% e
                       3,00%. Sem direito a tomada de créditos sobre compras ou insumos.
                     </li>
                     <li>
-                      <strong className="text-slate-300">Tese do século (Tema 69/STF):</strong>{' '}
-                      {presumidoData.isServices
-                        ? 'ISS não é excluído da base PIS/COFINS.'
-                        : 'ICMS destacado integralmente excluído da base de cálculo.'}
+                      <strong className="text-slate-300">Tese do século (Tema 69/STF):</strong> ICMS
+                      destacado integralmente excluído da base de cálculo.
                     </li>
                     <li>
                       <strong className="text-slate-300">Adicional IRPJ:</strong> 10% sobre a
