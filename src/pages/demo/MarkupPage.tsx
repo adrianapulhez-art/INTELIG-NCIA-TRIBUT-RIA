@@ -35,6 +35,7 @@ import { ImportPurchasesModal } from '@/components/demo/ImportPurchasesModal'
 import { MarkupCalculationMemoryModal } from '@/components/demo/MarkupCalculationMemoryModal'
 import { MarkupModeComparisonModal } from '@/components/demo/MarkupModeComparisonModal'
 import { PageHero } from '@/components/demo/PageHero'
+import { RegimeComparisonBarChart } from '@/components/demo/RegimeComparisonBarChart'
 import {
   Dialog,
   DialogContent,
@@ -2945,6 +2946,30 @@ export default function MarkupPage() {
                       regime tributário.
                     </DialogDescription>
                   </DialogHeader>
+
+                  {/* Mini-gráfico de barras horizontais: Receita Consolidada × Menor Preço */}
+                  <RegimeComparisonBarChart
+                    items={[
+                      {
+                        key: 'presumido',
+                        label: 'Lucro Presumido',
+                        revenue: regimeComparison.totalRevPresumido,
+                        products: regimeComparison.prodsPresumido,
+                      },
+                      {
+                        key: 'real',
+                        label: 'Lucro Real',
+                        revenue: regimeComparison.totalRevReal,
+                        products: regimeComparison.prodsReal,
+                      },
+                      {
+                        key: 'simples',
+                        label: 'Simples Nacional',
+                        revenue: regimeComparison.totalRevSimples,
+                        products: regimeComparison.prodsSimples || [],
+                      },
+                    ]}
+                  />
 
                   <div className="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-900/60 my-2">
                     <table className="w-full text-xs font-mono">
