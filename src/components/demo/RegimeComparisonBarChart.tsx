@@ -74,37 +74,59 @@ export const RegimeComparisonBarChart: React.FC<RegimeComparisonBarChartProps> =
               ? [...validProds].sort((a, b) => a.salePrice - b.salePrice)[0]
               : null
 
+          // Configuração de estilo visual das barras:
+          // Vencedor (menor receita): esmeralda com brilho/glow
+          // Não-vencedores: laranja (ex: Lucro Presumido ou 1ª não-vencedora) e azul (ex: Lucro Real / Simples ou 2ª não-vencedora)
+          const isOrange =
+            !isCheapest &&
+            (item.key === 'presumido' || (item.key === 'simples' && cheapest?.key === 'presumido'))
+          // Se for orange: tons orange-500 / orange-600. Se não (outra não-vencedora): sky-500 / blue-600.
+
+          const barGradientClass = isCheapest
+            ? 'bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.4)]'
+            : isOrange
+              ? 'bg-gradient-to-r from-orange-600 to-orange-500 group-hover:from-orange-500 group-hover:to-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.25)]'
+              : 'bg-gradient-to-r from-blue-600 to-sky-500 group-hover:from-blue-500 group-hover:to-sky-400 shadow-[0_0_8px_rgba(14,165,233,0.25)]'
+
+          const labelColorClass = isCheapest
+            ? 'text-emerald-300 font-bold'
+            : isOrange
+              ? 'text-orange-300'
+              : 'text-sky-300'
+
+          const rowBgClass = isCheapest
+            ? 'bg-emerald-950/30 border border-emerald-500/30 hover:border-emerald-500/50'
+            : isOrange
+              ? 'hover:bg-orange-950/20 border border-transparent hover:border-orange-500/20'
+              : 'hover:bg-sky-950/20 border border-transparent hover:border-sky-500/20'
+
+          const tooltipHeaderColorClass = isCheapest
+            ? 'text-emerald-400'
+            : isOrange
+              ? 'text-orange-400'
+              : 'text-sky-400'
+
           return (
             <Tooltip key={item.key}>
               <TooltipTrigger asChild>
                 <div
-                  className={`group relative flex items-center gap-2 sm:gap-3 p-1.5 rounded-lg transition-all cursor-pointer ${
-                    isCheapest
-                      ? 'bg-emerald-950/30 border border-emerald-500/30 hover:border-emerald-500/50'
-                      : 'hover:bg-slate-800/40 border border-transparent'
-                  }`}
+                  className={`group relative flex items-center gap-2 sm:gap-3 p-1.5 rounded-lg transition-all cursor-pointer ${rowBgClass}`}
                 >
                   {/* Rótulo do Regime */}
                   <div className="w-24 sm:w-28 shrink-0 text-left font-mono">
                     <span
-                      className={`text-[11px] sm:text-xs font-semibold block truncate ${
-                        isCheapest ? 'text-emerald-300 font-bold' : 'text-slate-300'
-                      }`}
+                      className={`text-[11px] sm:text-xs font-semibold block truncate ${labelColorClass}`}
                     >
                       {item.label}
                     </span>
                   </div>
 
-                  {/* Barra de Progresso com Glow no vencedor */}
+                  {/* Barra de Progresso com Glow no vencedor e cores diferenciadas (laranja e azul) nas demais */}
                   <div className="relative flex-1 h-5 sm:h-6 bg-slate-950/70 rounded-md overflow-hidden p-0.5 border border-slate-800/80">
                     {hasVal ? (
                       <div
                         style={{ width: `${pct}%` }}
-                        className={`h-full rounded transition-all duration-500 flex items-center justify-end pr-1.5 ${
-                          isCheapest
-                            ? 'bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.4)]'
-                            : 'bg-slate-700/80 group-hover:bg-slate-600/80'
-                        }`}
+                        className={`h-full rounded transition-all duration-500 flex items-center justify-end pr-1.5 ${barGradientClass}`}
                       >
                         {isCheapest && <Sparkles className="w-3 h-3 text-slate-950 shrink-0" />}
                       </div>
@@ -153,7 +175,7 @@ export const RegimeComparisonBarChart: React.FC<RegimeComparisonBarChartProps> =
                 className="bg-slate-950 border border-slate-700 text-slate-100 p-2.5 font-mono text-xs shadow-xl max-w-xs space-y-1.5"
               >
                 <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1">
-                  <span className="font-bold text-emerald-400">{item.label}</span>
+                  <span className={`font-bold ${tooltipHeaderColorClass}`}>{item.label}</span>
                   <span className="text-[10px] text-slate-400">
                     {validProds.length} {validProds.length === 1 ? 'item' : 'itens'}
                   </span>
