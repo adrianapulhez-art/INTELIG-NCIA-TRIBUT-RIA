@@ -365,6 +365,10 @@ export default function DreRealPage() {
       realAdditions: totalAdditions,
       realExclusions: totalExclusions,
       regimeQuantity: qty,
+      totalServicesGrossRevenue,
+      totalServicesCsp,
+      totalServicesQuantity,
+      serviceIssRate,
     })
   }, [
     markupProducts,
@@ -385,6 +389,10 @@ export default function DreRealPage() {
     totalAdditions,
     totalExclusions,
     qty,
+    totalServicesGrossRevenue,
+    totalServicesCsp,
+    totalServicesQuantity,
+    serviceIssRate,
   ])
 
   return (

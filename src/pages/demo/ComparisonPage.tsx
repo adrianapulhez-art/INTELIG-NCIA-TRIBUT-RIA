@@ -106,6 +106,10 @@ export default function ComparisonPage() {
     totalOperatingRevenues,
     stSubsystem,
     interstateSubsystem,
+    totalServicesGrossRevenue,
+    totalServicesCsp,
+    totalServicesQuantity,
+    serviceIssRate,
   } = useTaxContext()
 
   const { totalPurchasesQuantity } = useTaxContext()
@@ -3131,8 +3135,11 @@ export default function ComparisonPage() {
           realQuantitySold={realQuantitySold}
           simplesQuantitySold={simplesQuantitySold}
           qty={qty}
+          totalServicesGrossRevenue={totalServicesGrossRevenue}
+          totalServicesCsp={totalServicesCsp}
+          totalServicesQuantity={totalServicesQuantity}
+          serviceIssRate={serviceIssRate}
         />
-
         {/* COMPARAÇÃO DE RESULTADO POR BASE DE PRECIFICAÇÃO (Camada recolhida por padrão) */}
         <ResultBaseComparison
           markupProducts={markupProducts}

@@ -361,6 +361,10 @@ export default function DrePresumidoPage() {
       realAdditions: 0,
       realExclusions: 0,
       regimeQuantity: qty,
+      totalServicesGrossRevenue,
+      totalServicesCsp,
+      totalServicesQuantity,
+      serviceIssRate,
     })
   }, [
     markupProducts,
@@ -379,6 +383,10 @@ export default function DrePresumidoPage() {
     presumidoActivity,
     presumidoIssRate,
     qty,
+    totalServicesGrossRevenue,
+    totalServicesCsp,
+    totalServicesQuantity,
+    serviceIssRate,
   ])
 
   return (

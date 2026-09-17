@@ -65,6 +65,11 @@ export interface DreRegimeComparativeProps {
   realQuantitySold?: number
   simplesQuantitySold?: number
   qty: number
+  // Serviços
+  totalServicesGrossRevenue?: number
+  totalServicesCsp?: number
+  totalServicesQuantity?: number
+  serviceIssRate?: number
 }
 
 export interface DreColumnValues {
@@ -142,6 +147,10 @@ export function computeDreComparativeForRegime(params: {
   realAdditions: number
   realExclusions: number
   regimeQuantity: number
+  totalServicesGrossRevenue?: number
+  totalServicesCsp?: number
+  totalServicesQuantity?: number
+  serviceIssRate?: number
 }): RegimeDreComparativeData {
   const {
     regimeKey,
@@ -165,6 +174,10 @@ export function computeDreComparativeForRegime(params: {
     realAdditions,
     realExclusions,
     regimeQuantity,
+    totalServicesGrossRevenue = 0,
+    totalServicesCsp = 0,
+    totalServicesQuantity = 0,
+    serviceIssRate = 0,
   } = params
 
   const regimeNames: Record<'presumido' | 'real' | 'simples', string> = {
@@ -281,10 +294,10 @@ export function computeDreComparativeForRegime(params: {
         ? regimeQuantity
         : 0
 
-  // Sub-função para apurar toda a DRE a partir de (totalGross, totalCmv, qty)
+  // Sub-função para apurar toda a DRE a partir de (productGross, productCmv, qty)
   const buildDrePair = (
-    totalGross: number,
-    totalCmv: number,
+    productGross: number,
+    productCmv: number,
     qtyVal: number,
     hasValid: boolean,
     invalidReason?: string,
@@ -314,6 +327,16 @@ export function computeDreComparativeForRegime(params: {
       netMargin: 0,
     }
 
+    const hasServices = (totalServicesGrossRevenue || 0) > 0
+    const servicesGross = Math.max(0, totalServicesGrossRevenue || 0)
+    const servicesCsp = Math.max(0, totalServicesCsp || 0)
+    const effectiveServiceIssRate = serviceIssRate > 0 ? serviceIssRate : 5.0
+
+    // Soma receita e CSP de serviços se houver
+    const totalGross = Math.round((productGross + servicesGross) * 100) / 100
+    const totalCmv = Math.round((productCmv + servicesCsp) * 100) / 100
+    const totalQtyCombined = qtyVal + (totalServicesQuantity || 0)
+
     if (!hasValid || (totalGross <= 0 && totalCmv <= 0)) {
       return {
         unit: emptyValues,
@@ -323,7 +346,7 @@ export function computeDreComparativeForRegime(params: {
       }
     }
 
-    const safeQty = qtyVal > 0 ? qtyVal : 1
+    const safeQty = totalQtyCombined > 0 ? totalQtyCombined : 1
 
     // 1. Tributos sobre a receita conforme regime
     let icmsOrIssConsolidated = 0
@@ -333,33 +356,88 @@ export function computeDreComparativeForRegime(params: {
     let patronalChargesConsolidated = 0
 
     if (regimeKey === 'presumido') {
-      const isServices = presumidoActivity === 'servicos'
-      const issRate = isServices ? presumidoIssRate : 0
-      icmsOrIssConsolidated =
-        Math.round(
-          (isServices ? (totalGross * issRate) / 100 : (totalGross * icmsRate) / 100) * 100,
-        ) / 100
-      const pisCofinsBase = isServices
-        ? totalGross
-        : Math.round(Math.max(0, totalGross - icmsOrIssConsolidated) * 100) / 100
-      pisConsolidated = Math.round(((pisCofinsBase * 0.65) / 100) * 100) / 100
-      cofinsConsolidated = Math.round(((pisCofinsBase * 3.0) / 100) * 100) / 100
+      // Segregação rigorosa de produtos e serviços:
+      // Produtos: ICMS sobre productGross, base PIS/COFINS = productGross - ICMS (Tema 69/STF)
+      // Serviços: ISS = servicesGross × effectiveServiceIssRate / 100, base PIS/COFINS = servicesGross (Tema 69 não aplica a ISS)
+      const isActivityServices = presumidoActivity === 'servicos'
+
+      if (hasServices && productGross > 0) {
+        // Regime Misto (produtos + serviços)
+        const productIcms = Math.round(((productGross * icmsRate) / 100) * 100) / 100
+        const serviceIss = Math.round(((servicesGross * effectiveServiceIssRate) / 100) * 100) / 100
+        icmsOrIssConsolidated = Math.round((productIcms + serviceIss) * 100) / 100
+
+        const productPisCofinsBase = Math.round(Math.max(0, productGross - productIcms) * 100) / 100
+        const servicePisCofinsBase = servicesGross
+
+        const productPis = Math.round(((productPisCofinsBase * 0.65) / 100) * 100) / 100
+        const servicePis = Math.round(((servicePisCofinsBase * 0.65) / 100) * 100) / 100
+        pisConsolidated = Math.round((productPis + servicePis) * 100) / 100
+
+        const productCofins = Math.round(((productPisCofinsBase * 3.0) / 100) * 100) / 100
+        const serviceCofins = Math.round(((servicePisCofinsBase * 3.0) / 100) * 100) / 100
+        cofinsConsolidated = Math.round((productCofins + serviceCofins) * 100) / 100
+      } else if (hasServices && productGross <= 0) {
+        // Puramente serviços
+        const serviceIss = Math.round(((servicesGross * effectiveServiceIssRate) / 100) * 100) / 100
+        icmsOrIssConsolidated = serviceIss
+        pisConsolidated = Math.round(((servicesGross * 0.65) / 100) * 100) / 100
+        cofinsConsolidated = Math.round(((servicesGross * 3.0) / 100) * 100) / 100
+      } else {
+        // Sem serviços adicionais: lógica canônica idêntica à original
+        const issRate = isActivityServices ? presumidoIssRate : 0
+        icmsOrIssConsolidated =
+          Math.round(
+            (isActivityServices ? (totalGross * issRate) / 100 : (totalGross * icmsRate) / 100) *
+              100,
+          ) / 100
+        const pisCofinsBase = isActivityServices
+          ? totalGross
+          : Math.round(Math.max(0, totalGross - icmsOrIssConsolidated) * 100) / 100
+        pisConsolidated = Math.round(((pisCofinsBase * 0.65) / 100) * 100) / 100
+        cofinsConsolidated = Math.round(((pisCofinsBase * 3.0) / 100) * 100) / 100
+      }
       patronalChargesConsolidated = patronalCharges
     } else if (regimeKey === 'real') {
-      const isServices = realActivity === 'servicos'
-      const issRate = isServices ? realIssRate : 0
-      icmsOrIssConsolidated =
-        Math.round(
-          (isServices ? (totalGross * issRate) / 100 : (totalGross * icmsRate) / 100) * 100,
-        ) / 100
-      const pisCofinsBase = isServices
-        ? totalGross
-        : Math.round(Math.max(0, totalGross - icmsOrIssConsolidated) * 100) / 100
-      pisConsolidated = Math.round(((pisCofinsBase * 1.65) / 100) * 100) / 100
-      cofinsConsolidated = Math.round(((pisCofinsBase * 7.6) / 100) * 100) / 100
+      const isActivityServices = realActivity === 'servicos'
+
+      if (hasServices && productGross > 0) {
+        const productIcms = Math.round(((productGross * icmsRate) / 100) * 100) / 100
+        const serviceIss = Math.round(((servicesGross * effectiveServiceIssRate) / 100) * 100) / 100
+        icmsOrIssConsolidated = Math.round((productIcms + serviceIss) * 100) / 100
+
+        const productPisCofinsBase = Math.round(Math.max(0, productGross - productIcms) * 100) / 100
+        const servicePisCofinsBase = servicesGross
+
+        const productPis = Math.round(((productPisCofinsBase * 1.65) / 100) * 100) / 100
+        const servicePis = Math.round(((servicePisCofinsBase * 1.65) / 100) * 100) / 100
+        pisConsolidated = Math.round((productPis + servicePis) * 100) / 100
+
+        const productCofins = Math.round(((productPisCofinsBase * 7.6) / 100) * 100) / 100
+        const serviceCofins = Math.round(((servicePisCofinsBase * 7.6) / 100) * 100) / 100
+        cofinsConsolidated = Math.round((productCofins + serviceCofins) * 100) / 100
+      } else if (hasServices && productGross <= 0) {
+        const serviceIss = Math.round(((servicesGross * effectiveServiceIssRate) / 100) * 100) / 100
+        icmsOrIssConsolidated = serviceIss
+        pisConsolidated = Math.round(((servicesGross * 1.65) / 100) * 100) / 100
+        cofinsConsolidated = Math.round(((servicesGross * 7.6) / 100) * 100) / 100
+      } else {
+        const issRate = isActivityServices ? realIssRate : 0
+        icmsOrIssConsolidated =
+          Math.round(
+            (isActivityServices ? (totalGross * issRate) / 100 : (totalGross * icmsRate) / 100) *
+              100,
+          ) / 100
+        const pisCofinsBase = isActivityServices
+          ? totalGross
+          : Math.round(Math.max(0, totalGross - icmsOrIssConsolidated) * 100) / 100
+        pisConsolidated = Math.round(((pisCofinsBase * 1.65) / 100) * 100) / 100
+        cofinsConsolidated = Math.round(((pisCofinsBase * 7.6) / 100) * 100) / 100
+      }
       patronalChargesConsolidated = patronalCharges
     } else {
       // Simples Nacional: guia única DAS
+      // Receita de serviços entra na partilha do DAS (ISS já embutido na partilha da guia)
       const effectiveRateDec = simplesEffectiveRate / 100
       dasConsolidated = Math.round(totalGross * effectiveRateDec * 100) / 100
       patronalChargesConsolidated = 0 // CPP inclusa no DAS
@@ -393,11 +471,29 @@ export function computeDreComparativeForRegime(params: {
     let csllConsolidated = 0
 
     if (regimeKey === 'presumido') {
-      const isServices = presumidoActivity === 'servicos'
-      const irpjPresumptionRate = isServices ? 32.0 : 8.0
-      const csllPresumptionRate = isServices ? 32.0 : 12.0
-      const irpjBase = (totalGross * irpjPresumptionRate) / 100
-      const csllBase = (totalGross * csllPresumptionRate) / 100
+      const isActivityServices = presumidoActivity === 'servicos'
+
+      let irpjBase = 0
+      let csllBase = 0
+
+      if (hasServices && productGross > 0) {
+        // Base de produtos (8% IRPJ / 12% CSLL) + base de serviços (32% IRPJ / 32% CSLL)
+        const productIrpjBase = (productGross * (isActivityServices ? 32.0 : 8.0)) / 100
+        const productCsllBase = (productGross * (isActivityServices ? 32.0 : 12.0)) / 100
+        const serviceIrpjBase = (servicesGross * 32.0) / 100
+        const serviceCsllBase = (servicesGross * 32.0) / 100
+        irpjBase = productIrpjBase + serviceIrpjBase
+        csllBase = productCsllBase + serviceCsllBase
+      } else if (hasServices && productGross <= 0) {
+        irpjBase = (servicesGross * 32.0) / 100
+        csllBase = (servicesGross * 32.0) / 100
+      } else {
+        const irpjPresumptionRate = isActivityServices ? 32.0 : 8.0
+        const csllPresumptionRate = isActivityServices ? 32.0 : 12.0
+        irpjBase = (totalGross * irpjPresumptionRate) / 100
+        csllBase = (totalGross * csllPresumptionRate) / 100
+      }
+
       irpjConsolidated = Math.round(((irpjBase * 15.0) / 100) * 100) / 100
       const irpjExcess = Math.max(0, irpjBase - 60000.0)
       irpjAdditionalConsolidated = Math.round(((irpjExcess * 10.0) / 100) * 100) / 100
@@ -939,6 +1035,10 @@ export const DreRegimeComparativeSection: React.FC<DreRegimeComparativeProps> = 
   realQuantitySold,
   simplesQuantitySold,
   qty,
+  totalServicesGrossRevenue = 0,
+  totalServicesCsp = 0,
+  totalServicesQuantity = 0,
+  serviceIssRate = 0,
 }) => {
   // Camada colapsável: recolhida por padrão
   const [isOpen, setIsOpen] = useState<boolean>(false)
@@ -1018,6 +1118,10 @@ export const DreRegimeComparativeSection: React.FC<DreRegimeComparativeProps> = 
       realIssRate,
       realAdditions,
       realExclusions,
+      totalServicesGrossRevenue,
+      totalServicesCsp,
+      totalServicesQuantity,
+      serviceIssRate,
     }
 
     return {
@@ -1061,6 +1165,10 @@ export const DreRegimeComparativeSection: React.FC<DreRegimeComparativeProps> = 
     realQuantitySold,
     simplesQuantitySold,
     qty,
+    totalServicesGrossRevenue,
+    totalServicesCsp,
+    totalServicesQuantity,
+    serviceIssRate,
   ])
 
   // Helper para renderizar a tabela de 4 colunas em 2 pares para um regime

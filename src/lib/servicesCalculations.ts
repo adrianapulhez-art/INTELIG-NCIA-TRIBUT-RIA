@@ -236,15 +236,30 @@ export function calculatePresumidoServices(
  * Anexo III se Fator R ≥ 28%, Anexo V se < 28%
  */
 export function determineSimplesServiceAnexo(
-  payroll12m: number,
-  rbt12: number,
+  payroll12mOrFatorR: number,
+  rbt12?: number,
 ): {
   recommendedAnexo: SimplesAnexoId
   fatorRPercent: number
   isElegibleAnexo3: boolean
   explanation: string
 } {
-  const result = calculateFatorR(payroll12m, rbt12)
+  if (rbt12 === undefined) {
+    // Chamada direta com percentual do Fator R já apurado (ex: 28.0)
+    const fatorRPercent = Math.max(0, Number(payroll12mOrFatorR) || 0)
+    const isElegibleAnexo3 = fatorRPercent >= 28.0
+    const recommendedAnexo: SimplesAnexoId = isElegibleAnexo3 ? 'anexo_3' : 'anexo_5'
+    return {
+      recommendedAnexo,
+      fatorRPercent,
+      isElegibleAnexo3,
+      explanation: isElegibleAnexo3
+        ? `Fator R de ${fatorRPercent.toFixed(2)}% (≥ 28,00%) → Tributação pelo Anexo III do Simples Nacional.`
+        : `Fator R de ${fatorRPercent.toFixed(2)}% (< 28,00%) → Tributação pelo Anexo V do Simples Nacional.`,
+    }
+  }
+
+  const result = calculateFatorR(payroll12mOrFatorR, rbt12)
   return {
     recommendedAnexo: result.recommendedAnexo,
     fatorRPercent: result.fatorRPercent,
