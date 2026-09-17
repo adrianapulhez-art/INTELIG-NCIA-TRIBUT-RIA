@@ -28,7 +28,13 @@ import {
   Info,
   CheckCircle2,
   Calculator,
+  Boxes,
+  TrendingDown,
 } from 'lucide-react'
+import {
+  calculateSingleProductStockPosition,
+  ProductStockItem,
+} from '@/lib/productStockCalculations'
 
 export interface PurchaseItemModalProps {
   open: boolean
@@ -74,9 +80,83 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
   onRemove,
   canRemove = false,
 }) => {
-  const { realFreightPisCofinsMethod, setRealFreightPisCofinsMethod } = useTaxContext()
+  const {
+    realFreightPisCofinsMethod,
+    setRealFreightPisCofinsMethod,
+    productStockState,
+    setProductStockState,
+    updateProductStockItem,
+  } = useTaxContext()
   const [showAltPositionModal, setShowAltPositionModal] = useState<boolean>(false)
   const [showConfirmApplyA, setShowConfirmApplyA] = useState<boolean>(false)
+
+  // Localiza ou prepara o registro de estoque correspondente a este item
+  const matchedStockProd = (productStockState?.products || []).find(
+    (p) => p.name && item?.name && p.name.trim().toLowerCase() === item.name.trim().toLowerCase(),
+  )
+
+  const currentInitialQty = matchedStockProd?.initial?.quantity ?? 0
+  const currentInitialUnitCost = matchedStockProd?.initial?.unitCost ?? 0
+
+  const [initQtyVal, setInitQtyVal] = useState<string>(
+    currentInitialQty > 0 ? String(currentInitialQty) : '',
+  )
+  const [initCostVal, setInitCostVal] = useState<string>(
+    currentInitialUnitCost > 0 ? formatNumberBR(currentInitialUnitCost) : '',
+  )
+
+  useEffect(() => {
+    setInitQtyVal(currentInitialQty > 0 ? String(currentInitialQty) : '')
+  }, [currentInitialQty])
+
+  useEffect(() => {
+    setInitCostVal(currentInitialUnitCost > 0 ? formatNumberBR(currentInitialUnitCost) : '')
+  }, [currentInitialUnitCost])
+
+  // Função para salvar Estoque Inicial em unidades e Custo de Partida bidirecionalmente
+  const handleUpdateStockInitial = (newQty: number, newCost: number) => {
+    if (!item?.name) return
+    const prodNameTrimmed = item.name.trim()
+
+    setProductStockState((prev) => {
+      const currentList = prev?.products || []
+      const existingIdx = currentList.findIndex(
+        (p) => p.name && p.name.trim().toLowerCase() === prodNameTrimmed.toLowerCase(),
+      )
+
+      if (existingIdx >= 0) {
+        const updatedList = [...currentList]
+        updatedList[existingIdx] = {
+          ...updatedList[existingIdx],
+          initial: {
+            quantity: Math.max(0, newQty),
+            unitCost: Math.max(0, newCost),
+          },
+        }
+        return {
+          ...prev,
+          enabled: true,
+          products: updatedList,
+        }
+      } else {
+        const newItem: ProductStockItem = {
+          id: `stk-prod-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          name: prodNameTrimmed,
+          initial: {
+            quantity: Math.max(0, newQty),
+            unitCost: Math.max(0, newCost),
+          },
+          entries: [],
+          exits: [],
+        }
+        return {
+          ...prev,
+          enabled: true,
+          products: [...currentList, newItem],
+        }
+      }
+    })
+  }
 
   // Estados locais blindados para digitação fluida e conversão onBlur
   const [nameVal, setNameVal] = useState<string>(item?.name || '')
@@ -239,6 +319,26 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
     regime,
   )
 
+  // Apuração do Kardex em tempo real para este produto via calculateSingleProductStockPosition
+  const singleStockItemForCalc: ProductStockItem = matchedStockProd || {
+    id: `temp-${item.id}`,
+    name: item.name || `Produto ${index + 1}`,
+    initial: { quantity: currentInitialQty, unitCost: currentInitialUnitCost },
+    entries: [],
+    exits: [],
+  }
+
+  const liveStockPosition = calculateSingleProductStockPosition(singleStockItemForCalc)
+  const liveCMP =
+    liveStockPosition.currentAverageCost > 0
+      ? liveStockPosition.currentAverageCost
+      : averageCost !== undefined && averageCost > 0
+        ? averageCost
+        : activeUnitCost
+  const liveBalanceUnits = liveStockPosition.currentStockQty
+  const liveExitUnits = liveStockPosition.totalExitsQty
+  const liveAccumulatedCmv = liveStockPosition.accumulatedCmv
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 p-5 sm:p-7 text-slate-100 shadow-2xl">
@@ -342,6 +442,107 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                     : calculatePurchaseItemGrossTotal(item),
                 )}
               </strong>
+            </div>
+          </div>
+
+          {/* Seção de Estoque do Produto: Estoque Inicial (un.) + Custo Unitário de Partida + Kardex CMP em tempo real */}
+          <div className="p-4 rounded-xl bg-slate-900/70 border border-orange-500/40 space-y-3 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="text-xs font-mono font-semibold uppercase text-orange-400 flex items-center gap-1.5">
+                <Boxes className="w-3.5 h-3.5" />
+                Estoque do Produto & Kardex (CMP Móvel)
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-orange-500/15 border border-orange-500/30 text-orange-300">
+                · controle por produto ativo
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Estoque Inicial em UNIDADES (un.) */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-mono text-slate-300 font-semibold block">
+                  Estoque Inicial do Produto (unidades)
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={initQtyVal}
+                  onChange={(e) => setInitQtyVal(e.target.value)}
+                  onBlur={() => {
+                    const parsed = parseInt(initQtyVal, 10)
+                    const safe = isNaN(parsed) || parsed < 0 ? 0 : parsed
+                    setInitQtyVal(safe > 0 ? String(safe) : '')
+                    handleUpdateStockInitial(safe, currentInitialUnitCost)
+                  }}
+                  className="text-xs font-mono field-input-interactive border-orange-500/40 focus:border-orange-500"
+                />
+              </div>
+
+              {/* Custo unitário de partida (R$) */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-mono text-slate-300 font-semibold block">
+                  Custo Unitário de Partida (R$)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                    R$
+                  </span>
+                  <Input
+                    type="text"
+                    placeholder="0,00"
+                    value={initCostVal}
+                    onChange={(e) => setInitCostVal(e.target.value)}
+                    onBlur={() => {
+                      const parsed = parseBRNumber(initCostVal)
+                      setInitCostVal(parsed > 0 ? formatNumberBR(parsed) : '')
+                      handleUpdateStockInitial(currentInitialQty, parsed)
+                    }}
+                    className="pl-8 text-right text-xs font-mono field-input-interactive border-orange-500/40 focus:border-orange-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Painel Kardex em tempo real do produto */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800/80 font-mono text-xs">
+              <div className="p-2 rounded-lg bg-slate-950/80 border border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase block">CMP Móvel</span>
+                <strong className="text-emerald-400 font-semibold text-xs sm:text-sm">
+                  {formatBRL(liveCMP)}
+                </strong>
+                <span className="text-[9px] text-slate-500 block">/ un.</span>
+              </div>
+
+              <div className="p-2 rounded-lg bg-slate-950/80 border border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase block">
+                  Saldo em Unidades
+                </span>
+                <strong className="text-white font-semibold text-xs sm:text-sm">
+                  {liveBalanceUnits} un.
+                </strong>
+                <span className="text-[9px] text-slate-500 block">
+                  {liveStockPosition.initialQty > 0
+                    ? `(EI ${liveStockPosition.initialQty} + comp.)`
+                    : 'disponível'}
+                </span>
+              </div>
+
+              <div className="p-2 rounded-lg bg-slate-950/80 border border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase block">Baixas por Venda</span>
+                <strong className="text-amber-300 font-semibold text-xs sm:text-sm">
+                  {liveExitUnits} un.
+                </strong>
+                <span className="text-[9px] text-slate-500 block">saídas registradas</span>
+              </div>
+
+              <div className="p-2 rounded-lg bg-slate-950/80 border border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase block">CMV Apurado</span>
+                <strong className="text-emerald-300 font-semibold text-xs sm:text-sm">
+                  {formatBRL(liveAccumulatedCmv)}
+                </strong>
+                <span className="text-[9px] text-slate-500 block">baixas valorizadas</span>
+              </div>
             </div>
           </div>
 
