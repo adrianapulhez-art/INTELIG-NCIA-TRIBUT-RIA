@@ -429,7 +429,7 @@ export interface TaxStateSnapshot {
   realFreightPisCofinsMethod?: 'position_b' | 'position_a'
 }
 
-export { ServiceItem, ServiceInputItem }
+export type { ServiceItem, ServiceInputItem }
 
 export interface TaxContextType {
   // SERVIÇOS PRESTADOS (Blocos 1, 2 e 3)
