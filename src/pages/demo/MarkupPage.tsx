@@ -46,6 +46,8 @@ import {
   ShieldAlert,
   Compass,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   SlidersHorizontal,
   Boxes,
   Download,
@@ -53,6 +55,7 @@ import {
   AlertTriangle,
   ArrowRightLeft,
 } from 'lucide-react'
+import { useMarkupProductAccordionState } from '@/hooks/useMarkupProductAccordionState'
 import {
   calculateSaleIcmsSt,
   calculateInterstateOperation,
@@ -390,6 +393,17 @@ export default function MarkupPage() {
   const [isRegimeComparisonDetailsOpen, setIsRegimeComparisonDetailsOpen] = useState(false)
   const [calculationMemoryProductId, setCalculationMemoryProductId] = useState<string | null>(null)
   const [comparisonModeProductId, setComparisonModeProductId] = useState<string | null>(null)
+
+  // Gerenciamento do acordeão dos produtos da Markup com persistência no localStorage
+  const markupProductIds = useMemo(() => markupProducts.map((p) => p.id), [markupProducts])
+  const {
+    openProductId,
+    isOpen: isProductOpen,
+    toggleProduct: toggleMarkupProduct,
+    collapseAll: collapseAllProducts,
+    expandFirst: expandFirstProduct,
+    allCollapsed: allProductsCollapsed,
+  } = useMarkupProductAccordionState(markupProductIds)
 
   // Quantidade de itens de compras e quantos já foram importados
   const totalPurchasesAvailableCount = purchasesItems.length
@@ -1565,10 +1579,10 @@ export default function MarkupPage() {
           {/* ÁREA DE LISTA / TABELA DE PRODUTOS */}
           <div className="space-y-3 pt-2 border-t border-slate-800/80">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Package className="w-4 h-4 text-emerald-400" />
                 <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
-                  Produtos / Serviços Cadastrados
+                  Produtos / Serviços Cadastrados ({markupProducts.length})
                 </h3>
                 {/* Chip Compacto em Camada: Puxar itens da Compra (CMV) */}
                 <button
@@ -1587,14 +1601,52 @@ export default function MarkupPage() {
                   <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
                 </button>
               </div>
-              <span className="text-[11px] font-mono text-emerald-400">
-                Atualização em tempo real · clique em <strong>Simular</strong> ou navegue livremente
-              </span>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Controles de Acordeão: Expandir um / Recolher todos */}
+                <div className="inline-flex items-center rounded-lg bg-slate-900 border border-slate-800 p-0.5 text-xs font-mono">
+                  <button
+                    type="button"
+                    onClick={expandFirstProduct}
+                    disabled={!allProductsCollapsed}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                      !allProductsCollapsed
+                        ? 'text-slate-500 cursor-not-allowed'
+                        : 'text-slate-300 hover:text-emerald-300 hover:bg-slate-800 cursor-pointer'
+                    }`}
+                    title="No modo acordeão (01 por vez): expande a camada do primeiro produto"
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                    <span>Expandir todos</span>
+                  </button>
+                  <span className="text-slate-700">|</span>
+                  <button
+                    type="button"
+                    onClick={collapseAllProducts}
+                    disabled={allProductsCollapsed}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                      allProductsCollapsed
+                        ? 'text-slate-500 cursor-not-allowed'
+                        : 'text-slate-300 hover:text-emerald-300 hover:bg-slate-800 cursor-pointer'
+                    }`}
+                    title="Recolher todas as camadas para linhas-resumo compactas"
+                  >
+                    <ChevronUp className="w-3 h-3" />
+                    <span>Recolher todos</span>
+                  </button>
+                </div>
+
+                <span className="text-[11px] font-mono text-emerald-400">
+                  Atualização em tempo real · clique em <strong>Simular</strong> ou navegue
+                  livremente
+                </span>
+              </div>
             </div>
 
             <div className="space-y-3">
               {markupProducts.map((prod, index) => {
                 const isProdLiquid = prod.mode === 'liquid'
+                const isOpen = isProductOpen(prod.id)
 
                 // Pega o custo unitário líquido do produto vindo das Compras no regime ativo ou do campo cost
                 const matchedPurchaseItemForChain = prod.purchaseItemId
@@ -1637,15 +1689,174 @@ export default function MarkupPage() {
                     ? liquidChain.rbv
                     : prod.salePrice
 
+                // Dados de resumo para a linha compacta
+                const qtyActiveRegime =
+                  prod.quantityByRegime?.[regime] ??
+                  (prod.quantityByRegime ? 0 : prod.quantity || 0)
+                const marginActiveRegime = isProdLiquid
+                  ? liquidChain?.derivedMarginPct || 0
+                  : (prod.marginByRegime?.[regime] ?? (prod.marginByRegime ? 0 : prod.margin || 0))
+                const unitCostForDisplay = isProdLiquid
+                  ? (prod.desiredNetRevenueByRegime?.[regime] ??
+                    (prod.desiredNetRevenueByRegime ? 0 : prod.desiredNetRevenue || 0))
+                  : effectiveUnitCostForChain
+                const subtotalDisplay =
+                  qtyActiveRegime > 0 && displaySalePrice > 0
+                    ? qtyActiveRegime * displaySalePrice
+                    : prod.totalRevenue || 0
+
+                // Se a camada deste produto estiver RECOLHIDA: renderiza linha compacta estilo Itens de Compra
+                if (!isOpen) {
+                  return (
+                    <div
+                      key={prod.id}
+                      onClick={() => toggleMarkupProduct(prod.id)}
+                      className="group bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 rounded-xl p-3 sm:px-4 sm:py-3 transition-all duration-200 cursor-pointer shadow-sm hover:bg-slate-900/50"
+                      title="Clique para abrir a camada deste produto (acordeão: 01 por vez)"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 font-mono text-xs">
+                        {/* Identificação: #, Nome, Tag de modo e badge recolhido */}
+                        <div className="flex items-center gap-2.5 flex-1 min-w-[220px]">
+                          <span className="w-5 h-5 rounded bg-slate-900 border border-slate-800 inline-flex items-center justify-center text-slate-400 text-[10px] font-bold shrink-0">
+                            #{index + 1}
+                          </span>
+                          <div className="flex items-center gap-2 flex-wrap min-w-0">
+                            <span className="font-sans font-semibold text-slate-200 group-hover:text-emerald-300 transition-colors text-xs sm:text-sm truncate">
+                              {prod.name?.trim() || `Produto ${index + 1}`}
+                            </span>
+                            {/* Badges de Origem do Custo */}
+                            {prod.costOrigin === 'purchases' ||
+                            (prod.purchaseItemId && prod.manualCostOverride === undefined) ? (
+                              <Badge className="bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[9px] px-1.5 py-0 font-normal">
+                                📦 Compras
+                              </Badge>
+                            ) : null}
+                            <Badge className="bg-slate-800 text-slate-400 border-slate-700 text-[9px] px-1 py-0 font-normal">
+                              recolhido
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* Colunas de Resumo Fiscal/Comercial: Custo/RL, Margem, Qtd, Preço Simulado, Subtotal */}
+                        <div className="flex flex-wrap items-center justify-between lg:justify-end gap-3 sm:gap-4 text-[11px] text-slate-300">
+                          {/* Custo unitário / RL */}
+                          <div className="text-left sm:text-right">
+                            <span className="text-[10px] text-slate-500 block">
+                              {isProdLiquid ? 'Rec. Líquida' : 'Custo un.'}
+                            </span>
+                            <span className="font-semibold text-slate-300">
+                              {unitCostForDisplay > 0 ? formatBRL(unitCostForDisplay) : '—'}
+                            </span>
+                          </div>
+
+                          {/* Margem % */}
+                          <div className="text-left sm:text-right">
+                            <span className="text-[10px] text-slate-500 block">Margem</span>
+                            <span className="font-semibold text-slate-300">
+                              {marginActiveRegime > 0
+                                ? `${formatNumberBR(marginActiveRegime)}%`
+                                : '—'}
+                            </span>
+                          </div>
+
+                          {/* Quantidade */}
+                          <div className="text-left sm:text-right">
+                            <span className="text-[10px] text-slate-500 block">Qtd</span>
+                            <span className="font-bold text-slate-200">
+                              {qtyActiveRegime > 0 ? `${qtyActiveRegime} un.` : '—'}
+                            </span>
+                          </div>
+
+                          {/* Preço de Venda Simulado */}
+                          <div className="text-left sm:text-right">
+                            <span className="text-[10px] text-emerald-400/80 block font-sans">
+                              Preço un.
+                            </span>
+                            <span className="font-bold text-emerald-400">
+                              {displaySalePrice > 0 ? formatBRL(displaySalePrice) : '—'}
+                            </span>
+                          </div>
+
+                          {/* Subtotal */}
+                          <div className="text-left sm:text-right min-w-[90px]">
+                            <span className="text-[10px] text-emerald-400/80 block font-sans">
+                              Subtotal
+                            </span>
+                            <span className="font-bold text-emerald-300">
+                              {subtotalDisplay > 0 ? formatBRL(subtotalDisplay) : '—'}
+                            </span>
+                          </div>
+
+                          {/* Ações da linha recolhida: Alternador de modo, Detalhes/Expandir e Lixeira */}
+                          <div
+                            className="flex items-center gap-1.5 shrink-0"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {/* Troca de modo na linha compacta */}
+                            <div className="inline-flex rounded-lg bg-slate-900 p-0.5 border border-slate-800 text-[10px]">
+                              <button
+                                type="button"
+                                onClick={() => updateMarkupProduct(prod.id, 'mode', 'liquid')}
+                                className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                                  isProdLiquid
+                                    ? 'bg-emerald-500 text-slate-950 font-bold'
+                                    : 'text-slate-400 hover:text-slate-200'
+                                }`}
+                                title="Mudar modo para Receita Líquida"
+                              >
+                                RL
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateMarkupProduct(prod.id, 'mode', 'cost_margin')}
+                                className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
+                                  !isProdLiquid
+                                    ? 'bg-emerald-500 text-slate-950 font-bold'
+                                    : 'text-slate-400 hover:text-slate-200'
+                                }`}
+                                title="Mudar modo para Custo + Margem"
+                              >
+                                C+M
+                              </button>
+                            </div>
+
+                            {/* Botão Expandir / Detalhes */}
+                            <button
+                              type="button"
+                              onClick={() => toggleMarkupProduct(prod.id)}
+                              className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-300 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-2 py-1 rounded-md cursor-pointer transition-all shadow-sm"
+                              title="Expandir camada completa deste produto"
+                            >
+                              <ChevronDown className="w-3 h-3 text-emerald-400" />
+                              <span>Detalhes</span>
+                            </button>
+
+                            {/* Botão de Excluir diretamente na linha recolhida */}
+                            <button
+                              type="button"
+                              onClick={() => removeMarkupProduct(prod.id)}
+                              className="p-1 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-rose-500/10 cursor-pointer"
+                              title="Excluir produto sem precisar abrir a camada"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+
+                // Se a camada deste produto estiver EXPANDIDA: renderiza a camada completa com todos os controles
                 return (
                   <div
                     key={prod.id}
-                    className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3 transition-colors hover:border-slate-700/80"
+                    className="bg-slate-950/80 border-2 border-emerald-500/40 rounded-xl p-4 sm:p-5 space-y-3.5 transition-all shadow-xl shadow-emerald-500/5 animate-in fade-in duration-200"
                   >
-                    {/* Linha superior: Nome do produto, seletor de modo e lixeira */}
+                    {/* Linha superior: Nome do produto, seletor de modo, botão Recolher e lixeira */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-800/80">
                       <div className="flex items-center gap-2 flex-1 flex-wrap">
-                        <span className="text-xs font-mono text-slate-500 font-bold shrink-0">
+                        <span className="text-xs font-mono text-emerald-400 font-bold shrink-0">
                           #{index + 1}
                         </span>
                         <Input
@@ -1694,6 +1905,17 @@ export default function MarkupPage() {
                             Custo + Margem
                           </button>
                         </div>
+
+                        {/* Botão de Recolher Camada */}
+                        <button
+                          type="button"
+                          onClick={() => toggleMarkupProduct(prod.id)}
+                          className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 px-2.5 py-1 rounded-md cursor-pointer transition-all"
+                          title="Recolher camada para linha compacta"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="hidden sm:inline">Recolher</span>
+                        </button>
 
                         {/* Botão de Remover (lixeira) */}
                         <button
