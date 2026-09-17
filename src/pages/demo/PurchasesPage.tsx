@@ -16,6 +16,8 @@ import {
   RotateCcw,
   Boxes,
   HelpCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import {
   formatBRL,
@@ -25,6 +27,7 @@ import {
   calculatePurchaseItemNetPurchases,
 } from '@/lib/taxCalculations'
 import { roundTo2 } from '@/lib/productStockCalculations'
+import { usePurchaseCollapseState } from '@/hooks/usePurchaseCollapseState'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -57,41 +60,16 @@ export default function PurchasesPage() {
     totalPurchasesQuantity,
     totalPurchasesMerchandise,
     initialInventory,
-    setInitialInventory,
     finalInventory,
-    setFinalInventory,
     autoInventoryDeduction,
-    setAutoInventoryDeduction,
-    initialInventoryUnits,
-    setInitialInventoryUnits,
     additionalCosts,
     addAdditionalCost,
     updateAdditionalCost,
     removeAdditionalCost,
-    nonRecoverableTaxBase,
-    setNonRecoverableTaxBase,
-    nonRecoverableTaxRate,
-    setNonRecoverableTaxRate,
     deductionCosts,
     addDeductionCost,
     updateDeductionCost,
     removeDeductionCost,
-    icmsPurchasesBase,
-    setIcmsPurchasesBase,
-    icmsPurchasesRate,
-    setIcmsPurchasesRate,
-    icmsFreightPurchasesBase,
-    setIcmsFreightPurchasesBase,
-    icmsFreightPurchasesRate,
-    setIcmsFreightPurchasesRate,
-    pisPurchasesBase,
-    setPisPurchasesBase,
-    pisExcludedIcmsManual,
-    setPisExcludedIcmsManual,
-    cofinsPurchasesBase,
-    setCofinsPurchasesBase,
-    cofinsExcludedIcmsManual,
-    setCofinsExcludedIcmsManual,
     pisFreightPurchasesBase,
     setPisFreightPurchasesBase,
     cofinsFreightPurchasesBase,
@@ -154,6 +132,11 @@ export default function PurchasesPage() {
   // Alíquotas automáticas de PIS/COFINS por regime
   const pisRate = regime === 'real' ? 1.65 : 0.65
   const cofinsRate = regime === 'real' ? 7.6 : 3.0
+
+  // Gerenciamento de estado recolhido/expandido por item com persistência no localStorage
+  const itemIds = React.useMemo(() => purchasesItems.map((it) => it.id), [purchasesItems])
+  const { isCollapsed, toggleItem, collapseAll, expandAll, allCollapsed, allExpanded } =
+    usePurchaseCollapseState('current', itemIds)
 
   // Seletor de visualização de CMV consolidado conforme regime
   const activeCmv =
@@ -324,7 +307,7 @@ export default function PurchasesPage() {
 
           {/* (B) Bloco de ITENS DE COMPRA (Subsistema em Camadas: Tabela Compacta Frontal + Modal Completo) */}
           <div className="space-y-4 pt-1">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-md bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                   <Layers className="w-4 h-4" />
@@ -334,26 +317,58 @@ export default function PurchasesPage() {
                     Itens da Compra ({purchasesItems.length})
                   </h3>
                   <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
-                    Clique em qualquer item para abrir a camada de detalhes e edição fiscal
+                    Camada de itens com visualização expandida ou recolhida compacta
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-                <span>Total unidades:</span>
-                <strong className="text-emerald-400">{totalPurchasesQuantity} un.</strong>
-                <span className="text-slate-600">|</span>
-                <span>Total mercadorias:</span>
-                <strong className="text-emerald-400">{formatBRL(totalPurchasesMerchandise)}</strong>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Controles de Recolher todos / Expandir todos */}
+                <div className="inline-flex items-center rounded-lg bg-slate-900 border border-slate-800 p-0.5 text-xs font-mono">
+                  <button
+                    type="button"
+                    onClick={expandAll}
+                    disabled={allExpanded}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                      allExpanded
+                        ? 'text-slate-500 cursor-not-allowed'
+                        : 'text-slate-300 hover:text-emerald-300 hover:bg-slate-800 cursor-pointer'
+                    }`}
+                    title="Expandir todas as camadas de itens"
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                    <span>Expandir todos</span>
+                  </button>
+                  <span className="text-slate-700">|</span>
+                  <button
+                    type="button"
+                    onClick={collapseAll}
+                    disabled={allCollapsed}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                      allCollapsed
+                        ? 'text-slate-500 cursor-not-allowed'
+                        : 'text-slate-300 hover:text-emerald-300 hover:bg-slate-800 cursor-pointer'
+                    }`}
+                    title="Recolher todas as camadas para linhas-resumo compactas"
+                  >
+                    <ChevronUp className="w-3 h-3" />
+                    <span>Recolher todos</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+                  <span>Total unidades:</span>
+                  <strong className="text-emerald-400">{totalPurchasesQuantity} un.</strong>
+                  <span className="text-slate-600">|</span>
+                  <span>Total mercadorias:</span>
+                  <strong className="text-emerald-400">
+                    {formatBRL(totalPurchasesMerchandise)}
+                  </strong>
+                </div>
               </div>
             </div>
 
-            {/* Interface Frontal Compacta: UMA linha por produto adquirido com SOMENTE:
-                (1) Nome do item
-                (2) Quantidade em estoque
-                (3) Preço médio por produto
-                (4) Preço total
-            */}
+            {/* Interface Frontal Compacta: UMA linha por produto adquirido */}
             <div className="rounded-2xl border border-emerald-500/30 bg-slate-950/70 shadow-lg overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -365,7 +380,7 @@ export default function PurchasesPage() {
                       <th className="py-3 px-4 font-semibold text-right">Preço Médio / un.</th>
                       <th className="py-3 px-4 font-semibold text-right">Preço Total</th>
                       <th className="py-3 px-4 font-semibold text-right">Compras Líquidas</th>
-                      <th className="py-3 px-4 font-semibold text-center w-24">Camada</th>
+                      <th className="py-3 px-4 font-semibold text-center w-36">Camada</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
@@ -414,20 +429,95 @@ export default function PurchasesPage() {
                           ? stockPos.currentAverageCost
                           : fallbackUnitCost
 
-                      // Preço total (regra estrita da usuária):
-                      // Coluna "Preço Total" de cada item de compra = valor da compra (unitário) × quantidade comprada do item.
-                      // Valor bruto da compra daquele item, SEM passar pelo custo médio do estoque, SEM deduzir tributos.
+                      // Preço total: valor bruto da compra daquele item
                       const itemGrossTotal = calculatePurchaseItemGrossTotal(item)
 
-                      // Compras Líquidas (regra estrita da usuária):
-                      // Coluna "Compras Líquidas" de cada item = valor das compras (unitário × quantidade) MENOS os tributos
-                      // recuperáveis daquele item conforme regime ativo:
-                      // - Lucro Presumido: deduz ICMS destacado e ICMS s/ frete;
-                      // - Lucro Real: deduz ICMS, ICMS s/ frete, PIS (1,65%) e COFINS (7,60%);
-                      // - Simples Nacional: nada é recuperável -> valor bruto integral.
-                      // NÃO passa pelo custo médio do estoque.
+                      // Compras Líquidas conforme regime ativo
                       const itemNetPurchases = calculatePurchaseItemNetPurchases(item, regime)
 
+                      const collapsed = isCollapsed(item.id)
+
+                      if (collapsed) {
+                        // Linha-resumo compacta quando recolhido
+                        return (
+                          <tr
+                            key={item.id}
+                            className="bg-slate-900/30 hover:bg-emerald-500/[0.04] transition-colors"
+                          >
+                            {/* # */}
+                            <td className="py-2.5 px-4 text-center text-slate-500 font-bold text-[11px]">
+                              <span className="w-5 h-5 rounded bg-slate-900/80 border border-slate-800 inline-flex items-center justify-center text-slate-400 text-[10px]">
+                                {idx + 1}
+                              </span>
+                            </td>
+
+                            {/* Resumo: Nome do Item + Tag Compacta */}
+                            <td className="py-2.5 px-4" colSpan={2}>
+                              <div className="flex items-center gap-2">
+                                <span className="font-sans font-medium text-slate-300 text-xs">
+                                  {item.name || `Item ${idx + 1}`}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-mono">
+                                  ({item.quantity} un. compradas)
+                                </span>
+                                <Badge className="bg-slate-800 text-slate-400 border-slate-700 text-[9px] px-1 py-0 font-normal">
+                                  recolhido
+                                </Badge>
+                              </div>
+                            </td>
+
+                            {/* Preço Unitário */}
+                            <td className="py-2.5 px-4 text-right text-slate-400 text-[11px]">
+                              {formatBRL(item.unitPrice > 0 ? item.unitPrice : avgPrice)}
+                            </td>
+
+                            {/* Valor Total */}
+                            <td className="py-2.5 px-4 text-right">
+                              <span className="text-emerald-300 font-bold">
+                                {formatBRL(itemGrossTotal)}
+                              </span>
+                            </td>
+
+                            {/* Compras Líquidas */}
+                            <td className="py-2.5 px-4 text-right text-slate-400 text-[11px]">
+                              {formatBRL(itemNetPurchases)}
+                            </td>
+
+                            {/* Ações: Desrecolher + Detalhes */}
+                            <td className="py-2.5 px-4 text-center">
+                              <div className="inline-flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    toggleItem(item.id)
+                                  }}
+                                  className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2 py-0.5 rounded cursor-pointer transition-all"
+                                  title="Expandir linha deste item"
+                                >
+                                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                                  <span>Expandir</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedItemForModal(item)
+                                    setIsPurchaseItemModalOpen(true)
+                                  }}
+                                  className="inline-flex items-center gap-1 text-[10px] font-sans font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded cursor-pointer transition-all"
+                                  title="Abrir camada completa de detalhes e edição fiscal"
+                                >
+                                  <span>Detalhes</span>
+                                  <ChevronRight className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      }
+
+                      // Linha expandida normal
                       return (
                         <tr
                           key={item.id}
@@ -492,12 +582,26 @@ export default function PurchasesPage() {
                             </span>
                           </td>
 
-                          {/* Botão de abrir camada */}
+                          {/* Botões da Camada: Recolher + Detalhes */}
                           <td className="py-3 px-4 text-center">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-sans font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 rounded-lg transition-all group-hover:border-emerald-400 shadow-sm">
-                              <span>Detalhes</span>
-                              <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                            </span>
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  toggleItem(item.id)
+                                }}
+                                className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-slate-200 bg-slate-900 hover:bg-slate-850 border border-slate-800 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                                title="Recolher camada deste item"
+                              >
+                                <ChevronUp className="w-3 h-3 text-slate-400" />
+                                <span className="hidden sm:inline">Recolher</span>
+                              </button>
+                              <span className="inline-flex items-center gap-1 text-[11px] font-sans font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 rounded-lg transition-all group-hover:border-emerald-400 shadow-sm">
+                                <span>Detalhes</span>
+                                <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                              </span>
+                            </div>
                           </td>
                         </tr>
                       )
@@ -551,172 +655,27 @@ export default function PurchasesPage() {
             )}
           </div>
 
-          {/* (C) Campos da Compra como um todo (Estoque Inicial, Final e Rateio Global) */}
+          {/* (C) Encargos Globais da Compra (Frete Rateado, Acréscimos e Deduções) */}
           <div className="space-y-4 pt-4 border-t border-slate-800/80">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-slate-200">
-                  Estoques & Encargos Globais da Compra
-                </h3>
+                <h3 className="text-sm font-bold text-slate-200">Encargos Globais da Compra</h3>
                 <p className="text-xs text-slate-400">
-                  Estoque inicial, final, frete rateado e acréscimos/deduções aplicáveis à compra
-                  como um todo.
+                  Frete rateado e acréscimos/deduções aplicáveis à compra da nota fiscal.
                 </p>
               </div>
             </div>
 
-            {/* Toggle Baixa Automática e Estoque Inicial em unidades */}
-            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    id="auto-inventory-toggle"
-                    checked={autoInventoryDeduction}
-                    onChange={(e) => setAutoInventoryDeduction(e.target.checked)}
-                    className="h-4 w-4 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500/30 cursor-pointer"
-                  />
-                  <div>
-                    <label
-                      htmlFor="auto-inventory-toggle"
-                      className="text-xs font-bold text-slate-200 cursor-pointer flex items-center gap-2"
-                    >
-                      Baixa automática de estoque por quantidade
-                      {autoInventoryDeduction && (
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono">
-                          · baixa por quantidade ativa
-                        </span>
-                      )}
-                    </label>
-                    <p className="text-[11px] text-slate-400">
-                      Conecta o CMV às vendas apuradas: calcula o custo unitário da compra, dá baixa
-                      pelo número de unidades vendidas e calcula o estoque final automaticamente.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Campo Estoque Inicial em Unidades (visível quando toggle ligado) */}
-                {autoInventoryDeduction && (
-                  <div className="flex items-center gap-2 shrink-0">
-                    <label
-                      htmlFor="initial-inventory-units-input"
-                      className="text-xs font-mono text-slate-300 whitespace-nowrap"
-                    >
-                      Estoque inicial (unidades):
-                    </label>
-                    <Input
-                      id="initial-inventory-units-input"
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      defaultValue={initialInventoryUnits > 0 ? String(initialInventoryUnits) : ''}
-                      key={`ei-units-${initialInventoryUnits}`}
-                      onBlur={(e) => {
-                        const parsed = parseInt(e.target.value, 10)
-                        const safe = isNaN(parsed) || parsed < 0 ? 0 : parsed
-                        setInitialInventoryUnits(safe)
-                        e.target.value = safe > 0 ? String(safe) : ''
-                      }}
-                      className="w-24 bg-slate-900 border-orange-500/50 text-orange-50 font-mono text-xs focus:border-orange-500 focus-visible:ring-orange-500/30 text-right"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Alerta se quantidade vendida excede o estoque disponível */}
-              {autoInventoryDeduction && calculatedPurchases.isQuantityExceeded && (
-                <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] font-mono text-amber-300 flex items-center gap-2">
-                  <span>⚠️</span>
-                  <span>
-                    Quantidade vendida excede o estoque disponível (
-                    {calculatedPurchases.totalAvailableUnits} unidades) — CMV limitado ao estoque
-                    existente.
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* EI e EF */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">
-                  Estoque inicial (EI) — período anterior (R$)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                    R$
-                  </span>
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    defaultValue={initialInventory > 0 ? formatNumberBR(initialInventory) : ''}
-                    key={`ei-${initialInventory}`}
-                    onBlur={(e) => {
-                      const parsed = parseBRNumber(e.target.value)
-                      setInitialInventory(parsed)
-                      e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                    }}
-                    className="pl-9 bg-slate-950/60 border-orange-500/50 text-orange-50 font-mono text-sm focus:border-orange-500 focus:ring-orange-500/30"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-300">
-                    Estoque final (EF) — inventário apurado (R$)
-                  </label>
-                  {autoInventoryDeduction && (
-                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded">
-                      · automático (baixa por quantidade)
-                    </span>
-                  )}
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                    R$
-                  </span>
-                  {autoInventoryDeduction ? (
-                    <Input
-                      type="text"
-                      disabled
-                      value={formatNumberBR(
-                        regime === 'simples'
-                          ? calculatedPurchases.autoFinalInventorySimples
-                          : regime === 'real'
-                            ? calculatedPurchases.autoFinalInventoryReal
-                            : calculatedPurchases.autoFinalInventoryPresumido,
-                      )}
-                      className="pl-9 bg-slate-950/40 border-emerald-500/40 text-emerald-400 font-mono text-sm cursor-not-allowed opacity-90 font-bold"
-                    />
-                  ) : (
-                    <Input
-                      type="text"
-                      placeholder="0,00"
-                      defaultValue={finalInventory > 0 ? formatNumberBR(finalInventory) : ''}
-                      key={`ef-${finalInventory}`}
-                      onBlur={(e) => {
-                        const parsed = parseBRNumber(e.target.value)
-                        setFinalInventory(parsed)
-                        e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                      }}
-                      className="pl-9 bg-slate-950/60 border-orange-500/50 text-orange-50 font-mono text-sm focus:border-orange-500 focus:ring-orange-500/30"
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Encargos e Deduções em Camadas (Chips Compactos com Modais) */}
-            <div className="pt-2 border-t border-slate-800/60">
+            {/* Encargos e Deduções em Camadas (Frete Rateado e Deduções da Nota) */}
+            <div className="pt-1">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
                 <div className="space-y-0.5">
                   <span className="text-xs font-mono font-semibold uppercase text-slate-300 block">
-                    Encargos e Deduções da Compra (Camadas)
+                    Frete Rateado e Acréscimos / Deduções da Nota
                   </span>
                   <p className="text-[11px] text-slate-400 font-mono">
-                    Configure fretes rateados e deduções do custo (devoluções/abatimentos) em
-                    camadas compactas.
+                    Custos adicionais rateados (frete/seguro) e deduções do custo de aquisição
+                    (devoluções/descontos).
                   </p>
                 </div>
 
@@ -1248,6 +1207,83 @@ export default function PurchasesPage() {
                 </div>
               </DialogContent>
             </Dialog>
+          </div>
+
+          {/* (D) Posição de Estoque Final (EF) e CMV Apurado */}
+          <div className="pt-4 border-t border-slate-800/80 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-200">
+                  Estoque Final (EF) & CMV Apurado
+                </h3>
+                <p className="text-xs text-slate-400">
+                  O Estoque Final é apurado automaticamente a partir das posições valorizadas do
+                  Kardex e alimenta a identidade contábil EI + CL − EF = CMV.
+                </p>
+              </div>
+            </div>
+
+            {/* Painel Somente-Leitura de Estoque Final Automático */}
+            <div className="p-4 rounded-xl bg-slate-950/70 border border-emerald-500/30 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-300">
+                      Estoque Final (EF) — inventário apurado (R$)
+                    </label>
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                      · automático
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                      R$
+                    </span>
+                    <Input
+                      type="text"
+                      readOnly
+                      disabled
+                      value={formatNumberBR(
+                        calculatedProductStock.totals.totalStockValue > 0
+                          ? calculatedProductStock.totals.totalStockValue
+                          : activeAutoEF,
+                      )}
+                      className="pl-9 bg-slate-950/60 border-emerald-500/40 text-emerald-400 font-mono text-sm font-bold cursor-default select-all"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Somatório das posições valorizadas em estoque por produto (
+                    {calculatedProductStock.totals.totalStockQty} un. em estoque).
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-300">
+                      CMV Apurado ({regime.toUpperCase()})
+                    </label>
+                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                      · automático (EI + CL − EF = CMV)
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                      R$
+                    </span>
+                    <Input
+                      type="text"
+                      readOnly
+                      disabled
+                      value={formatNumberBR(activeCmv)}
+                      className="pl-9 bg-slate-950/60 border-emerald-500/40 text-emerald-400 font-mono text-sm font-bold cursor-default select-all"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Valor transferido para a linha "CMV · automático" na DRE do regime ativo.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* (E) RESULTADO & CMV CONSOLIDADO COM MEMÓRIA DE CÁLCULO */}
