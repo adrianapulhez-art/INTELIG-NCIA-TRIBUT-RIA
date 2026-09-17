@@ -45,7 +45,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { ShieldAlert, Compass, ChevronRight, SlidersHorizontal, Truck, Receipt } from 'lucide-react'
+import { ShieldAlert, Compass, ChevronRight, SlidersHorizontal, Receipt } from 'lucide-react'
 import { calculateInterstateOperation } from '@/lib/specialOperationsCalculations'
 
 export default function PurchasesPage() {
@@ -81,10 +81,9 @@ export default function PurchasesPage() {
     realFreightPisCofinsMethod,
   } = useTaxContext()
 
-  // Estados dos modais em camadas para ST, DIFAL, Frete, Deduções e Composição do CMV
+  // Estados dos modais em camadas para ST, DIFAL, Deduções e Composição do CMV
   const [isStDialogOpen, setIsStDialogOpen] = useState(false)
   const [isInterstateDialogOpen, setIsInterstateDialogOpen] = useState(false)
-  const [isFreightDialogOpen, setIsFreightDialogOpen] = useState(false)
   const [isDeductionsDialogOpen, setIsDeductionsDialogOpen] = useState(false)
   const [isProductStockDialogOpen, setIsProductStockDialogOpen] = useState(false)
   const [isCmvCompositionDialogOpen, setIsCmvCompositionDialogOpen] = useState(false)
@@ -666,54 +665,21 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            {/* Encargos e Deduções em Camadas (Frete Rateado e Deduções da Nota) */}
+            {/* Encargos e Deduções em Camadas (Deduções da Nota, Estoque por Produto e Composição do CMV) */}
             <div className="pt-1">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
                 <div className="space-y-0.5">
                   <span className="text-xs font-mono font-semibold uppercase text-slate-300 block">
-                    Frete Rateado e Acréscimos / Deduções da Nota
+                    Acréscimos / Deduções da Nota & Análise do CMV
                   </span>
                   <p className="text-[11px] text-slate-400 font-mono">
-                    Custos adicionais rateados (frete/seguro) e deduções do custo de aquisição
-                    (devoluções/descontos).
+                    Deduções do custo de aquisição (devoluções/descontos), estoque por produto e
+                    composição do CMV.
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  {/* Chip 1: Frete e Encargos */}
-                  <button
-                    type="button"
-                    onClick={() => setIsFreightDialogOpen(true)}
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer shadow-sm ${
-                      hasAdditionalCosts
-                        ? 'bg-emerald-500/[0.22] border-emerald-400/90 text-emerald-100 hover:bg-emerald-500/35 hover:border-emerald-300 shadow-emerald-500/25 ring-1 ring-emerald-500/40'
-                        : 'bg-emerald-500/[0.12] border-emerald-500/70 text-emerald-200 hover:text-white hover:border-emerald-400 hover:bg-emerald-500/20 shadow-emerald-500/10'
-                    }`}
-                    title="Abrir camada de Frete e Encargos Adicionais Rateados na Compra"
-                  >
-                    <Truck
-                      className={`w-3.5 h-3.5 ${
-                        hasAdditionalCosts ? 'text-emerald-200' : 'text-emerald-300/80'
-                      }`}
-                    />
-                    <span className="font-semibold text-emerald-100">Frete e Encargos</span>
-                    <Badge
-                      className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
-                        hasAdditionalCosts
-                          ? 'bg-emerald-500/35 text-emerald-100 font-semibold'
-                          : 'bg-emerald-950/70 text-emerald-300 border border-emerald-500/30'
-                      }`}
-                    >
-                      {hasAdditionalCosts
-                        ? `${formatBRL(totalAdditionalCostsValue)} · ${activeAdditionalCostsCount} ${
-                            activeAdditionalCostsCount === 1 ? 'item' : 'itens'
-                          }`
-                        : 'Inativo'}
-                    </Badge>
-                    <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
-                  </button>
-
-                  {/* Chip 2: Deduções do Custo */}
+                <div className="flex flex-wrap items-center justify-start lg:justify-end gap-2.5 shrink-0">
+                  {/* Botão 1: Deduções do Custo */}
                   <button
                     type="button"
                     onClick={() => setIsDeductionsDialogOpen(true)}
@@ -746,7 +712,7 @@ export default function PurchasesPage() {
                     <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
                   </button>
 
-                  {/* Chip 3: Subsistema de Estoque por Produto (Kardex / CMP) */}
+                  {/* Botão 2: Subsistema de Estoque por Produto (Kardex / CMP) */}
                   <button
                     type="button"
                     onClick={() => setIsProductStockDialogOpen(true)}
@@ -779,7 +745,7 @@ export default function PurchasesPage() {
                     <ChevronRight className="w-3 h-3 text-orange-300/70 ml-0.5" />
                   </button>
 
-                  {/* Chip 4: Composição Detalhada do CMV */}
+                  {/* Botão 3: Composição Detalhada do CMV */}
                   <button
                     type="button"
                     onClick={() => setIsCmvCompositionDialogOpen(true)}
@@ -796,105 +762,6 @@ export default function PurchasesPage() {
                 </div>
               </div>
             </div>
-
-            {/* Diálogo / Camada Completa: Frete e Encargos Adicionais Rateados na Compra */}
-            <Dialog open={isFreightDialogOpen} onOpenChange={setIsFreightDialogOpen}>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-slate-800 p-6 text-slate-100 shadow-2xl">
-                <DialogHeader className="border-b border-slate-800 pb-3">
-                  <div className="flex items-center justify-between gap-2 pr-6">
-                    <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-                      <Truck className="w-5 h-5 text-amber-400" />
-                      Frete e Encargos Adicionais Rateados na Compra
-                    </DialogTitle>
-                    {hasAdditionalCosts && (
-                      <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 shrink-0">
-                        Total: {formatBRL(totalAdditionalCostsValue)}
-                      </span>
-                    )}
-                  </div>
-                  <DialogDescription className="text-xs text-slate-400">
-                    Cadastre os custos globais de frete, seguro e outros encargos que são somados e
-                    rateados proporcionalmente no custo de aquisição da compra.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="pt-3 space-y-3">
-                  <div className="flex items-center justify-between pb-1">
-                    <span className="text-xs font-mono text-slate-300">
-                      Itens de encargo ({additionalCosts.length})
-                    </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addAdditionalCost('Novo encargo', 0)}
-                      className="h-7 text-xs bg-slate-900 border-slate-700 text-slate-200 hover:border-amber-400 hover:text-amber-300 hover:bg-slate-800 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5 mr-1" />
-                      Adicionar encargo
-                    </Button>
-                  </div>
-
-                  <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
-                    {additionalCosts.length === 0 ? (
-                      <div className="text-center py-8 text-xs font-mono text-slate-500 border border-dashed border-slate-800 rounded-xl">
-                        Nenhum encargo adicional lançado. Clique em "Adicionar encargo" para incluir
-                        frete ou seguro rateado.
-                      </div>
-                    ) : (
-                      additionalCosts.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center gap-2 bg-slate-900/70 p-2.5 rounded-xl border border-slate-800/80 hover:border-slate-700 transition-colors"
-                        >
-                          <Input
-                            type="text"
-                            value={item.description}
-                            onChange={(e) =>
-                              updateAdditionalCost(item.id, 'description', e.target.value)
-                            }
-                            placeholder="Descrição do encargo"
-                            className="text-xs font-semibold h-8 flex-1 field-input-interactive"
-                          />
-                          <div className="relative w-36 sm:w-44">
-                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
-                              R$
-                            </span>
-                            <Input
-                              type="text"
-                              defaultValue={item.value > 0 ? formatNumberBR(item.value) : ''}
-                              key={`cost-modal-${item.id}-${item.value}`}
-                              onBlur={(e) => {
-                                const parsed = parseBRNumber(e.target.value)
-                                updateAdditionalCost(item.id, 'value', parsed)
-                                e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                              }}
-                              placeholder="0,00"
-                              className="pl-7 text-right text-xs font-mono h-8 w-full field-input-interactive"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeAdditionalCost(item.id)}
-                            className="p-2 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
-                            title="Remover encargo"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-400">Total somado na base da compra:</span>
-                    <strong className="text-amber-300 font-bold text-sm">
-                      {formatBRL(totalAdditionalCostsValue)}
-                    </strong>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
 
             {/* Diálogo / Camada Completa: Subsistema de Estoque por Produto (Kardex / CMP Móvel) */}
             <ProductStockModal
