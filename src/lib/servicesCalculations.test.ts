@@ -7,6 +7,7 @@ import {
   determineSimplesServiceAnexo,
   ServiceItem,
 } from './servicesCalculations'
+import { parseBRNumber } from '@/lib/taxCalculations'
 import { computeDreComparativeForRegime } from '@/components/demo/DreRegimeComparativeSection'
 import { runAdrianaCaseTests } from './taxCalculations.test'
 
@@ -308,6 +309,93 @@ describe('servicesCalculations - Etapa 3: Suíte Completa de Testes de Serviços
       )
       expect(p6Cons?.passed).toBe(true)
       expect(p6Cons?.expected).toBe(62002.48)
+    })
+  })
+
+  // (7) Digitação e parse determinístico do campo Honorário Unitário e Insumos (v0.0.147)
+  describe('(7) Digitação de honorário e insumos: aceita vírgula, ponto, "R$", vazio -> 0 e colagem', () => {
+    it('parseBRNumber lida corretamente com digitação incremental de honorário', () => {
+      // Usuária digita "1" -> 1
+      expect(parseBRNumber('1')).toBe(1)
+      // Usuária digita "15" -> 15
+      expect(parseBRNumber('15')).toBe(15)
+      // Usuária digita "150" -> 150
+      expect(parseBRNumber('150')).toBe(150)
+      // Usuária digita "1500" -> 1500
+      expect(parseBRNumber('1500')).toBe(1500)
+      // Usuária digita "1500," -> 1500
+      expect(parseBRNumber('1500,')).toBe(1500)
+      // Usuária digita "1500,5" -> 1500.5
+      expect(parseBRNumber('1500,5')).toBe(1500.5)
+      // Usuária digita "1500,50" -> 1500.5
+      expect(parseBRNumber('1500,50')).toBe(1500.5)
+      // Usuária digita com ponto decimal "1500.50" -> 1500.5
+      expect(parseBRNumber('1500.50')).toBe(1500.5)
+      // Usuária digita com separador de milhar pt-BR "1.500,00" -> 1500
+      expect(parseBRNumber('1.500,00')).toBe(1500)
+      // Usuária cola string com prefixo "R$ 1.500,00" -> 1500
+      expect(parseBRNumber('R$ 1.500,00')).toBe(1500)
+      // Usuária cola string com prefixo e espaço "R$ 2.450,75" -> 2450.75
+      expect(parseBRNumber('R$ 2.450,75')).toBe(2450.75)
+      // Usuária apaga tudo "" -> 0
+      expect(parseBRNumber('')).toBe(0)
+      // Espaços em branco -> 0
+      expect(parseBRNumber('   ')).toBe(0)
+    })
+
+    it('atualização de honorário unitário reflete imediatamente na receita e totais calculados', () => {
+      const initialService: ServiceItem = {
+        id: 'srv-teste',
+        description: 'Consulta médica',
+        price: 0,
+        monthlyQuantity: 8,
+        mode: 'cost_margin',
+        desiredMargin: 2,
+        inputs: [],
+      }
+
+      // Inicial: Honorário R$ 0,00 -> Receita 0
+      const initialTotals = calculateServicesTotals([initialService])
+      expect(initialTotals.totalGrossRevenue).toBe(0)
+      expect(initialTotals.totalQuantity).toBe(8)
+
+      // Usuária digita "1500" (ou cola "R$ 1.500,00")
+      const updatedPrice = parseBRNumber('R$ 1.500,00')
+      const updatedService: ServiceItem = {
+        ...initialService,
+        price: updatedPrice,
+      }
+
+      // Totais: 1.500 × 8 atendimentos = 12.000
+      const updatedTotals = calculateServicesTotals([updatedService])
+      expect(updatedTotals.totalGrossRevenue).toBe(12000)
+      expect(updatedTotals.totalQuantity).toBe(8)
+    })
+
+    it('atualização de insumos reflete imediatamente no custo unitário e CSP total', () => {
+      const service: ServiceItem = {
+        id: 'srv-cirurgia',
+        description: 'Procedimento Cirúrgico',
+        price: 5000,
+        monthlyQuantity: 4,
+        mode: 'cost_margin',
+        inputs: [
+          {
+            id: 'inp-1',
+            description: 'Material descartável',
+            unitCost: parseBRNumber('R$ 350,50'),
+            quantity: 2,
+          },
+        ],
+      }
+
+      // Unit Cost = 350.50 * 2 = 701
+      const unitCost = calculateServiceUnitCost(service.inputs)
+      expect(unitCost).toBe(701)
+
+      // CSP Total = 701 * 4 = 2804
+      const csp = calculateServiceCsp(service)
+      expect(csp).toBe(2804)
     })
   })
 

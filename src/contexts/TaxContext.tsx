@@ -1227,7 +1227,6 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       field: keyof Omit<ServiceItem, 'id' | 'inputs'>,
       value: string | number | 'cost_margin' | 'liquid',
     ) => {
-      recordUndoSnapshot()
       setServiceItems((prev) =>
         prev.map((item) => {
           if (item.id !== id) return item
@@ -1278,7 +1277,6 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       field: keyof Omit<ServiceInputItem, 'id'>,
       value: string | number,
     ) => {
-      recordUndoSnapshot()
       setServiceItems((prev) =>
         prev.map((item) => {
           if (item.id !== serviceId) return item

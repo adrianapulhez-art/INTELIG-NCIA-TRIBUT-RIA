@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { PageHero } from '@/components/demo/PageHero'
 import { useTaxContext } from '@/contexts/TaxContext'
@@ -25,6 +25,83 @@ import {
   CheckCircle2,
   Percent,
 } from 'lucide-react'
+
+interface ServiceNumericInputProps {
+  value: number | undefined
+  onChange: (val: number) => void
+  placeholder?: string
+  prefix?: string
+  suffix?: string
+  className?: string
+  allowEmpty?: boolean
+  defaultNonZero?: boolean
+}
+
+/**
+ * Input numérico/monetário com foco protegido e buffer de texto local.
+ * Permite digitação livre de números, vírgulas decimais ("1500,50"), pontos ("1500.50"),
+ * colagem com "R$" ou números parciais sem resetar a cada tecla digitada.
+ * Atualiza o valor numérico pai no onChange em tempo real e re-formata com pontuação pt-BR no onBlur.
+ */
+function ServiceNumericInput({
+  value,
+  onChange,
+  placeholder = '0,00',
+  prefix,
+  suffix,
+  className = '',
+  allowEmpty = true,
+}: ServiceNumericInputProps) {
+  const [isFocused, setIsFocused] = useState(false)
+  const numVal = value !== undefined && Number.isFinite(value) ? value : 0
+  const [text, setText] = useState<string>(numVal > 0 ? formatNumberBR(numVal) : '')
+
+  useEffect(() => {
+    if (!isFocused) {
+      const current = value !== undefined && Number.isFinite(value) ? value : 0
+      setText(current > 0 ? formatNumberBR(current) : '')
+    }
+  }, [value, isFocused])
+
+  return (
+    <div className="relative">
+      {prefix && (
+        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs pointer-events-none">
+          {prefix}
+        </span>
+      )}
+      <Input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        placeholder={placeholder}
+        onFocus={() => setIsFocused(true)}
+        onChange={(e) => {
+          const raw = e.target.value
+          setText(raw)
+          const parsed = parseBRNumber(raw)
+          onChange(parsed)
+        }}
+        onBlur={(e) => {
+          setIsFocused(false)
+          const parsed = parseBRNumber(e.target.value)
+          onChange(parsed)
+          if (parsed > 0) {
+            setText(formatNumberBR(parsed))
+          } else {
+            setText(allowEmpty ? '' : '0,00')
+          }
+        }}
+        className={className}
+      />
+      {suffix && (
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs pointer-events-none">
+          {suffix}
+        </span>
+      )}
+    </div>
+  )
+}
 
 export const ServicesPage: React.FC = () => {
   const {
@@ -282,18 +359,13 @@ export const ServicesPage: React.FC = () => {
                           <label className="text-[11px] text-slate-400 block">
                             Honorário Unitário
                           </label>
-                          <div className="relative">
-                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500">
-                              R$
-                            </span>
-                            <Input
-                              type="text"
-                              value={item.price > 0 ? formatNumberBR(item.price) : ''}
-                              placeholder="0,00"
-                              onChange={(e) => updateServiceItem(item.id, 'price', e.target.value)}
-                              className="pl-8 text-right font-mono bg-slate-950/80 border-slate-800 text-amber-300 font-bold"
-                            />
-                          </div>
+                          <ServiceNumericInput
+                            value={item.price}
+                            onChange={(val) => updateServiceItem(item.id, 'price', val)}
+                            placeholder="0,00"
+                            prefix="R$"
+                            className="pl-8 text-right font-mono bg-slate-950/80 border-slate-800 text-amber-300 font-bold"
+                          />
                           {derivedPrice > 0 && Math.abs(derivedPrice - item.price) > 0.05 && (
                             <span className="text-[10px] text-emerald-400 block">
                               Sugerido: {formatBRL(derivedPrice)}
@@ -306,18 +378,10 @@ export const ServicesPage: React.FC = () => {
                           <label className="text-[11px] text-slate-400 block">
                             Qtd. Serviços / mês
                           </label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={item.monthlyQuantity || ''}
+                          <ServiceNumericInput
+                            value={item.monthlyQuantity}
+                            onChange={(val) => updateServiceItem(item.id, 'monthlyQuantity', val)}
                             placeholder="0"
-                            onChange={(e) =>
-                              updateServiceItem(
-                                item.id,
-                                'monthlyQuantity',
-                                Number(e.target.value) || 0,
-                              )
-                            }
                             className="text-right font-mono bg-slate-950/80 border-slate-800 text-slate-200"
                           />
                           <span className="text-[10px] text-slate-500 block">Atendimentos/mês</span>
@@ -329,24 +393,13 @@ export const ServicesPage: React.FC = () => {
                             <label className="text-[11px] text-slate-400 block">
                               Margem de Lucro Desejada
                             </label>
-                            <div className="relative">
-                              <Input
-                                type="text"
-                                value={
-                                  item.desiredMargin !== undefined
-                                    ? formatNumberBR(item.desiredMargin)
-                                    : '20,00'
-                                }
-                                placeholder="0,00"
-                                onChange={(e) =>
-                                  updateServiceItem(item.id, 'desiredMargin', e.target.value)
-                                }
-                                className="pr-6 text-right font-mono bg-slate-950/80 border-slate-800 text-emerald-300"
-                              />
-                              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500">
-                                %
-                              </span>
-                            </div>
+                            <ServiceNumericInput
+                              value={item.desiredMargin !== undefined ? item.desiredMargin : 20}
+                              onChange={(val) => updateServiceItem(item.id, 'desiredMargin', val)}
+                              placeholder="0,00"
+                              suffix="%"
+                              className="pr-6 text-right font-mono bg-slate-950/80 border-slate-800 text-emerald-300"
+                            />
                             <span className="text-[10px] text-slate-500 block">
                               Sobre honorário bruto
                             </span>
@@ -356,24 +409,15 @@ export const ServicesPage: React.FC = () => {
                             <label className="text-[11px] text-slate-400 block">
                               Meta Líquida Desejada
                             </label>
-                            <div className="relative">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500">
-                                R$
-                              </span>
-                              <Input
-                                type="text"
-                                value={
-                                  item.desiredNetRevenue && item.desiredNetRevenue > 0
-                                    ? formatNumberBR(item.desiredNetRevenue)
-                                    : ''
-                                }
-                                placeholder="0,00"
-                                onChange={(e) =>
-                                  updateServiceItem(item.id, 'desiredNetRevenue', e.target.value)
-                                }
-                                className="pl-8 text-right font-mono bg-slate-950/80 border-slate-800 text-emerald-300"
-                              />
-                            </div>
+                            <ServiceNumericInput
+                              value={item.desiredNetRevenue}
+                              onChange={(val) =>
+                                updateServiceItem(item.id, 'desiredNetRevenue', val)
+                              }
+                              placeholder="0,00"
+                              prefix="R$"
+                              className="pl-8 text-right font-mono bg-slate-950/80 border-slate-800 text-emerald-300"
+                            />
                             <span className="text-[10px] text-slate-500 block">
                               Livre de tributos
                             </span>
@@ -542,35 +586,32 @@ export const ServicesPage: React.FC = () => {
                                       />
                                     </td>
                                     <td className="py-2 px-2">
-                                      <Input
-                                        type="text"
-                                        value={inp.unitCost > 0 ? formatNumberBR(inp.unitCost) : ''}
-                                        placeholder="0,00"
-                                        onChange={(e) =>
+                                      <ServiceNumericInput
+                                        value={inp.unitCost}
+                                        onChange={(val) =>
                                           updateServiceInputItem(
                                             service.id,
                                             inp.id,
                                             'unitCost',
-                                            e.target.value,
+                                            val,
                                           )
                                         }
+                                        placeholder="0,00"
                                         className="h-7 text-right bg-slate-950/70 border-slate-800 text-amber-300 text-xs font-mono font-bold"
                                       />
                                     </td>
                                     <td className="py-2 px-2">
-                                      <Input
-                                        type="number"
-                                        min={0}
-                                        value={inp.quantity || ''}
-                                        placeholder="1"
-                                        onChange={(e) =>
+                                      <ServiceNumericInput
+                                        value={inp.quantity}
+                                        onChange={(val) =>
                                           updateServiceInputItem(
                                             service.id,
                                             inp.id,
                                             'quantity',
-                                            Number(e.target.value) || 0,
+                                            val,
                                           )
                                         }
+                                        placeholder="1"
                                         className="h-7 text-right bg-slate-950/70 border-slate-800 text-slate-200 text-xs font-mono"
                                       />
                                     </td>
@@ -643,17 +684,13 @@ export const ServicesPage: React.FC = () => {
                   <label className="text-[10px] text-slate-400 block font-semibold">
                     Alíquota de ISS Municipal (2% a 5%):
                   </label>
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      value={formatNumberBR(serviceIssRate)}
-                      onChange={(e) => setServiceIssRate(parseBRNumber(e.target.value))}
-                      className="pr-7 text-right font-mono bg-slate-950/80 border-slate-800 text-emerald-400 font-bold"
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500">
-                      %
-                    </span>
-                  </div>
+                  <ServiceNumericInput
+                    value={serviceIssRate}
+                    onChange={(val) => setServiceIssRate(val)}
+                    placeholder="0,00"
+                    suffix="%"
+                    className="pr-7 text-right font-mono bg-slate-950/80 border-slate-800 text-emerald-400 font-bold"
+                  />
                 </div>
                 <div className="p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-500/20 text-[11px] text-emerald-300">
                   ISS Apurado: <strong>{formatBRL(presumidoResult.issValue)}</strong>
