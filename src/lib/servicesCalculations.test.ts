@@ -13,6 +13,26 @@ import { runAdrianaCaseTests } from './taxCalculations.test'
 describe('servicesCalculations - Etapa 3: Suíte Completa de Testes de Serviços', () => {
   // (1) Cálculos puros
   describe('(1) Cálculos puros de insumos e CSP', () => {
+    it('calcula CSP unitário como 0 quando não há insumos vinculados', () => {
+      const unitCostEmpty = calculateServiceUnitCost([])
+      expect(unitCostEmpty).toBe(0)
+      const unitCostUndefined = calculateServiceUnitCost(undefined)
+      expect(unitCostUndefined).toBe(0)
+    })
+
+    it('calcula CSP total mensal como 0 para serviço sem insumos', () => {
+      const itemSemInsumos: ServiceItem = {
+        id: 'srv-consultoria',
+        description: 'Consultoria Tributária Mens.',
+        price: 1,
+        monthlyQuantity: 10,
+        mode: 'cost_margin',
+        inputs: [],
+      }
+      expect(calculateServiceUnitCost(itemSemInsumos.inputs)).toBe(0)
+      expect(calculateServiceCsp(itemSemInsumos)).toBe(0)
+    })
+
     it('calcula CSP unitário como soma de unitCost × quantity de cada insumo (pareamento por id)', () => {
       const inputs = [
         { id: 'inp-1', description: 'Mão de obra direta', unitCost: 45.5, quantity: 2 },
@@ -87,7 +107,7 @@ describe('servicesCalculations - Etapa 3: Suíte Completa de Testes de Serviços
       // Base IRPJ (32%) = 48.000
       expect(result.irpjBase).toBe(48000)
       // IRPJ regular (15% sobre 48.000) = 7.200
-      expect(result.irpjRegular).toBe(7200)
+      expect(result.irpjValue).toBe(7200)
       // Base CSLL (32%) = 48.000
       expect(result.csllBase).toBe(48000)
       // CSLL regular (9% sobre 48.000) = 4.320
@@ -133,22 +153,17 @@ describe('servicesCalculations - Etapa 3: Suíte Completa de Testes de Serviços
       purchasesItems: [],
       getPurchaseItemUnitNetCost: () => 0,
       icmsRate: 18,
-      customTaxesMarkup: 0,
+      customTaxesMarkup: [],
       dvRate: 0,
       simplesEffectiveRate: 10.0,
       desiredLiquidRevenueByRegime: { simples: 0, presumido: 0, real: 0 },
       calculatedPurchases: {
-        autoInventoryDeductionActive: false,
-        totalAvailableUnits: 0,
-        cmvSimples: 0,
-        cmvPresumido: 0,
-        cmvReal: 0,
-        unitCostSimplesEffective: 0,
         unitCostPresumidoEffective: 0,
         unitCostRealEffective: 0,
-        totalCostSimples: 0,
-        totalCostPresumido: 0,
-        totalCostReal: 0,
+        unitCostSimplesEffective: 0,
+        cmvPresumido: 0,
+        cmvReal: 0,
+        cmvSimples: 0,
       },
       totalGlobalOperatingExpenses: 5000,
       totalGlobalOperatingRevenues: 0,
@@ -304,22 +319,17 @@ describe('servicesCalculations - Etapa 3: Suíte Completa de Testes de Serviços
         purchasesItems: [],
         getPurchaseItemUnitNetCost: () => 0,
         icmsRate: 18,
-        customTaxesMarkup: 0,
+        customTaxesMarkup: [],
         dvRate: 0,
         simplesEffectiveRate: 8.5,
         desiredLiquidRevenueByRegime: { simples: 0, presumido: 0, real: 0 },
         calculatedPurchases: {
-          autoInventoryDeductionActive: false,
-          totalAvailableUnits: 0,
-          cmvSimples: 0,
-          cmvPresumido: 0,
-          cmvReal: 0,
-          unitCostSimplesEffective: 0,
           unitCostPresumidoEffective: 0,
           unitCostRealEffective: 0,
-          totalCostSimples: 0,
-          totalCostPresumido: 0,
-          totalCostReal: 0,
+          unitCostSimplesEffective: 0,
+          cmvPresumido: 0,
+          cmvReal: 0,
+          cmvSimples: 0,
         },
         totalGlobalOperatingExpenses: 0,
         totalGlobalOperatingRevenues: 0,

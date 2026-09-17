@@ -75,9 +75,7 @@ export const ServicesPage: React.FC = () => {
               Receita Bruta Total
             </span>
             <span className="text-xl font-bold font-mono text-emerald-400 mt-1 block">
-              {totalServicesGrossRevenue > 0
-                ? formatBRL(totalServicesGrossRevenue)
-                : '— (não calculado)'}
+              {formatBRL(totalServicesGrossRevenue)}
             </span>
             <span className="text-[10px] font-mono text-slate-400 mt-1 block">
               Σ (Honorário × Qtd Mensal)
@@ -89,7 +87,7 @@ export const ServicesPage: React.FC = () => {
               Custo dos Serviços (CSP)
             </span>
             <span className="text-xl font-bold font-mono text-amber-300 mt-1 block">
-              {totalServicesCsp > 0 ? formatBRL(totalServicesCsp) : '— (não calculado)'}
+              {formatBRL(totalServicesCsp)}
             </span>
             <span className="text-[10px] font-mono text-slate-400 mt-1 block">
               Σ (Custo Insumos × Qtd Mensal)
@@ -388,7 +386,7 @@ export const ServicesPage: React.FC = () => {
                             Custo Unitário (CSP)
                           </label>
                           <div className="h-9 px-3 rounded-md bg-slate-950/90 border border-slate-800 flex items-center justify-between text-amber-300 font-bold">
-                            <span>{unitCost > 0 ? formatBRL(unitCost) : '— (não calculado)'}</span>
+                            <span>{formatBRL(unitCost)}</span>
                           </div>
                           <span className="text-[10px] text-slate-500 block">
                             {item.inputs.length} {item.inputs.length === 1 ? 'insumo' : 'insumos'}
@@ -401,12 +399,10 @@ export const ServicesPage: React.FC = () => {
                             Receita Bruta Total
                           </label>
                           <div className="h-9 px-3 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-emerald-400 font-bold">
-                            <span>
-                              {lineTotal > 0 ? formatBRL(lineTotal) : '— (não calculado)'}
-                            </span>
+                            <span>{formatBRL(lineTotal)}</span>
                           </div>
                           <span className="text-[10px] text-slate-400 block">
-                            CSP Total: {csp > 0 ? formatBRL(csp) : '—'}
+                            CSP Total: {formatBRL(csp)}
                           </span>
                         </div>
                       </div>
@@ -774,18 +770,14 @@ export const ServicesPage: React.FC = () => {
                 <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <span className="text-[10px] text-slate-400 block">Receita Bruta</span>
                   <span className="text-sm font-bold text-emerald-400">
-                    {totalServicesGrossRevenue > 0
-                      ? formatBRL(presumidoResult.grossRevenue)
-                      : '— (não calculado)'}
+                    {formatBRL(presumidoResult.grossRevenue)}
                   </span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <span className="text-[10px] text-slate-400 block">Tributos s/ Faturamento</span>
                   <span className="text-sm font-bold text-rose-300">
-                    {totalServicesGrossRevenue > 0
-                      ? formatBRL(presumidoResult.taxesOnRevenue)
-                      : '— (não calculado)'}
+                    {formatBRL(presumidoResult.taxesOnRevenue)}
                   </span>
                   <span className="text-[9px] text-slate-500 block">ISS + PIS + COFINS</span>
                 </div>
@@ -793,7 +785,7 @@ export const ServicesPage: React.FC = () => {
                 <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
                   <span className="text-[10px] text-slate-400 block">Custo dos Serviços (CSP)</span>
                   <span className="text-sm font-bold text-amber-300">
-                    {totalServicesCsp > 0 ? formatBRL(presumidoResult.csp) : '— (não calculado)'}
+                    {formatBRL(presumidoResult.csp)}
                   </span>
                   <span className="text-[9px] text-slate-500 block">Insumos Diretos</span>
                 </div>
@@ -803,9 +795,7 @@ export const ServicesPage: React.FC = () => {
                     Lucro Líquido Final
                   </span>
                   <span className="text-sm font-extrabold text-emerald-300">
-                    {totalServicesGrossRevenue > 0
-                      ? formatBRL(presumidoResult.netProfit)
-                      : '— (não calculado)'}
+                    {formatBRL(presumidoResult.netProfit)}
                   </span>
                   <span className="text-[9px] text-slate-500 block">Após IRPJ/CSLL</span>
                 </div>
