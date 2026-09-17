@@ -1626,9 +1626,6 @@ export default function DreSimplesPage() {
                   notes: [
                     'Guia única DAS calculada com base na fórmula legal PGDAS: [(RBT12 × Alíquota Nominal) − Parcela a Deduzir] ÷ RBT12.',
                     'Partilha percentual dos tributos federais, estaduais e municipais em conformidade com as tabelas anexas da LC 123/2006.',
-                    hasServiceRevenue
-                      ? `Receita de serviços incluída na guia única DAS. O ISSQN sobre serviços encontra-se embutido na repartição percentual do DAS (Anexo ${serviceAnexoRecommendation.recommendedAnexo === 'anexo_3' ? 'III' : 'V'}), vedada cobrança segregada de ISS fora da guia única no Simples.`
-                      : '',
                     currentAnexoConfig.sujeitoFatorR
                       ? `Atividade sujeita ao Fator R (${fatorRResult.fatorRPercent.toFixed(2)}%). Enquadramento: ${
                           fatorRResult.isElegibleAnexo3 ? 'Anexo III (≥ 28%)' : 'Anexo V (< 28%)'

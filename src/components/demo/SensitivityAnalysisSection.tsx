@@ -30,11 +30,11 @@ export interface SensitivityAnalysisProps {
   patronalCharges: number
   // Parâmetros Presumido
   presumidoActivity: ActivityType
-  presumidoIssRate: number
+  presumidoIssRate?: number
   icmsRateMarkup: number
   // Parâmetros Real
   realActivity: ActivityType
-  realIssRate: number
+  realIssRate?: number
   realAdditions: number
   realExclusions: number
   // Parâmetros Simples
@@ -107,11 +107,9 @@ export const SensitivityAnalysisSection: React.FC<SensitivityAnalysisProps> = ({
         : unitGrossRevenue * q
 
     // 1. PRESUMIDO
-    const isServicesPresumido = presumidoActivity === 'servicos'
-    const irpjPresumptionRate = isServicesPresumido ? 32.0 : 8.0
-    const csllPresumptionRate = isServicesPresumido ? 32.0 : 12.0
+    const irpjPresumptionRate = 8.0
+    const csllPresumptionRate = 12.0
     const icmsRate = icmsRateMarkup || 0
-    const issRatePresumido = isServicesPresumido ? presumidoIssRate : 0
     const pisRatePresumido = 0.65
     const cofinsRatePresumido = 3.0
     const irpjRate = 15.0
@@ -119,13 +117,12 @@ export const SensitivityAnalysisSection: React.FC<SensitivityAnalysisProps> = ({
     const irpjAdditionalLimit = 60000.0 // trimestral
     const csllRate = 9.0
 
-    const unitMunicipalStateTaxPresumido = isServicesPresumido
-      ? (unitGrossRevenue * issRatePresumido) / 100
-      : (unitGrossRevenue * icmsRate) / 100
+    const unitMunicipalStateTaxPresumido = (unitGrossRevenue * icmsRate) / 100
 
-    const unitPisCofinsBasePresumido = isServicesPresumido
-      ? unitGrossRevenue
-      : Math.max(0, unitGrossRevenue - unitMunicipalStateTaxPresumido)
+    const unitPisCofinsBasePresumido = Math.max(
+      0,
+      unitGrossRevenue - unitMunicipalStateTaxPresumido,
+    )
 
     const totalMunicipalStateTaxP = unitMunicipalStateTaxPresumido * q
     const totalPisP = (unitPisCofinsBasePresumido * pisRatePresumido * q) / 100
@@ -156,18 +153,12 @@ export const SensitivityAnalysisSection: React.FC<SensitivityAnalysisProps> = ({
     const effectiveTaxRateP = grossRevenue > 0 ? (totalTaxBurdenP / grossRevenue) * 100 : 0
 
     // 2. REAL
-    const isServicesReal = realActivity === 'servicos'
-    const issRateReal = isServicesReal ? realIssRate : 0
     const pisRateReal = 1.65
     const cofinsRateReal = 7.6
 
-    const unitMunicipalStateTaxReal = isServicesReal
-      ? (unitGrossRevenue * issRateReal) / 100
-      : (unitGrossRevenue * icmsRate) / 100
+    const unitMunicipalStateTaxReal = (unitGrossRevenue * icmsRate) / 100
 
-    const unitPisCofinsBaseReal = isServicesReal
-      ? unitGrossRevenue
-      : Math.max(0, unitGrossRevenue - unitMunicipalStateTaxReal)
+    const unitPisCofinsBaseReal = Math.max(0, unitGrossRevenue - unitMunicipalStateTaxReal)
 
     const totalMunicipalStateTaxR = unitMunicipalStateTaxReal * q
     const totalPisR = (unitPisCofinsBaseReal * pisRateReal * q) / 100

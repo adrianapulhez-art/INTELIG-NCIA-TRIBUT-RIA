@@ -3930,9 +3930,6 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setOperatingExpenses([])
     setOperatingRevenues([])
 
-    setServiceItems([])
-    setServiceIssRateState(5.0)
-
     setStSubsystem(INITIAL_ST_SUBSYSTEM)
     setInterstateSubsystem(INITIAL_INTERSTATE_SUBSYSTEM)
     setReformaState(INITIAL_REFORMA_STATE)

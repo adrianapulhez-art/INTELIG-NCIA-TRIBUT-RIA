@@ -69,9 +69,9 @@ export const TABLE_ASSISTANTS: Record<string, TableAssistantConfig> = {
     pageName: 'DRE Lucro Presumido',
     tagline: 'Presunção Fiscal, IRPJ/CSLL e Folha com Encargos',
     description:
-      'Explica percentuais de presunção (8%, 12%, 32%), adicional de 10% de IRPJ, PIS/COFINS cumulativos e encargos patronais (INSS 20%).',
+      'Explica percentuais de presunção de indústria e comércio (8% IRPJ, 12% CSLL), adicional de 10% de IRPJ, PIS/COFINS cumulativos e encargos patronais (INSS 20%).',
     quickQuestions: [
-      'Quais são os percentuais de presunção para comércio e serviços?',
+      'Quais são os percentuais de presunção para comércio e indústria?',
       'Quando incide o adicional de 10% de IRPJ?',
       'Como é calculada a cota patronal de INSS na folha?',
       'Quando vale a pena optar pelo Lucro Presumido?',

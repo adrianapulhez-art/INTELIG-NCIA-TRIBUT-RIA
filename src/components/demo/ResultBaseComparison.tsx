@@ -57,10 +57,10 @@ export interface ResultBaseComparisonProps {
   directPayrollExpenses: number
   patronalCharges: number
   // Atividades
-  presumidoActivity: 'comercio' | 'industria' | 'servicos'
-  realActivity: 'comercio' | 'industria' | 'servicos'
-  presumidoIssRate: number
-  realIssRate: number
+  presumidoActivity: 'comercio' | 'industria'
+  realActivity: 'comercio' | 'industria'
+  presumidoIssRate?: number
+  realIssRate?: number
   realAdditions: number
   realExclusions: number
   // Quantidade geral ativa
@@ -354,18 +354,11 @@ export const ResultBaseComparison: React.FC<ResultBaseComparisonProps> = ({
 
     // 2. Apuração da Carga Tributária e Lucro Líquido por Regime
     if (regimeKey === 'presumido') {
-      const isServices = presumidoActivity === 'servicos'
-      const irpjPresumptionRate = isServices ? 32.0 : 8.0
-      const csllPresumptionRate = isServices ? 32.0 : 12.0
-      const issRate = isServices ? presumidoIssRate : 0
-      const municipalStateTax =
-        Math.round(
-          (isServices ? (totalGrossRevenue * issRate) / 100 : (totalGrossRevenue * icms) / 100) *
-            100,
-        ) / 100
-      const pisCofinsBase = isServices
-        ? totalGrossRevenue
-        : Math.round(Math.max(0, totalGrossRevenue - municipalStateTax) * 100) / 100
+      const irpjPresumptionRate = 8.0
+      const csllPresumptionRate = 12.0
+      const municipalStateTax = Math.round(((totalGrossRevenue * icms) / 100) * 100) / 100
+      const pisCofinsBase =
+        Math.round(Math.max(0, totalGrossRevenue - municipalStateTax) * 100) / 100
       const pis = Math.round(((pisCofinsBase * 0.65) / 100) * 100) / 100
       const cofins = Math.round(((pisCofinsBase * 3.0) / 100) * 100) / 100
       const netRevenue =
@@ -410,16 +403,9 @@ export const ResultBaseComparison: React.FC<ResultBaseComparisonProps> = ({
     }
 
     if (regimeKey === 'real') {
-      const isServices = realActivity === 'servicos'
-      const issRate = isServices ? realIssRate : 0
-      const municipalStateTax =
-        Math.round(
-          (isServices ? (totalGrossRevenue * issRate) / 100 : (totalGrossRevenue * icms) / 100) *
-            100,
-        ) / 100
-      const pisCofinsBase = isServices
-        ? totalGrossRevenue
-        : Math.round(Math.max(0, totalGrossRevenue - municipalStateTax) * 100) / 100
+      const municipalStateTax = Math.round(((totalGrossRevenue * icms) / 100) * 100) / 100
+      const pisCofinsBase =
+        Math.round(Math.max(0, totalGrossRevenue - municipalStateTax) * 100) / 100
       const pis = Math.round(((pisCofinsBase * 1.65) / 100) * 100) / 100
       const cofins = Math.round(((pisCofinsBase * 7.6) / 100) * 100) / 100
       const netRevenue =

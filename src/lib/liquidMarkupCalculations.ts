@@ -9,7 +9,7 @@ export interface LiquidDreChainInput {
   variableExpensesRate?: number // % DV total
   unitCost: number // CMV unitário no regime (Simples 1.413,33, Presumido 1.158,93, Real 1.051,73 no exemplo)
   operatingExpensesUnit?: number // despesas operacionais unitárias rateadas ou totais
-  presumidoActivity?: 'comercio' | 'industria' | 'servicos'
+  presumidoActivity?: 'comercio' | 'industria'
 }
 
 export interface LiquidDreChainResult {
@@ -121,10 +121,9 @@ export function calculateLiquidDreChain(input: LiquidDreChainInput): LiquidDreCh
     irpjAdditional = 0
     csll = 0
   } else if (regime === 'presumido') {
-    // Presumido: presunção do setor (comércio padrão = 8% IRPJ, 12% CSLL)
-    const isServices = input.presumidoActivity === 'servicos'
-    const irpjPresumption = isServices ? 0.32 : 0.08
-    const csllPresumption = isServices ? 0.32 : 0.12
+    // Presumido: presunção comércio/indústria = 8% IRPJ, 12% CSLL
+    const irpjPresumption = 0.08
+    const csllPresumption = 0.12
 
     const irpjBase = rbv * irpjPresumption
     irpj = Math.round(irpjBase * 0.15 * 100) / 100
