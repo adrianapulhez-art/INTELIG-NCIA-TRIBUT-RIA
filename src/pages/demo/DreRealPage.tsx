@@ -27,6 +27,11 @@ export default function DreRealPage() {
     totalConsolidatedRevenue,
     totalConsolidatedQuantity,
     totalConsolidatedCost,
+    totalServicesGrossRevenue,
+    totalServicesCsp,
+    totalServicesQuantity,
+    hasServiceRevenue,
+    serviceIssRate,
     markupProducts,
     calculatedPurchases,
     initialInventory,
@@ -119,7 +124,8 @@ export default function DreRealPage() {
         ? 'via Compras'
         : 'sem quantidade cadastrada'
 
-  const isServices = realActivity === 'servicos'
+  const isServices = realActivity === 'servicos' || hasServiceRevenue
+  const effectiveIssRate = isServices ? (serviceIssRate > 0 ? serviceIssRate : realIssRate) : 0
 
   // Quantidade de referência
   const initialQtyVal = automaticQuantity
@@ -131,24 +137,33 @@ export default function DreRealPage() {
     ? Math.min(initialQtyVal, calculatedPurchases.totalAvailableUnits)
     : initialQtyVal
 
-  const totalGross = hasConsolidated
+  const baseProductGross = hasConsolidated
     ? totalConsolidatedRevenue
     : Math.round((simulatedSalePrice || 0) * (initialQtyVal > 0 ? initialQtyVal : 0) * 100) / 100
+
+  // Se houver serviços prestados cadastrados, soma à receita bruta consolidada
+  const totalGross = Math.round((baseProductGross + (totalServicesGrossRevenue || 0)) * 100) / 100
   const activeGrossRevenue = totalGross
+  const totalEffectiveQty = (initialQtyVal > 0 ? initialQtyVal : 0) + (totalServicesQuantity || 0)
   const unitGrossRevenue =
-    initialQtyVal > 0
-      ? Math.round((totalGross / initialQtyVal) * 100) / 100
+    totalEffectiveQty > 0
+      ? Math.round((totalGross / totalEffectiveQty) * 100) / 100
       : simulatedSalePrice || 0
 
   const isMultiProduct =
-    (purchasesItems && purchasesItems.length > 1) || (markupProducts && markupProducts.length > 1)
+    (purchasesItems && purchasesItems.length > 1) ||
+    (markupProducts && markupProducts.length > 1) ||
+    (hasServiceRevenue && baseProductGross > 0)
 
-  const consolidatedCMV =
+  const baseProductCmv =
     calculatedPurchases.cmvReal > 0
       ? calculatedPurchases.cmvReal
       : totalConsolidatedCost > 0
         ? totalConsolidatedCost
         : 0
+
+  // CSP total de serviços compõe a linha de custo das DREs análogo ao CMV
+  const consolidatedCMV = Math.round((baseProductCmv + (totalServicesCsp || 0)) * 100) / 100
   const unitCMV = isMultiProduct
     ? null
     : effectiveSoldQtyForCmv > 0
@@ -157,7 +172,7 @@ export default function DreRealPage() {
 
   // Alíquotas fixas do Lucro Real
   const icmsRate = icmsRateMarkup || 0
-  const issRate = isServices ? realIssRate : 0
+  const issRate = effectiveIssRate
   const pisRate = 1.65
   const cofinsRate = 7.6
   const irpjRate = 15.0

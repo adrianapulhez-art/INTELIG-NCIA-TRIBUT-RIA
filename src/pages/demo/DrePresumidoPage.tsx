@@ -25,6 +25,11 @@ export default function DrePresumidoPage() {
     totalConsolidatedRevenue,
     totalConsolidatedQuantity,
     totalConsolidatedCost,
+    totalServicesGrossRevenue,
+    totalServicesCsp,
+    totalServicesQuantity,
+    hasServiceRevenue,
+    serviceIssRate,
     markupProducts,
     calculatedPurchases,
     initialInventory,
@@ -81,7 +86,8 @@ export default function DrePresumidoPage() {
     }
   }, [presumidoIssRate, isIssFocused])
 
-  const isServices = presumidoActivity === 'servicos'
+  const isServices = presumidoActivity === 'servicos' || hasServiceRevenue
+  const effectiveIssRate = isServices ? (serviceIssRate > 0 ? serviceIssRate : presumidoIssRate) : 0
 
   // QUANTIDADE VENDIDA AUTOMÁTICA (linkada diretamente com Markup e Compras):
   // Prioriza a quantidade definida nos produtos do Markup (totalConsolidatedQuantity);
@@ -124,22 +130,33 @@ export default function DrePresumidoPage() {
     ? Math.min(qty, calculatedPurchases.totalAvailableUnits)
     : qty
 
-  const totalGross = hasConsolidated
+  const baseProductGross = hasConsolidated
     ? totalConsolidatedRevenue
     : Math.round((simulatedSalePrice || 0) * (qty > 0 ? qty : 0) * 100) / 100
+
+  // Se houver serviços prestados cadastrados, soma à receita bruta consolidada
+  const totalGross = Math.round((baseProductGross + (totalServicesGrossRevenue || 0)) * 100) / 100
   const activeGrossRevenue = totalGross
+  const totalEffectiveQty = (qty > 0 ? qty : 0) + (totalServicesQuantity || 0)
   const unitGrossRevenue =
-    qty > 0 ? Math.round((totalGross / qty) * 100) / 100 : simulatedSalePrice || 0
+    totalEffectiveQty > 0
+      ? Math.round((totalGross / totalEffectiveQty) * 100) / 100
+      : simulatedSalePrice || 0
 
   const isMultiProduct =
-    (purchasesItems && purchasesItems.length > 1) || (markupProducts && markupProducts.length > 1)
+    (purchasesItems && purchasesItems.length > 1) ||
+    (markupProducts && markupProducts.length > 1) ||
+    (hasServiceRevenue && baseProductGross > 0)
 
-  const consolidatedCMV =
+  const baseProductCmv =
     calculatedPurchases.cmvPresumido > 0
       ? calculatedPurchases.cmvPresumido
       : totalConsolidatedCost > 0
         ? totalConsolidatedCost
         : 0
+
+  // CSP total de serviços compõe a linha de custo das DREs análogo ao CMV
+  const consolidatedCMV = Math.round((baseProductCmv + (totalServicesCsp || 0)) * 100) / 100
   const unitCMV = isMultiProduct
     ? null
     : effectiveSoldQtyForCmv > 0
@@ -155,7 +172,7 @@ export default function DrePresumidoPage() {
 
   // Alíquotas fixas da legislação
   const icmsRate = icmsRateMarkup || 0 // Vem da alíquota livre da calculadora
-  const issRate = isServices ? presumidoIssRate : 0
+  const issRate = effectiveIssRate
   const pisRate = 0.65
   const cofinsRate = 3.0
   const irpjRate = 15.0

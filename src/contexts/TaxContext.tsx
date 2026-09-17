@@ -31,6 +31,12 @@ import {
 } from '@/lib/productStockCalculations'
 
 import { calculatePgdas, SimplesAnexoId } from '@/lib/simplesCalculations'
+import {
+  ServiceItem,
+  ServiceInputItem,
+  calculateServiceUnitCost,
+  calculateServicesTotals,
+} from '@/lib/servicesCalculations'
 
 export type TaxRegime = 'presumido' | 'real' | 'simples'
 export type ActivityType = 'comercio' | 'industria' | 'servicos'
@@ -338,6 +344,9 @@ export interface TaxStateSnapshot {
   regime: TaxRegime
   markupMode: MarkupMode
   desiredNetRevenue: number
+  // SERVIÇOS PRESTADOS
+  serviceItems?: ServiceItem[]
+  serviceIssRate?: number // Alíquota ISS municipal para serviços (2% a 5%)
   desiredLiquidRevenueByRegime?: DesiredLiquidRevenueByRegime
   marginByRegime?: DesiredProfitMarginByRegime
   additionalMargin: number
@@ -420,7 +429,37 @@ export interface TaxStateSnapshot {
   realFreightPisCofinsMethod?: 'position_b' | 'position_a'
 }
 
+export { ServiceItem, ServiceInputItem }
+
 export interface TaxContextType {
+  // SERVIÇOS PRESTADOS (Blocos 1, 2 e 3)
+  serviceItems: ServiceItem[]
+  serviceIssRate: number
+  setServiceIssRate: (rate: number) => void
+  addServiceItem: (description?: string, price?: number, monthlyQuantity?: number) => void
+  updateServiceItem: (
+    id: string,
+    field: keyof Omit<ServiceItem, 'id' | 'inputs'>,
+    value: string | number | 'cost_margin' | 'liquid',
+  ) => void
+  removeServiceItem: (id: string) => void
+  addServiceInputItem: (
+    serviceId: string,
+    description?: string,
+    unitCost?: number,
+    quantity?: number,
+  ) => void
+  updateServiceInputItem: (
+    serviceId: string,
+    inputId: string,
+    field: keyof Omit<ServiceInputItem, 'id'>,
+    value: string | number,
+  ) => void
+  removeServiceInputItem: (serviceId: string, inputId: string) => void
+  totalServicesGrossRevenue: number // Σ (preço × monthlyQuantity)
+  totalServicesCsp: number // Custo dos Serviços Prestados total Σ(custo unitário × monthlyQuantity)
+  totalServicesQuantity: number
+  hasServiceRevenue: boolean
   // Snapshot export/load para sincronização com banco de dados
   getSnapshot: () => TaxStateSnapshot
   loadSnapshot: (snapshot: TaxStateSnapshot) => void
@@ -1149,6 +1188,139 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [pisFreightPurchasesBase, setPisFreightPurchasesBase] = useState<number>(0)
   const [cofinsFreightPurchasesBase, setCofinsFreightPurchasesBase] = useState<number>(0)
+
+  // SERVIÇOS PRESTADOS (Blocos 1, 2 e 3)
+  const [serviceItems, setServiceItems] = useState<ServiceItem[]>([])
+  const [serviceIssRate, setServiceIssRateState] = useState<number>(5.0) // 2% a 5% (LC 116/2003)
+
+  const setServiceIssRate = useCallback((rate: number) => {
+    recordUndoSnapshot()
+    const clean = Math.max(
+      0,
+      Math.min(100, typeof rate === 'number' && Number.isFinite(rate) ? rate : 0),
+    )
+    setServiceIssRateState(clean)
+    setPresumidoIssRate(clean)
+  }, [])
+
+  const addServiceItem = useCallback(
+    (description = 'Novo Serviço', price = 0, monthlyQuantity = 1) => {
+      recordUndoSnapshot()
+      const newItem: ServiceItem = {
+        id: `srv-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        description,
+        price: Math.max(0, Number(price) || 0),
+        monthlyQuantity: Math.max(0, Number(monthlyQuantity) || 0),
+        mode: 'cost_margin',
+        desiredMargin: 20,
+        desiredNetRevenue: 0,
+        inputs: [],
+      }
+      setServiceItems((prev) => [...prev, newItem])
+    },
+    [],
+  )
+
+  const updateServiceItem = useCallback(
+    (
+      id: string,
+      field: keyof Omit<ServiceItem, 'id' | 'inputs'>,
+      value: string | number | 'cost_margin' | 'liquid',
+    ) => {
+      recordUndoSnapshot()
+      setServiceItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== id) return item
+          if (
+            field === 'price' ||
+            field === 'monthlyQuantity' ||
+            field === 'desiredMargin' ||
+            field === 'desiredNetRevenue'
+          ) {
+            const num = typeof value === 'number' ? value : parseBRNumber(String(value))
+            return { ...item, [field]: Math.max(0, Number.isFinite(num) ? num : 0) }
+          }
+          return { ...item, [field]: value }
+        }),
+      )
+    },
+    [],
+  )
+
+  const removeServiceItem = useCallback((id: string) => {
+    recordUndoSnapshot()
+    setServiceItems((prev) => prev.filter((item) => item.id !== id))
+  }, [])
+
+  const addServiceInputItem = useCallback(
+    (serviceId: string, description = 'Novo Insumo', unitCost = 0, quantity = 1) => {
+      recordUndoSnapshot()
+      const newInput: ServiceInputItem = {
+        id: `inp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        description,
+        unitCost: Math.max(0, Number(unitCost) || 0),
+        quantity: Math.max(0, Number(quantity) || 0),
+      }
+      setServiceItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== serviceId) return item
+          return { ...item, inputs: [...(item.inputs || []), newInput] }
+        }),
+      )
+    },
+    [],
+  )
+
+  const updateServiceInputItem = useCallback(
+    (
+      serviceId: string,
+      inputId: string,
+      field: keyof Omit<ServiceInputItem, 'id'>,
+      value: string | number,
+    ) => {
+      recordUndoSnapshot()
+      setServiceItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== serviceId) return item
+          return {
+            ...item,
+            inputs: (item.inputs || []).map((inp) => {
+              if (inp.id !== inputId) return inp
+              if (field === 'unitCost' || field === 'quantity') {
+                const num = typeof value === 'number' ? value : parseBRNumber(String(value))
+                return { ...inp, [field]: Math.max(0, Number.isFinite(num) ? num : 0) }
+              }
+              return { ...inp, [field]: String(value) }
+            }),
+          }
+        }),
+      )
+    },
+    [],
+  )
+
+  const removeServiceInputItem = useCallback((serviceId: string, inputId: string) => {
+    recordUndoSnapshot()
+    setServiceItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== serviceId) return item
+        return {
+          ...item,
+          inputs: (item.inputs || []).filter((inp) => inp.id !== inputId),
+        }
+      }),
+    )
+  }, [])
+
+  // Totais calculados de serviços
+  const servicesTotals = useMemo(() => {
+    return calculateServicesTotals(serviceItems)
+  }, [serviceItems])
+
+  const totalServicesGrossRevenue = servicesTotals.totalGrossRevenue
+  const totalServicesCsp = servicesTotals.totalCsp
+  const totalServicesQuantity = servicesTotals.totalQuantity
+  const hasServiceRevenue = totalServicesGrossRevenue > 0
 
   // DRE PRESUMIDO
   const [presumidoActivity, setPresumidoActivity] = useState<ActivityType>('comercio')
@@ -3930,6 +4102,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setOperatingExpenses([])
     setOperatingRevenues([])
 
+    setServiceItems([])
+    setServiceIssRateState(5.0)
+
     setStSubsystem(INITIAL_ST_SUBSYSTEM)
     setInterstateSubsystem(INITIAL_INTERSTATE_SUBSYSTEM)
     setReformaState(INITIAL_REFORMA_STATE)
@@ -4278,6 +4453,20 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPisFreightPurchasesBase(snapshot.pisFreightPurchasesBase ?? 0)
     setCofinsFreightPurchasesBase(snapshot.cofinsFreightPurchasesBase ?? 0)
 
+    if (Array.isArray(snapshot.serviceItems)) {
+      setServiceItems(
+        snapshot.serviceItems.map((s) => ({
+          ...s,
+          inputs: Array.isArray(s.inputs) ? s.inputs : [],
+        })),
+      )
+    } else {
+      setServiceItems([])
+    }
+    if (snapshot.serviceIssRate !== undefined) {
+      setServiceIssRateState(snapshot.serviceIssRate)
+    }
+
     if (snapshot.presumidoActivity) setPresumidoActivity(snapshot.presumidoActivity)
     setPresumidoIssRate(snapshot.presumidoIssRate ?? 0)
     setPresumidoQuantitySold(snapshot.presumidoQuantitySold ?? 0)
@@ -4438,6 +4627,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       desiredLiquidRevenueByRegime,
       marginByRegime,
       additionalMargin,
+      serviceItems,
+      serviceIssRate,
       icmsRateMarkup,
       customTaxesMarkup,
       variableExpenses,
@@ -4515,6 +4706,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     desiredLiquidRevenueByRegime,
     marginByRegime,
     additionalMargin,
+    serviceItems,
+    serviceIssRate,
     icmsRateMarkup,
     customTaxesMarkup,
     markupProducts,
@@ -4795,6 +4988,20 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setPisFreightPurchasesBase,
         cofinsFreightPurchasesBase,
         setCofinsFreightPurchasesBase,
+
+        serviceItems,
+        serviceIssRate,
+        setServiceIssRate,
+        addServiceItem,
+        updateServiceItem,
+        removeServiceItem,
+        addServiceInputItem,
+        updateServiceInputItem,
+        removeServiceInputItem,
+        totalServicesGrossRevenue,
+        totalServicesCsp,
+        totalServicesQuantity,
+        hasServiceRevenue,
 
         presumidoActivity,
         setPresumidoActivity,

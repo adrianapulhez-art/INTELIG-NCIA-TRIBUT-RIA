@@ -147,6 +147,23 @@ export const TABLE_ASSISTANTS: Record<string, TableAssistantConfig> = {
     contextSummary:
       'Tabela ativa: Gestão de Clientes. Carteira de clientes, persistência de cenários tributários no banco e carregamento de simulações.',
   },
+  servicos: {
+    slug: 'it-servicos-assistant',
+    name: 'Assistente de Prestadores de Serviços',
+    title: 'IA — Especialista em Serviços, ISSQN e Fator R',
+    pageName: 'Prestadores de Serviços',
+    tagline: 'Honorários, Insumos (CSP), ISSQN LC 116/03 e Fator R',
+    description:
+      'Orienta sobre precificação de honorários, apuração do Custo dos Serviços Prestados (CSP), alíquotas municipais de ISS (2% a 5%), presunção de 32% no Presumido e enquadramento do Simples Nacional via Fator R.',
+    quickQuestions: [
+      'Como funciona o enquadramento no Anexo III ou V pelo Fator R?',
+      'Como os insumos do serviço compõem o CSP na DRE?',
+      'Como aplicar a presunção de 32% de IRPJ e CSLL no Lucro Presumido?',
+      'Por que o ISS substitui o ICMS para prestadores de serviços?',
+    ],
+    contextSummary:
+      'Tabela ativa: Prestadores de Serviços. Cadastro de serviços, composição de insumos (CSP), ISSQN municipal (2% a 5%), presunção de 32% no Lucro Presumido e enquadramento no Simples Nacional pelo Fator R (Folha 12m ÷ RBT12).',
+  },
   'despesas-operacionais': {
     slug: 'it-despesas-operacionais-assistant',
     name: 'Assistente de Despesas e Receitas Operacionais',
