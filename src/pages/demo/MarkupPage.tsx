@@ -3438,7 +3438,7 @@ export default function MarkupPage() {
               💡 A receita consolidada ({formatBRL(totalConsolidatedRevenue)}) alimenta
               automaticamente as páginas de <strong>DRE Simples Nacional</strong>,{' '}
               <strong>Lucro Presumido</strong>, <strong>Lucro Real</strong> e{' '}
-              <strong>Comparação de Regimes</strong>.
+              <strong>Dashboard Interativo</strong>.
             </p>
           </div>
         )}

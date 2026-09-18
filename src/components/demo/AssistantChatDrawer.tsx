@@ -112,7 +112,7 @@ export const AssistantChatDrawer: React.FC<AssistantChatDrawerProps> = ({
             `Lançamentos Mini-LALUR (${taxContext.realLalurEntries.length}): ${entriesSummary}`,
           )
         }
-      } else if (currentTab === 'comparacao') {
+      } else if (currentTab === 'dashboard') {
         parts.push(`Folha salários: ${formatBRL(taxContext.payrollSalaries)}`)
         parts.push(`Pró-labore: ${formatBRL(taxContext.payrollProLabore)}`)
       } else if (currentTab === 'reforma') {

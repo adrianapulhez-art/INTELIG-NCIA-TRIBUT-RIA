@@ -791,7 +791,7 @@ export const ScenarioManagerBar: React.FC = () => {
             </DialogTitle>
             <DialogDescription className="text-slate-400 text-xs">
               O snapshot completo de todas as calculadoras (Markup, Compras, DRE Simples, DRE Lucro
-              Presumido, DRE Lucro Real e Comparação) será preservado de forma íntegra e acessível.
+              Presumido, DRE Lucro Real e Dashboard) será preservado de forma íntegra e acessível.
             </DialogDescription>
           </DialogHeader>
 

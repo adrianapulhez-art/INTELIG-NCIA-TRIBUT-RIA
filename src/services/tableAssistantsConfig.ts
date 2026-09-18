@@ -96,22 +96,22 @@ export const TABLE_ASSISTANTS: Record<string, TableAssistantConfig> = {
     contextSummary:
       'Tabela ativa: DRE Lucro Real. PIS 1,65% e COFINS 7,6% não-cumulativos, Mini-LALUR estruturado (adições e exclusões individuais), IRPJ 15%+10%, CSLL 9% sobre lucro líquido ajustado.',
   },
-  comparacao: {
-    slug: 'it-comparacao-assistant',
-    name: 'Assistente de Comparação de Regimes',
-    title: 'IA — Especialista em Planejamento Tributário',
-    pageName: 'Comparação de Regimes',
-    tagline: 'Confronto Triplo, Margem Líquida e Sensibilidade',
+  dashboard: {
+    slug: 'it-dashboard-assistant',
+    name: 'Assistente de Dashboard Tributário',
+    title: 'IA — Especialista em Inteligência Tributária',
+    pageName: 'Dashboard Interativo',
+    tagline: 'Visão Consolidada, KPIs Executivos e Confronto Triplo',
     description:
-      'Orienta na identificação do regime mais econômico, leitura da análise de sensibilidade e interpretação de gráficos comparativos.',
+      'Orienta na leitura dos indicadores consolidados, identificação do regime de maior lucro líquido, composição do CMV e análise do Fator R.',
     quickQuestions: [
-      'Qual métrica devo olhar para saber o regime mais vantajoso?',
-      'Como interpretar a seção de Análise de Sensibilidade?',
-      'Por que a carga tributária efetiva varia com o aumento de receita?',
-      'Como exportar o relatório para apresentar ao cliente?',
+      'Qual regime apresenta o melhor lucro líquido neste cenário?',
+      'Como os créditos tributários influenciam o CMV no Lucro Real?',
+      'Qual o impacto do enquadramento do Fator R no Simples Nacional?',
+      'Como exportar o resumo executivo do Dashboard para PDF/Excel?',
     ],
     contextSummary:
-      'Tabela ativa: Comparação de Regimes. Confronto Simples x Presumido x Real, Análise de Sensibilidade e Ponto de Virada.',
+      'Tabela ativa: Dashboard Interativo de Inteligência Tributária. Confronto Simples x Presumido x Real, Composição do CMV, Despesas por Categoria e Fator R.',
   },
   reforma: {
     slug: 'it-reforma-assistant',

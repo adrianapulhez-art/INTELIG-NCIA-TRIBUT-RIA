@@ -17,7 +17,7 @@ import OperatingExpensesPage from './pages/demo/OperatingExpensesPage'
 import DrePresumidoPage from './pages/demo/DrePresumidoPage'
 import DreRealPage from './pages/demo/DreRealPage'
 import DreSimplesPage from './pages/demo/DreSimplesPage'
-import ComparisonPage from './pages/demo/ComparisonPage'
+import DemoDashboardPage from './pages/demo/DemoDashboardPage'
 import ReformaPage from './pages/demo/ReformaPage'
 import ClientsPage from './pages/demo/ClientsPage'
 import { Navigate } from 'react-router-dom'
@@ -96,10 +96,10 @@ const App = () => (
               }
             />
             <Route
-              path="/demo/comparacao"
+              path="/demo/dashboard"
               element={
                 <ProtectedRoute>
-                  <ComparisonPage />
+                  <DemoDashboardPage />
                 </ProtectedRoute>
               }
             />

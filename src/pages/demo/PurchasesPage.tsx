@@ -182,7 +182,7 @@ export default function PurchasesPage() {
         {/* Destaque Central Topo: Hero Banner estilo ADAPTA ONE */}
         <PageHero
           title="CALCULADORA DE COMPRAS & ESTOQUE"
-          subtitle="Estrutura multi-itens para compras com tributos distintos, rateio de custos globais e consolidação de CMV para as DREs e Comparação."
+          subtitle="Estrutura multi-itens para compras com tributos distintos, rateio de custos globais e consolidação de CMV para as DREs e Dashboard."
           badge="MULTI-ITENS · ENTRADAS & CRÉDITOS FISCAIS"
           icon={Package}
         />
@@ -1164,7 +1164,7 @@ export default function PurchasesPage() {
                 </div>
                 <p className="text-xs text-slate-400">
                   Alimenta automaticamente os campos "CMV · automático" das DREs (Presumido, Real e
-                  Simples) e a Comparação.
+                  Simples) e o Dashboard.
                 </p>
               </div>
             </div>

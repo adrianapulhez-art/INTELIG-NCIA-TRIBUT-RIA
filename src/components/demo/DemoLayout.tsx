@@ -17,7 +17,7 @@ export type TabKey =
   | 'dre-presumido'
   | 'dre-real'
   | 'simples'
-  | 'comparacao'
+  | 'dashboard'
   | 'reforma'
   | 'clientes'
 interface DemoLayoutProps {
@@ -122,7 +122,7 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
     { key: 'dre-presumido', label: 'DRE Lucro Presumido', path: '/demo/dre-presumido' },
     { key: 'dre-real', label: 'DRE Lucro Real', path: '/demo/dre-real' },
     { key: 'simples', label: 'DRE Simples Nacional', path: '/demo/simples' },
-    { key: 'comparacao', label: 'Comparação de Regimes', path: '/demo/comparacao' },
+    { key: 'dashboard', label: 'Dashboard', path: '/demo/dashboard' },
     { key: 'reforma', label: 'Reforma Tributária', path: '/demo/reforma' },
     { key: 'clientes', label: 'Clientes', path: '/demo/clientes' },
   ]

@@ -2220,7 +2220,7 @@ export function runOperatingResultIntegrationTests(): {
     received: number | boolean | string
   }[]
 } {
-  // Helper que replica a fórmula oficial de LAIR usada em DrePresumidoPage, DreRealPage, DreSimplesPage e ComparisonPage:
+  // Helper que replica a fórmula oficial de LAIR usada em DrePresumidoPage, DreRealPage, DreSimplesPage e DemoDashboardPage:
   // totalResultBeforeTax = Math.round((totalGrossProfit - totalAllOperatingExpenses + totalAllOperatingRevenues) * 100) / 100
   const calculateLair = (
     grossProfit: number,
@@ -3724,11 +3724,11 @@ export function runProductStockSubsystemTests() {
 }
 
 /**
- * Teste específico: Validação Comparação de Regimes vs DREs no caso 30 compradas x 22 vendidas
+ * Teste específico: Validação Comparativo Dashboard vs DREs no caso 30 compradas x 22 vendidas
  * Garante que:
  * 1. automaticQuantity prioriza totalConsolidatedQuantity (22 un.) sobre totalPurchasesQuantity (30 un.).
  * 2. CMV nos 3 regimes (Presumido, Real e Simples) é baixado por 22 unidades vendidas (NUNCA 30 un.).
- * 3. Os valores de CMV total da página Comparação são 100% idênticos aos das três DREs.
+ * 3. Os valores de CMV total do Dashboard são 100% idênticos aos das três DREs.
  * 4. Estoque final remanescente é rigorosamente de 8 unidades nos três regimes.
  */
 export function runComparisonVsDre30Bought22SoldTests(): {
@@ -3758,7 +3758,7 @@ export function runComparisonVsDre30Bought22SoldTests(): {
   const totalCostSimples = merchValue // 3000
   const unitCostSimples = totalCostSimples / qtyPurchased // 100
 
-  // 2. Regra de resolução de automaticQuantity usada nas DREs e agora na Comparação
+  // 2. Regra de resolução de automaticQuantity usada nas DREs e no Dashboard
   const totalPurchasesQuantity = 30
   const totalConsolidatedQuantity = 22
   const calculatedPurchases = {
@@ -3793,7 +3793,7 @@ export function runComparisonVsDre30Bought22SoldTests(): {
   const dreRealCmv = Math.round(unitCostReal * effectiveSoldQtyForCmv * 100) / 100 // 74.415 * 22 = 1637.13
   const dreSimplesCmv = Math.round(unitCostSimples * effectiveSoldQtyForCmv * 100) / 100 // 100 * 22 = 2200.00
 
-  // 4. Cálculos da ComparisonPage com a nova regra implementada
+  // 4. Cálculos do DemoDashboardPage com a nova regra implementada
   const comparisonQty = automaticQuantity
   const comparisonEffectiveQty = isAutoInventory
     ? Math.min(comparisonQty, calculatedPurchases.totalAvailableUnits)
@@ -3826,22 +3826,22 @@ export function runComparisonVsDre30Bought22SoldTests(): {
       received: automaticQuantity,
     },
     {
-      test: 'Quantidade efetiva para CMV na Comparação é de 22 unidades vendidas',
+      test: 'Quantidade efetiva para CMV no Dashboard é de 22 unidades vendidas',
       expected: 22,
       received: comparisonEffectiveQty,
     },
     {
-      test: 'Comparação CMV Presumido = DRE Presumido CMV = R$ 1.804,00 (22 un. × R$ 82,00)',
+      test: 'Dashboard CMV Presumido = DRE Presumido CMV = R$ 1.804,00 (22 un. × R$ 82,00)',
       expected: drePresumidoCmv,
       received: comparisonPresumidoCmv,
     },
     {
-      test: 'Comparação CMV Real = DRE Real CMV = R$ 1.637,13 (22 un. × R$ 74,42)',
+      test: 'Dashboard CMV Real = DRE Real CMV = R$ 1.637,13 (22 un. × R$ 74,42)',
       expected: dreRealCmv,
       received: comparisonRealCmv,
     },
     {
-      test: 'Comparação CMV Simples = DRE Simples CMV = R$ 2.200,00 (22 un. × R$ 100,00)',
+      test: 'Dashboard CMV Simples = DRE Simples CMV = R$ 2.200,00 (22 un. × R$ 100,00)',
       expected: dreSimplesCmv,
       received: comparisonSimplesCmv,
     },
@@ -3881,7 +3881,7 @@ export function runComparisonVsDre30Bought22SoldTests(): {
       received: efSimples,
     },
     {
-      test: 'Receita Bruta consolidada na Comparação = 22 un. vendidas × Preço Unitário (R$ 4.400,00)',
+      test: 'Receita Bruta consolidada no Dashboard = 22 un. vendidas × Preço Unitário (R$ 4.400,00)',
       expected: 4400,
       received: expectedGrossRevenue,
     },

@@ -111,13 +111,13 @@ export default function DemoDashboard() {
       icon: PieChart,
     },
     {
-      id: 'comparacao',
+      id: 'dashboard',
       tag: 'PLANEJAMENTO TRIBUTÁRIO',
-      title: 'Comparação de Regimes',
-      subtitle: 'Simples × Presumido × Real',
+      title: 'Dashboard Interativo de Inteligência Tributária',
+      subtitle: 'Visão Integrada & Confronto Triplo',
       description:
-        'Diagnóstico comparativo lado a lado, identificação da melhor opção tributária, economia estimada e análise de sensibilidade.',
-      path: '/demo/comparacao',
+        'Diagnóstico comparativo consolidado em tempo real, KPIs executivos, composição de CMV e análise de viabilidade dos regimes.',
+      path: '/demo/dashboard',
       gradient: 'from-[#10382e]/90 via-[#0a2922]/80 to-[#061814]/95',
       borderAccent: 'border-emerald-400/35 hover:border-emerald-300/70',
       accentColor: 'text-emerald-300',
@@ -196,11 +196,11 @@ export default function DemoDashboard() {
 
               <button
                 type="button"
-                onClick={() => navigate('/demo/comparacao')}
+                onClick={() => navigate('/demo/dashboard')}
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 font-semibold text-xs sm:text-sm tracking-wide hover:bg-emerald-900/60 hover:text-white transition-all duration-200 cursor-pointer"
               >
                 <Scale className="w-4 h-4" />
-                <span>Comparar Regimes</span>
+                <span>Ver Dashboard</span>
               </button>
             </div>
           </div>

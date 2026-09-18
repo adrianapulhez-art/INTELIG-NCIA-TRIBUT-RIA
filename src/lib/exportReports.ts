@@ -47,9 +47,9 @@ export interface DreExportOptions {
 }
 
 /**
- * Interface para opções de exportação da Comparação de Regimes
+ * Interface para opções de exportação do Dashboard Interativo de Inteligência Tributária
  */
-export interface ComparisonExportOptions {
+export interface DashboardExportOptions {
   quantity: number
   unitGrossRevenue: number
   totalGrossRevenue: number
@@ -369,14 +369,14 @@ export function exportDreToPdf(options: DreExportOptions, filename?: string): vo
 }
 
 /**
- * EXPORTAR COMPARAÇÃO DE REGIMES PARA PDF
+ * EXPORTAR DASHBOARD INTERATIVO PARA PDF
  */
-export function exportComparisonToPdf(options: ComparisonExportOptions, filename?: string): void {
+export function exportDashboardToPdf(options: DashboardExportOptions, filename?: string): void {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let currentY = drawPdfHeader(
     doc,
-    'Comparação de Regimes Tributários',
-    'Lucro Presumido vs Lucro Real vs Simples Nacional',
+    'Dashboard de Inteligência Tributária',
+    'Visão Consolidada dos Regimes Tributários',
   )
 
   // Metadados / Resumo do Vencedor em destaque
@@ -547,8 +547,84 @@ export function exportComparisonToPdf(options: ComparisonExportOptions, filename
 
   drawPdfFooter(doc)
 
-  const finalName = filename || 'comparativo_regimes_tributarios.pdf'
+  const finalName = filename || 'dashboard_inteligencia_tributaria.pdf'
   doc.save(finalName)
+}
+
+/**
+ * EXPORTAR DASHBOARD INTERATIVO PARA EXCEL (Valores numéricos reais)
+ */
+export function exportDashboardToExcel(options: DashboardExportOptions, filename?: string): void {
+  const wb = (xlsxLib.utils || XLSX.utils).book_new()
+  const sheetData: (string | number | null | undefined)[][] = []
+
+  sheetData.push(['IT — Inteligência Tributária'])
+  sheetData.push(['Dashboard Interativo de Inteligência Tributária'])
+  sheetData.push([`Regime Recomendado: ${options.bestRegime.name}`])
+  if (options.economyDifference > 0) {
+    sheetData.push([
+      `Economia estimada em relação ao regime ${options.worstRegimeName}: R$ ${options.economyDifference.toFixed(2)}`,
+    ])
+  }
+  sheetData.push([`Data de emissão: ${getTimestampBR()}`])
+  sheetData.push([
+    `Base de cálculo: ${options.quantity} unidades | Receita bruta total: R$ ${options.totalGrossRevenue.toFixed(2)}`,
+  ])
+  sheetData.push([])
+
+  // Quadro de Resumo por Regime
+  sheetData.push([
+    'Regime Tributário',
+    'Carga Tributária Total (R$)',
+    'Alíquota Efetiva (%)',
+    'Lucro Líquido Final (R$)',
+    'Margem Líquida (%)',
+    'Classificação',
+  ])
+
+  options.summaryRegimes.forEach((r) => {
+    sheetData.push([
+      r.name,
+      r.taxBurden,
+      r.effectiveTaxRate,
+      r.netProfit,
+      r.netMargin,
+      r.isBest ? 'MELHOR RESULTADO' : 'Cenário Alternativo',
+    ])
+  })
+
+  sheetData.push([])
+
+  // Tabela Comparativa Completa
+  sheetData.push([
+    'Linha de Resultado',
+    'Lucro Presumido (R$)',
+    'Lucro Real (R$)',
+    'Simples Nacional (R$)',
+  ])
+
+  options.comparisonRows.forEach((r) => {
+    sheetData.push([r.line, r.presumido, r.real, r.simples])
+  })
+
+  // Notas
+  if (options.notes && options.notes.length > 0) {
+    sheetData.push([])
+    sheetData.push(['Notas Técnicas e Condições Legais'])
+    options.notes.forEach((n) => sheetData.push([n]))
+  }
+
+  const ws = (xlsxLib.utils || XLSX.utils).aoa_to_sheet(sheetData)
+  ws['!cols'] = [{ wch: 42 }, { wch: 22 }, { wch: 20 }, { wch: 22 }, { wch: 20 }, { wch: 20 }]
+
+  ;(xlsxLib.utils || XLSX.utils).book_append_sheet(wb, ws, 'Dashboard Tributário')
+
+  const finalName = filename || 'dashboard_inteligencia_tributaria.xlsx'
+  if (typeof xlsxLib.writeFile === 'function') {
+    xlsxLib.writeFile(wb, finalName)
+  } else {
+    XLSX.writeFile(wb, finalName)
+  }
 }
 
 /**
@@ -614,82 +690,6 @@ export function exportDreToExcel(options: DreExportOptions, filename?: string): 
   ;(xlsxLib.utils || XLSX.utils).book_append_sheet(wb, ws, 'Demonstração DRE')
 
   const finalName = filename || `${options.title.toLowerCase().replace(/[\s—]+/g, '_')}.xlsx`
-  if (typeof xlsxLib.writeFile === 'function') {
-    xlsxLib.writeFile(wb, finalName)
-  } else {
-    XLSX.writeFile(wb, finalName)
-  }
-}
-
-/**
- * EXPORTAR COMPARAÇÃO DE REGIMES PARA EXCEL (Valores numéricos reais)
- */
-export function exportComparisonToExcel(options: ComparisonExportOptions, filename?: string): void {
-  const wb = (xlsxLib.utils || XLSX.utils).book_new()
-  const sheetData: (string | number | null | undefined)[][] = []
-
-  sheetData.push(['IT — Inteligência Tributária'])
-  sheetData.push(['Comparação de Regimes Tributários'])
-  sheetData.push([`Regime Recomendado: ${options.bestRegime.name}`])
-  if (options.economyDifference > 0) {
-    sheetData.push([
-      `Economia estimada em relação ao regime ${options.worstRegimeName}: R$ ${options.economyDifference.toFixed(2)}`,
-    ])
-  }
-  sheetData.push([`Data de emissão: ${getTimestampBR()}`])
-  sheetData.push([
-    `Base de cálculo: ${options.quantity} unidades | Receita bruta total: R$ ${options.totalGrossRevenue.toFixed(2)}`,
-  ])
-  sheetData.push([])
-
-  // Quadro de Resumo por Regime
-  sheetData.push([
-    'Regime Tributário',
-    'Carga Tributária Total (R$)',
-    'Alíquota Efetiva (%)',
-    'Lucro Líquido Final (R$)',
-    'Margem Líquida (%)',
-    'Classificação',
-  ])
-
-  options.summaryRegimes.forEach((r) => {
-    sheetData.push([
-      r.name,
-      r.taxBurden,
-      r.effectiveTaxRate,
-      r.netProfit,
-      r.netMargin,
-      r.isBest ? 'MELHOR RESULTADO' : 'Cenário Alternativo',
-    ])
-  })
-
-  sheetData.push([])
-
-  // Tabela Comparativa Completa
-  sheetData.push([
-    'Linha de Resultado',
-    'Lucro Presumido (R$)',
-    'Lucro Real (R$)',
-    'Simples Nacional (R$)',
-  ])
-
-  options.comparisonRows.forEach((r) => {
-    sheetData.push([r.line, r.presumido, r.real, r.simples])
-  })
-
-  // Notas
-  if (options.notes && options.notes.length > 0) {
-    sheetData.push([])
-    sheetData.push(['Notas Técnicas e Condições Legais'])
-    options.notes.forEach((n) => sheetData.push([n]))
-  }
-
-  const ws = (xlsxLib.utils || XLSX.utils).aoa_to_sheet(sheetData)
-  ws['!cols'] = [{ wch: 42 }, { wch: 22 }, { wch: 20 }, { wch: 22 }, { wch: 20 }, { wch: 20 }]
-
-  ;(xlsxLib.utils || XLSX.utils).book_append_sheet(wb, ws, 'Comparativo de Regimes')
-
-  const finalName = filename || 'comparativo_regimes_tributarios.xlsx'
   if (typeof xlsxLib.writeFile === 'function') {
     xlsxLib.writeFile(wb, finalName)
   } else {

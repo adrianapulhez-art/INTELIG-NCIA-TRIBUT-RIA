@@ -726,7 +726,7 @@ export interface TaxContextType {
     }[]
   }
 
-  // FOLHA E PRÓ-LABORE STATE (Compartilhado entre as DREs e Comparação)
+  // FOLHA E PRÓ-LABORE STATE (Compartilhado entre as DREs e Dashboard)
   payrollSalaries: number
   setPayrollSalaries: (val: number) => void
   payrollProLabore: number
