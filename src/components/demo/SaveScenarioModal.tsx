@@ -50,8 +50,21 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   onClose,
   scope = 'despesas-operacionais',
 }) => {
-  const { getSnapshot, loadSnapshot, totalOperatingExpenses, totalOperatingRevenues } =
-    useTaxContext()
+  const {
+    getSnapshot,
+    loadSnapshot,
+    totalOperatingExpenses,
+    totalOperatingRevenues,
+    regime,
+    markupProducts,
+    totalConsolidatedRevenue,
+    totalConsolidatedQuantity,
+    totalConsolidatedCost,
+    purchasesItems,
+    totalPurchasesQuantity,
+    totalPurchasesMerchandise,
+    calculatedProductStock,
+  } = useTaxContext()
 
   // Abas do modal: "gravar" ou "historico"
   const [activeTab, setActiveTab] = useState<'gravar' | 'historico'>('gravar')
@@ -130,7 +143,13 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
       fetchScenarios()
       const d = new Date()
       const dateStr = d.toLocaleDateString('pt-BR')
-      setScenarioName(`Cenário Despesas Operacionais — ${dateStr}`)
+      let defaultName = `Cenário Despesas Operacionais — ${dateStr}`
+      if (scope === 'markup') {
+        defaultName = `Cenário Markup e Precificação — ${dateStr}`
+      } else if (scope === 'compras') {
+        defaultName = `Cenário Compras de Mercadorias — ${dateStr}`
+      }
+      setScenarioName(defaultName)
       setScenarioNotes('')
       setIsCreatingClientInline(false)
       setFeedback(null)
@@ -312,15 +331,41 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
               <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 shrink-0 shadow-sm">
                 <Save className="w-4 h-4" />
               </div>
-              <span>Gravar Cenário de Despesas e Receitas</span>
+              <span>
+                {scope === 'markup'
+                  ? 'Gravar Cenário de Markup e Precificação'
+                  : scope === 'compras'
+                    ? 'Gravar Cenário de Compras de Mercadorias'
+                    : 'Gravar Cenário de Despesas e Receitas'}
+              </span>
             </DialogTitle>
-            <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-mono">
-              Escritório Contábil
-            </Badge>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-mono">
+                Escritório Contábil
+              </Badge>
+              {scope === 'markup' && (
+                <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-mono">
+                  Markup
+                </Badge>
+              )}
+              {scope === 'compras' && (
+                <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono">
+                  Compras
+                </Badge>
+              )}
+              {scope === 'despesas-operacionais' && (
+                <Badge className="bg-orange-500/20 text-orange-300 border border-orange-500/40 text-[10px] font-mono">
+                  Despesas
+                </Badge>
+              )}
+            </div>
           </div>
           <DialogDescription className="text-xs text-slate-400">
-            Armazene a base de dados desta página e do planejamento fiscal organizada
-            individualmente por cliente do escritório, com histórico e restauração instantânea.
+            {scope === 'markup'
+              ? 'Armazene os parâmetros de markup, alíquotas automáticas, margens e produtos precificados organizados por cliente do escritório, com histórico e restauração instantânea.'
+              : scope === 'compras'
+                ? 'Armazene os itens de compras cadastrados, alíquotas fiscais, fretes e posições de estoque organizados por cliente do escritório, com histórico e restauração instantânea.'
+                : 'Armazene a base de dados desta página e do planejamento fiscal organizada individualmente por cliente do escritório, com histórico e restauração instantânea.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -544,25 +589,108 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                 />
               </div>
 
-              {/* Resumo dos Valores que Serão Gravados */}
-              <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 gap-3 text-xs font-mono">
-                <div className="p-2.5 rounded-xl bg-slate-900/60 border border-rose-500/20">
-                  <span className="text-[10px] text-slate-400 block">Despesas Lançadas:</span>
-                  <span className="text-rose-400 font-bold font-mono text-sm">
-                    {formatBRL(totalOperatingExpenses)}
-                  </span>
+              {/* Resumo dos Valores que Serão Gravados conforme o Scope */}
+              {scope === 'markup' && (
+                <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                  <div className="grid grid-cols-3 gap-2.5 text-xs font-mono">
+                    <div className="p-2.5 rounded-xl bg-slate-900/60 border border-emerald-500/20">
+                      <span className="text-[10px] text-slate-400 block">Receita Consolidada:</span>
+                      <span className="text-emerald-400 font-bold font-mono text-sm">
+                        {formatBRL(totalConsolidatedRevenue)}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-900/60 border border-blue-500/20">
+                      <span className="text-[10px] text-slate-400 block">Qtd. Total / Itens:</span>
+                      <span className="text-blue-300 font-bold font-mono text-sm">
+                        {totalConsolidatedQuantity} un. ({markupProducts.length} itens)
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-900/60 border border-amber-500/20">
+                      <span className="text-[10px] text-slate-400 block">Custo Consolidado:</span>
+                      <span className="text-amber-300 font-bold font-mono text-sm">
+                        {formatBRL(totalConsolidatedCost)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 px-1">
+                    <span>
+                      Regime ativo: <strong className="text-emerald-300 uppercase">{regime}</strong>
+                    </span>
+                    <span>{markupProducts.length} produto(s) cadastrado(s)</span>
+                  </div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-900/60 border border-emerald-500/20">
-                  <span className="text-[10px] text-slate-400 block">Receitas Lançadas:</span>
-                  <span className="text-emerald-400 font-bold font-mono text-sm">
-                    {formatBRL(totalOperatingRevenues)}
-                  </span>
+              )}
+
+              {scope === 'compras' && (
+                <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                  {(() => {
+                    const totalFreight = purchasesItems.reduce(
+                      (acc, item) => acc + (item.freightValue || 0),
+                      0,
+                    )
+                    const stockQtyTotal =
+                      calculatedProductStock?.totals?.totalStockQty ?? totalPurchasesQuantity
+                    return (
+                      <>
+                        <div className="grid grid-cols-3 gap-2.5 text-xs font-mono">
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-emerald-500/20">
+                            <span className="text-[10px] text-slate-400 block">
+                              Total Mercadorias:
+                            </span>
+                            <span className="text-emerald-400 font-bold font-mono text-sm">
+                              {formatBRL(totalPurchasesMerchandise)}
+                            </span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-blue-500/20">
+                            <span className="text-[10px] text-slate-400 block">Frete Total:</span>
+                            <span className="text-blue-300 font-bold font-mono text-sm">
+                              {formatBRL(totalFreight)}
+                            </span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-amber-500/20">
+                            <span className="text-[10px] text-slate-400 block">
+                              Posição Estoque:
+                            </span>
+                            <span className="text-amber-300 font-bold font-mono text-sm">
+                              {stockQtyTotal} un.
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 px-1">
+                          <span>
+                            Itens de compra:{' '}
+                            <strong className="text-emerald-300">
+                              {purchasesItems.length} item(ns)
+                            </strong>
+                          </span>
+                          <span>Total comprado: {totalPurchasesQuantity} un.</span>
+                        </div>
+                      </>
+                    )
+                  })()}
                 </div>
-              </div>
+              )}
+
+              {scope !== 'markup' && scope !== 'compras' && (
+                <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 gap-3 text-xs font-mono">
+                  <div className="p-2.5 rounded-xl bg-slate-900/60 border border-rose-500/20">
+                    <span className="text-[10px] text-slate-400 block">Despesas Lançadas:</span>
+                    <span className="text-rose-400 font-bold font-mono text-sm">
+                      {formatBRL(totalOperatingExpenses)}
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-900/60 border border-emerald-500/20">
+                    <span className="text-[10px] text-slate-400 block">Receitas Lançadas:</span>
+                    <span className="text-emerald-400 font-bold font-mono text-sm">
+                      {formatBRL(totalOperatingRevenues)}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <p className="text-[10px] text-slate-400 font-sans leading-tight">
-                ℹ O snapshot grava integralmente as despesas, receitas, folha, pró-labore e o
-                planejamento tributário global para tolerar restauração completa a qualquer tempo.
+                ℹ O snapshot grava integralmente o contexto fiscal e operacional (markup, compras,
+                despesas, estoque e regimes) para permitir restauração fiel a qualquer tempo.
               </p>
             </div>
 
@@ -681,6 +809,22 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                               {sc.clientName}
                             </Badge>
                           )}
+                          {/* Badge de Origem/Escopo */}
+                          {sc.scope === 'markup' && (
+                            <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[9px] font-mono">
+                              Markup
+                            </Badge>
+                          )}
+                          {sc.scope === 'compras' && (
+                            <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
+                              Compras
+                            </Badge>
+                          )}
+                          {(!sc.scope || sc.scope === 'despesas-operacionais') && (
+                            <Badge className="bg-orange-500/20 text-orange-300 border border-orange-500/40 text-[9px] font-mono">
+                              Despesas
+                            </Badge>
+                          )}
                           {isLocal && (
                             <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
                               Offline / Local
@@ -692,15 +836,29 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                           <p className="text-[11px] text-slate-400 line-clamp-1">{sc.notes}</p>
                         )}
 
-                        <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono">
+                        {/* Metadados específicos do escopo do cenário salvo */}
+                        <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono flex-wrap">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {formatDate(sc.updated || sc.created)}
                           </span>
                           <span>•</span>
-                          <span className="text-rose-400/90">
-                            Despesas: {formatBRL(totalExp)} ({snapExpenses.length} itens)
-                          </span>
+                          {sc.scope === 'markup' ? (
+                            <span className="text-emerald-400/90">
+                              Receita Consolidada:{' '}
+                              {formatBRL(sc.snapshot?.totalConsolidatedRevenue || 0)} (
+                              {sc.snapshot?.markupProducts?.length || 0} produtos)
+                            </span>
+                          ) : sc.scope === 'compras' ? (
+                            <span className="text-amber-400/90">
+                              Mercadorias: {formatBRL(sc.snapshot?.totalPurchasesMerchandise || 0)}{' '}
+                              ({sc.snapshot?.purchasesItems?.length || 0} itens)
+                            </span>
+                          ) : (
+                            <span className="text-rose-400/90">
+                              Despesas: {formatBRL(totalExp)} ({snapExpenses.length} itens)
+                            </span>
+                          )}
                         </div>
                       </div>
 
