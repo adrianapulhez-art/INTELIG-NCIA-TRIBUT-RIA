@@ -41,7 +41,11 @@ import {
   ArrowUpRight,
 } from 'lucide-react'
 
-export const ScenarioManagerBar: React.FC = () => {
+export interface ScenarioManagerBarProps {
+  onGravarCenario?: () => void
+}
+
+export const ScenarioManagerBar: React.FC<ScenarioManagerBarProps> = ({ onGravarCenario }) => {
   const { user } = useAuth()
   const { getSnapshot, loadSnapshot } = useTaxContext()
 
@@ -494,33 +498,39 @@ export const ScenarioManagerBar: React.FC = () => {
                 </Button>
               )}
 
-              {/* Botão Salvar Novo Cenário */}
-              <Button
-                size="sm"
-                onClick={() => {
-                  setScenarioNameInput(
-                    activeScenarioName
-                      ? `${activeScenarioName} (cópia)`
-                      : `Cenário ${new Date().toLocaleDateString('pt-BR')}`,
-                  )
-                  setIsSaveModalOpen(true)
-                }}
-                className="h-8 text-xs font-bold bg-emerald-500 text-slate-950 hover:bg-emerald-400 shadow-sm shadow-emerald-500/20 gap-1.5 cursor-pointer"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>Salvar Cenário</span>
-              </Button>
+              {/* Botão Salvar Novo Cenário (omitido quando onGravarCenario é fornecido para evitar redundância) */}
+              {!onGravarCenario && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setScenarioNameInput(
+                      activeScenarioName
+                        ? `${activeScenarioName} (cópia)`
+                        : `Cenário ${new Date().toLocaleDateString('pt-BR')}`,
+                    )
+                    setIsSaveModalOpen(true)
+                  }}
+                  className="h-8 text-xs font-bold bg-emerald-500 text-slate-950 hover:bg-emerald-400 shadow-sm shadow-emerald-500/20 gap-1.5 cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Salvar Cenário</span>
+                </Button>
+              )}
 
-              {/* Botão Gravar Cenário (movido do cabeçalho de Compras/Markup como ação de fechamento) */}
+              {/* Botão Gravar Cenário (abre o modal rico quando onGravarCenario é fornecido) */}
               <Button
                 size="sm"
                 onClick={() => {
-                  setScenarioNameInput(
-                    activeScenarioName
-                      ? `${activeScenarioName} (revisão)`
-                      : `Cenário Gravado — ${new Date().toLocaleDateString('pt-BR')}`,
-                  )
-                  setIsSaveModalOpen(true)
+                  if (onGravarCenario) {
+                    onGravarCenario()
+                  } else {
+                    setScenarioNameInput(
+                      activeScenarioName
+                        ? `${activeScenarioName} (revisão)`
+                        : `Cenário Gravado — ${new Date().toLocaleDateString('pt-BR')}`,
+                    )
+                    setIsSaveModalOpen(true)
+                  }
                 }}
                 className="h-8 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25 gap-1.5 cursor-pointer"
                 title="Gravar cenário tributário completo"
