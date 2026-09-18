@@ -210,7 +210,7 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            {/* Ações Rápidas: Zerar campos, cenários por cliente e adicionar item */}
+            {/* Ações Rápidas: Zerar campos e cenários por cliente */}
             <div className="flex items-center gap-2">
               <Button
                 type="button"
@@ -234,42 +234,6 @@ export default function PurchasesPage() {
               >
                 <FolderOpen className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Cenários Salvos por Cliente</span>
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  const newId = addPurchaseItem()
-                  const stubItem: PurchaseItem = {
-                    id: newId,
-                    name: `Item ${purchasesItems.length + 1}`,
-                    quantity: 0,
-                    unitPrice: 0,
-                    merchandiseValue: 0,
-                    freightValue: 0,
-                    icmsFreightRate: 0,
-                    ipiRate: 0,
-                    icmsRate: 0,
-                    icmsFreightValue: 0,
-                    hasSt: false,
-                    stValue: 0,
-                    calculatedIpi: 0,
-                    calculatedIcms: 0,
-                    calculatedPis: 0,
-                    calculatedCofins: 0,
-                    costPresumido: 0,
-                    costReal: 0,
-                    costSimples: 0,
-                    unitCostPresumido: 0,
-                    unitCostReal: 0,
-                    unitCostSimples: 0,
-                  }
-                  setSelectedItemForModal(stubItem)
-                  setIsPurchaseItemModalOpen(true)
-                }}
-                className="h-8 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1" />+ Adicionar item
               </Button>
             </div>
           </div>

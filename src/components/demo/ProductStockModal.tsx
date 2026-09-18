@@ -1,19 +1,5 @@
 import React, { useState } from 'react'
-import {
-  Boxes,
-  Plus,
-  Trash2,
-  AlertTriangle,
-  ArrowDownRight,
-  ArrowUpRight,
-  Download,
-  Layers,
-  Info,
-  PackageCheck,
-  ChevronRight,
-  Calendar,
-  FileText,
-} from 'lucide-react'
+import { Boxes, Trash2, AlertTriangle, Download, Layers, Info, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -26,7 +12,6 @@ import {
 } from '@/components/ui/dialog'
 import { useTaxContext } from '@/contexts/TaxContext'
 import { formatBRL, formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
-import { ProductStockItem } from '@/lib/productStockCalculations'
 
 interface ProductStockModalProps {
   open: boolean
@@ -36,14 +21,9 @@ interface ProductStockModalProps {
 export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOpenChange }) => {
   const {
     productStockState,
-    addProductStockItem,
     updateProductStockItem,
     removeProductStockItem,
-    addProductStockEntry,
-    updateProductStockEntry,
     removeProductStockEntry,
-    addProductStockExit,
-    updateProductStockExit,
     removeProductStockExit,
     importPurchasesToProductStock,
     syncProductsFromMarkup,
@@ -52,22 +32,6 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
 
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null)
-
-  // Novo item temporário
-  const [newProductName, setNewProductName] = useState('')
-  const [newProductInitialQty, setNewProductInitialQty] = useState('')
-  const [newProductInitialCost, setNewProductInitialCost] = useState('')
-
-  // Nova entrada temporária
-  const [newEntryDate, setNewEntryDate] = useState('')
-  const [newEntryQty, setNewEntryQty] = useState('')
-  const [newEntryUnitCost, setNewEntryUnitCost] = useState('')
-  const [newEntryNotes, setNewEntryNotes] = useState('')
-
-  // Nova saída temporária
-  const [newExitDate, setNewExitDate] = useState('')
-  const [newExitQty, setNewExitQty] = useState('')
-  const [newExitNotes, setNewExitNotes] = useState('')
 
   const products = productStockState.products || []
   const { positions, totals } = calculatedProductStock
@@ -80,57 +44,6 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
 
   const activeProduct = products.find((p) => p.id === activeProductId)
   const activePosition = positions.find((p) => p.id === activeProductId)
-
-  const handleCreateProduct = (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    const name = newProductName.trim() || `Produto ${products.length + 1}`
-    const qty = parseBRNumber(newProductInitialQty)
-    const cost = parseBRNumber(newProductInitialCost)
-    addProductStockItem(name, qty, cost)
-    setNewProductName('')
-    setNewProductInitialQty('')
-    setNewProductInitialCost('')
-    setFeedbackMessage(`Produto "${name}" cadastrado com sucesso.`)
-    setTimeout(() => setFeedbackMessage(null), 3500)
-  }
-
-  const handleAddEntry = (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    if (!activeProductId) return
-    const q = parseBRNumber(newEntryQty)
-    const u = parseBRNumber(newEntryUnitCost)
-    if (q <= 0) return
-
-    addProductStockEntry(activeProductId, {
-      date: newEntryDate.trim() || undefined,
-      quantity: q,
-      unitCost: u,
-      totalValue: Math.round(q * u * 100) / 100,
-      notes: newEntryNotes.trim() || 'Entrada / Compra',
-    })
-    setNewEntryQty('')
-    setNewEntryUnitCost('')
-    setNewEntryNotes('')
-    setFeedbackMessage('Entrada registrada com sucesso no CMP.')
-    setTimeout(() => setFeedbackMessage(null), 3000)
-  }
-
-  const handleAddExit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    if (!activeProductId) return
-    const q = parseBRNumber(newExitQty)
-    if (q <= 0) return
-
-    addProductStockExit(activeProductId, {
-      date: newExitDate.trim() || undefined,
-      quantity: q,
-      notes: newExitNotes.trim() || 'Saída / Venda',
-    })
-    setNewExitQty('')
-    setNewExitNotes('')
-    setFeedbackMessage('Saída registrada ao custo médio vigente.')
-    setTimeout(() => setFeedbackMessage(null), 3000)
-  }
 
   const handleImportPurchases = () => {
     const res = importPurchasesToProductStock()
@@ -289,54 +202,12 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
               </span>
             </div>
 
-            {/* Form Adicionar Novo Produto */}
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-              <span className="text-[11px] font-mono font-semibold text-slate-400 block">
-                + Novo Produto no Estoque
-              </span>
-              <div className="space-y-1.5">
-                <Input
-                  type="text"
-                  placeholder="Nome do produto"
-                  value={newProductName}
-                  onChange={(e) => setNewProductName(e.target.value)}
-                  className="h-8 text-xs field-input-interactive"
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Qtd inicial"
-                    value={newProductInitialQty}
-                    onChange={(e) => setNewProductInitialQty(e.target.value)}
-                    className="h-8 text-xs text-right font-mono field-input-interactive"
-                  />
-                  <Input
-                    type="text"
-                    placeholder="Custo inicial (R$)"
-                    value={newProductInitialCost}
-                    onChange={(e) => setNewProductInitialCost(e.target.value)}
-                    className="h-8 text-xs text-right font-mono field-input-interactive"
-                  />
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleCreateProduct}
-                  className="w-full h-7 text-xs bg-orange-600 hover:bg-orange-500 text-white font-mono cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  Cadastrar produto
-                </Button>
-              </div>
-            </div>
-
             {/* Lista dos Produtos Existentes */}
             <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1">
               {products.length === 0 ? (
                 <div className="text-center py-8 text-xs font-mono text-slate-500 border border-dashed border-slate-800 rounded-xl p-4">
-                  Nenhum produto cadastrado ainda. Importe da Calculadora, sincronize com o Markup
-                  ou cadastre acima.
+                  Nenhum produto em estoque ainda. Importe os lançamentos da Calculadora de Compras
+                  ou sincronize com o Markup para gerenciar o Kardex automaticamente.
                 </div>
               ) : (
                 products.map((prod) => {
@@ -530,148 +401,6 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                       </span>
                     </div>
                   )}
-                </div>
-
-                {/* Formulários de Lançamento: Nova Entrada vs Nova Saída */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* ENTRADA (COMPRA) */}
-                  <div className="p-3.5 rounded-xl bg-slate-900/60 border border-emerald-500/30 space-y-2.5">
-                    <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs font-mono">
-                      <ArrowDownRight className="w-4 h-4" />
-                      <span>+ Lançar Entrada (Compra)</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] text-slate-400 font-mono block mb-1">
-                            Data (opcional)
-                          </label>
-                          <Input
-                            type="date"
-                            value={newEntryDate}
-                            onChange={(e) => setNewEntryDate(e.target.value)}
-                            className="h-8 text-xs font-mono field-input-interactive"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-slate-400 font-mono block mb-1">
-                            Qtd Comprada *
-                          </label>
-                          <Input
-                            type="number"
-                            min="0"
-                            placeholder="Ex: 30"
-                            value={newEntryQty}
-                            onChange={(e) => setNewEntryQty(e.target.value)}
-                            className="h-8 text-xs text-right font-mono field-input-interactive"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] text-slate-400 font-mono block mb-1">
-                            Custo Unitário (R$)
-                          </label>
-                          <Input
-                            type="text"
-                            placeholder="0,00"
-                            value={newEntryUnitCost}
-                            onChange={(e) => setNewEntryUnitCost(e.target.value)}
-                            className="h-8 text-xs text-right font-mono field-input-interactive"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-slate-400 font-mono block mb-1">
-                            NF / Obs. (opcional)
-                          </label>
-                          <Input
-                            type="text"
-                            placeholder="NF 1234"
-                            value={newEntryNotes}
-                            onChange={(e) => setNewEntryNotes(e.target.value)}
-                            className="h-8 text-xs field-input-interactive"
-                          />
-                        </div>
-                      </div>
-
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleAddEntry}
-                        className="w-full h-8 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-mono cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5 mr-1" />
-                        Registrar Entrada no CMP
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* SAÍDA (VENDA) */}
-                  <div className="p-3.5 rounded-xl bg-slate-900/60 border border-amber-500/30 space-y-2.5">
-                    <div className="flex items-center gap-2 text-amber-400 font-bold text-xs font-mono">
-                      <ArrowUpRight className="w-4 h-4" />
-                      <span>- Lançar Saída (Venda / Baixa)</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] text-slate-400 font-mono block mb-1">
-                            Data (opcional)
-                          </label>
-                          <Input
-                            type="date"
-                            value={newExitDate}
-                            onChange={(e) => setNewExitDate(e.target.value)}
-                            className="h-8 text-xs font-mono field-input-interactive"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-slate-400 font-mono block mb-1">
-                            Qtd Vendida *
-                          </label>
-                          <Input
-                            type="number"
-                            min="0"
-                            placeholder="Ex: 22"
-                            value={newExitQty}
-                            onChange={(e) => setNewExitQty(e.target.value)}
-                            className="h-8 text-xs text-right font-mono field-input-interactive"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] text-slate-400 font-mono block mb-1">
-                          Pedido / Cliente / Obs. (opcional)
-                        </label>
-                        <Input
-                          type="text"
-                          placeholder="Pedido #01 ou Venda Balcão"
-                          value={newExitNotes}
-                          onChange={(e) => setNewExitNotes(e.target.value)}
-                          className="h-8 text-xs field-input-interactive"
-                        />
-                      </div>
-
-                      <div className="p-2 rounded bg-slate-950/80 border border-slate-800 text-[11px] font-mono text-slate-400 flex items-center justify-between">
-                        <span>Custo da baixa:</span>
-                        <span className="text-amber-300 font-semibold">
-                          CMP vigente ({formatBRL(activePosition?.currentAverageCost ?? 0)})
-                        </span>
-                      </div>
-
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleAddExit}
-                        className="w-full h-8 text-xs bg-amber-600 hover:bg-amber-500 text-white font-mono cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5 mr-1" />
-                        Registrar Saída (Baixar Estoque)
-                      </Button>
-                    </div>
-                  </div>
                 </div>
 
                 {/* EXTRATO CRONOLÓGICO (KARDEX / CMP MÓVEL) */}
