@@ -526,7 +526,7 @@ export interface TaxContextType {
 
   // COMPRAS STATE (multi-itens + parâmetros globais)
   purchasesItems: PurchaseItem[]
-  addPurchaseItem: (name?: string) => void
+  addPurchaseItem: (name?: string) => string
   updatePurchaseItem: (
     id: string,
     field: keyof Omit<
@@ -2663,13 +2663,14 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   // Handlers para itens de compras
-  const addPurchaseItem = (name?: string) => {
+  const addPurchaseItem = (name?: string): string => {
     recordUndoSnapshot()
+    const newId = `purch-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
     setPurchasesItems((prev) => {
       const nextNum = prev.length + 1
       const newItem: PurchaseItem = {
-        id: `purch-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-        name: name || `Item ${nextNum}`,
+        id: newId,
+        name: name !== undefined ? name : `Item ${nextNum}`,
         quantity: 0,
         unitPrice: 0,
         merchandiseValue: 0,
@@ -2693,6 +2694,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [...prev, newItem]
     })
+    return newId
   }
 
   const updatePurchaseItem = (
@@ -2795,7 +2797,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return [
           {
             id: `purch-${Date.now()}`,
-            name: 'Item 1',
+            name: '',
             quantity: 0,
             unitPrice: 0,
             merchandiseValue: 0,

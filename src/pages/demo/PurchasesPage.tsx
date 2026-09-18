@@ -232,15 +232,33 @@ export default function PurchasesPage() {
                 type="button"
                 size="sm"
                 onClick={() => {
-                  addPurchaseItem()
-                  // O item recém adicionado será o último da lista
-                  setTimeout(() => {
-                    const latest = purchasesItems[purchasesItems.length - 1]
-                    if (latest) {
-                      setSelectedItemForModal(latest)
-                      setIsPurchaseItemModalOpen(true)
-                    }
-                  }, 50)
+                  const newId = addPurchaseItem()
+                  const stubItem: PurchaseItem = {
+                    id: newId,
+                    name: `Item ${purchasesItems.length + 1}`,
+                    quantity: 0,
+                    unitPrice: 0,
+                    merchandiseValue: 0,
+                    freightValue: 0,
+                    icmsFreightRate: 0,
+                    ipiRate: 0,
+                    icmsRate: 0,
+                    icmsFreightValue: 0,
+                    hasSt: false,
+                    stValue: 0,
+                    calculatedIpi: 0,
+                    calculatedIcms: 0,
+                    calculatedPis: 0,
+                    calculatedCofins: 0,
+                    costPresumido: 0,
+                    costReal: 0,
+                    costSimples: 0,
+                    unitCostPresumido: 0,
+                    unitCostReal: 0,
+                    unitCostSimples: 0,
+                  }
+                  setSelectedItemForModal(stubItem)
+                  setIsPurchaseItemModalOpen(true)
                 }}
                 className="h-8 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20 cursor-pointer"
               >
@@ -499,7 +517,7 @@ export default function PurchasesPage() {
                                   className="inline-flex items-center gap-1 text-[10px] font-sans font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded cursor-pointer transition-all"
                                   title="Abrir camada completa de detalhes e edição fiscal"
                                 >
-                                  <span>Detalhes</span>
+                                  <span>Abrir</span>
                                   <ChevronRight className="w-3 h-3" />
                                 </button>
                               </div>
@@ -524,7 +542,6 @@ export default function PurchasesPage() {
                               {idx + 1}
                             </span>
                           </td>
-
                           {/* 1. Nome do Item */}
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2">
@@ -543,7 +560,6 @@ export default function PurchasesPage() {
                               )}
                             </div>
                           </td>
-
                           {/* 2. Quantidade em Estoque */}
                           <td className="py-3 px-4 text-right">
                             <span className="font-bold text-slate-200">
@@ -551,29 +567,25 @@ export default function PurchasesPage() {
                               <span className="text-slate-500 font-normal text-[11px]">un.</span>
                             </span>
                           </td>
-
                           {/* 3. Preço Médio por Produto */}
                           <td className="py-3 px-4 text-right">
                             <span className="text-emerald-400 font-semibold">
                               {formatBRL(avgPrice)}
                             </span>
                           </td>
-
                           {/* 4. Preço Total */}
                           <td className="py-3 px-4 text-right">
                             <span className="text-emerald-300 font-bold">
                               {formatBRL(itemGrossTotal)}
                             </span>
                           </td>
-
                           {/* 5. Compras Líquidas (Valor da Compra Líquido de Tributos Recuperáveis) */}
                           <td className="py-3 px-4 text-right">
                             <span className="text-emerald-400 font-bold">
                               {formatBRL(itemNetPurchases)}
                             </span>
                           </td>
-
-                          {/* Botões da Camada: Recolher + Detalhes */}
+                          {/* Botões da Camada: Recolher + Abrir */}
                           <td className="py-3 px-4 text-center">
                             <div className="inline-flex items-center gap-1.5">
                               <button
@@ -582,18 +594,18 @@ export default function PurchasesPage() {
                                   e.stopPropagation()
                                   toggleItem(item.id)
                                 }}
-                                className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-slate-200 bg-slate-900 hover:bg-slate-850 border border-slate-800 px-2 py-1 rounded-lg transition-all cursor-pointer"
+                                className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-slate-200 bg-slate-900 hover:bg-slate-855 border border-slate-800 px-2 py-1 rounded-lg transition-all cursor-pointer"
                                 title="Recolher camada deste item"
                               >
                                 <ChevronUp className="w-3 h-3 text-slate-400" />
                                 <span className="hidden sm:inline">Recolher</span>
                               </button>
                               <span className="inline-flex items-center gap-1 text-[11px] font-sans font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 rounded-lg transition-all group-hover:border-emerald-400 shadow-sm">
-                                <span>Detalhes</span>
+                                <span>Abrir</span>
                                 <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
                               </span>
                             </div>
-                          </td>
+                          </td>{' '}
                         </tr>
                       )
                     })}
@@ -612,14 +624,33 @@ export default function PurchasesPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    addPurchaseItem()
-                    setTimeout(() => {
-                      const latest = purchasesItems[purchasesItems.length - 1]
-                      if (latest) {
-                        setSelectedItemForModal(latest)
-                        setIsPurchaseItemModalOpen(true)
-                      }
-                    }, 50)
+                    const newId = addPurchaseItem()
+                    const stubItem: PurchaseItem = {
+                      id: newId,
+                      name: `Item ${purchasesItems.length + 1}`,
+                      quantity: 0,
+                      unitPrice: 0,
+                      merchandiseValue: 0,
+                      freightValue: 0,
+                      icmsFreightRate: 0,
+                      ipiRate: 0,
+                      icmsRate: 0,
+                      icmsFreightValue: 0,
+                      hasSt: false,
+                      stValue: 0,
+                      calculatedIpi: 0,
+                      calculatedIcms: 0,
+                      calculatedPis: 0,
+                      calculatedCofins: 0,
+                      costPresumido: 0,
+                      costReal: 0,
+                      costSimples: 0,
+                      unitCostPresumido: 0,
+                      unitCostReal: 0,
+                      unitCostSimples: 0,
+                    }
+                    setSelectedItemForModal(stubItem)
+                    setIsPurchaseItemModalOpen(true)
                   }}
                   className="h-7 text-xs border-dashed border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/15 cursor-pointer font-bold shrink-0"
                 >
