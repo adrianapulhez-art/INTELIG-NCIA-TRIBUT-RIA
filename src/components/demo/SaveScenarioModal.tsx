@@ -26,13 +26,19 @@ import {
   ChevronRight,
   Sparkles,
   FileText,
+  Pencil,
+  Check,
+  X,
+  Undo2,
 } from 'lucide-react'
 import { useTaxContext } from '@/contexts/TaxContext'
 import {
   listClients,
   createClient,
+  deleteClient,
   listClientScenarios,
   createClientScenario,
+  updateClientScenario,
   deleteClientScenario,
   AccountingClientRecord,
   ClientSavedScenarioRecord,
@@ -107,21 +113,55 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     }, 4500)
   }
 
+  // Gerador de nome padrão do cenário com base no escopo e data
+  const getDefaultScenarioName = useCallback(() => {
+    const d = new Date()
+    const dateStr = d.toLocaleDateString('pt-BR')
+    if (scope === 'markup') {
+      return `Cenário Markup e Precificação — ${dateStr}`
+    } else if (scope === 'compras') {
+      return `Cenário Compras de Mercadorias — ${dateStr}`
+    }
+    return `Cenário Despesas Operacionais — ${dateStr}`
+  }, [scope])
+
+  // Edição inline de nome de cenário
+  const [editingScenarioId, setEditingScenarioId] = useState<string | null>(null)
+  const [editingScenarioName, setEditingScenarioName] = useState<string>('')
+  const [isSavingScenarioName, setIsSavingScenarioName] = useState<boolean>(false)
+
+  // Confirmação modal de exclusão de cenário
+  const [confirmDeleteScenario, setConfirmDeleteScenario] = useState<{
+    id: string
+    name: string
+  } | null>(null)
+
+  // Confirmação modal de exclusão de cliente
+  const [confirmDeleteClient, setConfirmDeleteClient] = useState<{
+    id: string
+    name: string
+    scenarioCount: number
+  } | null>(null)
+  const [isDeletingClient, setIsDeletingClient] = useState<boolean>(false)
+
   // Carregar lista de clientes
   const fetchClients = useCallback(async () => {
     setIsLoadingClients(true)
     try {
       const data = await listClients()
       setClients(data)
-      if (data.length > 0 && !selectedClientId) {
-        setSelectedClientId(data[0].id)
-      }
+      setSelectedClientId((current) => {
+        if (current && data.some((c) => c.id === current)) {
+          return current
+        }
+        return data.length > 0 ? data[0].id : ''
+      })
     } catch (err) {
       console.warn('Erro ao carregar clientes:', err)
     } finally {
       setIsLoadingClients(false)
     }
-  }, [selectedClientId])
+  }, [])
 
   // Carregar lista de cenários
   const fetchScenarios = useCallback(async () => {
@@ -141,20 +181,16 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     if (isOpen) {
       fetchClients()
       fetchScenarios()
-      const d = new Date()
-      const dateStr = d.toLocaleDateString('pt-BR')
-      let defaultName = `Cenário Despesas Operacionais — ${dateStr}`
-      if (scope === 'markup') {
-        defaultName = `Cenário Markup e Precificação — ${dateStr}`
-      } else if (scope === 'compras') {
-        defaultName = `Cenário Compras de Mercadorias — ${dateStr}`
-      }
-      setScenarioName(defaultName)
+      setScenarioName(getDefaultScenarioName())
       setScenarioNotes('')
       setIsCreatingClientInline(false)
+      setEditingScenarioId(null)
+      setEditingScenarioName('')
+      setConfirmDeleteScenario(null)
+      setConfirmDeleteClient(null)
       setFeedback(null)
     }
-  }, [isOpen, fetchClients, fetchScenarios])
+  }, [isOpen, fetchClients, fetchScenarios, getDefaultScenarioName])
 
   // Criar cliente inline
   const handleCreateClientInline = async (e?: React.FormEvent) => {
@@ -272,18 +308,82 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     }
   }
 
-  // Excluir cenário
-  const handleDeleteScenario = async (id: string, name: string) => {
+  // Iniciar renomeação inline de cenário
+  const handleStartRename = (sc: ClientSavedScenarioRecord) => {
+    setEditingScenarioId(sc.id)
+    setEditingScenarioName(sc.name)
+  }
+
+  // Cancelar renomeação inline
+  const handleCancelRename = () => {
+    setEditingScenarioId(null)
+    setEditingScenarioName('')
+  }
+
+  // Salvar renomeação inline de cenário
+  const handleSaveRename = async (id: string) => {
+    const trimmed = editingScenarioName.trim()
+    if (!trimmed) {
+      showFeedback('error', 'O nome do cenário não pode ficar em branco.')
+      return
+    }
+    setIsSavingScenarioName(true)
+    try {
+      const updated = await updateClientScenario(id, { name: trimmed })
+      setScenarios((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+      setEditingScenarioId(null)
+      setEditingScenarioName('')
+      showFeedback('success', `Cenário renomeado para "${trimmed}" com sucesso!`)
+    } catch (err) {
+      console.error('Erro ao renomear cenário:', err)
+      showFeedback('error', 'Não foi possível renomear o cenário.')
+    } finally {
+      setIsSavingScenarioName(false)
+    }
+  }
+
+  // Executar exclusão de cenário confirmada
+  const handleConfirmDeleteScenario = async () => {
+    if (!confirmDeleteScenario) return
+    const { id, name } = confirmDeleteScenario
     setDeletingId(id)
     try {
       await deleteClientScenario(id)
       setScenarios((prev) => prev.filter((s) => s.id !== id))
-      showFeedback('success', `Cenário "${name}" excluído.`)
+      showFeedback('success', `Cenário "${name}" excluído permanentemente.`)
+      setConfirmDeleteScenario(null)
     } catch (err) {
       console.error('Erro ao excluir cenário:', err)
       showFeedback('error', 'Falha ao excluir o cenário.')
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  // Executar exclusão de cliente confirmada (cascade)
+  const handleConfirmDeleteClient = async () => {
+    if (!confirmDeleteClient) return
+    const { id, name } = confirmDeleteClient
+    setIsDeletingClient(true)
+    try {
+      await deleteClient(id)
+      setClients((prev) => {
+        const remaining = prev.filter((c) => c.id !== id)
+        setSelectedClientId(remaining.length > 0 ? remaining[0].id : '')
+        return remaining
+      })
+      // Remove cenários desse cliente da lista local
+      setScenarios((prev) => prev.filter((s) => s.client !== id))
+      showFeedback(
+        'success',
+        `Cliente "${name}" e seus cenários vinculados foram excluídos com sucesso.`,
+      )
+      setConfirmDeleteClient(null)
+    } catch (err) {
+      console.error('Erro ao excluir cliente:', err)
+      showFeedback('error', 'Falha ao excluir cliente.')
+    } finally {
+      setIsDeletingClient(false)
     }
   }
 
@@ -530,21 +630,46 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
               ) : (
                 /* Dropdown de Clientes existentes */
                 <div className="space-y-1.5">
-                  <select
-                    value={selectedClientId}
-                    onChange={(e) => setSelectedClientId(e.target.value)}
-                    className="w-full h-9 text-xs bg-slate-900 border border-slate-700 rounded-lg px-3 text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans cursor-pointer"
-                  >
-                    {clients.length === 0 ? (
-                      <option value="">Nenhum cliente cadastrado ainda</option>
-                    ) : (
-                      clients.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} {c.document ? `(${c.document})` : ''}
-                        </option>
-                      ))
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedClientId}
+                      onChange={(e) => setSelectedClientId(e.target.value)}
+                      className="flex-1 h-9 text-xs bg-slate-900 border border-slate-700 rounded-lg px-3 text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans cursor-pointer"
+                    >
+                      {clients.length === 0 ? (
+                        <option value="">Nenhum cliente cadastrado ainda</option>
+                      ) : (
+                        clients.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name} {c.document ? `(${c.document})` : ''}
+                          </option>
+                        ))
+                      )}
+                    </select>
+
+                    {selectedClientId && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const cur = clients.find((c) => c.id === selectedClientId)
+                          if (cur) {
+                            setConfirmDeleteClient({
+                              id: cur.id,
+                              name: cur.name,
+                              scenarioCount: activeClientScenariosCount,
+                            })
+                          }
+                        }}
+                        className="h-9 px-2.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-800 text-xs shrink-0 cursor-pointer"
+                        title="Excluir este cliente do cadastro"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                        <span className="hidden sm:inline">Excluir cliente</span>
+                      </Button>
                     )}
-                  </select>
+                  </div>
 
                   {clients.length === 0 && (
                     <p className="text-[11px] text-amber-300/80 font-mono">
@@ -565,9 +690,33 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
 
             {/* Bloco 2: Identificação do Cenário */}
             <div className="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/25 space-y-3">
-              <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200 block">
-                Nome do Cenário <span className="text-emerald-400">*</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200 block">
+                  Nome do Cenário <span className="text-emerald-400">*</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  {scenarioName.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setScenarioName('')}
+                      className="text-[11px] text-slate-400 hover:text-rose-300 font-mono cursor-pointer flex items-center gap-1 transition-colors"
+                      title="Apagar todo o texto digitado"
+                    >
+                      <X className="w-3 h-3" />
+                      <span>Limpar</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setScenarioName(getDefaultScenarioName())}
+                    className="text-[11px] text-emerald-400 hover:text-emerald-300 font-mono cursor-pointer flex items-center gap-1 transition-colors"
+                    title="Preencher com a sugestão automática de data"
+                  >
+                    <Undo2 className="w-3 h-3" />
+                    <span>Sugerir nome</span>
+                  </button>
+                </div>
+              </div>
               <Input
                 type="text"
                 value={scenarioName}
@@ -729,6 +878,126 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         )}
 
         {/* ============================================================ */}
+        {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE CENÁRIO                   */}
+        {/* ============================================================ */}
+        <Dialog
+          open={Boolean(confirmDeleteScenario)}
+          onOpenChange={(open) => !open && setConfirmDeleteScenario(null)}
+        >
+          <DialogContent className="max-w-md bg-[#07130f] border border-rose-500/40 text-slate-100 shadow-2xl p-5">
+            <DialogHeader className="space-y-2">
+              <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-300 shrink-0">
+                  <Trash2 className="w-4 h-4" />
+                </div>
+                <span>Excluir Cenário Salvo?</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-300 leading-relaxed">
+                Tem certeza de que deseja excluir permanentemente o cenário{' '}
+                <strong className="text-white">"{confirmDeleteScenario?.name}"</strong>? Esta ação
+                não poderá ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-800">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmDeleteScenario(null)}
+                className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={Boolean(deletingId)}
+                onClick={handleConfirmDeleteScenario}
+                className="text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold cursor-pointer"
+              >
+                {deletingId ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    <span>Excluindo...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    <span>Confirmar Exclusão</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ============================================================ */}
+        {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE CLIENTE                   */}
+        {/* ============================================================ */}
+        <Dialog
+          open={Boolean(confirmDeleteClient)}
+          onOpenChange={(open) => !open && setConfirmDeleteClient(null)}
+        >
+          <DialogContent className="max-w-md bg-[#07130f] border border-rose-500/40 text-slate-100 shadow-2xl p-5">
+            <DialogHeader className="space-y-2">
+              <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-300 shrink-0">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <span>Excluir Cliente e Cenários?</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-300 leading-relaxed">
+                Você está prestes a excluir o cliente{' '}
+                <strong className="text-white">"{confirmDeleteClient?.name}"</strong>.
+                {confirmDeleteClient && confirmDeleteClient.scenarioCount > 0 ? (
+                  <span className="block mt-2 p-2.5 rounded-lg bg-rose-950/40 border border-rose-500/30 text-rose-200">
+                    ⚠ <strong>Atenção:</strong> este cliente possui{' '}
+                    <strong>{confirmDeleteClient.scenarioCount} cenário(s) gravado(s)</strong>.
+                    Todos os cenários vinculados a ele também serão excluídos em cascata.
+                  </span>
+                ) : (
+                  <span className="block mt-1 text-slate-400">
+                    Este cliente não possui cenários gravados vinculados.
+                  </span>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-800">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmDeleteClient(null)}
+                className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={isDeletingClient}
+                onClick={handleConfirmDeleteClient}
+                className="text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold cursor-pointer"
+              >
+                {isDeletingClient ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    <span>Excluindo cliente...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    <span>Excluir Cliente</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ============================================================ */}
         {/* ABA 2: LISTA DE CENÁRIOS SALVOS / RESTAURAÇÃO / EXCLUSÃO */}
         {/* ============================================================ */}
         {activeTab === 'historico' && (
@@ -798,99 +1067,169 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                           : 'bg-slate-950/70 border-slate-800 hover:border-emerald-500/40'
                       }`}
                     >
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-xs sm:text-sm text-white truncate">
-                            {sc.name}
-                          </span>
-                          {sc.clientName && (
-                            <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono">
-                              <Building2 className="w-3 h-3 mr-1 inline" />
-                              {sc.clientName}
-                            </Badge>
-                          )}
-                          {/* Badge de Origem/Escopo */}
-                          {sc.scope === 'markup' && (
-                            <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[9px] font-mono">
-                              Markup
-                            </Badge>
-                          )}
-                          {sc.scope === 'compras' && (
-                            <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
-                              Compras
-                            </Badge>
-                          )}
-                          {(!sc.scope || sc.scope === 'despesas-operacionais') && (
-                            <Badge className="bg-orange-500/20 text-orange-300 border border-orange-500/40 text-[9px] font-mono">
-                              Despesas
-                            </Badge>
-                          )}
-                          {isLocal && (
-                            <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
-                              Offline / Local
-                            </Badge>
-                          )}
+                      {editingScenarioId === sc.id ? (
+                        /* Modo de Edição Inline de Nome */
+                        <div className="w-full space-y-2 py-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-mono text-emerald-400 font-bold">
+                              Renomear cenário:
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="text"
+                              value={editingScenarioName}
+                              onChange={(e) => setEditingScenarioName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  handleSaveRename(sc.id)
+                                } else if (e.key === 'Escape') {
+                                  handleCancelRename()
+                                }
+                              }}
+                              autoFocus
+                              placeholder="Nome do cenário..."
+                              className="h-8 text-xs bg-slate-900 border-emerald-500/60 text-white font-sans flex-1"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              disabled={isSavingScenarioName || !editingScenarioName.trim()}
+                              onClick={() => handleSaveRename(sc.id)}
+                              className="h-8 px-2.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer"
+                              title="Salvar novo nome"
+                            >
+                              {isSavingScenarioName ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Check className="w-3.5 h-3.5 mr-1" />
+                              )}
+                              <span>Salvar</span>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              disabled={isSavingScenarioName}
+                              onClick={handleCancelRename}
+                              className="h-8 px-2 text-xs text-slate-400 hover:text-white cursor-pointer"
+                              title="Cancelar edição"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
                         </div>
+                      ) : (
+                        /* Modo Normal de Exibição */
+                        <>
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-xs sm:text-sm text-white truncate">
+                                {sc.name}
+                              </span>
+                              {sc.clientName && (
+                                <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono">
+                                  <Building2 className="w-3 h-3 mr-1 inline" />
+                                  {sc.clientName}
+                                </Badge>
+                              )}
+                              {/* Badge de Origem/Escopo */}
+                              {sc.scope === 'markup' && (
+                                <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[9px] font-mono">
+                                  Markup
+                                </Badge>
+                              )}
+                              {sc.scope === 'compras' && (
+                                <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
+                                  Compras
+                                </Badge>
+                              )}
+                              {(!sc.scope || sc.scope === 'despesas-operacionais') && (
+                                <Badge className="bg-orange-500/20 text-orange-300 border border-orange-500/40 text-[9px] font-mono">
+                                  Despesas
+                                </Badge>
+                              )}
+                              {isLocal && (
+                                <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
+                                  Offline / Local
+                                </Badge>
+                              )}
+                            </div>
 
-                        {sc.notes && (
-                          <p className="text-[11px] text-slate-400 line-clamp-1">{sc.notes}</p>
-                        )}
+                            {sc.notes && (
+                              <p className="text-[11px] text-slate-400 line-clamp-1">{sc.notes}</p>
+                            )}
 
-                        {/* Metadados específicos do escopo do cenário salvo */}
-                        <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono flex-wrap">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatDate(sc.updated || sc.created)}
-                          </span>
-                          <span>•</span>
-                          {sc.scope === 'markup' ? (
-                            <span className="text-emerald-400/90">
-                              Receita Consolidada:{' '}
-                              {formatBRL(sc.snapshot?.totalConsolidatedRevenue || 0)} (
-                              {sc.snapshot?.markupProducts?.length || 0} produtos)
-                            </span>
-                          ) : sc.scope === 'compras' ? (
-                            <span className="text-amber-400/90">
-                              Mercadorias: {formatBRL(sc.snapshot?.totalPurchasesMerchandise || 0)}{' '}
-                              ({sc.snapshot?.purchasesItems?.length || 0} itens)
-                            </span>
-                          ) : (
-                            <span className="text-rose-400/90">
-                              Despesas: {formatBRL(totalExp)} ({snapExpenses.length} itens)
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                            {/* Metadados específicos do escopo do cenário salvo */}
+                            <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formatDate(sc.updated || sc.created)}
+                              </span>
+                              <span>•</span>
+                              {sc.scope === 'markup' ? (
+                                <span className="text-emerald-400/90">
+                                  Receita Consolidada:{' '}
+                                  {formatBRL(sc.snapshot?.totalConsolidatedRevenue || 0)} (
+                                  {sc.snapshot?.markupProducts?.length || 0} produtos)
+                                </span>
+                              ) : sc.scope === 'compras' ? (
+                                <span className="text-amber-400/90">
+                                  Mercadorias:{' '}
+                                  {formatBRL(sc.snapshot?.totalPurchasesMerchandise || 0)} (
+                                  {sc.snapshot?.purchasesItems?.length || 0} itens)
+                                </span>
+                              ) : (
+                                <span className="text-rose-400/90">
+                                  Despesas: {formatBRL(totalExp)} ({snapExpenses.length} itens)
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
-                      {/* Ações: Restaurar e Excluir */}
-                      <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => handleRestore(sc)}
-                          className="h-7 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer shadow-sm"
-                          title="Restaurar dados deste cenário no formulário"
-                        >
-                          <RotateCcw className="w-3 h-3 mr-1" />
-                          Restaurar
-                        </Button>
+                          {/* Ações: Restaurar, Editar e Excluir */}
+                          <div className="flex items-center gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => handleRestore(sc)}
+                              className="h-7 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer shadow-sm"
+                              title="Restaurar dados deste cenário no formulário"
+                            >
+                              <RotateCcw className="w-3 h-3 mr-1" />
+                              Restaurar
+                            </Button>
 
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          disabled={isDeleting}
-                          onClick={() => handleDeleteScenario(sc.id, sc.name)}
-                          className="h-7 w-7 p-0 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
-                          title="Excluir cenário"
-                        >
-                          {isDeleting ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3 h-3" />
-                          )}
-                        </Button>
-                      </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleStartRename(sc)}
+                              className="h-7 w-7 p-0 text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+                              title="Renomear cenário"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              disabled={isDeleting}
+                              onClick={() => setConfirmDeleteScenario({ id: sc.id, name: sc.name })}
+                              className="h-7 w-7 p-0 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                              title="Excluir cenário"
+                            >
+                              {isDeleting ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3.5 h-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )
                 })}

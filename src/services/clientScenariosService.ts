@@ -345,6 +345,67 @@ export async function createClientScenario(params: {
   return { record: localRecord, synced: false }
 }
 
+export async function updateClientScenario(
+  id: string,
+  updates: { name?: string; notes?: string; snapshot?: TaxStateSnapshot },
+): Promise<ClientSavedScenarioRecord> {
+  const now = new Date().toISOString()
+  let updatedRecord: ClientSavedScenarioRecord | null = null
+
+  if (!id.startsWith('scen-client-local-') && pb.authStore.isValid) {
+    try {
+      const payload: Record<string, unknown> = {}
+      if (updates.name !== undefined) {
+        payload.name = updates.name.trim()
+      }
+      if (updates.notes !== undefined) {
+        payload.notes = updates.notes.trim()
+      }
+      if (updates.snapshot !== undefined) {
+        payload.snapshot = sanitizeSnapshotForPersistence(updates.snapshot)
+      }
+      const record = await pb.collection('saved_scenarios').update(id, payload, {
+        expand: 'client',
+      })
+      updatedRecord = formatScenarioRecord(record)
+    } catch (err) {
+      console.warn('Erro ao atualizar cenário no PocketBase, atualizando localmente:', err)
+    }
+  }
+
+  // Atualiza no localStorage
+  const localList = getLocalClientScenarios()
+  const foundIndex = localList.findIndex((s) => s.id === id)
+
+  if (foundIndex >= 0) {
+    const existing = localList[foundIndex]
+    const localUpdated: ClientSavedScenarioRecord = {
+      ...existing,
+      name: updates.name !== undefined ? updates.name.trim() : existing.name,
+      notes: updates.notes !== undefined ? updates.notes.trim() : existing.notes,
+      snapshot:
+        updates.snapshot !== undefined
+          ? sanitizeSnapshotForPersistence(updates.snapshot)
+          : existing.snapshot,
+      updated: now,
+    }
+    // Preserva clientName se houver
+    if (updatedRecord?.clientName) {
+      localUpdated.clientName = updatedRecord.clientName
+    }
+    localList[foundIndex] = localUpdated
+    saveLocalClientScenarios(localList)
+    if (!updatedRecord) {
+      updatedRecord = localUpdated
+    }
+  } else if (updatedRecord) {
+    saveLocalClientScenarios([updatedRecord, ...localList])
+  }
+
+  if (updatedRecord) return updatedRecord
+  throw new Error('Não foi possível atualizar o cenário especificado.')
+}
+
 export async function deleteClientScenario(id: string): Promise<boolean> {
   const localList = getLocalClientScenarios()
   const filtered = localList.filter((s) => s.id !== id)
@@ -355,6 +416,28 @@ export async function deleteClientScenario(id: string): Promise<boolean> {
       await pb.collection('saved_scenarios').delete(id)
     } catch (err) {
       console.warn('Erro ao excluir no PocketBase (já removido localmente):', err)
+    }
+  }
+  return true
+}
+
+export async function deleteClient(id: string): Promise<boolean> {
+  // 1. Remove do localStorage de clientes
+  const localClients = getLocalClients()
+  const filteredClients = localClients.filter((c) => c.id !== id)
+  saveLocalClients(filteredClients)
+
+  // 2. Cascade delete em cenários vinculados no localStorage
+  const localScenarios = getLocalClientScenarios()
+  const filteredScenarios = localScenarios.filter((s) => s.client !== id)
+  saveLocalClientScenarios(filteredScenarios)
+
+  // 3. Remove no PocketBase se não for puramente local
+  if (!id.startsWith('client-local-') && pb.authStore.isValid) {
+    try {
+      await pb.collection('clients').delete(id)
+    } catch (err) {
+      console.warn('Erro ao excluir cliente no PocketBase (já removido localmente):', err)
     }
   }
   return true
