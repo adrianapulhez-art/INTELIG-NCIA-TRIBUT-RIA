@@ -16,7 +16,6 @@ import {
   Scale,
   Sparkles,
   Info,
-  Save,
 } from 'lucide-react'
 import {
   formatBRL,
@@ -567,6 +566,7 @@ export default function MarkupPage() {
   const [isMarketAnchorFocused, setIsMarketAnchorFocused] = useState<boolean>(false)
   const [isMarketComparisonModalOpen, setIsMarketComparisonModalOpen] = useState<boolean>(false)
   const [isSaveScenarioModalOpen, setIsSaveScenarioModalOpen] = useState<boolean>(false)
+  const [saveScenarioModalTab, setSaveScenarioModalTab] = useState<'gravar' | 'historico'>('gravar')
 
   // Atualiza marketAnchorPriceInput inicial caso esteja zerado quando há preço calculado
   useEffect(() => {
@@ -892,20 +892,6 @@ export default function MarkupPage() {
                   Configuração de alíquotas automáticas por regime tributário e lista de produtos.
                 </p>
               </div>
-            </div>
-
-            {/* Ação Rápida: Gravar Cenário por Cliente */}
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setIsSaveScenarioModalOpen(true)}
-                className="h-8 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20 cursor-pointer gap-1.5"
-                title="Gravar cenário de markup e precificação por cliente do escritório"
-              >
-                <Save className="w-3.5 h-3.5 text-slate-950" />
-                <span>Gravar Cenário</span>
-              </Button>
             </div>
           </div>
 
@@ -3445,7 +3431,12 @@ export default function MarkupPage() {
 
         {/* Barra de Gerenciamento de Cenários movida para o final da página do Markup */}
         <div className="pt-2">
-          <ScenarioManagerBar />
+          <ScenarioManagerBar
+            onGravarCenario={() => {
+              setSaveScenarioModalTab('gravar')
+              setIsSaveScenarioModalOpen(true)
+            }}
+          />
         </div>
 
         {/* Rodapé da Calculadora Markup: Botões de navegação sequencial (Voltar para Compras / Avançar para DREs) */}
@@ -3483,6 +3474,7 @@ export default function MarkupPage() {
         isOpen={isSaveScenarioModalOpen}
         onClose={() => setIsSaveScenarioModalOpen(false)}
         scope="markup"
+        initialTab={saveScenarioModalTab}
       />
     </DemoLayout>
   )
