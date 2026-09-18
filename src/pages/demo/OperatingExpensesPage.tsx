@@ -13,6 +13,7 @@ import {
   ArrowRight,
   RotateCcw,
   Sparkles,
+  Save,
   TrendingDown,
   TrendingUp,
   Scale,
@@ -34,6 +35,7 @@ import { PayrollSection } from '@/components/demo/PayrollSection'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageHero } from '@/components/demo/PageHero'
+import { SaveScenarioModal } from '@/components/demo/SaveScenarioModal'
 import {
   Dialog,
   DialogContent,
@@ -79,6 +81,9 @@ export default function OperatingExpensesPage() {
     payrollTerceirosRate,
     setPayrollTerceirosRate,
   } = useTaxContext()
+
+  // Modal de Gravar Cenário por Cliente (Escritório Contábil)
+  const [isSaveScenarioModalOpen, setIsSaveScenarioModalOpen] = useState(false)
 
   // Subcamada Modal: Folha e Pró-labore
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false)
@@ -221,14 +226,26 @@ export default function OperatingExpensesPage() {
               </div>
             </div>
 
-            {/* Ações Rápidas: Zerar campos */}
+            {/* Ações Rápidas: Gravar Cenário e Zerar campos */}
             <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setIsSaveScenarioModalOpen(true)}
+                className="h-8 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20 cursor-pointer gap-1.5"
+                title="Gravar cenário de despesas e receitas por cliente do escritório"
+              >
+                <Save className="w-3.5 h-3.5 text-slate-950" />
+                <span>Gravar Cenário</span>
+              </Button>
+
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={resetAll}
                 className="h-8 text-xs bg-slate-950/40 border-slate-800 text-slate-400 hover:text-rose-300 hover:border-rose-500/30 cursor-pointer"
+                title="Limpar todos os campos desta página"
               >
                 <RotateCcw className="w-3.5 h-3.5 mr-1" />
                 Zerar campos
@@ -675,6 +692,14 @@ export default function OperatingExpensesPage() {
           </div>
         </div>
       </div>
+      {/* ===================================================================== */}
+      {/* MODAL PRINCIPAL: GRAVAR CENÁRIO POR CLIENTE (ESCRITÓRIO CONTÁBIL) */}
+      {/* ===================================================================== */}
+      <SaveScenarioModal
+        isOpen={isSaveScenarioModalOpen}
+        onClose={() => setIsSaveScenarioModalOpen(false)}
+        scope="despesas-operacionais"
+      />
       {/* ===================================================================== */}
       {/* CAMADA OCULTA 1: ADICIONAR DESPESA COM DISCRIMINAÇÃO E EXEMPLOS PRONTOS */}
       {/* ===================================================================== */}
