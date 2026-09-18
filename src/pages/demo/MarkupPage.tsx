@@ -16,6 +16,7 @@ import {
   Scale,
   Sparkles,
   Info,
+  Save,
 } from 'lucide-react'
 import {
   formatBRL,
@@ -34,6 +35,7 @@ import { OperacoesInterestaduaisSection } from '@/components/demo/OperacoesInter
 import { ImportPurchasesModal } from '@/components/demo/ImportPurchasesModal'
 import { MarkupCalculationMemoryModal } from '@/components/demo/MarkupCalculationMemoryModal'
 import { MarkupModeComparisonModal } from '@/components/demo/MarkupModeComparisonModal'
+import { SaveScenarioModal } from '@/components/demo/SaveScenarioModal'
 import { PageHero } from '@/components/demo/PageHero'
 import { RegimeComparisonBarChart } from '@/components/demo/RegimeComparisonBarChart'
 import {
@@ -564,6 +566,7 @@ export default function MarkupPage() {
   const [marketAnchorPriceInput, setMarketAnchorPriceInput] = useState<string>('')
   const [isMarketAnchorFocused, setIsMarketAnchorFocused] = useState<boolean>(false)
   const [isMarketComparisonModalOpen, setIsMarketComparisonModalOpen] = useState<boolean>(false)
+  const [isSaveScenarioModalOpen, setIsSaveScenarioModalOpen] = useState<boolean>(false)
 
   // Atualiza marketAnchorPriceInput inicial caso esteja zerado quando há preço calculado
   useEffect(() => {
@@ -889,6 +892,20 @@ export default function MarkupPage() {
                   Configuração de alíquotas automáticas por regime tributário e lista de produtos.
                 </p>
               </div>
+            </div>
+
+            {/* Ação Rápida: Gravar Cenário por Cliente */}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setIsSaveScenarioModalOpen(true)}
+                className="h-8 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20 cursor-pointer gap-1.5"
+                title="Gravar cenário de markup e precificação por cliente do escritório"
+              >
+                <Save className="w-3.5 h-3.5 text-slate-950" />
+                <span>Gravar Cenário</span>
+              </Button>
             </div>
           </div>
 
@@ -3460,6 +3477,13 @@ export default function MarkupPage() {
           </Button>
         </div>
       </div>
+
+      {/* Modal de Gravar Cenário por Cliente do Escritório */}
+      <SaveScenarioModal
+        isOpen={isSaveScenarioModalOpen}
+        onClose={() => setIsSaveScenarioModalOpen(false)}
+        scope="markup"
+      />
     </DemoLayout>
   )
 }

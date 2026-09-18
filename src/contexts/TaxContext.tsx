@@ -360,6 +360,7 @@ export interface TaxStateSnapshot {
   // COMPRAS
   purchasesItems?: PurchaseItem[]
   totalPurchasesQuantity?: number // Σ quantidade Compras
+  totalPurchasesMerchandise?: number // Σ mercadorias dos itens
   initialInventory: number
   finalInventory: number
   autoInventoryDeduction?: boolean // Baixa automática de estoque por quantidade
@@ -4455,6 +4456,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       totalConsolidatedCost,
       purchasesItems: computedPurchasesItems,
       totalPurchasesQuantity,
+      totalPurchasesMerchandise,
       initialInventory,
       finalInventory,
       autoInventoryDeduction,

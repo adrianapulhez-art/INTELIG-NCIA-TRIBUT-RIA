@@ -18,6 +18,7 @@ import {
   HelpCircle,
   Eye,
   EyeOff,
+  Save,
 } from 'lucide-react'
 import {
   formatBRL,
@@ -38,6 +39,7 @@ import { OperacoesInterestaduaisSection } from '@/components/demo/OperacoesInter
 import { CmvDetailedBreakdown } from '@/components/demo/CmvDetailedBreakdown'
 import { ProductStockModal } from '@/components/demo/ProductStockModal'
 import { PurchaseItemModal } from '@/components/demo/PurchaseItemModal'
+import { SaveScenarioModal } from '@/components/demo/SaveScenarioModal'
 import {
   Dialog,
   DialogContent,
@@ -91,6 +93,7 @@ export default function PurchasesPage() {
   // Estado da camada/modal de detalhe do item de compra
   const [selectedItemForModal, setSelectedItemForModal] = useState<PurchaseItem | null>(null)
   const [isPurchaseItemModalOpen, setIsPurchaseItemModalOpen] = useState(false)
+  const [isSaveScenarioModalOpen, setIsSaveScenarioModalOpen] = useState<boolean>(false)
 
   // Subsistema de estoque por produto: totais para o badge dinâmico
   const { productStockState, calculatedProductStock } = useTaxContext()
@@ -203,7 +206,7 @@ export default function PurchasesPage() {
               </div>
             </div>
 
-            {/* Ações Rápidas: Zerar campos e adicionar item */}
+            {/* Ações Rápidas: Zerar campos, gravar cenário e adicionar item */}
             <div className="flex items-center gap-2">
               <Button
                 type="button"
@@ -214,6 +217,16 @@ export default function PurchasesPage() {
               >
                 <RotateCcw className="w-3.5 h-3.5 mr-1" />
                 Zerar campos
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setIsSaveScenarioModalOpen(true)}
+                className="h-8 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20 cursor-pointer gap-1.5"
+                title="Gravar cenário de compras por cliente do escritório"
+              >
+                <Save className="w-3.5 h-3.5 text-slate-950" />
+                <span>Gravar Cenário</span>
               </Button>
               <Button
                 type="button"
@@ -1582,6 +1595,13 @@ export default function PurchasesPage() {
           </Button>
         </div>
       </div>
+
+      {/* Modal de Gravar Cenário por Cliente do Escritório */}
+      <SaveScenarioModal
+        isOpen={isSaveScenarioModalOpen}
+        onClose={() => setIsSaveScenarioModalOpen(false)}
+        scope="compras"
+      />
     </DemoLayout>
   )
 }
