@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { PageHero } from '@/components/demo/PageHero'
-import { useTaxContext } from '@/contexts/TaxContext'
+import { useTaxContext, TaxRegime } from '@/contexts/TaxContext'
 import {
   computeDreComparativeForRegime,
   RegimeDreComparativeData,
@@ -21,6 +21,9 @@ import {
   Tooltip,
   Legend,
   CartesianGrid,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
 } from 'recharts'
 import {
   TrendingUp,
@@ -36,9 +39,31 @@ import {
   ShoppingBag,
   Calculator,
   ShieldCheck,
+  LayoutDashboard,
+  Layers,
+  Percent,
+  SlidersHorizontal,
+  ChevronRight,
+  ExternalLink,
+  Package,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+
+// Subcomponentes Dark Cockpit
+import { CockpitDonutKpiCard } from '@/components/demo/dashboard/CockpitDonutKpiCard'
+import { CockpitAdvantageHeroCard } from '@/components/demo/dashboard/CockpitAdvantageHeroCard'
+import { CockpitHeroAreaChart } from '@/components/demo/dashboard/CockpitHeroAreaChart'
+import { CockpitFatorRGauge } from '@/components/demo/dashboard/CockpitFatorRGauge'
+import {
+  CockpitMiniSidebar,
+  CockpitSectionItem,
+} from '@/components/demo/dashboard/CockpitMiniSidebar'
+import {
+  CockpitPerspectiveSelector,
+  PerspectiveMode,
+} from '@/components/demo/dashboard/CockpitPerspectiveSelector'
+import { CockpitDrillDownModal } from '@/components/demo/dashboard/CockpitDrillDownModal'
 
 export default function DemoDashboardPage() {
   const navigate = useNavigate()
@@ -96,6 +121,16 @@ export default function DemoDashboardPage() {
     stSubsystem,
     operatingExpenses = [],
   } = taxContext
+
+  // Estado da perspectiva selecionada no topo ('regime' | 'product' | 'price_mode')
+  const [perspective, setPerspective] = useState<PerspectiveMode>('regime')
+
+  // Estado da seção ativa na mini sidebar exclusiva
+  const [activeSection, setActiveSection] = useState<string>('quadro-visao-geral')
+
+  // Estado do modal de drill-down por produto
+  const [isDrillOpen, setIsDrillOpen] = useState<boolean>(false)
+  const [drillTarget, setDrillTarget] = useState<'cmv' | 'despesas' | 'receitas' | null>(null)
 
   // Quantidade automática canônica: prioriza totalConsolidatedQuantity do Markup, depois totalPurchasesQuantity, depois 1
   const automaticQty =
@@ -215,6 +250,7 @@ export default function DemoDashboardPage() {
     simplesQuantitySold,
     automaticQty,
   ])
+
   // Detalhamento do CMV oficial para os 3 regimes
   const cmvBreakdowns = useMemo(() => {
     const makeBreakdown = (regime: 'presumido' | 'real' | 'simples') => {
@@ -319,10 +355,9 @@ export default function DemoDashboardPage() {
     return cats
   }, [operatingExpenses])
 
-  // Decisão do melhor regime (baseado no Preço Líquido Desejado, e com fallback para Custo + Margem)
+  // Estatísticas e decisão do melhor regime
   const regimeStats = useMemo(() => {
     const getBestPair = (d: RegimeDreComparativeData) => {
-      // Prioriza liquid se hasValidData, senão costMargin
       if (d.liquid.hasValidData && d.liquid.consolidated.grossRevenue > 0) {
         return {
           mode: 'liquid' as const,
@@ -350,8 +385,9 @@ export default function DemoDashboardPage() {
 
     const list = [
       {
-        key: 'presumido',
+        key: 'presumido' as const,
         name: 'Lucro Presumido',
+        shortName: 'Presumido',
         color: '#f97316',
         values: p.values,
         unit: p.unitValues,
@@ -360,8 +396,9 @@ export default function DemoDashboardPage() {
           dreComparative.presumido.costMargin.hasValidData,
       },
       {
-        key: 'real',
+        key: 'real' as const,
         name: 'Lucro Real',
+        shortName: 'Real',
         color: '#38bdf8',
         values: r.values,
         unit: r.unitValues,
@@ -369,8 +406,9 @@ export default function DemoDashboardPage() {
           dreComparative.real.liquid.hasValidData || dreComparative.real.costMargin.hasValidData,
       },
       {
-        key: 'simples',
+        key: 'simples' as const,
         name: 'Simples Nacional',
+        shortName: 'Simples',
         color: '#10b981',
         values: s.values,
         unit: s.unitValues,
@@ -380,7 +418,6 @@ export default function DemoDashboardPage() {
       },
     ]
 
-    // Regime mais vantajoso = maior Lucro Líquido
     const activeList = list.filter((item) => item.hasData && item.values.grossRevenue > 0)
     let best = activeList[0] || list[0]
     for (const item of activeList) {
@@ -389,7 +426,6 @@ export default function DemoDashboardPage() {
       }
     }
 
-    // Economia comparada ao pior regime
     let worst = activeList[0] || list[0]
     for (const item of activeList) {
       if (item.values.netProfit < worst.values.netProfit) {
@@ -401,71 +437,191 @@ export default function DemoDashboardPage() {
     return { list, best, worst, economy, hasAnyData: activeList.length > 0 }
   }, [dreComparative])
 
-  // Dados para o Gráfico Recharts de Comparação dos 3 Regimes
-  const barChartData = useMemo(() => {
-    return [
+  // Sparkline data derivado de produtos reais cadastrados (para os KPIs do topo)
+  const productSparklines = useMemo(() => {
+    if (markupProducts.length === 0) return { revenues: [100, 100], costs: [50, 50] }
+    const revs = markupProducts.map((p) => p.totalRevenue || p.salePrice || 0)
+    const costs = markupProducts.map((p) => p.totalCost || p.cost || 0)
+    return {
+      revenues: revs.length > 1 ? revs : [revs[0] || 0, revs[0] || 0],
+      costs: costs.length > 1 ? costs : [costs[0] || 0, costs[0] || 0],
+    }
+  }, [markupProducts])
+
+  // Percentuais derivados para os donuts dos KPIs do topo
+  const kpiDonuts = useMemo(() => {
+    const gross = regimeStats.best.values.grossRevenue || 1
+    const cmv = regimeStats.best.values.cmv || 0
+    const netProfit = regimeStats.best.values.netProfit || 0
+    const margin = regimeStats.best.values.netMargin || 0
+
+    // CMV como % da Receita Bruta
+    const cmvPct = Math.min(100, Math.max(0, (cmv / gross) * 100))
+    // Margem líquida como %
+    const marginPct = Math.min(100, Math.max(0, margin))
+    // Receita consolidada (fração padrão 100%)
+    const grossPct = 100
+
+    return { cmvPct, marginPct, grossPct }
+  }, [regimeStats])
+
+  // Dados para o Gráfico-Hero de Área (Confronto Triplo Luminoso)
+  const heroAreaData = useMemo(() => {
+    return regimeStats.list.map((r) => {
+      const taxes =
+        r.key === 'simples'
+          ? r.values.dasTotal
+          : r.values.taxesTotal + r.values.irpj + r.values.irpjAdditional + r.values.csll
+      const effRate = r.values.grossRevenue > 0 ? (taxes / r.values.grossRevenue) * 100 : 0
+      return {
+        regimeKey: r.key,
+        name: r.name,
+        shortName: r.shortName,
+        receitaLiquida: r.values.netRevenue,
+        cargaTributaria: taxes,
+        lucroLiquido: r.values.netProfit,
+        cmv: r.values.cmv,
+        aliquotaEfetiva: effRate,
+        isBest: r.key === regimeStats.best.key,
+      }
+    })
+  }, [regimeStats])
+
+  // G) NOTAS EXPLICATIVAS DINÂMICAS COM NÚMEROS REAIS DERIVADOS DO CONTEXTO
+  const explanatoryNotes = useMemo(() => {
+    // 1. Nota do Gráfico-Hero por Regime: Custo de tributo por R$ 100 vendidos
+    const pTaxes =
+      dreComparative.presumido.liquid.consolidated.taxesTotal +
+      dreComparative.presumido.liquid.consolidated.irpj +
+      dreComparative.presumido.liquid.consolidated.irpjAdditional +
+      dreComparative.presumido.liquid.consolidated.csll
+    const pGross = dreComparative.presumido.liquid.consolidated.grossRevenue || 1
+    const pRate = (pTaxes / pGross) * 100
+
+    const sTaxes = dreComparative.simples.liquid.consolidated.dasTotal
+    const sGross = dreComparative.simples.liquid.consolidated.grossRevenue || 1
+    const sRate = (sTaxes / sGross) * 100
+
+    const rTaxes =
+      dreComparative.real.liquid.consolidated.taxesTotal +
+      dreComparative.real.liquid.consolidated.irpj +
+      dreComparative.real.liquid.consolidated.irpjAdditional +
+      dreComparative.real.liquid.consolidated.csll
+    const rGross = dreComparative.real.liquid.consolidated.grossRevenue || 1
+    const rRate = (rTaxes / rGross) * 100
+
+    const heroNote = `No Lucro Presumido, cada R$ 100 faturados recolhem R$ ${pRate.toFixed(2)} em tributos; no Lucro Real, R$ ${rRate.toFixed(2)}; e no Simples Nacional, R$ ${sRate.toFixed(2)}. O regime ${regimeStats.best.name} gera a maior eficiência líquida final (+${formatBRL(regimeStats.best.values.netProfit)}).`
+
+    // 2. Nota da Composição de Custos / CMV: % da mercadoria sobre o custo total
+    const totalCmvBase = cmvBreakdowns.presumido.totalCmv || 1
+    const merchandiseBase = cmvBreakdowns.presumido.merchandiseTotal || 0
+    const merchandisePct = Math.min(100, (merchandiseBase / totalCmvBase) * 100)
+    const cmvNote = `A mercadoria responde por ${merchandisePct.toFixed(0)}% do seu custo de compra (${formatBRL(merchandiseBase)}) — é na negociação da entrada de insumos e no aproveitamento de créditos que uma gestão assertiva gera mais resultado do que qualquer corte linear de despesa.`
+
+    // 3. Nota do Comparador de Modos de Preço
+    const bestRegimeKey = regimeStats.best.key
+    const compData = dreComparative[bestRegimeKey]
+    const pLiquidRev = compData.liquid.consolidated.grossRevenue
+    const pCostMarginRev = compData.costMargin.consolidated.grossRevenue
+    const diffModes = Math.abs(pLiquidRev - pCostMarginRev)
+    const priceModeNote = `No regime ${regimeStats.best.name}, o modo Preço Líquido projeta faturamento de ${formatBRL(pLiquidRev)} vs ${formatBRL(pCostMarginRev)} em Custo + Margem (variação de ${formatBRL(diffModes)}). O Preço Líquido protege a margem alvo contra distorções tributárias.`
+
+    // 4. Nota do Medidor Fator R
+    const fatorVal = fatorRResult.fatorRPercent
+    const fatorNote = fatorRResult.isElegibleAnexo3
+      ? `Sua folha de salários representa ${fatorVal.toFixed(1)}% da RBT12 — situando-se com segurança acima dos 28%, garantindo tributação pela alíquota reduzida do Anexo III (a partir de 6%) em vez do Anexo V (15,5%).`
+      : `Sua folha de salários representa ${fatorVal.toFixed(1)}% da RBT12 — abaixo dos 28% legais. Com isso, os serviços ficam retidos no Anexo V (a partir de 15,5%). Aumentar pró-labore ou folha pode rebaixar a alíquota para o Anexo III.`
+
+    return { heroNote, cmvNote, priceModeNote, fatorNote }
+  }, [dreComparative, regimeStats, cmvBreakdowns, fatorRResult])
+
+  // Lista de produtos formatada para o modal de Drill-Down
+  const productDrillItems = useMemo(() => {
+    return markupProducts.map((p) => {
+      const pCost = typeof p.cost === 'number' ? p.cost : 0
+      const pQty = typeof p.quantity === 'number' ? p.quantity : 1
+      return {
+        id: p.id,
+        name: p.name || 'Produto',
+        mode: p.mode || 'cost_margin',
+        quantity: pQty,
+        unitCost: pCost,
+        totalCost: p.totalCost || pCost * pQty,
+        unitSalePrice: p.salePrice || 0,
+        totalRevenue: p.totalRevenue || 0,
+        cmvPresumido: calculatedPurchases.unitCostPresumidoEffective || pCost * 0.82,
+        cmvReal: calculatedPurchases.unitCostRealEffective || pCost * 0.7275,
+        cmvSimples: calculatedPurchases.unitCostSimplesEffective || pCost,
+      }
+    })
+  }, [markupProducts, calculatedPurchases])
+
+  // Seções da mini-sidebar exclusiva
+  const sidebarSections: CockpitSectionItem[] = useMemo(
+    () => [
       {
-        name: 'Lucro Presumido',
-        regimeKey: 'presumido',
-        receitaLiquida: dreComparative.presumido.liquid.hasValidData
-          ? dreComparative.presumido.liquid.consolidated.netRevenue
-          : dreComparative.presumido.costMargin.consolidated.netRevenue,
-        cargaTributaria: dreComparative.presumido.liquid.hasValidData
-          ? dreComparative.presumido.liquid.consolidated.taxesTotal +
-            dreComparative.presumido.liquid.consolidated.irpj +
-            dreComparative.presumido.liquid.consolidated.irpjAdditional +
-            dreComparative.presumido.liquid.consolidated.csll
-          : dreComparative.presumido.costMargin.consolidated.taxesTotal +
-            dreComparative.presumido.costMargin.consolidated.irpj +
-            dreComparative.presumido.costMargin.consolidated.irpjAdditional +
-            dreComparative.presumido.costMargin.consolidated.csll,
-        lucroLiquido: dreComparative.presumido.liquid.hasValidData
-          ? dreComparative.presumido.liquid.consolidated.netProfit
-          : dreComparative.presumido.costMargin.consolidated.netProfit,
-        cmv: dreComparative.presumido.liquid.hasValidData
-          ? dreComparative.presumido.liquid.consolidated.cmv
-          : dreComparative.presumido.costMargin.consolidated.cmv,
+        id: 'quadro-visao-geral',
+        title: 'Visão Geral & KPIs',
+        shortTitle: 'Visão Geral',
+        icon: <LayoutDashboard className="w-4 h-4" />,
       },
       {
-        name: 'Lucro Real',
-        regimeKey: 'real',
-        receitaLiquida: dreComparative.real.liquid.hasValidData
-          ? dreComparative.real.liquid.consolidated.netRevenue
-          : dreComparative.real.costMargin.consolidated.netRevenue,
-        cargaTributaria: dreComparative.real.liquid.hasValidData
-          ? dreComparative.real.liquid.consolidated.taxesTotal +
-            dreComparative.real.liquid.consolidated.irpj +
-            dreComparative.real.liquid.consolidated.irpjAdditional +
-            dreComparative.real.liquid.consolidated.csll
-          : dreComparative.real.costMargin.consolidated.taxesTotal +
-            dreComparative.real.costMargin.consolidated.irpj +
-            dreComparative.real.costMargin.consolidated.irpjAdditional +
-            dreComparative.real.costMargin.consolidated.csll,
-        lucroLiquido: dreComparative.real.liquid.hasValidData
-          ? dreComparative.real.liquid.consolidated.netProfit
-          : dreComparative.real.costMargin.consolidated.netProfit,
-        cmv: dreComparative.real.liquid.hasValidData
-          ? dreComparative.real.liquid.consolidated.cmv
-          : dreComparative.real.costMargin.consolidated.cmv,
+        id: 'quadro-hero-regimes',
+        title: 'Confronto dos Três Regimes',
+        shortTitle: 'Regimes',
+        icon: <TrendingUp className="w-4 h-4" />,
       },
       {
-        name: 'Simples Nacional',
-        regimeKey: 'simples',
-        receitaLiquida: dreComparative.simples.liquid.hasValidData
-          ? dreComparative.simples.liquid.consolidated.netRevenue
-          : dreComparative.simples.costMargin.consolidated.netRevenue,
-        cargaTributaria: dreComparative.simples.liquid.hasValidData
-          ? dreComparative.simples.liquid.consolidated.dasTotal
-          : dreComparative.simples.costMargin.consolidated.dasTotal,
-        lucroLiquido: dreComparative.simples.liquid.hasValidData
-          ? dreComparative.simples.liquid.consolidated.netProfit
-          : dreComparative.simples.costMargin.consolidated.netProfit,
-        cmv: dreComparative.simples.liquid.hasValidData
-          ? dreComparative.simples.liquid.consolidated.cmv
-          : dreComparative.simples.costMargin.consolidated.cmv,
+        id: 'quadro-precificacao',
+        title: 'Metodologias de Preço',
+        shortTitle: 'Precificação',
+        icon: <Calculator className="w-4 h-4" />,
       },
-    ]
-  }, [dreComparative])
+      {
+        id: 'quadro-custos',
+        title: 'CMV & Despesas Operacionais',
+        shortTitle: 'Custos',
+        icon: <Receipt className="w-4 h-4" />,
+      },
+      {
+        id: 'quadro-operacional-fator-r',
+        title: 'Painel Operacional & Fator R',
+        shortTitle: 'Fator R',
+        icon: <ShieldCheck className="w-4 h-4" />,
+      },
+    ],
+    [],
+  )
+
+  // Scroll suave ao clicar na sidebar
+  const handleScrollToSection = (sectionId: string) => {
+    setActiveSection(sectionId)
+    const el = document.getElementById(sectionId)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
+  // Observer de interseção para destacar a seção ativa conforme a rolagem
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + 200
+      for (const s of sidebarSections) {
+        const el = document.getElementById(s.id)
+        if (el) {
+          const top = el.offsetTop
+          const height = el.offsetHeight
+          if (scrollPos >= top && scrollPos < top + height) {
+            setActiveSection(s.id)
+            break
+          }
+        }
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [sidebarSections])
 
   // Exportação PDF/Excel
   const handleExport = (type: 'pdf' | 'excel') => {
@@ -580,476 +736,518 @@ export default function DemoDashboardPage() {
 
   return (
     <DemoLayout currentTab="dashboard">
-      <div className="space-y-6">
+      {/* B) MINI-SIDEBAR FINA EXCLUSIVA DO DASHBOARD (Apenas em telas amplas, sem alterar outras páginas) */}
+      <CockpitMiniSidebar
+        sections={sidebarSections}
+        activeSection={activeSection}
+        onSectionClick={handleScrollToSection}
+      />
+
+      {/* MODAL DE DRILL-DOWN POR PRODUTO */}
+      <CockpitDrillDownModal
+        isOpen={isDrillOpen}
+        onClose={() => setIsDrillOpen(false)}
+        drillTarget={drillTarget}
+        products={productDrillItems}
+      />
+
+      <div className="space-y-6 relative z-10">
         {/* HERO */}
         <PageHero
           title="Dashboard de Inteligência Tributária"
-          subtitle="Visão executiva integrada com KPIs consolidados, confronto direto dos três regimes, composição de CMV e diagnóstico do Fator R."
-          badge="ANÁLISE ESTRATÉGICA EM TEMPO REAL"
+          subtitle="Cockpit executivo integrado com anéis de desempenho, confronto luminoso dos regimes, diagnóstico radial do Fator R e alternância de perspectivas analíticas."
+          badge="COCKPIT ESTRATÉGICO EM TEMPO REAL"
           action={
             <div className="flex flex-wrap items-center justify-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleExport('pdf')}
-                className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-xs h-8 cursor-pointer"
+                className="border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 text-xs h-8 cursor-pointer shadow-sm shadow-orange-950/40"
               >
-                <Download className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                <Download className="w-3.5 h-3.5 mr-1 text-orange-400" />
                 Exportar PDF
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleExport('excel')}
-                className="border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-xs h-8 cursor-pointer"
+                className="border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 text-xs h-8 cursor-pointer shadow-sm shadow-orange-950/40"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                <FileSpreadsheet className="w-3.5 h-3.5 mr-1 text-orange-400" />
                 Exportar Excel
               </Button>
             </div>
           }
         />
 
-        {/* 1. SEÇÃO DE KPIS DO TOPO */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Receita Bruta Consolidada */}
-          <div className="rounded-2xl border border-slate-800 bg-[#091310]/80 p-4 shadow-lg backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 text-xs mb-2">
-              <span className="font-mono uppercase tracking-wider">Receita Consolidada</span>
-              <DollarSign className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-white font-mono">
-              {regimeStats.hasAnyData ? formatBRL(regimeStats.best.values.grossRevenue) : 'R$ 0,00'}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1 font-mono">
-              Base do regime vencedor ({regimeStats.best.name})
-            </p>
-          </div>
+        {/* F) SELETOR DE PERSPECTIVA NO TOPO */}
+        <CockpitPerspectiveSelector
+          currentPerspective={perspective}
+          onPerspectiveChange={setPerspective}
+        />
 
-          {/* Card 2: Custo das Mercadorias (CMV) */}
-          <div className="rounded-2xl border border-slate-800 bg-[#091310]/80 p-4 shadow-lg backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 text-xs mb-2">
-              <span className="font-mono uppercase tracking-wider">CMV Total</span>
-              <ShoppingBag className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-white font-mono">
-              {regimeStats.hasAnyData ? formatBRL(regimeStats.best.values.cmv) : 'R$ 0,00'}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1 font-mono">
-              Deduz créditos fiscais permitidos
-            </p>
-          </div>
+        {/* QUADRO 1: VISÃO GERAL & KPIS DO TOPO COM ANÉIS/DONUTS E CARD VENCEDOR NEON */}
+        <section id="quadro-visao-geral" className="scroll-mt-24 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* KPI 1: Receita Consolidada */}
+            <CockpitDonutKpiCard
+              title="Receita Consolidada"
+              value={
+                regimeStats.hasAnyData ? formatBRL(regimeStats.best.values.grossRevenue) : 'R$ 0,00'
+              }
+              subtitle={`Base do regime vencedor (${regimeStats.best.name})`}
+              badgeText="BASE CANÔNICA"
+              percentage={kpiDonuts.grossPct}
+              strokeColor="#f97316"
+              glowColor="rgba(249, 115, 22, 0.45)"
+              icon={<DollarSign className="w-4 h-4" />}
+              sparklineData={productSparklines.revenues}
+              sparklineColor="#f97316"
+            />
 
-          {/* Card 3: Lucro Líquido Final */}
-          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4 shadow-lg backdrop-blur-sm">
-            <div className="flex items-center justify-between text-emerald-300 text-xs mb-2">
-              <span className="font-mono uppercase tracking-wider font-bold">Lucro Líquido</span>
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div className="text-xl sm:text-2xl font-black text-emerald-300 font-mono">
-              {regimeStats.hasAnyData ? formatBRL(regimeStats.best.values.netProfit) : 'R$ 0,00'}
-            </div>
-            <p className="text-[11px] text-emerald-400/80 mt-1 font-mono font-semibold">
-              Margem Líquida: {formatPercentBR(regimeStats.best.values.netMargin)}
-            </p>
-          </div>
+            {/* KPI 2: CMV Total */}
+            <CockpitDonutKpiCard
+              title="CMV Total"
+              value={regimeStats.hasAnyData ? formatBRL(regimeStats.best.values.cmv) : 'R$ 0,00'}
+              subtitle={`${kpiDonuts.cmvPct.toFixed(1)}% do faturamento bruto`}
+              badgeText="DEDUZ CRÉDITOS"
+              percentage={kpiDonuts.cmvPct}
+              strokeColor="#eab308"
+              glowColor="rgba(234, 179, 8, 0.4)"
+              icon={<ShoppingBag className="w-4 h-4" />}
+              sparklineData={productSparklines.costs}
+              sparklineColor="#eab308"
+            />
 
-          {/* Card 4: Regime Mais Vantajoso */}
-          <div className="rounded-2xl border border-teal-500/30 bg-gradient-to-br from-[#0c241d] to-[#081713] p-4 shadow-lg flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-teal-300 text-xs mb-1">
-                <span className="font-mono uppercase tracking-wider font-bold">Mais Vantajoso</span>
-                <Sparkles className="w-4 h-4 text-teal-400" />
-              </div>
-              <div className="text-lg font-black text-white tracking-tight flex items-center gap-1.5 mt-1">
-                <span>{regimeStats.best.name}</span>
-              </div>
-            </div>
-            <div className="mt-3 pt-2 border-t border-emerald-500/20 flex items-center justify-between text-[11px] font-mono">
-              <span className="text-slate-400">Vantagem:</span>
-              <span className="text-emerald-400 font-bold">
-                {regimeStats.economy > 0 ? `+${formatBRL(regimeStats.economy)}` : 'Empate técnico'}
-              </span>
-            </div>
-          </div>
-        </div>
+            {/* KPI 3: Lucro Líquido Final */}
+            <CockpitDonutKpiCard
+              title="Lucro Líquido"
+              value={
+                regimeStats.hasAnyData ? formatBRL(regimeStats.best.values.netProfit) : 'R$ 0,00'
+              }
+              subtitle={`Margem Líquida: ${formatPercentBR(regimeStats.best.values.netMargin)}`}
+              badgeText="RESULTADO REAL"
+              percentage={kpiDonuts.marginPct}
+              strokeColor="#10b981"
+              glowColor="rgba(16, 185, 129, 0.45)"
+              icon={<TrendingUp className="w-4 h-4" />}
+              sparklineData={productSparklines.revenues}
+              sparklineColor="#10b981"
+            />
 
-        {/* 2. GRÁFICO RECHARTS DE CONFRONTO DOS 3 REGIMES */}
-        <div className="rounded-2xl border border-slate-800 bg-[#091310]/90 p-5 sm:p-6 shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white tracking-tight">
-                  Confronto Triplo dos Regimes Tributários
-                </h3>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] font-mono border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
-                >
-                  PRESUMIDO × REAL × SIMPLES
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Comparativo de Receita Líquida, Carga Tributária e Lucro Líquido apurados pelas
-                DREs.
-              </p>
-            </div>
-            <div className="flex items-center gap-3 text-xs font-mono">
-              <span className="flex items-center gap-1.5 text-orange-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
-                Presumido
-              </span>
-              <span className="flex items-center gap-1.5 text-sky-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#38bdf8]" />
-                Real
-              </span>
-              <span className="flex items-center gap-1.5 text-emerald-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]" />
-                Simples
-              </span>
-            </div>
+            {/* I) CARD NEON DE DESTAQUE: REGIME MAIS VANTAJOSO */}
+            <CockpitAdvantageHeroCard
+              bestRegimeName={regimeStats.best.name}
+              bestRegimeKey={regimeStats.best.key}
+              bestNetProfit={formatBRL(regimeStats.best.values.netProfit)}
+              bestNetMargin={formatPercentBR(regimeStats.best.values.netMargin)}
+              economyAmount={formatBRL(regimeStats.economy)}
+              hasEconomy={regimeStats.economy > 0}
+              worstRegimeName={regimeStats.worst.name}
+            />
           </div>
+        </section>
 
-          <div className="h-72 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barChartData} margin={{ top: 20, right: 20, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="name" stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                <YAxis
-                  stroke="#94a3b8"
-                  tick={{ fill: '#94a3b8', fontSize: 11 }}
-                  tickFormatter={(val) => `R$ ${(val / 1000).toFixed(0)}k`}
-                />
-                <Tooltip
-                  formatter={(val: number) => [formatBRL(val), '']}
-                  labelStyle={{ color: '#f8fafc', fontWeight: 'bold' }}
-                  contentStyle={{
-                    backgroundColor: '#05110d',
-                    borderColor: '#059669',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontFamily: 'monospace',
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                <Bar
-                  dataKey="receitaLiquida"
-                  name="Receita Líquida"
-                  fill="#10b981"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="cargaTributaria"
-                  name="Carga Tributária Total"
-                  fill="#f97316"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="lucroLiquido"
-                  name="Lucro Líquido Final"
-                  fill="#38bdf8"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        {/* QUADRO 2: GRÁFICO-HERO DE ÁREA COM GRADIENTE LUMINOSO (CONFRONTO DOS 3 REGIMES) */}
+        <section id="quadro-hero-regimes" className="scroll-mt-24 space-y-4">
+          <CockpitHeroAreaChart
+            data={heroAreaData}
+            explanatoryNote={explanatoryNotes.heroNote}
+            bestRegimeName={regimeStats.best.name}
+          />
+        </section>
 
-        {/* 3. COMPARADOR CUSTO + MARGEM × RECEITA LÍQUIDA DESEJADA */}
-        <div className="rounded-2xl border border-slate-800 bg-[#091310]/90 p-5 sm:p-6 shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-base font-bold text-white tracking-tight">
-                  Comparador de Metodologias: Preço Líquido Desejado vs Custo + Margem
-                </h3>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Comportamento das duas metodologias canônicas da Calculadora Markup em cada regime.
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/demo/markup')}
-              className="text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-7 font-mono"
-            >
-              Ajustar na Markup &rarr;
-            </Button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs font-mono border-collapse min-w-[650px]">
-              <thead>
-                <tr className="border-b border-slate-700 bg-slate-900/60 text-slate-300">
-                  <th className="py-2.5 px-3 text-left">Regime</th>
-                  <th className="py-2.5 px-3 text-right">Preço Bruto (Líquido Desejado)</th>
-                  <th className="py-2.5 px-3 text-right text-emerald-400 font-bold">
-                    Lucro Líq. (Líquido)
-                  </th>
-                  <th className="py-2.5 px-3 text-right">Preço Bruto (Custo + Margem)</th>
-                  <th className="py-2.5 px-3 text-right text-sky-400 font-bold">
-                    Lucro Líq. (Custo + Margem)
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {regimeStats.list.map((r) => {
-                  const compData = dreComparative[r.key as 'presumido' | 'real' | 'simples']
-                  return (
-                    <tr key={r.key} className="hover:bg-slate-900/40">
-                      <td className="py-2.5 px-3 text-white font-semibold flex items-center gap-2">
-                        <span
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: r.color }}
-                        />
-                        {r.name}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-slate-300">
-                        {compData.liquid.hasValidData
-                          ? formatBRL(compData.liquid.consolidated.grossRevenue)
-                          : '—'}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-emerald-400 font-bold">
-                        {compData.liquid.hasValidData
-                          ? formatBRL(compData.liquid.consolidated.netProfit)
-                          : '—'}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-slate-300">
-                        {compData.costMargin.hasValidData
-                          ? formatBRL(compData.costMargin.consolidated.grossRevenue)
-                          : '—'}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-sky-400 font-bold">
-                        {compData.costMargin.hasValidData
-                          ? formatBRL(compData.costMargin.consolidated.netProfit)
-                          : '—'}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* 4. COMPOSIÇÃO DE CUSTOS: CMV DETALHADO + DESPESAS POR CATEGORIA */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Coluna 1: Composição do CMV */}
-          <div className="rounded-2xl border border-slate-800 bg-[#091310]/90 p-5 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-              <div className="flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm font-bold text-white">Composição Canônica do CMV</h3>
+        {/* QUADRO 3: RENDERIZAÇÃO CONDICIONAL BASEADA NA PERSPECTIVA GLOBAL SELECIONADA */}
+        {perspective === 'product' && (
+          <section className="p-5 sm:p-6 rounded-2xl border border-purple-500/25 bg-gradient-to-br from-[#0d0822]/95 via-[#080517]/95 to-[#04020a]/95 shadow-xl backdrop-blur-md space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Package className="w-4 h-4 text-orange-400" />
+                  <h3 className="text-base font-bold text-white tracking-tight">
+                    Perspectiva Desagregada: Desempenho por Produto
+                  </h3>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-mono border-orange-500/40 text-orange-300 bg-orange-500/10"
+                  >
+                    VISTA INDIVIDUAL
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Visualização detalhada do faturamento e custos para cada item cadastrado.
+                </p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/demo/compras')}
-                className="text-[11px] text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-6 font-mono"
+                onClick={() => {
+                  setDrillTarget('cmv')
+                  setIsDrillOpen(true)
+                }}
+                className="text-xs text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 h-7 font-mono cursor-pointer"
               >
-                Calculadora Compras &rarr;
+                Abrir Drill-Down Completo &rarr;
               </Button>
             </div>
 
-            <div className="space-y-2.5 text-xs font-mono">
-              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/50">
-                <span className="text-slate-400">Mercadoria Bruta de Compra:</span>
-                <span className="text-slate-200 font-semibold">
-                  {formatBRL(cmvBreakdowns.presumido.merchandiseTotal)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/50">
-                <span className="text-slate-400">Frete & Encargos de Entrada:</span>
-                <span className="text-slate-200 font-semibold">
-                  {formatBRL(
-                    cmvBreakdowns.presumido.freightTotal + cmvBreakdowns.presumido.otherCostsTotal,
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-950/30 border border-emerald-500/20">
-                <span className="text-emerald-300">Créditos Tributários (Real):</span>
-                <span className="text-emerald-400 font-bold">
-                  -
-                  {formatBRL(
-                    cmvBreakdowns.real.totalIcms +
-                      cmvBreakdowns.real.totalPis +
-                      cmvBreakdowns.real.totalCofins,
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/50">
-                <span className="text-slate-400">CMV Final (Presumido):</span>
-                <span className="text-orange-400 font-bold">
-                  {formatBRL(cmvBreakdowns.presumido.totalCmv)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/50">
-                <span className="text-slate-400">CMV Final (Real - c/ créditos plenos):</span>
-                <span className="text-sky-400 font-bold">
-                  {formatBRL(cmvBreakdowns.real.totalCmv)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/50">
-                <span className="text-slate-400">CMV Final (Simples - sem créditos):</span>
-                <span className="text-emerald-400 font-bold">
-                  {formatBRL(cmvBreakdowns.simples.totalCmv)}
-                </span>
-              </div>
+            {/* Gráfico de Barras por Produto */}
+            <div className="h-64 w-full pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={productDrillItems}
+                  margin={{ top: 15, right: 20, left: 10, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#261b47" opacity={0.6} />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#64748b"
+                    tick={{ fill: '#cbd5e1', fontSize: 11, fontFamily: 'monospace' }}
+                  />
+                  <YAxis
+                    stroke="#64748b"
+                    tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }}
+                    tickFormatter={(val) => `R$ ${(val / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip
+                    formatter={(val: number) => [formatBRL(val), '']}
+                    contentStyle={{
+                      backgroundColor: '#070314',
+                      borderColor: '#7c3aed',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontFamily: 'monospace',
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                  <Bar
+                    dataKey="totalRevenue"
+                    name="Receita do Item"
+                    fill="#10b981"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="totalCost"
+                    name="Custo Total"
+                    fill="#f97316"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          </div>
+            <div className="pt-2 text-xs font-mono text-slate-400 border-t border-white/5 flex items-center justify-between">
+              <span>{markupProducts.length} produto(s) apurado(s) canonicamente.</span>
+              <span className="text-orange-400">Clique em qualquer item para detalhar.</span>
+            </div>
+          </section>
+        )}
 
-          {/* Coluna 2: Despesas por Categoria */}
-          <div className="rounded-2xl border border-slate-800 bg-[#091310]/90 p-5 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-              <div className="flex items-center gap-2">
-                <PieChart className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-sm font-bold text-white">
-                  Despesas Operacionais por Categoria
-                </h3>
+        {/* QUADRO 4: COMPARADOR CUSTO + MARGEM × RECEITA LÍQUIDA DESEJADA */}
+        <section id="quadro-precificacao" className="scroll-mt-24 space-y-4">
+          <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-[#0c081e]/95 via-[#080516]/95 to-[#04020a]/95 p-5 sm:p-6 shadow-[0_12px_40px_rgba(0,0,0,0.6)] backdrop-blur-md space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Calculator className="w-4 h-4 text-orange-400" />
+                  <h3 className="text-base font-bold text-white tracking-tight">
+                    Comparador de Metodologias: Preço Líquido Desejado vs Custo + Margem
+                  </h3>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-mono border-orange-500/30 text-orange-300 bg-orange-500/10"
+                  >
+                    MOTOR DUPLO
+                  </Badge>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Comportamento das duas metodologias canônicas da Calculadora Markup em cada
+                  regime.
+                </p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/demo/despesas-operacionais')}
-                className="text-[11px] text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-6 font-mono"
+                onClick={() => navigate('/demo/markup')}
+                className="text-xs text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 h-7 font-mono cursor-pointer"
               >
-                Gerenciar Despesas &rarr;
+                Ajustar na Markup &rarr;
               </Button>
             </div>
 
-            <div className="space-y-2.5 text-xs font-mono">
-              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/50">
-                <span className="text-slate-400">Despesas com Vendas:</span>
-                <span className="text-slate-200 font-semibold">
-                  {formatBRL(expensesByCategory.vendas)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/50">
-                <span className="text-slate-400">Despesas Administrativas & Folha:</span>
-                <span className="text-slate-200 font-semibold">
-                  {formatBRL(expensesByCategory.administrativas + directPayrollExpenses)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/50">
-                <span className="text-slate-400">Despesas Financeiras:</span>
-                <span className="text-slate-200 font-semibold">
-                  {formatBRL(expensesByCategory.financeiras)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/50">
-                <span className="text-slate-400">Outras Despesas Operacionais:</span>
-                <span className="text-slate-200 font-semibold">
-                  {formatBRL(expensesByCategory.outras)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-950/30 border border-emerald-500/20">
-                <span className="text-emerald-300 font-bold">Total Geral de Despesas:</span>
-                <span className="text-emerald-400 font-bold">
-                  {formatBRL(totalOperatingExpenses + directPayrollExpenses)}
-                </span>
-              </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs font-mono border-collapse min-w-[650px]">
+                <thead>
+                  <tr className="border-b border-purple-500/30 bg-purple-950/20 text-slate-200">
+                    <th className="py-2.5 px-3 text-left">Regime</th>
+                    <th className="py-2.5 px-3 text-right">Preço Bruto (Líquido Desejado)</th>
+                    <th className="py-2.5 px-3 text-right text-emerald-400 font-bold">
+                      Lucro Líq. (Líquido)
+                    </th>
+                    <th className="py-2.5 px-3 text-right">Preço Bruto (Custo + Margem)</th>
+                    <th className="py-2.5 px-3 text-right text-sky-400 font-bold">
+                      Lucro Líq. (Custo + Margem)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {regimeStats.list.map((r) => {
+                    const compData = dreComparative[r.key as 'presumido' | 'real' | 'simples']
+                    return (
+                      <tr key={r.key} className="hover:bg-white/[0.03] transition-colors">
+                        <td className="py-2.5 px-3 text-white font-semibold flex items-center gap-2">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{
+                              backgroundColor: r.color,
+                              boxShadow: `0 0 8px ${r.color}`,
+                            }}
+                          />
+                          {r.name}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-slate-300">
+                          {compData.liquid.hasValidData
+                            ? formatBRL(compData.liquid.consolidated.grossRevenue)
+                            : '—'}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-emerald-400 font-bold">
+                          {compData.liquid.hasValidData
+                            ? formatBRL(compData.liquid.consolidated.netProfit)
+                            : '—'}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-slate-300">
+                          {compData.costMargin.hasValidData
+                            ? formatBRL(compData.costMargin.consolidated.grossRevenue)
+                            : '—'}
+                        </td>
+                        <td className="py-2.5 px-3 text-right text-sky-400 font-bold">
+                          {compData.costMargin.hasValidData
+                            ? formatBRL(compData.costMargin.consolidated.netProfit)
+                            : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
-          </div>
-        </div>
 
-        {/* 5. PAINEL DESPESAS × RECEITAS OPERACIONAIS + FATOR R */}
-        <div className="rounded-2xl border border-slate-800 bg-[#091310]/90 p-5 sm:p-6 shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-base font-bold text-white tracking-tight">
-                  Painel de Eficiência Operacional & Análise de Fator R (LC 123/2006)
-                </h3>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Enquadramento no Simples Nacional: Anexo III (alíquota a partir de 6%) se
-                Folha/RBT12 &ge; 28%, caso contrário Anexo V (a partir de 15,5%).
+            {/* G) NOTA EXPLICATIVA SOB O COMPARADOR DE PREÇO COM NÚMEROS REAIS */}
+            <div className="mt-3 pt-3 border-t border-white/10 flex items-start gap-2.5 text-xs font-mono text-slate-300 bg-white/[0.02] p-2.5 rounded-xl">
+              <Calculator className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                <strong className="text-orange-400">Por que isto importa:</strong>{' '}
+                {explanatoryNotes.priceModeNote}
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/demo/simples')}
-              className="text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 h-7 font-mono"
-            >
-              Ver DRE Simples &rarr;
-            </Button>
           </div>
+        </section>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
-            {/* Bloco 1: Folha 12 Meses */}
-            <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
-              <span className="text-slate-400 text-[11px] block">
-                Folha Salarial + Encargos (12m)
-              </span>
-              <span className="text-base font-bold text-white mt-1 block">
-                {formatBRL(simplesPayroll12m)}
-              </span>
-              <span className="text-[10px] text-slate-500 mt-0.5 block">
-                Salários, pró-labore e CPP
-              </span>
-            </div>
+        {/* QUADRO 5: COMPOSIÇÃO DE CUSTOS & DESPESAS COM INTERAÇÃO E DRILL-DOWN */}
+        <section id="quadro-custos" className="scroll-mt-24 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Coluna 1: Composição do CMV com Drill-Down interativo ao clicar */}
+            <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-[#0c081e]/95 via-[#080516]/95 to-[#04020a]/95 p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-4 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-orange-400" />
+                    <h3 className="text-sm sm:text-base font-bold text-white">
+                      Composição Canônica do CMV
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDrillTarget('cmv')
+                        setIsDrillOpen(true)
+                      }}
+                      className="border-purple-500/30 text-purple-300 hover:bg-purple-500/20 text-[11px] h-7 font-mono cursor-pointer"
+                    >
+                      Drill por Produto
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate('/demo/compras')}
+                      className="text-[11px] text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 h-7 font-mono cursor-pointer"
+                    >
+                      Compras &rarr;
+                    </Button>
+                  </div>
+                </div>
 
-            {/* Bloco 2: RBT12 Acumulado */}
-            <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
-              <span className="text-slate-400 text-[11px] block">RBT12 Acumulado</span>
-              <span className="text-base font-bold text-white mt-1 block">
-                {formatBRL(
-                  effectiveSimplesRbt12 !== undefined ? effectiveSimplesRbt12 : simplesRbt12,
-                )}
-              </span>
-              <span className="text-[10px] text-slate-500 mt-0.5 block">
-                Receita bruta últimos 12 meses
-              </span>
-            </div>
+                <div className="space-y-2 text-xs font-mono mt-3">
+                  <div
+                    onClick={() => {
+                      setDrillTarget('cmv')
+                      setIsDrillOpen(true)
+                    }}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 cursor-pointer transition-colors"
+                  >
+                    <span className="text-slate-400 flex items-center gap-1.5">
+                      Mercadoria Bruta de Compra:
+                      <ChevronRight className="w-3 h-3 text-slate-500" />
+                    </span>
+                    <span className="text-slate-200 font-bold">
+                      {formatBRL(cmvBreakdowns.presumido.merchandiseTotal)}
+                    </span>
+                  </div>
 
-            {/* Bloco 3: Diagnóstico Fator R */}
-            <div
-              className={`p-3.5 rounded-xl border ${
-                fatorRResult.isElegibleAnexo3
-                  ? 'bg-emerald-950/30 border-emerald-500/30'
-                  : 'bg-amber-950/30 border-amber-500/30'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-slate-300 font-semibold">Fator R Apurado</span>
-                <Badge
-                  variant="outline"
-                  className={
-                    fatorRResult.isElegibleAnexo3
-                      ? 'border-emerald-500 text-emerald-300 bg-emerald-500/10'
-                      : 'border-amber-500 text-amber-300 bg-amber-500/10'
-                  }
-                >
-                  {fatorRResult.isElegibleAnexo3 ? 'ANEXO III' : 'ANEXO V'}
-                </Badge>
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                    <span className="text-slate-400">Frete & Encargos de Entrada:</span>
+                    <span className="text-slate-200 font-bold">
+                      {formatBRL(
+                        cmvBreakdowns.presumido.freightTotal +
+                          cmvBreakdowns.presumido.otherCostsTotal,
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-sky-950/30 border border-sky-500/30">
+                    <span className="text-sky-300">Créditos Tributários (Real):</span>
+                    <span className="text-sky-400 font-bold">
+                      -
+                      {formatBRL(
+                        cmvBreakdowns.real.totalIcms +
+                          cmvBreakdowns.real.totalPis +
+                          cmvBreakdowns.real.totalCofins,
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                    <span className="text-slate-400">CMV Final (Presumido):</span>
+                    <span className="text-orange-400 font-bold">
+                      {formatBRL(cmvBreakdowns.presumido.totalCmv)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                    <span className="text-slate-400">CMV Final (Real - créditos plenos):</span>
+                    <span className="text-sky-400 font-bold">
+                      {formatBRL(cmvBreakdowns.real.totalCmv)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                    <span className="text-slate-400">CMV Final (Simples - sem créditos):</span>
+                    <span className="text-emerald-400 font-bold">
+                      {formatBRL(cmvBreakdowns.simples.totalCmv)}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <span className="text-base font-bold text-white mt-1 block">
-                {formatPercentBR(fatorRResult.fatorRPercent)}
-              </span>
-              <span
-                className={`text-[10px] mt-0.5 block font-semibold ${
-                  fatorRResult.isElegibleAnexo3 ? 'text-emerald-400' : 'text-amber-400'
-                }`}
-              >
-                {fatorRResult.isElegibleAnexo3
-                  ? '✓ Folha ≥ 28%: Tributação no Anexo III'
-                  : '⚠ Folha < 28%: Sujeito ao Anexo V'}
-              </span>
+
+              {/* G) NOTA EXPLICATIVA SOB O CMV COM PERCENTUAL REAL CALCULADO */}
+              <div className="mt-3 pt-3 border-t border-white/10 flex items-start gap-2.5 text-xs font-mono text-slate-300 bg-white/[0.02] p-2.5 rounded-xl">
+                <Receipt className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <strong className="text-orange-400">Por que isto importa:</strong>{' '}
+                  {explanatoryNotes.cmvNote}
+                </p>
+              </div>
+            </div>
+
+            {/* Coluna 2: Despesas por Categoria com Gráfico Donut de Despesas */}
+            <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-[#0c081e]/95 via-[#080516]/95 to-[#04020a]/95 p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-4 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <PieChart className="w-4 h-4 text-orange-400" />
+                    <h3 className="text-sm sm:text-base font-bold text-white">
+                      Despesas Operacionais por Categoria
+                    </h3>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/demo/despesas-operacionais')}
+                    className="text-[11px] text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 h-7 font-mono cursor-pointer"
+                  >
+                    Gerenciar Despesas &rarr;
+                  </Button>
+                </div>
+
+                <div className="space-y-2 text-xs font-mono mt-3">
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                    <span className="text-slate-400">Despesas com Vendas:</span>
+                    <span className="text-slate-200 font-bold">
+                      {formatBRL(expensesByCategory.vendas)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                    <span className="text-slate-400">Despesas Administrativas & Folha:</span>
+                    <span className="text-slate-200 font-bold">
+                      {formatBRL(expensesByCategory.administrativas + directPayrollExpenses)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                    <span className="text-slate-400">Despesas Financeiras:</span>
+                    <span className="text-slate-200 font-bold">
+                      {formatBRL(expensesByCategory.financeiras)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                    <span className="text-slate-400">Outras Despesas Operacionais:</span>
+                    <span className="text-slate-200 font-bold">
+                      {formatBRL(expensesByCategory.outras)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-purple-950/30 border border-purple-500/30">
+                    <span className="text-purple-300 font-bold">Total Geral de Despesas:</span>
+                    <span className="text-purple-400 font-bold">
+                      {formatBRL(totalOperatingExpenses + directPayrollExpenses)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nota de Despesas */}
+              <div className="mt-3 pt-3 border-t border-white/10 flex items-start gap-2.5 text-xs font-mono text-slate-300 bg-white/[0.02] p-2.5 rounded-xl">
+                <PieChart className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <strong className="text-orange-400">Visão Integrada:</strong> As despesas
+                  operacionais totalizam{' '}
+                  <strong className="text-white">
+                    {formatBRL(totalOperatingExpenses + directPayrollExpenses)}
+                  </strong>{' '}
+                  e deduzem integralmente o resultado tributário dos regimes de apuração pelo lucro.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* 6. ATALHOS RÁPIDOS PARA OUTROS MÓDULOS */}
-        <div className="pt-2">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <h4 className="text-xs font-mono uppercase tracking-widest text-emerald-400 font-bold">
-              Atalhos Rápidos para Aprofundamento Detalhado
-            </h4>
+        {/* QUADRO 6: E) MEDIDOR RADIAL DO FATOR R & EFICIÊNCIA OPERACIONAL */}
+        <section id="quadro-operacional-fator-r" className="scroll-mt-24 space-y-4">
+          <CockpitFatorRGauge
+            fatorRPercent={fatorRResult.fatorRPercent}
+            simplesPayroll12m={simplesPayroll12m}
+            simplesRbt12={rbtBase}
+            isElegibleAnexo3={fatorRResult.isElegibleAnexo3}
+            explanatoryNote={explanatoryNotes.fatorNote}
+          />
+        </section>
+
+        {/* J) ATALHOS RÁPIDOS PRESERVADOS INTEGRALMENTE PARA OS DEMAIS MÓDULOS */}
+        <div className="pt-4 border-t border-white/10">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-orange-400 shadow-[0_0_8px_#f97316]" />
+              <h4 className="text-xs font-mono uppercase tracking-widest text-orange-400 font-bold">
+                Atalhos Rápidos de Aprofundamento Analítico
+              </h4>
+            </div>
+            <span className="text-[11px] font-mono text-slate-400">
+              Módulos integrados ao mesmo motor
+            </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -1071,9 +1269,9 @@ export default function DemoDashboardPage() {
                   key={shortcut.path}
                   type="button"
                   onClick={() => navigate(shortcut.path)}
-                  className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-emerald-500/40 hover:bg-slate-800/80 transition-all text-left group cursor-pointer flex flex-col justify-between h-20"
+                  className="p-3.5 rounded-xl bg-gradient-to-br from-[#0c081e]/90 to-[#060310]/95 border border-purple-500/20 hover:border-orange-500/50 hover:shadow-[0_0_18px_rgba(249,115,22,0.2)] transition-all text-left group cursor-pointer flex flex-col justify-between h-24"
                 >
-                  <Icon className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <Icon className="w-5 h-5 text-orange-400 group-hover:scale-110 transition-transform" />
                   <span className="text-xs text-slate-300 font-semibold group-hover:text-white leading-tight">
                     {shortcut.label}
                   </span>
