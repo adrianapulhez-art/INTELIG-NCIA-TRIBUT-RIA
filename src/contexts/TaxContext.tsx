@@ -1595,9 +1595,71 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setReformaState((prev) => ({ ...prev, selectedYear: year }))
   }
 
+  /**
+   * Normalização idempotente do subsistema de estoque:
+   * Agrupa entradas com notes de importação por produto e mantém apenas UMA por item de compra
+   * (remove duplicatas), sem afetar entradas manuais que não sejam de importação.
+   */
+  const normalizeProductStockState = (state: ProductStockState): ProductStockState => {
+    if (!state || !Array.isArray(state.products)) return state
+    let hasChanges = false
+
+    const normalizedProducts = state.products.map((prod) => {
+      if (!Array.isArray(prod.entries) || prod.entries.length === 0) return prod
+
+      const seenImportKeys = new Set<string>()
+      const filteredEntries: ProductStockEntry[] = []
+
+      for (const entry of prod.entries) {
+        // Verifica se é uma entrada originada de importação
+        const notes = entry.notes || ''
+        const isImportEntry =
+          entry.id?.startsWith('entry-import-') ||
+          notes.includes('Importado de Compras:') ||
+          notes.includes('Item de Compras:')
+
+        if (!isImportEntry) {
+          filteredEntries.push(entry)
+          continue
+        }
+
+        // Extrai a chave canônica do item de compra a partir do id ou da nota
+        let itemKey = ''
+        if (entry.id?.startsWith('entry-import-')) {
+          itemKey = entry.id
+        } else {
+          const match = notes.match(/(?:Importado de Compras|Item de Compras):\s*(.*)$/)
+          if (match && match[1]) {
+            itemKey = `entry-import-${match[1].trim().toLowerCase().replace(/\s+/g, '-')}`
+          } else {
+            itemKey = notes.trim().toLowerCase()
+          }
+        }
+
+        if (!seenImportKeys.has(itemKey)) {
+          seenImportKeys.add(itemKey)
+          filteredEntries.push(entry)
+        } else {
+          // Duplicata encontrada: será descartada
+          hasChanges = true
+        }
+      }
+
+      if (filteredEntries.length !== prod.entries.length) {
+        return {
+          ...prod,
+          entries: filteredEntries,
+        }
+      }
+      return prod
+    })
+
+    return hasChanges ? { ...state, products: normalizedProducts } : state
+  }
+
   // SUBSISTEMA 4: CONTROLE DE ESTOQUE POR PRODUTO
-  const [productStockState, setProductStockState] = useState<ProductStockState>(
-    INITIAL_PRODUCT_STOCK_STATE,
+  const [productStockState, setProductStockState] = useState<ProductStockState>(() =>
+    normalizeProductStockState(INITIAL_PRODUCT_STOCK_STATE),
   )
 
   const addProductStockItem = (
@@ -1900,26 +1962,36 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               ? purch.costReal || purch.merchandiseValue
               : purch.costPresumido || purch.merchandiseValue
 
-        // Verifica se já não existe uma entrada idêntica recente para este item da calculadora
-        const alreadyImported = targetProd.entries.some(
+        // 1. Gera o id da entrada de forma determinística
+        const deterministicId = `entry-import-${purch.id || purch.name.trim().toLowerCase().replace(/\s+/g, '-')}`
+
+        // 2. Procura se já existe entrada com esse id OU com notes contendo Importado/Item de Compras
+        const existingEntryIndex = targetProd.entries.findIndex(
           (e) =>
-            e.notes?.includes(`Item de Compras: ${purch.name}`) &&
-            e.quantity === purch.quantity &&
-            Math.abs(e.unitCost - unitCost) < 0.01,
+            e.id === deterministicId ||
+            e.notes?.includes(`Importado de Compras: ${purch.name}`) ||
+            e.notes?.includes(`Item de Compras: ${purch.name}`),
         )
 
-        if (!alreadyImported && purch.quantity > 0) {
-          importedCount++
-          targetProd.entries = [
-            ...targetProd.entries,
-            {
-              id: `entry-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-              quantity: purch.quantity,
-              unitCost: Math.round(unitCost * 10000) / 10000,
-              totalValue: Math.round(totalVal * 100) / 100,
-              notes: `Importado de Compras: ${purch.name}`,
-            },
-          ]
+        const newEntryData: ProductStockEntry = {
+          id: deterministicId,
+          quantity: purch.quantity,
+          unitCost: Math.round(unitCost * 10000) / 10000,
+          totalValue: Math.round(totalVal * 100) / 100,
+          notes: `Importado de Compras: ${purch.name}`,
+        }
+
+        if (purch.quantity > 0) {
+          if (existingEntryIndex >= 0) {
+            // SUBSTITUI a entrada existente na mesma posição no array com valores atualizados
+            targetProd.entries = targetProd.entries.map((ent, idx) =>
+              idx === existingEntryIndex ? newEntryData : ent,
+            )
+          } else {
+            // ADICIONA uma nova com id determinístico
+            importedCount++
+            targetProd.entries = [...targetProd.entries, newEntryData]
+          }
         }
       })
 
@@ -4421,10 +4493,12 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     if (snapshot.productStockState) {
-      setProductStockState({
-        ...INITIAL_PRODUCT_STOCK_STATE,
-        ...snapshot.productStockState,
-      })
+      setProductStockState(
+        normalizeProductStockState({
+          ...INITIAL_PRODUCT_STOCK_STATE,
+          ...snapshot.productStockState,
+        }),
+      )
     } else {
       setProductStockState(INITIAL_PRODUCT_STOCK_STATE)
     }
