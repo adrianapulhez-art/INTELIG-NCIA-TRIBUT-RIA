@@ -1507,7 +1507,12 @@ export default function PurchasesPage() {
 
         {/* Barra de Gerenciamento de Cenários no fim da página (padrão Markup) */}
         <div className="pt-2">
-          <ScenarioManagerBar />
+          <ScenarioManagerBar
+            onGravarCenario={() => {
+              setSaveScenarioModalTab('gravar')
+              setIsSaveScenarioModalOpen(true)
+            }}
+          />
         </div>
 
         {/* Botões de Navegação no Final da Página */}
