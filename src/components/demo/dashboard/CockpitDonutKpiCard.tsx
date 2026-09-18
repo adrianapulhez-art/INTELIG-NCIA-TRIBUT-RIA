@@ -7,6 +7,7 @@ export interface CockpitDonutKpiCardProps {
   badgeText?: string
   icon: React.ReactNode
   percentage: number // 0 to 100
+  centerLabel?: string
   strokeColor?: string
   glowColor?: string
   sparklineData?: number[]
@@ -20,6 +21,7 @@ export const CockpitDonutKpiCard: React.FC<CockpitDonutKpiCardProps> = ({
   badgeText,
   icon,
   percentage,
+  centerLabel,
   strokeColor = '#f97316',
   glowColor = 'rgba(249, 115, 22, 0.4)',
   sparklineData,
@@ -140,10 +142,16 @@ export const CockpitDonutKpiCard: React.FC<CockpitDonutKpiCardProps> = ({
               cy="32"
             />
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[10px] font-mono font-bold text-white">
-              {clampedPercent.toFixed(0)}%
-            </span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-1 text-center">
+            {centerLabel ? (
+              <span className="text-[8.5px] font-mono font-extrabold text-white leading-tight truncate max-w-[50px]">
+                {centerLabel}
+              </span>
+            ) : (
+              <span className="text-[10px] font-mono font-bold text-white">
+                {clampedPercent.toFixed(0)}%
+              </span>
+            )}
           </div>
         </div>
       </div>

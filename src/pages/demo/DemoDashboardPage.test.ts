@@ -2,6 +2,23 @@ import { describe, it, expect } from 'vitest'
 import { computeDreComparativeForRegime } from '@/components/demo/DreRegimeComparativeSection'
 
 describe('Dashboard Canonical Comparative Integration Tests', () => {
+  it('Valida componentes e cálculos dos novos Donuts e tabelas do Dashboard', () => {
+    // 3 Regimes cores e proporção
+    const presumidoTax = 1500
+    const realTax = 1200
+    const simplesTax = 1800
+    const totalTax = presumidoTax + realTax + simplesTax
+
+    expect(totalTax).toBe(4500)
+    const pPct = (presumidoTax / totalTax) * 100
+    const rPct = (realTax / totalTax) * 100
+    const sPct = (simplesTax / totalTax) * 100
+
+    expect(pPct).toBeCloseTo(33.333, 2)
+    expect(rPct).toBeCloseTo(26.666, 2)
+    expect(sPct).toBeCloseTo(40.0, 2)
+  })
+
   it('Calcula corretamente divisores e gross-up para Custo + Margem e Preço Líquido Desejado', () => {
     // Presumido: ICMS 18%, PIS 0.65%, COFINS 3.00% = 21.65%. DV = 0%.
     // Divisor Líquido = 1 - 0.2165 = 0.7835

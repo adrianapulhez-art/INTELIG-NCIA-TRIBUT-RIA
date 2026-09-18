@@ -189,7 +189,8 @@ export const CockpitHeroAreaChart: React.FC<CockpitHeroAreaChartProps> = ({
               strokeWidth={3}
               fillOpacity={1}
               fill="url(#areaReceitaLiquida)"
-              activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
+              dot={{ r: 5, fill: '#10b981', stroke: '#070314', strokeWidth: 2 }}
+              activeDot={{ r: 7, fill: '#10b981', stroke: '#fff', strokeWidth: 3 }}
             />
 
             <Area
@@ -200,7 +201,8 @@ export const CockpitHeroAreaChart: React.FC<CockpitHeroAreaChartProps> = ({
               strokeWidth={3}
               fillOpacity={1}
               fill="url(#areaCargaTributaria)"
-              activeDot={{ r: 6, fill: '#f97316', stroke: '#fff', strokeWidth: 2 }}
+              dot={{ r: 5, fill: '#f97316', stroke: '#070314', strokeWidth: 2 }}
+              activeDot={{ r: 7, fill: '#f97316', stroke: '#fff', strokeWidth: 3 }}
             />
 
             <Area
@@ -212,7 +214,8 @@ export const CockpitHeroAreaChart: React.FC<CockpitHeroAreaChartProps> = ({
               strokeDasharray="4 4"
               fillOpacity={1}
               fill="url(#areaLucroLiquido)"
-              activeDot={{ r: 5, fill: '#38bdf8', stroke: '#fff', strokeWidth: 2 }}
+              dot={{ r: 4.5, fill: '#38bdf8', stroke: '#070314', strokeWidth: 2 }}
+              activeDot={{ r: 6.5, fill: '#38bdf8', stroke: '#fff', strokeWidth: 2.5 }}
             />
           </AreaChart>
         </ResponsiveContainer>

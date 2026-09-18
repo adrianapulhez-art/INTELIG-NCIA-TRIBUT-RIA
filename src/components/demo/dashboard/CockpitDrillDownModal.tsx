@@ -29,6 +29,7 @@ export interface CockpitDrillDownModalProps {
   onClose: () => void
   drillTarget: 'cmv' | 'despesas' | 'receitas' | null
   products: ProductDrillItem[]
+  onSelectProduct?: (productId: string) => void
 }
 
 export const CockpitDrillDownModal: React.FC<CockpitDrillDownModalProps> = ({
@@ -36,6 +37,7 @@ export const CockpitDrillDownModal: React.FC<CockpitDrillDownModalProps> = ({
   onClose,
   drillTarget,
   products,
+  onSelectProduct,
 }) => {
   const getTitle = () => {
     switch (drillTarget) {
@@ -88,8 +90,11 @@ export const CockpitDrillDownModal: React.FC<CockpitDrillDownModalProps> = ({
               {products.map((prod, idx) => (
                 <div
                   key={prod.id || idx}
-                  className="p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                  onClick={() => onSelectProduct && onSelectProduct(prod.id)}
+                  className="p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-orange-500/40 transition-all cursor-pointer group"
+                  title="Clique para selecionar este produto no Donut de Custo"
                 >
+                  {' '}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2.5 mb-2.5">
                     <div className="flex items-center gap-2">
                       <Tag className="w-4 h-4 text-orange-400" />
@@ -106,7 +111,6 @@ export const CockpitDrillDownModal: React.FC<CockpitDrillDownModalProps> = ({
                       <strong className="text-white font-bold">{prod.quantity} un.</strong>
                     </div>
                   </div>
-
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
                     <div className="p-2 rounded-lg bg-black/30">
                       <span className="text-slate-400 block text-[10px]">Custo Unitário Base:</span>
@@ -139,7 +143,6 @@ export const CockpitDrillDownModal: React.FC<CockpitDrillDownModalProps> = ({
                       </span>
                     </div>
                   </div>
-
                   <div className="mt-2.5 pt-2 border-t border-white/5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
                     <span>
                       Faturamento Projetado:{' '}
