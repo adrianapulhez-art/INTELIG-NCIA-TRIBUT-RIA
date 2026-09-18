@@ -267,11 +267,6 @@ export const ScenarioManagerBar: React.FC = () => {
                     <span>Gerenciar ({scenarios.length}) ›</span>
                   </button>
                 </div>
-                <p className="text-xs text-slate-300">
-                  {activeScenarioName
-                    ? 'Cenário carregado e sincronizado. Você pode atualizar ou criar um novo.'
-                    : 'Grave ou recupere cenários completos (Markup, Compras e DREs) com capacidade para 10+ simulações.'}
-                </p>
               </div>
             </div>
 
@@ -514,6 +509,24 @@ export const ScenarioManagerBar: React.FC = () => {
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>Salvar Cenário</span>
+              </Button>
+
+              {/* Botão Gravar Cenário (movido do cabeçalho de Compras/Markup como ação de fechamento) */}
+              <Button
+                size="sm"
+                onClick={() => {
+                  setScenarioNameInput(
+                    activeScenarioName
+                      ? `${activeScenarioName} (revisão)`
+                      : `Cenário Gravado — ${new Date().toLocaleDateString('pt-BR')}`,
+                  )
+                  setIsSaveModalOpen(true)
+                }}
+                className="h-8 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25 gap-1.5 cursor-pointer"
+                title="Gravar cenário tributário completo"
+              >
+                <Save className="w-3.5 h-3.5 text-slate-950" />
+                <span>Gravar Cenário</span>
               </Button>
             </div>
           </div>

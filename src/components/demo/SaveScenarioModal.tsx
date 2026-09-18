@@ -49,12 +49,14 @@ interface SaveScenarioModalProps {
   isOpen: boolean
   onClose: () => void
   scope?: string
+  initialTab?: 'gravar' | 'historico'
 }
 
 export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   isOpen,
   onClose,
   scope = 'despesas-operacionais',
+  initialTab = 'gravar',
 }) => {
   const {
     getSnapshot,
@@ -73,7 +75,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   } = useTaxContext()
 
   // Abas do modal: "gravar" ou "historico"
-  const [activeTab, setActiveTab] = useState<'gravar' | 'historico'>('gravar')
+  const [activeTab, setActiveTab] = useState<'gravar' | 'historico'>(initialTab)
 
   // Clientes
   const [clients, setClients] = useState<AccountingClientRecord[]>([])
@@ -181,6 +183,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     if (isOpen) {
       fetchClients()
       fetchScenarios()
+      setActiveTab(initialTab)
       setScenarioName(getDefaultScenarioName())
       setScenarioNotes('')
       setIsCreatingClientInline(false)
@@ -190,7 +193,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
       setConfirmDeleteClient(null)
       setFeedback(null)
     }
-  }, [isOpen, fetchClients, fetchScenarios, getDefaultScenarioName])
+  }, [isOpen, fetchClients, fetchScenarios, getDefaultScenarioName, initialTab])
 
   // Criar cliente inline
   const handleCreateClientInline = async (e?: React.FormEvent) => {
