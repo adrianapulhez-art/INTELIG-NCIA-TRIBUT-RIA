@@ -20,6 +20,8 @@ interface ProductStockModalProps {
 
 export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOpenChange }) => {
   const {
+    regime,
+    calculatedPurchases,
     productStockState,
     updateProductStockItem,
     removeProductStockItem,
@@ -35,6 +37,24 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
 
   const products = productStockState.products || []
   const { positions, totals } = calculatedProductStock
+
+  // CMV Apurado canônico conforme o regime ativo
+  const activeCmv =
+    regime === 'simples'
+      ? calculatedPurchases.cmvSimples
+      : regime === 'real'
+        ? calculatedPurchases.cmvReal
+        : calculatedPurchases.cmvPresumido
+
+  const activeAutoEF =
+    regime === 'simples'
+      ? calculatedPurchases.autoFinalInventorySimples
+      : regime === 'real'
+        ? calculatedPurchases.autoFinalInventoryReal
+        : calculatedPurchases.autoFinalInventoryPresumido
+
+  const effectiveFinalStockValue =
+    totals.totalStockValue > 0 ? totals.totalStockValue : activeAutoEF
 
   // Selecionar primeiro produto automaticamente se nenhum estiver selecionado
   const activeProductId =
@@ -120,8 +140,90 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
           </div>
         )}
 
-        {/* TOTAIS CONSOLIDADOS DO SUBSISTEMA */}
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* QUADRO UNIFICADO: ESTOQUE FINAL (EF) & CMV APURADO */}
+        <div className="mt-4 p-4 rounded-2xl bg-slate-950/80 border border-emerald-500/30 space-y-3 shadow-lg shadow-emerald-500/5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  Estoque Final & CMV Apurado
+                </h3>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-mono border-orange-500/40 text-orange-300 bg-orange-500/10 px-2 py-0 uppercase font-semibold"
+                >
+                  Regime: {regime.toUpperCase()}
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                O Estoque Final é apurado automaticamente a partir das posições valorizadas do
+                Kardex e alimenta a identidade contábil EI + CL − EF = CMV.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            {/* Painel Estoque Final (EF) */}
+            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-emerald-500/25">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-semibold text-slate-200">
+                  Estoque Final (EF) — inventário apurado (R$)
+                </label>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded shrink-0">
+                  · automático
+                </span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                  R$
+                </span>
+                <Input
+                  type="text"
+                  readOnly
+                  disabled
+                  value={formatNumberBR(effectiveFinalStockValue)}
+                  className="pl-9 bg-slate-950/70 border-emerald-500/40 text-emerald-400 font-mono text-sm font-bold cursor-default select-all"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 font-mono">
+                Somatório das posições valorizadas em estoque por produto ({totals.totalStockQty}{' '}
+                un. em estoque).
+              </p>
+            </div>
+
+            {/* Painel CMV Apurado */}
+            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-emerald-500/25">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-semibold text-slate-200">
+                  CMV Apurado ({regime.toUpperCase()})
+                </label>
+                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded shrink-0">
+                  · automático (EI + CL − EF = CMV)
+                </span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                  R$
+                </span>
+                <Input
+                  type="text"
+                  readOnly
+                  disabled
+                  value={formatNumberBR(activeCmv)}
+                  className="pl-9 bg-slate-950/70 border-emerald-500/40 text-emerald-400 font-mono text-sm font-bold cursor-default select-all"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 font-mono">
+                Valor transferido para a linha "CMV · automático" na DRE do regime ativo (
+                {regime.toUpperCase()}).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* TOTAIS COMPLEMENTARES DO SUBSISTEMA (PRODUTOS / BAIXAS / ENTRADAS) */}
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800">
             <span className="text-[10px] font-mono text-slate-400 uppercase block">
               Produtos Cadastrados
@@ -131,18 +233,6 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
             </span>
             <span className="text-[11px] text-slate-500 font-mono block">
               {totals.totalStockQty} un. em estoque
-            </span>
-          </div>
-
-          <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800">
-            <span className="text-[10px] font-mono text-slate-400 uppercase block">
-              Valor do Estoque Final (CMP)
-            </span>
-            <span className="text-lg font-bold font-mono text-emerald-400">
-              {formatBRL(totals.totalStockValue)}
-            </span>
-            <span className="text-[11px] text-slate-500 font-mono block">
-              Soma do saldo de todos produtos
             </span>
           </div>
 

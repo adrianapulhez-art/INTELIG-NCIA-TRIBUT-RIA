@@ -1070,81 +1070,15 @@ export default function PurchasesPage() {
             </Dialog>
           </div>
 
-          {/* (D) Posição de Estoque Final (EF) e CMV Apurado */}
-          <div className="pt-4 border-t border-slate-800/80 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-bold text-slate-200">
-                  Estoque Final (EF) & CMV Apurado
-                </h3>
-                <p className="text-xs text-slate-400">
-                  O Estoque Final é apurado automaticamente a partir das posições valorizadas do
-                  Kardex e alimenta a identidade contábil EI + CL − EF = CMV.
-                </p>
-              </div>
-            </div>
-
-            {/* Painel Somente-Leitura de Estoque Final Automático */}
-            <div className="p-4 rounded-xl bg-slate-950/70 border border-emerald-500/30 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-300">
-                      Estoque Final (EF) — inventário apurado (R$)
-                    </label>
-                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded">
-                      · automático
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                      R$
-                    </span>
-                    <Input
-                      type="text"
-                      readOnly
-                      disabled
-                      value={formatNumberBR(
-                        calculatedProductStock.totals.totalStockValue > 0
-                          ? calculatedProductStock.totals.totalStockValue
-                          : activeAutoEF,
-                      )}
-                      className="pl-9 bg-slate-950/60 border-emerald-500/40 text-emerald-400 font-mono text-sm font-bold cursor-default select-all"
-                    />
-                  </div>
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    Somatório das posições valorizadas em estoque por produto (
-                    {calculatedProductStock.totals.totalStockQty} un. em estoque).
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-300">
-                      CMV Apurado ({regime.toUpperCase()})
-                    </label>
-                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded">
-                      · automático (EI + CL − EF = CMV)
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
-                      R$
-                    </span>
-                    <Input
-                      type="text"
-                      readOnly
-                      disabled
-                      value={formatNumberBR(activeCmv)}
-                      className="pl-9 bg-slate-950/60 border-emerald-500/40 text-emerald-400 font-mono text-sm font-bold cursor-default select-all"
-                    />
-                  </div>
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    Valor transferido para a linha "CMV · automático" na DRE do regime ativo.
-                  </p>
-                </div>
-              </div>
-            </div>
+          {/* Atalho discreto para o Subsistema de Estoque e CMV no Kardex */}
+          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-end">
+            <button
+              type="button"
+              onClick={() => setIsProductStockDialogOpen(true)}
+              className="text-xs font-mono text-emerald-400 hover:text-emerald-300 transition-colors inline-flex items-center gap-1 cursor-pointer hover:underline"
+            >
+              Ver posição de estoque e CMV no Kardex ›
+            </button>
           </div>
 
           {/* (E) RESULTADO & CMV CONSOLIDADO COM MEMÓRIA DE CÁLCULO */}
