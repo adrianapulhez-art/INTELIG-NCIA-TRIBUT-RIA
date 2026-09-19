@@ -259,29 +259,62 @@ export function MarkupCalculationMemoryModal({
   // Soma de tributos customizados em percentual
   const sumCustomTaxesRate = customTaxesMarkup.reduce((acc, t) => acc + (t.rate || 0), 0)
 
-  // Divisor Simples:
-  // Se modo liquid: multiplicativo de deduções (1 - DAS) × (1 - DV) × customTaxesFactor, SEM fator margem
-  // Se custo+margem: multiplicativo: (1 - DAS) * (1 - DV) * (1 - Margem) * customTaxesFactor
-  const rawDivisorSimples = isLiquid
-    ? Math.max(0.0001, dasTaxFactor * dvFactor * customTaxesFactor)
-    : dasTaxFactor * dvFactor * marginFactor * customTaxesFactor
-  // Blindagem: se tributo aplicável (dasTaxFactor < 1), completeFactor nunca pode ser 1.0
-  const divisorSimples = Math.max(0.0001, rawDivisorSimples)
-  const salePriceSimples =
+  // Preços Canônicos por Regime gravados pelo motor TaxContext
+  const canonicalSalePriceSimples =
+    product.salePriceByRegime?.simples ??
+    (isLiquid
+      ? product.salePriceLiquidByRegime?.simples
+      : product.salePriceCostMarginByRegime?.simples) ??
+    (currentRegime === 'simples' ? product.salePrice : 0) ??
+    0
+
+  const canonicalSalePricePresumido =
+    product.salePriceByRegime?.presumido ??
+    (isLiquid
+      ? product.salePriceLiquidByRegime?.presumido
+      : product.salePriceCostMarginByRegime?.presumido) ??
+    (currentRegime === 'presumido' ? product.salePrice : 0) ??
+    0
+
+  const canonicalSalePriceReal =
+    product.salePriceByRegime?.real ??
+    (isLiquid
+      ? product.salePriceLiquidByRegime?.real
+      : product.salePriceCostMarginByRegime?.real) ??
+    (currentRegime === 'real' ? product.salePrice : 0) ??
+    0
+
+  // Divisor Simples canônico do regime (do motor TaxContext)
+  // Simples: (1 − DAS) × (1 − DV) × (1 − Margem) [ou sem margem no modo liquid]
+  const divSimplesEngine = Math.max(
+    0.0001,
+    (1 - effectiveSimplesRate / 100) * dvFactor * customTaxesFactor * (isLiquid ? 1 : marginFactor),
+  )
+  const divisorSimples =
+    currentRegime === 'simples'
+      ? isLiquid
+        ? product.taxFactor || divSimplesEngine
+        : product.completeFactor || divSimplesEngine
+      : divSimplesEngine
+
+  // Preço Sugerido canônico Simples
+  const fallbackSimplesPrice =
     divisorSimples > 0 && baseValue > 0 ? Math.round((baseValue / divisorSimples) * 100) / 100 : 0
+  const salePriceSimples =
+    canonicalSalePriceSimples > 0 ? canonicalSalePriceSimples : fallbackSimplesPrice
   const totalRevenueSimples = Math.round(salePriceSimples * quantity * 100) / 100
 
-  // Distribuição do PV Simples em R$
+  // Distribuição do PV Simples em R$ derivada do preço canônico com arredondamento a 2 casas:
+  // Simples: DAS = PV × alíq.efetiva, DV = PV × taxaDV, Margem = PV − Custo − DAS − DV
   const pvSimples = salePriceSimples
   const valorDasSimples = Math.round(pvSimples * effectiveSimplesDecimal * 100) / 100
   const valorDvSimples = Math.round(pvSimples * dvDecimal * 100) / 100
-  const valorMargemSimples = isLiquid
-    ? Math.round(Math.max(0, pvSimples - costSimples - valorDasSimples - valorDvSimples) * 100) /
-      100
-    : Math.round((pvSimples - baseValue - valorDasSimples - valorDvSimples) * 100) / 100
+  const custoBaseSimples = isLiquid ? costSimples : baseValue
+  const valorMargemSimples =
+    Math.round((pvSimples - custoBaseSimples - valorDasSimples - valorDvSimples) * 100) / 100
 
   // -------------------------------------------------------------
-  // LUCRO PRESUMIDO — Cálculos
+  // LUCRO PRESUMIDO — Cálculos Canônicos
   // -------------------------------------------------------------
   const pisPresumidoRate = 0.65
   const cofinsPresumidoRate = 3.0
@@ -295,32 +328,49 @@ export function MarkupCalculationMemoryModal({
 
   const totalTaxesPresumidoRate =
     icmsRateClean + pisPresumidoRate + cofinsPresumidoRate + sumCustomTaxesRate
-  // Modo liquid: (1 - ICMS) * (1 - 0,0365) * (1 - DV) * customTaxesFactor
-  const rawDivisorPresumido = isLiquid
-    ? Math.max(0.0001, icmsFactorPresumido * (1 - 0.0365) * dvFactor * customTaxesFactor)
-    : taxFactorPresumidoDecomposto * dvFactor * marginFactor
-  const divisorPresumido = Math.max(0.0001, rawDivisorPresumido)
-  const salePricePresumido =
+
+  // Divisor Presumido canônico do regime (fator consolidado 1 - 0.0365 do motor TaxContext):
+  // Presumido: (1 − ICMS) × (1 − 0,0365) × (1 − DV) × (1 − Margem) [ou sem margem no liquid]
+  const divPresumidoEngine = Math.max(
+    0.0001,
+    (1 - icmsRateClean / 100) *
+      (1 - 0.0365) *
+      dvFactor *
+      customTaxesFactor *
+      (isLiquid ? 1 : marginFactor),
+  )
+  const divisorPresumido =
+    currentRegime === 'presumido'
+      ? isLiquid
+        ? product.taxFactor || divPresumidoEngine
+        : product.completeFactor || divPresumidoEngine
+      : divPresumidoEngine
+
+  // Preço Sugerido canônico Presumido
+  const fallbackPresumidoPrice =
     divisorPresumido > 0 && baseValue > 0
       ? Math.round((baseValue / divisorPresumido) * 100) / 100
       : 0
+  const salePricePresumido =
+    canonicalSalePricePresumido > 0 ? canonicalSalePricePresumido : fallbackPresumidoPrice
   const totalRevenuePresumido = Math.round(salePricePresumido * quantity * 100) / 100
 
-  // Distribuição do PV Presumido
+  // Distribuição do PV Presumido em R$ derivada do preço canônico:
+  // Presumido: ICMS = PV × alíq.ICMS, PIS = PV × 0,0065, COFINS = PV × 0,0300, DV = PV × taxaDV, Margem = PV − Custo − Tributos − DV
   const pvPresumido = salePricePresumido
   const valorIcmsPresumido = Math.round(pvPresumido * (icmsRateClean / 100) * 100) / 100
-  const valorPisPresumido = Math.round(pvPresumido * (pisPresumidoRate / 100) * 100) / 100
-  const valorCofinsPresumido = Math.round(pvPresumido * (cofinsPresumidoRate / 100) * 100) / 100
+  const valorPisPresumido = Math.round(pvPresumido * 0.0065 * 100) / 100
+  const valorCofinsPresumido = Math.round(pvPresumido * 0.03 * 100) / 100
   const valorTributosPresumido = valorIcmsPresumido + valorPisPresumido + valorCofinsPresumido
   const valorDvPresumido = Math.round(pvPresumido * dvDecimal * 100) / 100
-  const valorMargemPresumido = isLiquid
-    ? Math.round(
-        Math.max(0, pvPresumido - costPresumido - valorTributosPresumido - valorDvPresumido) * 100,
-      ) / 100
-    : Math.round((pvPresumido - baseValue - valorTributosPresumido - valorDvPresumido) * 100) / 100
+  const custoBasePresumido = isLiquid ? costPresumido : baseValue
+  const valorMargemPresumido =
+    Math.round(
+      (pvPresumido - custoBasePresumido - valorTributosPresumido - valorDvPresumido) * 100,
+    ) / 100
 
   // -------------------------------------------------------------
-  // LUCRO REAL — Cálculos
+  // LUCRO REAL — Cálculos Canônicos
   // -------------------------------------------------------------
   const pisRealRate = 1.65
   const cofinsRealRate = 7.6
@@ -331,25 +381,41 @@ export function MarkupCalculationMemoryModal({
     icmsFactorReal * pisFactorReal * cofinsFactorReal * customTaxesFactor
 
   const totalTaxesRealRate = icmsRateClean + pisRealRate + cofinsRealRate + sumCustomTaxesRate
-  // Modo liquid: (1 - ICMS) * (1 - 0,0925) * (1 - DV) * customTaxesFactor
-  const rawDivisorReal = isLiquid
-    ? Math.max(0.0001, icmsFactorReal * (1 - 0.0925) * dvFactor * customTaxesFactor)
-    : taxFactorRealDecomposto * dvFactor * marginFactor
-  const divisorReal = Math.max(0.0001, rawDivisorReal)
-  const salePriceReal =
+
+  // Divisor Real canônico do regime (fator consolidado 1 - 0.0925 do motor TaxContext):
+  // Real: (1 − ICMS) × (1 − 0,0925) × (1 − DV) × (1 − Margem) [ou sem margem no liquid]
+  const divRealEngine = Math.max(
+    0.0001,
+    (1 - icmsRateClean / 100) *
+      (1 - 0.0925) *
+      dvFactor *
+      customTaxesFactor *
+      (isLiquid ? 1 : marginFactor),
+  )
+  const divisorReal =
+    currentRegime === 'real'
+      ? isLiquid
+        ? product.taxFactor || divRealEngine
+        : product.completeFactor || divRealEngine
+      : divRealEngine
+
+  // Preço Sugerido canônico Real
+  const fallbackRealPrice =
     divisorReal > 0 && baseValue > 0 ? Math.round((baseValue / divisorReal) * 100) / 100 : 0
+  const salePriceReal = canonicalSalePriceReal > 0 ? canonicalSalePriceReal : fallbackRealPrice
   const totalRevenueReal = Math.round(salePriceReal * quantity * 100) / 100
 
-  // Distribuição do PV Real
+  // Distribuição do PV Real em R$ derivada do preço canônico:
+  // Real: ICMS = PV × alíq.ICMS, PIS = PV × 0,0165, COFINS = PV × 0,0760, DV = PV × taxaDV, Margem = PV − Custo Líquido − Tributos − DV
   const pvReal = salePriceReal
   const valorIcmsReal = Math.round(pvReal * (icmsRateClean / 100) * 100) / 100
-  const valorPisReal = Math.round(pvReal * (pisRealRate / 100) * 100) / 100
-  const valorCofinsReal = Math.round(pvReal * (cofinsRealRate / 100) * 100) / 100
+  const valorPisReal = Math.round(pvReal * 0.0165 * 100) / 100
+  const valorCofinsReal = Math.round(pvReal * 0.076 * 100) / 100
   const valorTributosReal = valorIcmsReal + valorPisReal + valorCofinsReal
   const valorDvReal = Math.round(pvReal * dvDecimal * 100) / 100
-  const valorMargemReal = isLiquid
-    ? Math.round(Math.max(0, pvReal - costReal - valorTributosReal - valorDvReal) * 100) / 100
-    : Math.round((pvReal - baseValue - valorTributosReal - valorDvReal) * 100) / 100
+  const custoBaseReal = isLiquid ? costReal : baseValue
+  const valorMargemReal =
+    Math.round((pvReal - custoBaseReal - valorTributosReal - valorDvReal) * 100) / 100
 
   // Valores ativos do produto no regime corrente
   const activeSalePrice = product.salePrice || 0
@@ -786,9 +852,14 @@ export function MarkupCalculationMemoryModal({
                   {/* ⑩ Preço sugerido */}
                   <div className="px-3.5 py-3 flex items-center justify-between bg-emerald-500/15 border-t border-emerald-500/30">
                     <div>
-                      <span className="font-extrabold text-emerald-300 block text-xs sm:text-sm uppercase tracking-wide">
-                        ⑩ Preço de Venda Sugerido (Unitário)
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-emerald-300 block text-xs sm:text-sm uppercase tracking-wide">
+                          ⑩ Preço de Venda Sugerido (Unitário)
+                        </span>
+                        <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-mono text-[10px]">
+                          Valor canônico do motor
+                        </Badge>
+                      </div>
                       <span className="text-[10px] text-emerald-400/80">
                         {formatBRL(baseValue)} ÷ {formatFactorBR(divisorSimples, 5)} ={' '}
                         {formatBRL(salePriceSimples)}
@@ -1211,9 +1282,14 @@ export function MarkupCalculationMemoryModal({
                   {/* ⑩ Preço sugerido */}
                   <div className="px-3.5 py-3 flex items-center justify-between bg-emerald-500/15 border-t border-emerald-500/30">
                     <div>
-                      <span className="font-extrabold text-emerald-300 block text-xs sm:text-sm uppercase tracking-wide">
-                        ⑩ Preço de Venda Sugerido (Unitário)
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-emerald-300 block text-xs sm:text-sm uppercase tracking-wide">
+                          ⑩ Preço de Venda Sugerido (Unitário)
+                        </span>
+                        <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-mono text-[10px]">
+                          Valor canônico do motor
+                        </Badge>
+                      </div>
                       <span className="text-[10px] text-emerald-400/80">
                         {formatBRL(baseValue)} ÷ {formatFactorBR(divisorPresumido, 5)} ={' '}
                         {formatBRL(salePricePresumido)}
@@ -1610,9 +1686,14 @@ export function MarkupCalculationMemoryModal({
                   {/* ⑩ Preço sugerido */}
                   <div className="px-3.5 py-3 flex items-center justify-between bg-emerald-500/15 border-t border-emerald-500/30">
                     <div>
-                      <span className="font-extrabold text-emerald-300 block text-xs sm:text-sm uppercase tracking-wide">
-                        ⑩ Preço de Venda Sugerido (Unitário)
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-emerald-300 block text-xs sm:text-sm uppercase tracking-wide">
+                          ⑩ Preço de Venda Sugerido (Unitário)
+                        </span>
+                        <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-mono text-[10px]">
+                          Valor canônico do motor
+                        </Badge>
+                      </div>
                       <span className="text-[10px] text-emerald-400/80">
                         {formatBRL(baseValue)} ÷ {formatFactorBR(divisorReal, 5)} ={' '}
                         {formatBRL(salePriceReal)}
