@@ -219,4 +219,170 @@ describe('Janela de Comparação de Modos de Precificação (Markup)', () => {
     expect(res.invalidReason).toBeDefined()
     expect(res.alternativeTriad).toBeNull()
   })
+
+  describe('Derivação independente por coluna e Caso Adriana nos 3 Regimes', () => {
+    // Parâmetros do Caso Adriana:
+    // Custo Base Celular:
+    // - Presumido: R$ 1.158,93
+    // - Real: R$ 1.051,73
+    // - Simples: R$ 1.413,33
+    // Margem: 51,90%
+    // Receita Líquida Alvo (RL): R$ 2.335,00
+    // ICMS: 18% (Presumido e Real)
+    // DV: 5% (fator dv = 0,95)
+    // Simples: RBT12 R$ 180.000 (alíquota efetiva PGDAS 4,00%)
+
+    it('Presumido: PV R$ 3.296,89 (Ativo C+M) vs R$ 3.195,06 (Alternativo RL) com LLE e Margem Líquida diferentes', () => {
+      const productPresumido: MarkupProductItem = {
+        id: 'adriana-presumido',
+        name: 'Celular Samsung',
+        cost: 1158.93,
+        margin: 51.9,
+        quantity: 22,
+        salePrice: 3296.89,
+        totalRevenue: 3296.89 * 22,
+        totalCost: 1158.93 * 22,
+        taxFactor: 0.7308147,
+        completeFactor: 0.351594,
+        mode: 'cost_margin',
+        desiredNetRevenue: 2335,
+        marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
+        desiredNetRevenueByRegime: { presumido: 2335, real: 2335, simples: 2335 },
+      }
+
+      const res = computeMarkupModeComparison({
+        product: productPresumido,
+        currentRegime: 'presumido',
+        icmsRateMarkup: 18,
+        customTaxesMarkup: [],
+        simplesAnexo: 'anexo_1',
+        simplesRbt12: 180000,
+        totalVariableExpenseRate: 5,
+        resolveUnitCost: () => 1158.93,
+      })
+
+      expect(res.hasValidData).toBe(true)
+      expect(res.activeMode).toBe('cost_margin')
+
+      // Coluna CUSTO + MARGEM (ATIVO): valores canônicos exatos de hoje
+      // PV R$ 3.296,89, Margem Líquida Apurada 48,78%, LLE R$ 1.175,32
+      expect(res.activeTriad.salePrice).toBe(3296.89)
+      expect(res.activeTriad.netMarginPct).toBe(48.78)
+      expect(res.activeTriad.lle).toBe(1175.32)
+
+      // Coluna RECEITA LÍQUIDA (ALTERNATIVO):
+      // PV R$ 3.195,06
+      expect(res.alternativeTriad).not.toBeNull()
+      const alt = res.alternativeTriad!
+      expect(alt.salePrice).toBe(3195.06)
+
+      // LLE e Margem Líquida DEVEM SER DIFERENTES entre si (cada coluna derivando do seu próprio PV)
+      expect(alt.lle).not.toBe(res.activeTriad.lle)
+      expect(alt.netMarginPct).not.toBe(res.activeTriad.netMarginPct)
+      expect(alt.lle).toBe(1103.54)
+      expect(alt.netMarginPct).toBe(47.26)
+    })
+
+    it('Real: PV R$ 3.176,56 (Ativo C+M) vs R$ 3.392,23 (Alternativo RL) com LLE e Margem Líquida diferentes', () => {
+      const productReal: MarkupProductItem = {
+        id: 'adriana-real',
+        name: 'Celular Samsung',
+        cost: 1051.73,
+        margin: 51.9,
+        quantity: 22,
+        salePrice: 3176.56,
+        totalRevenue: 3176.56 * 22,
+        totalCost: 1051.73 * 22,
+        taxFactor: 0.7308147,
+        completeFactor: 0.351594,
+        mode: 'cost_margin',
+        desiredNetRevenue: 2335,
+        marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
+        desiredNetRevenueByRegime: { presumido: 2335, real: 2335, simples: 2335 },
+      }
+
+      const res = computeMarkupModeComparison({
+        product: productReal,
+        currentRegime: 'real',
+        icmsRateMarkup: 18,
+        customTaxesMarkup: [],
+        simplesAnexo: 'anexo_1',
+        simplesRbt12: 180000,
+        totalVariableExpenseRate: 5,
+        resolveUnitCost: () => 1051.73,
+      })
+
+      expect(res.hasValidData).toBe(true)
+      expect(res.activeMode).toBe('cost_margin')
+
+      // Coluna CUSTO + MARGEM (ATIVO): valores canônicos exatos de hoje
+      // PV R$ 3.176,56, Margem Líquida Apurada 39,44%, LLE R$ 862,47
+      expect(res.activeTriad.salePrice).toBe(3176.56)
+      expect(res.activeTriad.netMarginPct).toBe(39.44)
+      expect(res.activeTriad.lle).toBe(862.47)
+
+      // Coluna RECEITA LÍQUIDA (ALTERNATIVO):
+      // PV R$ 3.392,23
+      expect(res.alternativeTriad).not.toBeNull()
+      const alt = res.alternativeTriad!
+      expect(alt.salePrice).toBe(3392.23)
+
+      // LLE e Margem Líquida DEVEM SER DIFERENTES entre si
+      expect(alt.lle).not.toBe(res.activeTriad.lle)
+      expect(alt.netMarginPct).not.toBe(res.activeTriad.netMarginPct)
+      expect(alt.lle).toBe(975.29)
+      expect(alt.netMarginPct).toBe(41.77)
+    })
+
+    it('Simples: PV R$ 3.445,87 (Ativo C+M) vs R$ 2.738,34 (Alternativo RL) com LLE e Margem Líquida diferentes', () => {
+      const productSimples: MarkupProductItem = {
+        id: 'adriana-simples',
+        name: 'Celular Samsung',
+        cost: 1413.33,
+        margin: 51.9,
+        quantity: 22,
+        salePrice: 3445.87,
+        totalRevenue: 3445.87 * 22,
+        totalCost: 1413.33 * 22,
+        taxFactor: 0.912,
+        completeFactor: 0.438672,
+        mode: 'cost_margin',
+        desiredNetRevenue: 2335,
+        marginByRegime: { presumido: 51.9, real: 51.9, simples: 51.9 },
+        desiredNetRevenueByRegime: { presumido: 2335, real: 2335, simples: 2335 },
+      }
+
+      const res = computeMarkupModeComparison({
+        product: productSimples,
+        currentRegime: 'simples',
+        icmsRateMarkup: 18,
+        customTaxesMarkup: [],
+        simplesAnexo: 'anexo_1',
+        simplesRbt12: 180000,
+        totalVariableExpenseRate: 5,
+        resolveUnitCost: () => 1413.33,
+      })
+
+      expect(res.hasValidData).toBe(true)
+      expect(res.activeMode).toBe('cost_margin')
+
+      // Coluna CUSTO + MARGEM (ATIVO): valores canônicos exatos de hoje
+      // PV R$ 3.445,87, Margem Líquida Apurada 51,90%, LLE R$ 1.524,99
+      expect(res.activeTriad.salePrice).toBe(3445.87)
+      expect(res.activeTriad.netMarginPct).toBe(51.9)
+      expect(res.activeTriad.lle).toBe(1524.99)
+
+      // Coluna RECEITA LÍQUIDA (ALTERNATIVO):
+      // PV R$ 2.738,34
+      expect(res.alternativeTriad).not.toBeNull()
+      const alt = res.alternativeTriad!
+      expect(alt.salePrice).toBe(2738.34)
+
+      // LLE e Margem Líquida DEVEM SER DIFERENTES entre si
+      expect(alt.lle).not.toBe(res.activeTriad.lle)
+      expect(alt.netMarginPct).not.toBe(res.activeTriad.netMarginPct)
+      expect(alt.lle).toBe(921.67)
+      expect(alt.netMarginPct).toBe(39.47)
+    })
+  })
 })
