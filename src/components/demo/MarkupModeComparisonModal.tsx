@@ -347,6 +347,10 @@ export function computeMarkupModeComparison(params: {
       const irpj = Math.round(baseReal * 0.15 * 100) / 100
       const csll = Math.round(baseReal * 0.09 * 100) / 100
       altLle = Math.round((altGrossProfit - (irpj + csll)) * 100) / 100
+    } else if (currentRegime === 'simples') {
+      // No Simples Nacional, os tributos já estão deduzidos pelo divisor baseLiquidDivisor
+      // Logo, o Lucro Líquido = Receita Líquida - Custo
+      altLle = altGrossProfit
     }
     const altCanonicalMarginPct =
       altRL > 0 ? Math.round((altLle / altRL) * 10000) / 100 : altMarginPct
@@ -418,6 +422,8 @@ export function computeMarkupModeComparison(params: {
     const irpj = Math.round(baseReal * 0.15 * 100) / 100
     const csll = Math.round(baseReal * 0.09 * 100) / 100
     activeLle = Math.round((grossProfitActive - (irpj + csll)) * 100) / 100
+  } else if (currentRegime === 'simples') {
+    activeLle = grossProfitActive
   }
   const effectiveMarginPct =
     implicitNetRevenue > 0
@@ -447,8 +453,27 @@ export function computeMarkupModeComparison(params: {
   // Se o produto tiver meta cadastrada em desiredNetRevenue, usa essa meta; caso contrário usa a implícita
   const altDesiredNetRev =
     activeRegimeDesiredNetRev > 0 ? activeRegimeDesiredNetRev : implicitNetRevenue
-  const alternativeSalePrice =
-    baseLiquidDivisor > 0 ? Math.round((altDesiredNetRev / baseLiquidDivisor) * 100) / 100 : 0
+
+  const anexoCleanAlt = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+  const rbt12CleanAlt =
+    effectiveSimplesRbt12 && effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
+  const pgdasCalcAlt = calculatePgdas(anexoCleanAlt, rbt12CleanAlt)
+
+  const altChain = calculateLiquidDreChain({
+    desiredNetRevenue: altDesiredNetRev,
+    regime: currentRegime,
+    effectiveSimplesRate: pgdasCalcAlt.aliquotaEfetiva,
+    icmsRate: icmsRateMarkup || 0,
+    customTaxesRate: customTaxesSum,
+    variableExpensesRate: dvRate,
+    unitCost: costAnchor,
+    operatingExpensesUnit: 0,
+    presumidoActivity: 'comercio',
+  })
+
+  const alternativeSalePrice = altChain.rbv
+  const altLle = altChain.lle
+  const altMarginPct = altChain.derivedMarginPct
 
   const alternativeTriad: ModeTriadResult = {
     mode: 'liquid',
@@ -464,11 +489,11 @@ export function computeMarkupModeComparison(params: {
     entryMarginPct: explicitMarginPct,
     entryMarginFormatted: `${formatNumberBR(explicitMarginPct)}%`,
     entryMarginLabel: 'Margem de Entrada (Custo+Margem)',
-    netMarginPct: effectiveMarginPct,
-    netMarginFormatted: `${formatNumberBR(effectiveMarginPct)}%`,
+    netMarginPct: altMarginPct,
+    netMarginFormatted: `${formatNumberBR(altMarginPct)}%`,
     netMarginDerived: true,
-    lle: activeLle,
-    isViable: activeLle >= 0,
+    lle: altLle,
+    isViable: altChain.isViable,
     notes:
       'Calculado no modo Preço Líquido Desejado pela sua própria lógica multiplicativa (RL ÷ divisor de deduções).',
   }
