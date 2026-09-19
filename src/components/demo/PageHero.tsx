@@ -2,7 +2,7 @@ import React from 'react'
 import { Sparkles, ArrowRight, LucideIcon } from 'lucide-react'
 
 interface PageHeroProps {
-  title: string
+  title: React.ReactNode
   subtitle?: string
   badge?: string
   icon?: LucideIcon
@@ -48,9 +48,13 @@ export const PageHero: React.FC<PageHeroProps> = ({
 
         {/* Título Principal estilo ADAPTA ONE (Caixa alta, destaque forte, tom sobre tom) */}
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.6rem] font-black tracking-tight text-white uppercase leading-tight drop-shadow-sm">
-          <span className="bg-gradient-to-r from-white via-emerald-100 to-emerald-300 bg-clip-text text-transparent">
-            {title}
-          </span>
+          {typeof title === 'string' ? (
+            <span className="bg-gradient-to-r from-white via-emerald-100 to-emerald-300 bg-clip-text text-transparent">
+              {title}
+            </span>
+          ) : (
+            title
+          )}
         </h1>
 
         {/* Subtítulo funcional */}

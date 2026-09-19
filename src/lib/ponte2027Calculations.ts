@@ -337,13 +337,13 @@ export function buildPonteStateFromTaxContext(input: {
   currentAcquisitions?: PonteAcquisitionItem[]
 }): Ponte2027State {
   // Se já existem aquisições salvas, preserva (não sobrescreve edição manual)
-  if (currentAcquisitions && currentAcquisitions.length > 0) {
+  if (input.currentAcquisitions && input.currentAcquisitions.length > 0) {
     return {
       regime: input.regime,
       revenue2027: input.revenue,
       icmsRate: input.icmsRate,
       issRate: input.issRate,
-      acquisitions: currentAcquisitions,
+      acquisitions: input.currentAcquisitions,
     }
   }
 
@@ -352,7 +352,9 @@ export function buildPonteStateFromTaxContext(input: {
   // 1. Compras de mercadorias → crédito integral (fornecedor PJ tributado)
   for (const p of input.purchases) {
     if (p.merchandiseValue > 0) {
-      acquisitions.push(createAcquisitionItem(p.name || 'Mercadoria', 'mercadoria', p.merchandiseValue))
+      acquisitions.push(
+        createAcquisitionItem(p.name || 'Mercadoria', 'mercadoria', p.merchandiseValue),
+      )
     }
   }
 
@@ -366,7 +368,12 @@ export function buildPonteStateFromTaxContext(input: {
       else if (desc.includes('frete') || desc.includes('transport')) kind = 'frete'
       else if (desc.includes('aluguel') || desc.includes('locação') || desc.includes('locacao'))
         kind = 'aluguel'
-      else if (desc.includes('software') || desc.includes('equipamento') || desc.includes('máquina') || desc.includes('maquina'))
+      else if (
+        desc.includes('software') ||
+        desc.includes('equipamento') ||
+        desc.includes('máquina') ||
+        desc.includes('maquina')
+      )
         kind = 'ativo'
       acquisitions.push(createAcquisitionItem(e.description, kind, e.value))
     }
