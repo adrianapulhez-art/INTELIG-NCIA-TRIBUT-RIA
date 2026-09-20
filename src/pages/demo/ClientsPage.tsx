@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog'
 import { formatBRL } from '@/lib/taxCalculations'
 import { PageHero } from '@/components/demo/PageHero'
+import { listClientScenarios, ClientSavedScenarioRecord } from '@/services/clientScenariosService'
 import {
   Users,
   Search,
@@ -41,6 +42,10 @@ import {
   PlusCircle,
   FileSpreadsheet,
   TrendingUp,
+  Folder,
+  ChevronDown,
+  ChevronRight,
+  RotateCcw,
 } from 'lucide-react'
 
 export default function ClientsPage() {
@@ -193,6 +198,72 @@ export default function ClientsPage() {
       setIsDeleting(false)
     }
   }
+
+  // DEPÓSITO DE CENÁRIOS POR CLIENTE (saved_scenarios — mesma fonte do modal "Cenários Salvos")
+  const [clientScenarios, setClientScenarios] = useState<ClientSavedScenarioRecord[]>([])
+  const [isLoadingClientScenarios, setIsLoadingClientScenarios] = useState<boolean>(true)
+  const [expandedClientFolders, setExpandedClientFolders] = useState<Set<string>>(new Set())
+
+  const toggleClientFolder = (clientId: string) => {
+    setExpandedClientFolders((prev) => {
+      const next = new Set(prev)
+      if (next.has(clientId)) next.delete(clientId)
+      else next.add(clientId)
+      return next
+    })
+  }
+
+  const fetchClientScenarios = useCallback(async () => {
+    if (!user) return
+    setIsLoadingClientScenarios(true)
+    try {
+      const data = await listClientScenarios()
+      setClientScenarios(data)
+    } catch (err: unknown) {
+      console.warn('Falha ao listar cenários por cliente:', err)
+      setClientScenarios([])
+    } finally {
+      setIsLoadingClientScenarios(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    fetchClientScenarios()
+  }, [fetchClientScenarios])
+
+  const clientFolders = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim()
+    const bySearch = clientScenarios.filter((s) => {
+      if (!q) return true
+      return (
+        s.name.toLowerCase().includes(q) ||
+        (s.clientName && s.clientName.toLowerCase().includes(q)) ||
+        (s.scope && s.scope.toLowerCase().includes(q)) ||
+        (s.notes && s.notes.toLowerCase().includes(q))
+      )
+    })
+    const map = new Map<string, { clientName: string; items: ClientSavedScenarioRecord[] }>()
+    bySearch.forEach((s) => {
+      const key = s.client || '_sem_cliente_'
+      if (!map.has(key)) {
+        map.set(key, { clientName: s.clientName || 'Cliente', items: [] })
+      }
+      map.get(key)!.items.push(s)
+    })
+    return Array.from(map.entries())
+      .map(([clientId, group]) => ({
+        clientId,
+        clientName: group.clientName,
+        items: group.items.sort(
+          (a, b) =>
+            new Date(b.updated || b.created || 0).getTime() -
+            new Date(a.updated || a.created || 0).getTime(),
+        ),
+      }))
+      .sort((a, b) => a.clientName.localeCompare(b.clientName, 'pt-BR'))
+  }, [clientScenarios, searchQuery])
+
+  const totalClientScenarios = clientScenarios.length
 
   // Filtragem por busca
   const filteredScenarios = useMemo(() => {
@@ -410,6 +481,125 @@ export default function ClientsPage() {
               Data e horário da simulação mais recente
             </p>
           </div>
+        </div>
+
+        {/* DEPÓSITO DE CENÁRIOS POR CLIENTE — árvore de pastas (pasta = cliente, subpasta = simulação) */}
+        <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+            <div className="flex items-center gap-2">
+              <Folder className="w-4 h-4 text-amber-400" />
+              <h3 className="text-sm sm:text-base font-bold text-white">
+                Depósito de Cenários por Cliente
+              </h3>
+              <span className="text-xs font-mono text-slate-500">
+                ({totalClientScenarios} simulações)
+              </span>
+            </div>
+          </div>
+
+          {isLoadingClientScenarios ? (
+            <div className="py-10 text-center">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-400 mx-auto" />
+              <p className="text-xs text-slate-400 mt-2 font-mono">
+                Abrindo o depósito de cenários...
+              </p>
+            </div>
+          ) : clientFolders.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-xs text-slate-400">
+                Nenhuma simulação por cliente ainda. Grave cenários pelo botão{' '}
+                <strong className="text-emerald-400">"Gravar Novo Cenário"</strong> nas calculadoras
+                — cada cenário fica organizado na pasta do seu cliente.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {clientFolders.map((folder) => {
+                const isExpanded =
+                  expandedClientFolders.has(folder.clientId) || searchQuery.trim().length > 0
+                return (
+                  <div
+                    key={folder.clientId}
+                    className="rounded-xl border border-slate-800 bg-slate-950/40 overflow-hidden"
+                  >
+                    {/* PASTA DO CLIENTE */}
+                    <button
+                      type="button"
+                      onClick={() => toggleClientFolder(folder.clientId)}
+                      className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-slate-900/60 hover:bg-slate-900 transition-colors cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4 text-emerald-400 shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-emerald-400 shrink-0" />
+                        )}
+                        <Folder className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span className="text-xs font-bold text-white truncate text-left">
+                          {folder.clientName}
+                        </span>
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2 py-0.5 shrink-0">
+                        {folder.items.length}{' '}
+                        {folder.items.length === 1 ? 'simulação' : 'simulações'}
+                      </span>
+                    </button>
+
+                    {/* SUBPASTAS: SIMULAÇÕES DO CLIENTE */}
+                    {isExpanded && (
+                      <div className="p-2 space-y-2">
+                        {folder.items.map((sc) => {
+                          const details = deriveScenarioDetails(sc.data)
+                          return (
+                            <div
+                              key={sc.id}
+                              className="p-3 rounded-lg border border-slate-800 bg-slate-950/70 hover:border-emerald-500/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-semibold text-xs sm:text-sm text-white truncate">
+                                    {sc.name}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                                    {details.regimeLabel}
+                                  </span>
+                                  {sc.scope && (
+                                    <span className="text-[10px] font-mono text-slate-500">
+                                      {sc.scope}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                                  {formatDate(sc.updated || sc.created)} · Receita Bruta Est.{' '}
+                                  {formatBRL(details.revenue)} · {details.productsCount} produto(s)
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  loadSnapshot(sc.data)
+                                  showFeedback(
+                                    'success',
+                                    `Cenário "${sc.name}" restaurado com sucesso!`,
+                                  )
+                                  navigate('/demo/markup')
+                                }}
+                                className="h-7 px-3 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer shrink-0"
+                                title="Restaurar esta simulação nas calculadoras"
+                              >
+                                <RotateCcw className="w-3 h-3 mr-1" />
+                                Restaurar
+                              </Button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Tabela e Filtros de Cenários */}
