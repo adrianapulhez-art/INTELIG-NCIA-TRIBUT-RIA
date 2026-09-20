@@ -549,7 +549,7 @@ export default function ClientsPage() {
                     {isExpanded && (
                       <div className="p-2 space-y-2">
                         {folder.items.map((sc) => {
-                          const details = deriveScenarioDetails(sc.data)
+                          const details = deriveScenarioDetails(sc.snapshot)
                           return (
                             <div
                               key={sc.id}
@@ -577,7 +577,7 @@ export default function ClientsPage() {
                               <Button
                                 size="sm"
                                 onClick={() => {
-                                  loadSnapshot(sc.data)
+                                  loadSnapshot(sc.snapshot)
                                   showFeedback(
                                     'success',
                                     `Cenário "${sc.name}" restaurado com sucesso!`,
