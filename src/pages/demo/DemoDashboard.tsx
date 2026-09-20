@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   PieChart,
   Layers,
+  Landmark,
 } from 'lucide-react'
 
 interface ToolCard {
@@ -135,6 +136,19 @@ export default function DemoDashboard() {
       borderAccent: 'border-emerald-400/40 hover:border-emerald-300/80',
       accentColor: 'text-emerald-300',
       icon: Layers,
+    },
+    {
+      id: 'ponte-2027',
+      tag: 'TRANSIÇÃO 2027 · EC 132/23 + LC 214/25',
+      title: 'Ponte 2027 — Simulador CBS',
+      subtitle: 'Crédito Item a Item & Janela 2027–2028',
+      description:
+        'Confronto sistema atual × 2027 com crédito financeiro por aquisição, custo líquido do adquirente, vedações legais e crédito B2B entregue ao cliente PJ.',
+      path: '/demo/ponte-2027',
+      gradient: 'from-[#0d2f33]/90 via-[#082226]/85 to-[#04151a]/95',
+      borderAccent: 'border-cyan-500/30 hover:border-cyan-400/60',
+      accentColor: 'text-cyan-400',
+      icon: Landmark,
     },
     {
       id: 'clientes',

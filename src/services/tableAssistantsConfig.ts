@@ -113,6 +113,23 @@ export const TABLE_ASSISTANTS: Record<string, TableAssistantConfig> = {
     contextSummary:
       'Tabela ativa: Dashboard Interativo de Inteligência Tributária. Confronto Simples x Presumido x Real, Composição do CMV, Despesas por Categoria e Fator R.',
   },
+  'ponte-2027': {
+    slug: 'it-ponte-2027-assistant',
+    name: 'Assistente da Ponte 2027',
+    title: 'IA — Especialista na Transição para a CBS (2027)',
+    pageName: 'Ponte 2027 — Simulador de Transição',
+    tagline: 'Crédito Financeiro Item a Item, Custo Líquido e Janela 2027–2028',
+    description:
+      'Orienta no confronto sistema atual × 2027: crédito financeiro de CBS por aquisição, vedações (Simples, uso pessoal, sem destaque), custo líquido do adquirente, crédito B2B entregue ao cliente e precificação por fora.',
+    quickQuestions: [
+      'Como funciona o crédito financeiro item a item em 2027?',
+      'Quando a aquisição de fornecedor do Simples Nacional gera crédito?',
+      'O que é o custo líquido do adquirente e como calcular?',
+      'Por que 2027–2028 é uma janela de carga dupla?',
+    ],
+    contextSummary:
+      'Tabela ativa: Ponte 2027 — Simulador de Transição para a CBS (EC 132/23, LC 214/25). Crédito financeiro item a item, custo líquido do adquirente, janela 2027–2028 e crédito B2B.',
+  },
   reforma: {
     slug: 'it-reforma-assistant',
     name: 'Assistente da Reforma Tributária',
