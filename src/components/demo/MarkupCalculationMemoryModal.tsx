@@ -500,7 +500,7 @@ export function MarkupCalculationMemoryModal({
               {formatBRL(activeSalePrice)}
             </span>
             <span className="text-[10px] text-emerald-400/80 block mt-0.5">
-              Divisor: {formatFactorBR(activeCompleteFactor, 5)}
+              Divisor: {formatFactorBR(activeCompleteFactor, 4)}
             </span>
           </div>
         </div>
@@ -737,8 +737,11 @@ export function MarkupCalculationMemoryModal({
                         )}
                       </span>
                     </div>
-                    <span className="font-bold text-orange-300 text-sm">
+                    <span className="font-bold text-orange-300 text-sm text-right">
                       {formatPercentBR(effectiveSimplesRate, 4)}
+                      <span className="block text-[10px] font-mono font-normal text-orange-300/80">
+                        Fator: {formatFactorBR(1 - effectiveSimplesRate / 100, 4)}
+                      </span>
                     </span>
                   </div>
 
@@ -845,7 +848,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <span className="font-black text-emerald-300 text-base">
-                      {formatFactorBR(divisorSimples, 5)}
+                      {formatFactorBR(divisorSimples, 4)}
                     </span>
                   </div>
 
@@ -861,7 +864,7 @@ export function MarkupCalculationMemoryModal({
                         </Badge>
                       </div>
                       <span className="text-[10px] text-emerald-400/80">
-                        {formatBRL(baseValue)} ÷ {formatFactorBR(divisorSimples, 5)} ={' '}
+                        {formatBRL(baseValue)} ÷ {formatFactorBR(divisorSimples, 4)} ={' '}
                         {formatBRL(salePriceSimples)}
                       </span>
                     </div>
@@ -1150,12 +1153,14 @@ export function MarkupCalculationMemoryModal({
                         ③ Tributos Federais Cumulativos
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        PIS 0,65% + COFINS 3,00% (Lei 9.718/98)
+                        PIS 0,65% (Lei 9.718/98) · Fator: {formatFactorBR(pisFactorPresumido, 4)}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block">
+                        COFINS 3,00% (Lei 9.718/98) · Fator:{' '}
+                        {formatFactorBR(cofinsFactorPresumido, 4)}
                       </span>
                     </div>
-                    <span className="font-bold text-slate-200">
-                      3,65% (Fator: {formatFactorBR(pisFactorPresumido * cofinsFactorPresumido, 4)})
-                    </span>
+                    <span className="font-bold text-slate-200 text-right">3,65%</span>
                   </div>
 
                   {/* ④ ICMS Estadual */}
@@ -1192,7 +1197,7 @@ export function MarkupCalculationMemoryModal({
                     <span className="font-bold text-emerald-300">
                       {isLiquid
                         ? `Alíquota: ${formatPercentBR(totalTaxesPresumidoRate)}`
-                        : `Fator: ${formatFactorBR(taxFactorPresumidoDecomposto, 5)}`}
+                        : `Fator: ${formatFactorBR(taxFactorPresumidoDecomposto, 4)}`}
                     </span>
                   </div>
 
@@ -1275,7 +1280,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <span className="font-black text-emerald-300 text-base">
-                      {formatFactorBR(divisorPresumido, 5)}
+                      {formatFactorBR(divisorPresumido, 4)}
                     </span>
                   </div>
 
@@ -1291,7 +1296,7 @@ export function MarkupCalculationMemoryModal({
                         </Badge>
                       </div>
                       <span className="text-[10px] text-emerald-400/80">
-                        {formatBRL(baseValue)} ÷ {formatFactorBR(divisorPresumido, 5)} ={' '}
+                        {formatBRL(baseValue)} ÷ {formatFactorBR(divisorPresumido, 4)} ={' '}
                         {formatBRL(salePricePresumido)}
                       </span>
                     </div>
@@ -1555,11 +1560,14 @@ export function MarkupCalculationMemoryModal({
                       <span className="font-bold text-slate-200 block">
                         ③ PIS e COFINS Não Cumulativos
                       </span>
-                      <span className="text-[10px] text-slate-400">PIS 1,65% + COFINS 7,60%</span>
+                      <span className="text-[10px] text-slate-400">
+                        PIS 1,65% · Fator: {formatFactorBR(pisFactorReal, 4)}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block">
+                        COFINS 7,60% · Fator: {formatFactorBR(cofinsFactorReal, 4)}
+                      </span>
                     </div>
-                    <span className="font-bold text-slate-200">
-                      9,25% (Fator: {formatFactorBR(pisFactorReal * cofinsFactorReal, 4)})
-                    </span>
+                    <span className="font-bold text-slate-200 text-right">9,25%</span>
                   </div>
 
                   {/* ④ ICMS */}
@@ -1596,7 +1604,7 @@ export function MarkupCalculationMemoryModal({
                     <span className="font-bold text-emerald-300">
                       {isLiquid
                         ? `Alíquota: ${formatPercentBR(totalTaxesRealRate)}`
-                        : `Fator: ${formatFactorBR(taxFactorRealDecomposto, 5)}`}
+                        : `Fator: ${formatFactorBR(taxFactorRealDecomposto, 4)}`}
                     </span>
                   </div>
 
@@ -1679,7 +1687,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <span className="font-black text-emerald-300 text-base">
-                      {formatFactorBR(divisorReal, 5)}
+                      {formatFactorBR(divisorReal, 4)}
                     </span>
                   </div>
 
@@ -1695,7 +1703,7 @@ export function MarkupCalculationMemoryModal({
                         </Badge>
                       </div>
                       <span className="text-[10px] text-emerald-400/80">
-                        {formatBRL(baseValue)} ÷ {formatFactorBR(divisorReal, 5)} ={' '}
+                        {formatBRL(baseValue)} ÷ {formatFactorBR(divisorReal, 4)} ={' '}
                         {formatBRL(salePriceReal)}
                       </span>
                     </div>

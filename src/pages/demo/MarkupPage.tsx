@@ -315,6 +315,9 @@ function VariableExpenseRow({ dv, onUpdate, onRemove }: VariableExpenseRowProps)
             %
           </span>
         </div>
+        <span className="text-xs font-mono text-slate-400 min-w-[110px] text-right">
+          Fator: <span className="text-slate-200">{formatFactorBR(1 - dv.rate / 100)}</span>
+        </span>
         <button
           type="button"
           onClick={() => onRemove(dv.id)}
