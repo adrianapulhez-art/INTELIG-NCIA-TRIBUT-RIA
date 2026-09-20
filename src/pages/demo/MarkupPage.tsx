@@ -16,6 +16,7 @@ import {
   Scale,
   Sparkles,
   Info,
+  Receipt,
 } from 'lucide-react'
 import {
   formatBRL,
@@ -28,7 +29,7 @@ import { calculatePgdas, SimplesAnexoId } from '@/lib/simplesCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { CostCompositionSection } from '@/components/demo/CostCompositionSection'
+import { TaxCompositionSection } from '@/components/demo/TaxCompositionSection'
 import { SubstituicaoTributariaSection } from '@/components/demo/SubstituicaoTributariaSection'
 import { OperacoesInterestaduaisSection } from '@/components/demo/OperacoesInterestaduaisSection'
 import { ImportPurchasesModal } from '@/components/demo/ImportPurchasesModal'
@@ -697,6 +698,29 @@ export default function MarkupPage() {
     simplesRbt12,
     getPurchaseItemUnitNetCost,
   ])
+
+  // Dados do Simples para a Composição dos Tributos (alíquota efetiva DAS + rótulo do anexo)
+  const simplesEffectiveDas = useMemo(() => {
+    const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
+    const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
+    return calculatePgdas(anexoClean, rbt12Clean).aliquotaEfetiva
+  }, [simplesAnexo, effectiveSimplesRbt12, simplesRbt12])
+
+  const simplesAnexoLabel = useMemo(() => {
+    switch (simplesAnexo) {
+      case 'anexo_2':
+        return 'Anexo II'
+      case 'anexo_3':
+        return 'Anexo III'
+      case 'anexo_4':
+        return 'Anexo IV'
+      case 'anexo_5':
+        return 'Anexo V'
+      case 'anexo_1':
+      default:
+        return 'Anexo I — Comércio'
+    }
+  }, [simplesAnexo])
 
   // --------------------------------------------------------------------------
   // Cenário de Comparação Automática de Regimes Tributários
@@ -2222,6 +2246,16 @@ export default function MarkupPage() {
                           (comp?.directCosts || []).length +
                           (comp?.indirectCosts || []).length +
                           (comp?.fixedCosts || []).length
+                        const taxesTotal =
+                          prod.salePrice > 0
+                            ? Math.round(
+                                prod.salePrice *
+                                  (prod.taxFactor > 0 && prod.taxFactor < 1
+                                    ? 1 - prod.taxFactor
+                                    : 0) *
+                                  100,
+                              ) / 100
+                            : 0
 
                         return (
                           <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between flex-wrap gap-2">
@@ -2233,26 +2267,25 @@ export default function MarkupPage() {
                                   ? 'bg-emerald-500/[0.18] border-emerald-400/80 text-emerald-100 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-sm shadow-emerald-500/15 ring-1 ring-emerald-500/30'
                                   : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/50'
                               }`}
-                              title="Abrir camada de Composição do Custo deste produto"
+                              title="Abrir camada de Composição dos Tributos deste produto"
                             >
-                              <Layers className="w-3.5 h-3.5 text-emerald-300" />
-                              <span className="font-semibold">Composição do Custo</span>
+                              <Receipt className="w-3.5 h-3.5 text-emerald-300" />
+                              <span className="font-semibold">Composição dos Tributos</span>
                               <Badge
                                 className={`text-[9px] px-1.5 py-0 border-0 font-normal ${
-                                  totalComp > 0
+                                  taxesTotal > 0
                                     ? 'bg-emerald-500/35 text-emerald-100 font-semibold'
                                     : 'bg-slate-800 text-slate-400'
                                 }`}
                               >
-                                {totalComp > 0 ? formatBRL(totalComp) : `${itemsCount} itens`}
+                                {taxesTotal > 0 ? formatBRL(taxesTotal) : 'Simular p/ ver'}
                               </Badge>
                               <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
                             </button>
 
-                            {totalComp > 0 && (
+                            {taxesTotal > 0 && (
                               <span className="text-[10px] font-mono text-slate-400">
-                                Diretos {formatBRL(directSum)} · Indiretos {formatBRL(indirectSum)}{' '}
-                                · Fixos {formatBRL(fixedSum)}
+                                Tributos do produto no regime ativo: {formatBRL(taxesTotal)}
                               </span>
                             )}
                           </div>
@@ -2497,27 +2530,33 @@ export default function MarkupPage() {
                       <div className="space-y-4">
                         <DialogHeader>
                           <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-                            <Layers className="w-5 h-5 text-emerald-400" />
-                            <span>
-                              Composição Detalhada do Custo: {targetProd.name || 'Produto'}
-                            </span>
+                            <Receipt className="w-5 h-5 text-emerald-400" />
+                            <span>Composição dos Tributos: {targetProd.name || 'Produto'}</span>
                           </DialogTitle>
                           <DialogDescription className="text-xs text-slate-400">
-                            Discrimine os custos diretos, custos indiretos (rateio) e despesas fixas
-                            deste item. O total apurado pode ser aplicado diretamente como base de
-                            custo unitário.
+                            Percentual de cada tributo em relação à Receita Bruta de Venda —
+                            decomposição completa no regime ativo e comparativo entre os 3 regimes.
                           </DialogDescription>
                         </DialogHeader>
 
                         <div className="pt-2">
-                          <CostCompositionSection
-                            productId={targetProd.id}
+                          <TaxCompositionSection
                             productName={targetProd.name}
-                            composition={targetProd.costComposition}
-                            onApplyTotal={(tot) => {
-                              updateMarkupProduct(targetProd.id, 'cost', tot)
-                              setCompositionModalProductId(null)
-                            }}
+                            salePrice={targetProd.salePrice}
+                            regime={regime}
+                            icmsRate={icmsRateMarkup}
+                            customTaxes={customTaxesMarkup}
+                            effectiveSimplesRate={simplesEffectiveDas}
+                            simplesAnexoLabel={simplesAnexoLabel}
+                            salePriceByRegime={
+                              targetProd.salePriceByRegime
+                                ? {
+                                    presumido: targetProd.salePriceByRegime.presumido,
+                                    real: targetProd.salePriceByRegime.real,
+                                    simples: targetProd.salePriceByRegime.simples,
+                                  }
+                                : undefined
+                            }
                           />
                         </div>
                       </div>
