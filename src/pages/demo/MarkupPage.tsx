@@ -2246,15 +2246,24 @@ export default function MarkupPage() {
                           (comp?.directCosts || []).length +
                           (comp?.indirectCosts || []).length +
                           (comp?.fixedCosts || []).length
+                        const dvFactorChip =
+                          totalVariableExpenseRate > 0 && totalVariableExpenseRate < 100
+                            ? 1 - totalVariableExpenseRate / 100
+                            : 1
+                        const customFactorChip = customTaxesMarkup.reduce(
+                          (acc, t) => acc * (1 - (Number.isFinite(t.rate) ? t.rate : 0) / 100),
+                          1,
+                        )
+                        const taxPartChip =
+                          prod.taxFactor > 0 && prod.taxFactor < 1
+                            ? Math.min(
+                                1,
+                                Math.max(0, prod.taxFactor / (dvFactorChip * customFactorChip)),
+                              )
+                            : 0
                         const taxesTotal =
                           prod.salePrice > 0
-                            ? Math.round(
-                                prod.salePrice *
-                                  (prod.taxFactor > 0 && prod.taxFactor < 1
-                                    ? 1 - prod.taxFactor
-                                    : 0) *
-                                  100,
-                              ) / 100
+                            ? Math.round(prod.salePrice * (1 - taxPartChip) * 100) / 100
                             : 0
 
                         return (
