@@ -2226,6 +2226,62 @@ export default function MarkupPage() {
                     </div>
 
                     {/* Chip Compacto em Subcamada: Composição do Custo (modo Custo + Margem) */}
+                    {/* Chip Compacto em Subcamada: Composição dos Tributos (modo Receita Líquida) */}
+                    {isProdLiquid &&
+                      (() => {
+                        const rbvActive =
+                          prod.salePriceByRegime && prod.salePriceByRegime[regime] > 0
+                            ? prod.salePriceByRegime[regime]
+                            : prod.salePrice
+                        const dvFactorL =
+                          totalVariableExpenseRate > 0 && totalVariableExpenseRate < 100
+                            ? 1 - totalVariableExpenseRate / 100
+                            : 1
+                        const customFactorL = customTaxesMarkup.reduce(
+                          (acc, t) => acc * (1 - (Number.isFinite(t.rate) ? t.rate : 0) / 100),
+                          1,
+                        )
+                        const taxPartL =
+                          prod.taxFactor > 0 && prod.taxFactor < 1
+                            ? Math.min(1, Math.max(0, prod.taxFactor / (dvFactorL * customFactorL)))
+                            : 0
+                        const taxesTotalL =
+                          rbvActive > 0 ? Math.round(rbvActive * (1 - taxPartL) * 100) / 100 : 0
+
+                        return (
+                          <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setCompositionModalProductId(prod.id)}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer ${
+                                taxesTotalL > 0
+                                  ? 'bg-emerald-500/[0.18] border-emerald-400/80 text-emerald-100 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-sm shadow-emerald-500/15 ring-1 ring-emerald-500/30'
+                                  : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/50'
+                              }`}
+                              title="Abrir camada de Composição dos Tributos deste produto"
+                            >
+                              <Receipt className="w-3.5 h-3.5 text-emerald-300" />
+                              <span className="font-semibold">Composição dos Tributos</span>
+                              <Badge
+                                className={`text-[9px] px-1.5 py-0 border-0 font-normal ${
+                                  taxesTotalL > 0
+                                    ? 'bg-emerald-500/35 text-emerald-100 font-semibold'
+                                    : 'bg-slate-800 text-slate-400'
+                                }`}
+                              >
+                                {taxesTotalL > 0 ? formatBRL(taxesTotalL) : 'Simular p/ ver'}
+                              </Badge>
+                              <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
+                            </button>
+
+                            {taxesTotalL > 0 && (
+                              <span className="text-[10px] font-mono text-slate-400">
+                                Tributos do produto no regime ativo: {formatBRL(taxesTotalL)}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })()}
                     {!isProdLiquid &&
                       (() => {
                         const comp = prod.costComposition
