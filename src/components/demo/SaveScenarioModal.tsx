@@ -24,6 +24,8 @@ import {
   CloudCheck,
   Search,
   ChevronRight,
+  ChevronDown,
+  Folder,
   Sparkles,
   FileText,
   Pencil,
@@ -101,6 +103,18 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   // Exclusão e Restauração
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [restoredId, setRestoredId] = useState<string | null>(null)
+
+  // Depósito de cenários: pastas de clientes expandidas/recolhidas
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
+
+  const toggleFolder = (clientId: string) => {
+    setExpandedFolders((prev) => {
+      const next = new Set(prev)
+      if (next.has(clientId)) next.delete(clientId)
+      else next.add(clientId)
+      return next
+    })
+  }
 
   // Feedback Toast interno
   const [feedback, setFeedback] = useState<{
@@ -402,6 +416,29 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
       return matchSearch
     })
   }, [scenarios, searchQuery])
+
+  // DEPÓSITO DE CENÁRIOS — agrupamento por cliente (pasta) e simulação (subpasta)
+  const clientFolders = useMemo(() => {
+    const map = new Map<string, { clientName: string; items: typeof filteredScenarios }>()
+    filteredScenarios.forEach((s) => {
+      const key = s.client || '_sem_cliente_'
+      if (!map.has(key)) {
+        map.set(key, { clientName: s.clientName || 'Cliente', items: [] })
+      }
+      map.get(key)!.items.push(s)
+    })
+    return Array.from(map.entries())
+      .map(([clientId, group]) => ({
+        clientId,
+        clientName: group.clientName,
+        items: group.items.sort(
+          (a, b) =>
+            new Date(b.updated || b.created || 0).getTime() -
+            new Date(a.updated || a.created || 0).getTime(),
+        ),
+      }))
+      .sort((a, b) => a.clientName.localeCompare(b.clientName, 'pt-BR'))
+  }, [filteredScenarios])
 
   // Contagem de cenários por cliente ativo
   const activeClientScenariosCount = useMemo(() => {
@@ -1052,186 +1089,236 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
               </div>
             ) : (
               <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-                {filteredScenarios.map((sc) => {
-                  const isCurrentRestored = restoredId === sc.id
-                  const isDeleting = deletingId === sc.id
-                  const isLocal = sc.source === 'local' || sc.pendingSync
-
-                  // Total de despesas contido no snapshot
-                  const snapExpenses = sc.snapshot?.operatingExpenses || []
-                  const totalExp = snapExpenses.reduce((acc, curr) => acc + (curr.value || 0), 0)
-
+                {clientFolders.map((folder) => {
+                  const isExpanded =
+                    expandedFolders.has(folder.clientId) || searchQuery.trim().length > 0
+                  const isFolderView = true
                   return (
                     <div
-                      key={sc.id}
-                      className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                        isCurrentRestored
-                          ? 'bg-emerald-500/15 border-emerald-400 shadow-md shadow-emerald-500/10'
-                          : 'bg-slate-950/70 border-slate-800 hover:border-emerald-500/40'
-                      }`}
+                      key={folder.clientId}
+                      className="rounded-xl border border-slate-800 bg-slate-950/40 overflow-hidden"
                     >
-                      {editingScenarioId === sc.id ? (
-                        /* Modo de Edição Inline de Nome */
-                        <div className="w-full space-y-2 py-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-mono text-emerald-400 font-bold">
-                              Renomear cenário:
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="text"
-                              value={editingScenarioName}
-                              onChange={(e) => setEditingScenarioName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault()
-                                  handleSaveRename(sc.id)
-                                } else if (e.key === 'Escape') {
-                                  handleCancelRename()
-                                }
-                              }}
-                              autoFocus
-                              placeholder="Nome do cenário..."
-                              className="h-8 text-xs bg-slate-900 border-emerald-500/60 text-white font-sans flex-1"
-                            />
-                            <Button
-                              type="button"
-                              size="sm"
-                              disabled={isSavingScenarioName || !editingScenarioName.trim()}
-                              onClick={() => handleSaveRename(sc.id)}
-                              className="h-8 px-2.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer"
-                              title="Salvar novo nome"
-                            >
-                              {isSavingScenarioName ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5 mr-1" />
-                              )}
-                              <span>Salvar</span>
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              disabled={isSavingScenarioName}
-                              onClick={handleCancelRename}
-                              className="h-8 px-2 text-xs text-slate-400 hover:text-white cursor-pointer"
-                              title="Cancelar edição"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
+                      {/* PASTA DO CLIENTE */}
+                      <button
+                        type="button"
+                        onClick={() => toggleFolder(folder.clientId)}
+                        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-slate-900/60 hover:bg-slate-900 transition-colors cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-emerald-400 shrink-0" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-emerald-400 shrink-0" />
+                          )}
+                          <Folder className="w-4 h-4 text-amber-400 shrink-0" />
+                          <span className="text-xs font-bold text-white truncate text-left">
+                            {folder.clientName}
+                          </span>
+                        </span>
+                        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2 py-0.5 shrink-0">
+                          {folder.items.length}{' '}
+                          {folder.items.length === 1 ? 'simulação' : 'simulações'}
+                        </span>
+                      </button>
+
+                      {/* SUBPASTAS: SIMULAÇÕES DO CLIENTE */}
+                      {isExpanded && (
+                        <div className="p-2 space-y-2">
+                          {folder.items.map((sc) => {
+                            const isCurrentRestored = restoredId === sc.id
+                            const isDeleting = deletingId === sc.id
+                            const isLocal = sc.source === 'local' || sc.pendingSync
+
+                            // Total de despesas contido no snapshot
+                            const snapExpenses = sc.snapshot?.operatingExpenses || []
+                            const totalExp = snapExpenses.reduce(
+                              (acc, curr) => acc + (curr.value || 0),
+                              0,
+                            )
+
+                            return (
+                              <div
+                                key={sc.id}
+                                className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                                  isCurrentRestored
+                                    ? 'bg-emerald-500/15 border-emerald-400 shadow-md shadow-emerald-500/10'
+                                    : 'bg-slate-950/70 border-slate-800 hover:border-emerald-500/40'
+                                }`}
+                              >
+                                {editingScenarioId === sc.id ? (
+                                  /* Modo de Edição Inline de Nome */
+                                  <div className="w-full space-y-2 py-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[11px] font-mono text-emerald-400 font-bold">
+                                        Renomear cenário:
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Input
+                                        type="text"
+                                        value={editingScenarioName}
+                                        onChange={(e) => setEditingScenarioName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault()
+                                            handleSaveRename(sc.id)
+                                          } else if (e.key === 'Escape') {
+                                            handleCancelRename()
+                                          }
+                                        }}
+                                        autoFocus
+                                        placeholder="Nome do cenário..."
+                                        className="h-8 text-xs bg-slate-900 border-emerald-500/60 text-white font-sans flex-1"
+                                      />
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        disabled={
+                                          isSavingScenarioName || !editingScenarioName.trim()
+                                        }
+                                        onClick={() => handleSaveRename(sc.id)}
+                                        className="h-8 px-2.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer"
+                                        title="Salvar novo nome"
+                                      >
+                                        {isSavingScenarioName ? (
+                                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                          <Check className="w-3.5 h-3.5 mr-1" />
+                                        )}
+                                        <span>Salvar</span>
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={isSavingScenarioName}
+                                        onClick={handleCancelRename}
+                                        className="h-8 px-2 text-xs text-slate-400 hover:text-white cursor-pointer"
+                                        title="Cancelar edição"
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  /* Modo Normal de Exibição */
+                                  <>
+                                    <div className="space-y-1 min-w-0 flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-bold text-xs sm:text-sm text-white truncate">
+                                          {sc.name}
+                                        </span>
+                                        {sc.clientName && !isFolderView && (
+                                          <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono">
+                                            <Building2 className="w-3 h-3 mr-1 inline" />
+                                            {sc.clientName}
+                                          </Badge>
+                                        )}
+                                        {/* Badge de Origem/Escopo */}
+                                        {sc.scope === 'markup' && (
+                                          <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[9px] font-mono">
+                                            Markup
+                                          </Badge>
+                                        )}
+                                        {sc.scope === 'compras' && (
+                                          <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
+                                            Compras
+                                          </Badge>
+                                        )}
+                                        {(!sc.scope || sc.scope === 'despesas-operacionais') && (
+                                          <Badge className="bg-orange-500/20 text-orange-300 border border-orange-500/40 text-[9px] font-mono">
+                                            Despesas
+                                          </Badge>
+                                        )}
+                                        {isLocal && (
+                                          <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
+                                            Offline / Local
+                                          </Badge>
+                                        )}
+                                      </div>
+
+                                      {sc.notes && (
+                                        <p className="text-[11px] text-slate-400 line-clamp-1">
+                                          {sc.notes}
+                                        </p>
+                                      )}
+
+                                      {/* Metadados específicos do escopo do cenário salvo */}
+                                      <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono flex-wrap">
+                                        <span className="flex items-center gap-1">
+                                          <Clock className="w-3 h-3" />
+                                          {formatDate(sc.updated || sc.created)}
+                                        </span>
+                                        <span>•</span>
+                                        {sc.scope === 'markup' ? (
+                                          <span className="text-emerald-400/90">
+                                            Receita Consolidada:{' '}
+                                            {formatBRL(sc.snapshot?.totalConsolidatedRevenue || 0)}{' '}
+                                            ({sc.snapshot?.markupProducts?.length || 0} produtos)
+                                          </span>
+                                        ) : sc.scope === 'compras' ? (
+                                          <span className="text-amber-400/90">
+                                            Mercadorias:{' '}
+                                            {formatBRL(sc.snapshot?.totalPurchasesMerchandise || 0)}{' '}
+                                            ({sc.snapshot?.purchasesItems?.length || 0} itens)
+                                          </span>
+                                        ) : (
+                                          <span className="text-rose-400/90">
+                                            Despesas: {formatBRL(totalExp)} ({snapExpenses.length}{' '}
+                                            itens)
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Ações: Restaurar, Editar e Excluir */}
+                                    <div className="flex items-center gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() => handleRestore(sc)}
+                                        className="h-7 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer shadow-sm"
+                                        title="Restaurar dados deste cenário no formulário"
+                                      >
+                                        <RotateCcw className="w-3 h-3 mr-1" />
+                                        Restaurar
+                                      </Button>
+
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleStartRename(sc)}
+                                        className="h-7 w-7 p-0 text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+                                        title="Renomear cenário"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                      </Button>
+
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        disabled={isDeleting}
+                                        onClick={() =>
+                                          setConfirmDeleteScenario({ id: sc.id, name: sc.name })
+                                        }
+                                        className="h-7 w-7 p-0 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                                        title="Excluir cenário"
+                                      >
+                                        {isDeleting ? (
+                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        )}
+                                      </Button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
-                      ) : (
-                        /* Modo Normal de Exibição */
-                        <>
-                          <div className="space-y-1 min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-xs sm:text-sm text-white truncate">
-                                {sc.name}
-                              </span>
-                              {sc.clientName && (
-                                <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono">
-                                  <Building2 className="w-3 h-3 mr-1 inline" />
-                                  {sc.clientName}
-                                </Badge>
-                              )}
-                              {/* Badge de Origem/Escopo */}
-                              {sc.scope === 'markup' && (
-                                <Badge className="bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[9px] font-mono">
-                                  Markup
-                                </Badge>
-                              )}
-                              {sc.scope === 'compras' && (
-                                <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
-                                  Compras
-                                </Badge>
-                              )}
-                              {(!sc.scope || sc.scope === 'despesas-operacionais') && (
-                                <Badge className="bg-orange-500/20 text-orange-300 border border-orange-500/40 text-[9px] font-mono">
-                                  Despesas
-                                </Badge>
-                              )}
-                              {isLocal && (
-                                <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
-                                  Offline / Local
-                                </Badge>
-                              )}
-                            </div>
-
-                            {sc.notes && (
-                              <p className="text-[11px] text-slate-400 line-clamp-1">{sc.notes}</p>
-                            )}
-
-                            {/* Metadados específicos do escopo do cenário salvo */}
-                            <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono flex-wrap">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {formatDate(sc.updated || sc.created)}
-                              </span>
-                              <span>•</span>
-                              {sc.scope === 'markup' ? (
-                                <span className="text-emerald-400/90">
-                                  Receita Consolidada:{' '}
-                                  {formatBRL(sc.snapshot?.totalConsolidatedRevenue || 0)} (
-                                  {sc.snapshot?.markupProducts?.length || 0} produtos)
-                                </span>
-                              ) : sc.scope === 'compras' ? (
-                                <span className="text-amber-400/90">
-                                  Mercadorias:{' '}
-                                  {formatBRL(sc.snapshot?.totalPurchasesMerchandise || 0)} (
-                                  {sc.snapshot?.purchasesItems?.length || 0} itens)
-                                </span>
-                              ) : (
-                                <span className="text-rose-400/90">
-                                  Despesas: {formatBRL(totalExp)} ({snapExpenses.length} itens)
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Ações: Restaurar, Editar e Excluir */}
-                          <div className="flex items-center gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => handleRestore(sc)}
-                              className="h-7 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer shadow-sm"
-                              title="Restaurar dados deste cenário no formulário"
-                            >
-                              <RotateCcw className="w-3 h-3 mr-1" />
-                              Restaurar
-                            </Button>
-
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleStartRename(sc)}
-                              className="h-7 w-7 p-0 text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
-                              title="Renomear cenário"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              disabled={isDeleting}
-                              onClick={() => setConfirmDeleteScenario({ id: sc.id, name: sc.name })}
-                              className="h-7 w-7 p-0 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
-                              title="Excluir cenário"
-                            >
-                              {isDeleting ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-3.5 h-3.5" />
-                              )}
-                            </Button>
-                          </div>
-                        </>
                       )}
                     </div>
                   )
