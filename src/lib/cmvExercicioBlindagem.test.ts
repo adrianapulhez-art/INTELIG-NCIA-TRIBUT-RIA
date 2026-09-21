@@ -69,6 +69,21 @@ describe('Blindagem Fase A — CMV por Exercício (Página Reforma)', () => {
     expect(cell.exercicio.liquido).toBe(32851.22)
   })
 
+  it('VALOR DE OURO LP×LP 2029 (Fase B): ICMS cede a 90% (−8.011,21 → −7.210,09) e IBS sobe p/ 1,77% (−44,46 → −774,07); líquido 32.922,73 → 1.097,42/un (−5,31%)', () => {
+    const row2029 = CRONOGRAMA_OFICIAL.find((r) => r.exercicio === 2029) as ScheduleRow
+    expect(row2029.habilitado).toBe(true)
+    const cell = computeCell(CASO_CANONICO, LP_LP, row2029)
+    const ex = cell.exercicio
+    expect(ex.lines.find((l) => l.key === 'icms')?.value).toBe(-7210.09)
+    expect(ex.lines.find((l) => l.key === 'cbs')?.value).toBe(-3599.81)
+    expect(ex.lines.find((l) => l.key === 'ibs')?.value).toBe(-774.07)
+    expect(ex.liquido).toBe(32922.73)
+    expect(ex.unitario).toBe(1097.42)
+    expect(cell.deltaPct).toBe(-5.31)
+    // Ponto cego da transição: 2029 é MAIS CARO que 2027 — corte do ICMS (−801,12) > IBS (+729,61)
+    expect(ex.unitario).toBeGreaterThan(1095.04)
+  })
+
   it('réguas de repasse LP×LP 2027: Integral 1.096,31 (−5,4%) · Parcial 50% · Nenhum — lado a lado', () => {
     const integral = computeCell(CASO_CANONICO, { ...LP_LP, repasse: 'integral' }, row2027)
     const parcial = computeCell(

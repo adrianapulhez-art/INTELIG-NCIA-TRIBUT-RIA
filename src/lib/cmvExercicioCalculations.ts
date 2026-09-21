@@ -37,7 +37,7 @@ export const CRONOGRAMA_OFICIAL: ScheduleRow[] = [
   { exercicio: 2026, cbsRate: 0.9, ibsRate: 0.1, icmsPct: 100, ipiRate: 10, habilitado: false },
   { exercicio: 2027, cbsRate: 8.8, ibsRate: 0.1, icmsPct: 100, ipiRate: 0, habilitado: true },
   { exercicio: 2028, cbsRate: 8.8, ibsRate: 0.1, icmsPct: 100, ipiRate: 0, habilitado: true },
-  { exercicio: 2029, cbsRate: 8.8, ibsRate: 1.77, icmsPct: 90, ipiRate: 0, habilitado: false },
+  { exercicio: 2029, cbsRate: 8.8, ibsRate: 1.77, icmsPct: 90, ipiRate: 0, habilitado: true },
   { exercicio: 2030, cbsRate: 8.8, ibsRate: 3.54, icmsPct: 80, ipiRate: 0, habilitado: false },
   { exercicio: 2031, cbsRate: 8.8, ibsRate: 5.31, icmsPct: 70, ipiRate: 0, habilitado: false },
   { exercicio: 2032, cbsRate: 8.8, ibsRate: 7.08, icmsPct: 60, ipiRate: 0, habilitado: false },
@@ -417,6 +417,23 @@ export const OURO_LPLP_2027 = {
 }
 
 export const OURO_LPLP_2028 = OURO_LPLP_2027 // 2028 tem as mesmas alíquotas de 2027
+
+/**
+ * VALOR DE OURO LP×LP 2029 (Fase B): primeira estação com ICMS cedendo (90%).
+ * O corte do crédito de ICMS (−801,12) supera o IBS que sobe (+729,61): a estação
+ * 2029 é MAIS CARA que 2027 (+2,38/un) — o "ponto cego" da transição.
+ */
+export const OURO_LPLP_2029 = {
+  mercadoria: 44086.83,
+  frete: 419.87,
+  bruto: 44506.7,
+  icms: 7210.09,
+  cbs: 3599.81,
+  ibs: 774.07,
+  liquido: 32922.73,
+  unitario: 1097.42,
+  deltaPct: -5.31,
+}
 
 export const OURO_REPASSE_LPLP_2027 = {
   integral: { unitario: 1095.04, deltaPct: -5.51 },
