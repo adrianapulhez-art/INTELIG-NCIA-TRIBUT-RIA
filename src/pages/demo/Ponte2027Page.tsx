@@ -257,8 +257,8 @@ export default function Ponte2027Page() {
               {formatBRL(result.currentSalesTaxes)}
             </p>
             <p className="text-xs text-slate-400 mt-1">
-              ICMS {formatPercentBR(18)} + ISS {formatPercentBR(5)} + PIS/COFINS sobre receita de{' '}
-              {formatBRL(revenue2027)}
+              ICMS {formatPercentBR(icmsRate)} + ISS {formatPercentBR(issRate)} + PIS/COFINS sobre
+              receita de {formatBRL(revenue2027)}
             </p>
             <div className="mt-3 pt-3 border-t border-slate-800 flex justify-between text-xs">
               <span className="text-slate-500">Carga efetiva</span>
