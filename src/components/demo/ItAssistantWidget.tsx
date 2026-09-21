@@ -5,7 +5,7 @@ import { ChatMarkdown } from '@/components/demo/ChatMarkdown'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { assistantAvatar } from '@/components/demo/ItAssistantAvatar'
-import { MessageCircle, Send, X } from 'lucide-react'
+import { Send, X } from 'lucide-react'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
