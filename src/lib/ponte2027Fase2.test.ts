@@ -5,6 +5,8 @@ import {
   compareRegimes2027,
   computeB2BCredit,
   marginSensitivity,
+  computeSplitPayment,
+  computeCashFlow2027,
 } from '@/lib/ponte2027Calculations'
 
 // Caso de referência: receita 100.000, sem aquisições, ICMS 18%, ISS 5%
@@ -83,6 +85,34 @@ describe('Blindagem Fase 2 — Ponte 2027 (comparativo · B2B · margem)', () =>
     // O % de reajuste é igual para toda margem; o R$ em jogo cresce com a margem
     expect(rows.every((r) => Math.abs(r.deltaPct - rows[0].deltaPct) < 1e-9)).toBe(true)
     expect(m20.netIncome - m20.netIncomeNoReprice).toBe(5250)
+  })
+
+  it('split payment (art. 31): 50% sobre CBS líquida 8.800 → retida 4.400, DARE 4.400, carga inalterada', () => {
+    const r = calculatePonte2027(BASE)
+    const split = computeSplitPayment(r, 50)
+    expect(split.retainedCbs).toBe(4400)
+    expect(split.cashCbs).toBe(4400)
+    expect(split.totalBurden).toBe(r.total2027Burden) // split não muda a carga
+    expect(split.workingCapitalImpact).toBe(4400)
+    // limites: 0% e 100%
+    expect(computeSplitPayment(r, 0).retainedCbs).toBe(0)
+    expect(computeSplitPayment(r, 100).retainedCbs).toBe(8800)
+    expect(computeSplitPayment(r, 150).retentionRate).toBe(100) // clamp
+  })
+
+  it('fluxo de caixa 2027: 12 meses, saída mensal = total/12, Δ acumulado termina no Δ anual', () => {
+    const r = calculatePonte2027(BASE)
+    const split = computeSplitPayment(r, 50)
+    const cf = computeCashFlow2027(BASE, r, split)
+    expect(cf.months).toHaveLength(12)
+    // mês 1: saída 2027 = 31.900/12 = 2.658,33; atual = 26.650/12 = 2.220,83
+    expect(cf.months[0].out2027).toBeCloseTo(31900 / 12, 2)
+    expect(cf.months[0].outCurrent).toBeCloseTo(26650 / 12, 2)
+    expect(cf.months[0].splitRetained).toBeCloseTo(4400 / 12, 2)
+    // Δ acumulado do mês 12 = Δ anual (split muda timing, não total)
+    expect(cf.months[11].deltaCumulative).toBeCloseTo(cf.annualDelta, 2)
+    expect(cf.totalOut2027).toBe(31900)
+    expect(cf.totalOutCurrent).toBe(26650)
   })
 
   it('Fase 1 intacta: suggestedPrice2027 agora divide por (1−o) — não embute CBS por multiplicação', () => {

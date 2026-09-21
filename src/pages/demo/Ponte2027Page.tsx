@@ -9,9 +9,13 @@ import {
   buildPonteStateFromTaxContext,
   CBS_2027_RATE,
   IBS_2027_RATE,
+  compareRegimes2027,
+  computeB2BCredit,
 } from '@/lib/ponte2027Calculations'
 import { formatBRL, formatPercentBR, parseBRNumber, formatNumberBR } from '@/lib/taxCalculations'
 import { Ponte2027Phase2Section } from '@/components/demo/Ponte2027Phase2Section'
+import { Ponte2027Phase3Section } from '@/components/demo/Ponte2027Phase3Section'
+import { marginSensitivity } from '@/lib/ponte2027Calculations'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { PageHero } from '@/components/demo/PageHero'
 import { Button } from '@/components/ui/button'
@@ -544,6 +548,22 @@ export default function Ponte2027Page() {
           icmsRate={18}
           issRate={5}
           ponteState={ponteState}
+        />
+
+        {/* ===================== FASE 3: SPLIT PAYMENT · FLUXO DE CAIXA · CARTEIRA 2027 ===================== */}
+        <Ponte2027Phase3Section
+          revenue2027={revenue2027}
+          regimeName={result.regimeName}
+          ponteState={ponteState}
+          result={result}
+          comparativo={compareRegimes2027(ponteState)}
+          b2b={computeB2BCredit(revenue2027, regime, 18)}
+          margens={marginSensitivity(revenue2027, regime, 18, 5).map((m) => ({
+            marginPct: m.marginPct,
+            price2027: m.price2027,
+            netIncome: m.netIncome,
+            netIncomeNoReprice: m.netIncomeNoReprice,
+          }))}
         />
 
         {/* Rodapé de base legal */}

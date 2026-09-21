@@ -458,6 +458,115 @@ export function computeB2BCredit(
   }
 }
 
+// ============================================================================
+// FASE 3 — SPLIT PAYMENT (LC 214/25, ART. 31) · FLUXO DE CAIXA · CARTEIRA 2027
+// ============================================================================
+
+export interface SplitPaymentResult {
+  /** % retido na fonte (parâmetro de simulação — regulamentação define hipóteses/limites) */
+  retentionRate: number
+  /** CBS líquida anual retida pelo adquirente (não passa pelo caixa do vendedor) */
+  retainedCbs: number
+  /** CBS líquida anual que o vendedor ainda recolhe via DARE */
+  cashCbs: number
+  /** Carga total 2027 — split NÃO altera a carga, só o caixa (timing) */
+  totalBurden: number
+  /** Float de capital de giro que o vendedor deixa de segurar (efeito financeiro) */
+  workingCapitalImpact: number
+}
+
+/**
+ * Split payment — LC 214/25, art. 31: o IBS/CBS pode ser retido na fonte pelo
+ * adquirente. O mecanismo existe em lei; o % é PARÂMETRO de simulação (a
+ * regulamentação define as hipóteses e limites). Efeito: não muda a carga —
+ * muda o caixa (o vendedor deixa de segurar o float da CBS entre venda e DARE).
+ */
+export function computeSplitPayment(
+  result: Ponte2027Result,
+  retentionRate: number,
+): SplitPaymentResult {
+  const rate = Math.min(100, Math.max(0, retentionRate))
+  const retainedCbs = result.netCbsToPay * (rate / 100)
+  return {
+    retentionRate: rate,
+    retainedCbs,
+    cashCbs: result.netCbsToPay - retainedCbs,
+    totalBurden: result.total2027Burden,
+    workingCapitalImpact: retainedCbs,
+  }
+}
+
+export interface CashFlowMonth {
+  month: number
+  /** CBS líquida do mês (após crédito) */
+  netCbs: number
+  /** Parte retida na fonte (split) — sai direto para o fisco */
+  splitRetained: number
+  /** CBS que o vendedor recolhe via DARE */
+  cbsOnCash: number
+  /** ICMS + ISS do mês (integrais na janela) */
+  icmsIss: number
+  /** IBS-teste do mês */
+  ibs: number
+  /** Saída total 2027 */
+  out2027: number
+  /** Saída no sistema atual (ICMS + ISS + PIS/COFINS) */
+  outCurrent: number
+  /** Δ acumulado (2027 − atual) */
+  deltaCumulative: number
+}
+
+export interface CashFlow2027Result {
+  months: CashFlowMonth[]
+  totalOut2027: number
+  totalOutCurrent: number
+  /** = burdenDifference (carga) — split não muda o total, só o timing */
+  annualDelta: number
+  split: SplitPaymentResult
+}
+
+/**
+ * Fluxo de caixa mensal 2027 × sistema atual — receita uniforme (÷12),
+ * crédito das aquisições uniforme, ICMS/ISS/PIS-COFINS no mesmo mês.
+ * O split aparece como timing: parte da CBS vai direto do adquirente ao fisco.
+ */
+export function computeCashFlow2027(
+  state: Ponte2027State,
+  result: Ponte2027Result,
+  split: SplitPaymentResult,
+): CashFlow2027Result {
+  const months: CashFlowMonth[] = []
+  const netCbsM = result.netCbsToPay / 12
+  const splitM = split.retainedCbs / 12
+  const cbsCashM = split.cashCbs / 12
+  const icmsIssM = (result.transitionalIcms + result.transitionalIss) / 12
+  const ibsM = result.ibsOnSales / 12
+  const outCurrentM = result.currentSalesTaxes / 12
+  let cum = 0
+  for (let m = 1; m <= 12; m++) {
+    const out2027 = cbsCashM + splitM + icmsIssM + ibsM
+    cum += out2027 - outCurrentM
+    months.push({
+      month: m,
+      netCbs: netCbsM,
+      splitRetained: splitM,
+      cbsOnCash: cbsCashM,
+      icmsIss: icmsIssM,
+      ibs: ibsM,
+      out2027,
+      outCurrent: outCurrentM,
+      deltaCumulative: cum,
+    })
+  }
+  return {
+    months,
+    totalOut2027: result.total2027Burden,
+    totalOutCurrent: result.currentSalesTaxes,
+    annualDelta: result.burdenDifference,
+    split,
+  }
+}
+
 export interface MarginSensitivityPoint {
   marginPct: number
   /** Margem líquida em R$ hoje (mantida em 2027 com reprecificação) */
