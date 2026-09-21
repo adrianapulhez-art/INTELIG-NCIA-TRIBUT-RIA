@@ -40,7 +40,7 @@ export const CRONOGRAMA_OFICIAL: ScheduleRow[] = [
   { exercicio: 2029, cbsRate: 8.8, ibsRate: 1.77, icmsPct: 90, ipiRate: 0, habilitado: true },
   { exercicio: 2030, cbsRate: 8.8, ibsRate: 3.54, icmsPct: 80, ipiRate: 0, habilitado: true },
   { exercicio: 2031, cbsRate: 8.8, ibsRate: 5.31, icmsPct: 70, ipiRate: 0, habilitado: true },
-  { exercicio: 2032, cbsRate: 8.8, ibsRate: 7.08, icmsPct: 60, ipiRate: 0, habilitado: false },
+  { exercicio: 2032, cbsRate: 8.8, ibsRate: 7.08, icmsPct: 60, ipiRate: 0, habilitado: true },
   { exercicio: 2033, cbsRate: 8.8, ibsRate: 17.7, icmsPct: 0, ipiRate: 0, habilitado: false },
 ]
 
@@ -467,6 +467,23 @@ export const OURO_LPLP_2031 = {
   liquido: 33054.9,
   unitario: 1101.83,
   deltaPct: -4.93,
+}
+
+/**
+ * VALOR DE OURO LP×LP 2032 (Fase C, rodada 3): ICMS cede a 60%, IBS sobe a 7,08%.
+ * O degrau da escada CRESCE (1.101,83 → 1.105,25, +3,42/un): o ICMS cede sempre
+ * 801,12, mas o IBS "por dentro" entra cada vez menos por ponto cedido (+698,59).
+ */
+export const OURO_LPLP_2032 = {
+  mercadoria: 44086.83,
+  frete: 419.87,
+  bruto: 44506.7,
+  icms: 4806.73,
+  cbs: 3599.81,
+  ibs: 2942.73,
+  liquido: 33157.43,
+  unitario: 1105.25,
+  deltaPct: -4.63,
 }
 
 export const OURO_REPASSE_LPLP_2027 = {
