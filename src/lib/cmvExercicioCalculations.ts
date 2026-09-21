@@ -39,7 +39,7 @@ export const CRONOGRAMA_OFICIAL: ScheduleRow[] = [
   { exercicio: 2028, cbsRate: 8.8, ibsRate: 0.1, icmsPct: 100, ipiRate: 0, habilitado: true },
   { exercicio: 2029, cbsRate: 8.8, ibsRate: 1.77, icmsPct: 90, ipiRate: 0, habilitado: true },
   { exercicio: 2030, cbsRate: 8.8, ibsRate: 3.54, icmsPct: 80, ipiRate: 0, habilitado: true },
-  { exercicio: 2031, cbsRate: 8.8, ibsRate: 5.31, icmsPct: 70, ipiRate: 0, habilitado: false },
+  { exercicio: 2031, cbsRate: 8.8, ibsRate: 5.31, icmsPct: 70, ipiRate: 0, habilitado: true },
   { exercicio: 2032, cbsRate: 8.8, ibsRate: 7.08, icmsPct: 60, ipiRate: 0, habilitado: false },
   { exercicio: 2033, cbsRate: 8.8, ibsRate: 17.7, icmsPct: 0, ipiRate: 0, habilitado: false },
 ]
@@ -450,6 +450,23 @@ export const OURO_LPLP_2030 = {
   liquido: 32976.25,
   unitario: 1099.21,
   deltaPct: -5.15,
+}
+
+/**
+ * VALOR DE OURO LP×LP 2031 (Fase C, rodada 2): ICMS cede a 70%, IBS sobe a 5,31%.
+ * A escada do custo continua: 1.095,04 (2027) → 1.097,42 (2029) → 1.099,21 (2030)
+ * → 1.101,83 (2031). Entrega de ICMS (−801,12) ainda supera o IBS (+722,47).
+ */
+export const OURO_LPLP_2031 = {
+  mercadoria: 44086.83,
+  frete: 419.87,
+  bruto: 44506.7,
+  icms: 5607.85,
+  cbs: 3599.81,
+  ibs: 2244.14,
+  liquido: 33054.9,
+  unitario: 1101.83,
+  deltaPct: -4.93,
 }
 
 export const OURO_REPASSE_LPLP_2027 = {

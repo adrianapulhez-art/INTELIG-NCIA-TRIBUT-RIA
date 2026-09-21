@@ -99,6 +99,21 @@ describe('Blindagem Fase A — CMV por Exercício (Página Reforma)', () => {
     expect(ex.unitario).toBeGreaterThan(1097.42) // 2029
   })
 
+  it('VALOR DE OURO LP×LP 2031 (Fase C/2): ICMS 70% (−5.607,85), IBS 5,31% (−2.244,14); líquido 33.054,90 → 1.101,83/un (−4,93%)', () => {
+    const row2031 = CRONOGRAMA_OFICIAL.find((r) => r.exercicio === 2031) as ScheduleRow
+    expect(row2031.habilitado).toBe(true)
+    const cell = computeCell(CASO_CANONICO, LP_LP, row2031)
+    const ex = cell.exercicio
+    expect(ex.lines.find((l) => l.key === 'icms')?.value).toBe(-5607.85)
+    expect(ex.lines.find((l) => l.key === 'cbs')?.value).toBe(-3599.81)
+    expect(ex.lines.find((l) => l.key === 'ibs')?.value).toBe(-2244.14)
+    expect(ex.liquido).toBe(33054.9)
+    expect(ex.unitario).toBe(1101.83)
+    expect(cell.deltaPct).toBe(-4.93)
+    // A escada do custo continua subindo
+    expect(ex.unitario).toBeGreaterThan(1099.21) // 2030
+  })
+
   it('réguas de repasse LP×LP 2027: Integral 1.096,31 (−5,4%) · Parcial 50% · Nenhum — lado a lado', () => {
     const integral = computeCell(CASO_CANONICO, { ...LP_LP, repasse: 'integral' }, row2027)
     const parcial = computeCell(
