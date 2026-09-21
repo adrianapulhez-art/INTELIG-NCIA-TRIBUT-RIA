@@ -335,12 +335,14 @@ export function computeExercicioSide(
     kind: 'credito',
   })
 
-  // CBS: "por dentro" na transição (2027–2032); POR FORA (destacada) a partir de 2033
+  // CBS: "por dentro" na transição (2027–2032); POR FORA (destacada) a partir de 2033.
+  // Por fora, o crédito é sobre a BASE LIMPA: bruto × aliq ÷ (100 + CBS + IBS)
   const cbsPorFora = row.exercicio >= 2033
+  const denomPorFora = 100 + row.cbsRate + row.ibsRate
   const creditoCbs =
     compradorCredita && fornecedorEmiteDestaque
       ? cbsPorFora
-        ? r2(bruto * (row.cbsRate / 100))
+        ? r2(bruto * (row.cbsRate / denomPorFora))
         : r2(bruto * (row.cbsRate / (100 + row.cbsRate)))
       : 0
   lines.push({
@@ -360,7 +362,7 @@ export function computeExercicioSide(
   const creditoIbs =
     compradorCredita && fornecedorEmiteDestaque
       ? cbsPorFora
-        ? r2(bruto * (row.ibsRate / 100))
+        ? r2(bruto * (row.ibsRate / denomPorFora))
         : r2(bruto * (row.ibsRate / (100 + row.ibsRate)))
       : 0
   lines.push({

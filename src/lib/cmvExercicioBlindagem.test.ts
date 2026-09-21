@@ -267,6 +267,7 @@ describe('Blindagem Fase A — CMV por Exercício (Página Reforma)', () => {
     expect(ex.lines.find((l) => l.key === 'icms')?.label).toContain('extinto')
     expect(ex.lines.find((l) => l.key === 'cbs')?.value).toBe(-2951.84)
     expect(ex.lines.find((l) => l.key === 'cbs')?.label).toContain('por fora')
+    expect(ex.lines.find((l) => l.key === 'cbs')?.formula).toContain('(100 + 8,80 + 17,70)')
     expect(ex.lines.find((l) => l.key === 'ibs')?.value).toBe(-5937.23)
     expect(ex.lines.find((l) => l.key === 'ibs')?.label).toContain('por fora')
     expect(ex.liquido).toBe(33543.66)
