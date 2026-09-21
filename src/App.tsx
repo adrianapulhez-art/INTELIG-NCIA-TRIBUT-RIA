@@ -21,6 +21,7 @@ import DemoDashboardPage from './pages/demo/DemoDashboardPage'
 import ReformaPage from './pages/demo/ReformaPage'
 import Ponte2027Page from './pages/demo/Ponte2027Page'
 import ClientsPage from './pages/demo/ClientsPage'
+import ManualPage from './pages/demo/ManualPage'
 import { Navigate } from 'react-router-dom'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
@@ -125,6 +126,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ClientsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/demo/manual"
+              element={
+                <ProtectedRoute>
+                  <ManualPage />
                 </ProtectedRoute>
               }
             />

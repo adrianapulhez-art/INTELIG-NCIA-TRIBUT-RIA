@@ -14,6 +14,7 @@ import {
   PieChart,
   Layers,
   Landmark,
+  BookOpen,
 } from 'lucide-react'
 
 interface ToolCard {
@@ -162,6 +163,19 @@ export default function DemoDashboard() {
       borderAccent: 'border-teal-500/30 hover:border-teal-400/60',
       accentColor: 'text-teal-300',
       icon: Users,
+    },
+    {
+      id: 'manual',
+      tag: 'MANUAL / AJUDA',
+      title: 'Manual de Uso — Calculadora Markup',
+      subtitle: 'Aprenda o fluxo completo, do custo à DRE',
+      description:
+        '10 capítulos com o Caso Adriana ao centavo: cadastro, modos, regimes, Memória de Cálculo, comparativos e integração com Compras. Base de conhecimento do Assistente IT.',
+      path: '/demo/manual',
+      gradient: 'from-[#1a2c14]/90 via-[#142011]/80 to-[#0b1207]/95',
+      borderAccent: 'border-lime-500/30 hover:border-lime-400/60',
+      accentColor: 'text-lime-400',
+      icon: BookOpen,
     },
   ]
 
