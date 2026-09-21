@@ -4,7 +4,8 @@ import pb from '@/lib/pocketbase/client'
 import { ChatMarkdown } from '@/components/demo/ChatMarkdown'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Bot, MessageCircle, Send, X } from 'lucide-react'
+import { assistantAvatar } from '@/components/demo/ItAssistantAvatar'
+import { MessageCircle, Send, X } from 'lucide-react'
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -79,9 +80,13 @@ export const ItAssistantWidget: React.FC = () => {
         type="button"
         onClick={() => setOpen(true)}
         title="Assistente IT — tirar dúvidas sobre o Manual"
-        className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-500 text-slate-950 font-bold text-xs shadow-xl shadow-emerald-950/50 hover:bg-emerald-400 transition-all duration-200 cursor-pointer"
+        className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full bg-emerald-500 text-slate-950 font-bold text-xs shadow-xl shadow-emerald-950/50 hover:bg-emerald-400 transition-all duration-200 cursor-pointer"
       >
-        <MessageCircle className="w-4 h-4" />
+        <img
+          src={assistantAvatar}
+          alt="Assistente IT"
+          className="w-8 h-8 rounded-full object-cover border border-emerald-300/60 shadow-sm"
+        />
         <span>Assistente IT</span>
       </button>
     )
@@ -91,9 +96,11 @@ export const ItAssistantWidget: React.FC = () => {
     <div className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] sm:w-96 max-h-[70vh] flex flex-col rounded-2xl border border-emerald-500/30 bg-[#06100d]/97 backdrop-blur-md shadow-2xl shadow-emerald-950/60 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-emerald-500/20 bg-[#091511]/90">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center">
-            <Bot className="w-3.5 h-3.5 text-slate-950" />
-          </div>
+          <img
+            src={assistantAvatar}
+            alt="Assistente IT"
+            className="w-7 h-7 rounded-full object-cover border border-emerald-400/50 shadow-inner"
+          />
           <div className="flex flex-col">
             <span className="text-xs font-bold text-white">Assistente IT</span>
             <span className="text-[9px] text-emerald-400 font-mono">
