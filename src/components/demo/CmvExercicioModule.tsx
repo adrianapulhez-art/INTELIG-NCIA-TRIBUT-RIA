@@ -738,9 +738,9 @@ export function CmvExercicioModule({ purchasesItems }: { purchasesItems: Purchas
                         menor custo: {formatBRL(best)}/un
                       </span>
                     </td>
-                    {cells.map(({ fornecedor, cell }) => {
+                    {cells.map(({ fornecedor, cell: cellRes }) => {
                       const isBest =
-                        cell.cell.exercicio.unitario > 0 && cell.cell.exercicio.unitario === best
+                        cellRes.exercicio.unitario > 0 && cellRes.exercicio.unitario === best
                       return (
                         <td key={fornecedor} className="py-1.5 px-1.5 align-top">
                           <button
@@ -748,35 +748,35 @@ export function CmvExercicioModule({ purchasesItems }: { purchasesItems: Purchas
                             onClick={() =>
                               setMemoryCell({
                                 label: `${REGIME_LABEL_FULL[comprador]} ← ${REGIME_LABEL_FULL[fornecedor]}`,
-                                cell: cell.cell,
+                                cell: cellRes,
                               })
                             }
                             className={`w-full text-left p-2 rounded-lg border transition-all cursor-pointer hover:ring-1 hover:ring-emerald-500/40 ${
-                              cell.cell.semaforo === 'vermelho'
+                              cellRes.semaforo === 'vermelho'
                                 ? 'bg-rose-500/10 border-rose-500/40'
-                                : cell.cell.semaforo === 'verde'
+                                : cellRes.semaforo === 'verde'
                                   ? 'bg-emerald-500/10 border-emerald-500/40'
                                   : 'bg-amber-500/10 border-amber-500/40'
                             } ${isBest ? 'ring-1 ring-emerald-400/60' : ''}`}
                           >
                             <span className="text-[10px] font-mono text-slate-300 block">
-                              Líq. {formatBRL(cell.cell.exercicio.liquido)}
+                              Líq. {formatBRL(cellRes.exercicio.liquido)}
                             </span>
                             <span className="text-[11px] font-mono font-bold text-slate-100 block">
-                              {formatBRL(cell.cell.exercicio.unitario)}/un
+                              {formatBRL(cellRes.exercicio.unitario)}/un
                             </span>
                             <span
                               className={`text-[9px] font-mono ${
-                                cell.cell.deltaPct < 0 ? 'text-emerald-300' : 'text-rose-300'
+                                cellRes.deltaPct < 0 ? 'text-emerald-300' : 'text-rose-300'
                               }`}
                             >
-                              {cell.cell.deltaPct > 0 ? '+' : ''}
-                              {formatNumberBR(cell.cell.deltaPct)}% vs. hoje
+                              {cellRes.deltaPct > 0 ? '+' : ''}
+                              {formatNumberBR(cellRes.deltaPct)}% vs. hoje
                             </span>
-                            {cell.cell.alerta && (
+                            {cellRes.alerta && (
                               <span className="flex items-center gap-1 text-[8px] font-mono text-rose-300 mt-0.5">
                                 <AlertTriangle className="w-2.5 h-2.5" />
-                                {cell.cell.alerta}
+                                {cellRes.alerta}
                               </span>
                             )}
                           </button>
