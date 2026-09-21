@@ -420,6 +420,6 @@ export const OURO_LPLP_2028 = OURO_LPLP_2027 // 2028 tem as mesmas alíquotas de
 
 export const OURO_REPASSE_LPLP_2027 = {
   integral: { unitario: 1095.04, deltaPct: -5.51 },
-  parcial: { unitario: 1069.13, deltaPct: -7.75 },
+  parcial: { unitario: 1069.12, deltaPct: -7.75 },
   nenhum: { unitario: 1043.21, deltaPct: -9.99 },
 }

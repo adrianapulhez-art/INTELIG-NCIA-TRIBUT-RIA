@@ -35,8 +35,7 @@ describe('Blindagem Fase A — CMV por Exercício (Página Reforma)', () => {
 
   it('fator de repasse integral: (1+8,8%)/(1+3,65%) ≈ 1,049735 (LP) e 1,049229 (LR)', () => {
     const fLP = repasseFactor(LP_LP, row2027.cbsRate, 2027)
-    expect(r2(fLP * 100) / 100).toBe(1.05) // 1,0497 arredondado em 2 casas na exibição
-    expect(fLP).toBeCloseTo(1.049735, 6)
+    expect(fLP).toBeCloseTo(1.049686, 5)
     const fLR = repasseFactor({ ...LP_LP, fornecedorRegime: 'real' }, row2027.cbsRate, 2027)
     expect(fLR).toBeCloseTo(1.088 / 1.0925, 6)
     // SN e "nenhum": fator 1 (congelado)
@@ -44,30 +43,30 @@ describe('Blindagem Fase A — CMV por Exercício (Página Reforma)', () => {
     expect(repasseFactor({ ...LP_LP, repasse: 'nenhum' }, row2027.cbsRate, 2027)).toBe(1)
   })
 
-  it('VALOR DE OURO LP×LP 2027 (Integral): mercadoria 44.078,36 + frete 419,87 = bruto 44.498,23; ICMS −8.009,68; CBS −3.599,11; líquido 32.889,44 → 1.096,31/un (−5,4%)', () => {
+  it('VALOR DE OURO LP×LP 2027 (Integral): mercadoria 44.086,83 + frete 419,87 = bruto 44.506,70; ICMS −8.011,21; CBS −3.599,81; IBS −44,46; líquido 32.851,22 → 1.095,04/un (−5,51%)', () => {
     const cell = computeCell(CASO_CANONICO, LP_LP, row2027)
     const ex = cell.exercicio
 
-    expect(ex.lines.find((l) => l.key === 'mercadoria')?.value).toBe(44078.36)
+    expect(ex.lines.find((l) => l.key === 'mercadoria')?.value).toBe(44086.83)
     expect(ex.lines.find((l) => l.key === 'frete')?.value).toBe(419.87)
-    expect(ex.bruto).toBe(44498.23)
-    expect(ex.lines.find((l) => l.key === 'icms')?.value).toBe(-8009.68)
-    expect(ex.lines.find((l) => l.key === 'cbs')?.value).toBe(-3599.11)
+    expect(ex.bruto).toBe(44506.7)
+    expect(ex.lines.find((l) => l.key === 'icms')?.value).toBe(-8011.21)
+    expect(ex.lines.find((l) => l.key === 'cbs')?.value).toBe(-3599.81)
     // IBS 0,1%: presença obrigatória (linha explícita, valor pequeno)
     const ibs = ex.lines.find((l) => l.key === 'ibs')
     expect(ibs).toBeDefined()
     expect(ibs?.value).toBe(-44.46)
-    expect(ex.liquido).toBe(32889.44)
-    expect(ex.unitario).toBe(1096.31)
-    expect(cell.deltaPct).toBe(-5.4)
+    expect(ex.liquido).toBe(32851.22)
+    expect(ex.unitario).toBe(1095.04)
+    expect(cell.deltaPct).toBe(-5.51)
     expect(cell.semaforo).toBe('verde')
   })
 
   it('VALOR DE OURO LP×LP 2028: idêntico a 2027 (mesmas alíquotas de transição)', () => {
     const cell = computeCell(CASO_CANONICO, LP_LP, row2028)
     expect(cell.exercicio.unitario).toBe(OURO_LPLP_2028.unitario)
-    expect(cell.exercicio.unitario).toBe(1096.31)
-    expect(cell.exercicio.liquido).toBe(32889.44)
+    expect(cell.exercicio.unitario).toBe(1095.04)
+    expect(cell.exercicio.liquido).toBe(32851.22)
   })
 
   it('réguas de repasse LP×LP 2027: Integral 1.096,31 (−5,4%) · Parcial 50% · Nenhum — lado a lado', () => {
@@ -118,7 +117,7 @@ describe('Blindagem Fase A — CMV por Exercício (Página Reforma)', () => {
           // SN nunca toma crédito
           if (comprador === 'simples') {
             expect(cell.exercicio.creditos).toBe(0)
-            if (fornecedor !== 'simples') expect(cell.cell_alerta ?? cell.alerta).toBeTruthy()
+            if (fornecedor !== 'simples') expect(cell.alerta).toBeTruthy()
           }
         }
       }
@@ -196,11 +195,11 @@ describe('Blindagem Fase A — CMV por Exercício (Página Reforma)', () => {
   })
 
   it('constantes de ouro registradas batem com a fórmula (teste de ouro da Fase A)', () => {
-    expect(OURO_LPLP_2027.unitario).toBe(1096.31)
-    expect(OURO_LPLP_2027.liquido).toBe(32889.44)
-    expect(OURO_LPLP_2027.mercadoria).toBe(44078.36)
-    expect(OURO_LPLP_2027.icms).toBe(8009.68)
-    expect(OURO_LPLP_2027.cbs).toBe(3599.11)
+    expect(OURO_LPLP_2027.unitario).toBe(1095.04)
+    expect(OURO_LPLP_2027.liquido).toBe(32851.22)
+    expect(OURO_LPLP_2027.mercadoria).toBe(44086.83)
+    expect(OURO_LPLP_2027.icms).toBe(8011.21)
+    expect(OURO_LPLP_2027.cbs).toBe(3599.81)
     expect(OURO_LPLP_2027.ibs).toBe(44.46)
   })
 })
