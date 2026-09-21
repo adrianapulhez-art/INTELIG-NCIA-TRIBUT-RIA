@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { LogOut, RotateCcw, Sparkles, Undo2, Redo2 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { toast } from 'sonner'
+import { ItAssistantWidget } from '@/components/demo/ItAssistantWidget'
 
 export type TabKey =
   | 'home'
@@ -295,6 +296,9 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
       <footer className="relative z-10 py-5 border-t border-emerald-500/15 bg-[#050e0b]/90 text-center text-xs text-slate-500 font-mono">
         IT — Inteligência Tributária • Demonstração Interativa integrada
       </footer>
+
+      {/* Assistente IT — agente único (manual como base de conhecimento) */}
+      <ItAssistantWidget />
     </div>
   )
 }
