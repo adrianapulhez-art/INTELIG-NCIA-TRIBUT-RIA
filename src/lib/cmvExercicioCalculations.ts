@@ -350,7 +350,7 @@ export function computeExercicioSide(
     label: `(−) CBS ${fmt(row.cbsRate)}%${cbsPorFora ? ' (por fora — destacada)' : ' (por dentro)'}`,
     formula:
       compradorCredita && fornecedorEmiteDestaque
-        ? `${fmt(bruto)} × ${fmt(row.cbsRate)}%${cbsPorFora ? ' (base limpa — desembute)' : ' ÷ (100 + ' + fmt(row.cbsRate) + ')'}`
+        ? `${fmt(bruto)} × ${fmt(row.cbsRate)}%${cbsPorFora ? ' ÷ (100 + ' + fmt(row.cbsRate) + ' + ' + fmt(row.ibsRate) + ') (base limpa — desembute)' : ' ÷ (100 + ' + fmt(row.cbsRate) + ')'}`
         : config.compradorRegime === 'simples'
           ? 'NF sem CBS destacada — sem crédito'
           : 'NF de fornecedor SN — sem destaque de CBS',
@@ -370,7 +370,7 @@ export function computeExercicioSide(
     label: `(−) IBS ${fmt(row.ibsRate)}%${cbsPorFora ? ' (por fora — destacado)' : ' (por dentro)'}`,
     formula:
       compradorCredita && fornecedorEmiteDestaque
-        ? `${fmt(bruto)} × ${fmt(row.ibsRate)}%${cbsPorFora ? ' (base limpa — desembute)' : ' ÷ (100 + ' + fmt(row.ibsRate) + ')'}`
+        ? `${fmt(bruto)} × ${fmt(row.ibsRate)}%${cbsPorFora ? ' ÷ (100 + ' + fmt(row.cbsRate) + ' + ' + fmt(row.ibsRate) + ') (base limpa — desembute)' : ' ÷ (100 + ' + fmt(row.ibsRate) + ')'}`
         : config.compradorRegime === 'simples'
           ? 'Comprador SN — sem crédito'
           : 'NF de fornecedor SN — sem destaque de IBS',
