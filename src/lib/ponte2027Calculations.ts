@@ -279,8 +279,9 @@ export function calculatePonte2027(state: Ponte2027State): Ponte2027Result {
   const newOnTopRate = (CBS_2027_RATE + IBS_2027_RATE) / 100
   // Preço líquido atual (desonerado dos tributos embutidos)
   const netPriceCurrent = revenue * (1 - currentEmbeddedRate)
-  // Preço sugerido 2027: líquido × (1 + alíquotas por fora)
-  const suggestedPrice2027 = netPriceCurrent * (1 + newOnTopRate)
+  // Preço sugerido 2027: líquido ÷ (1 − alíquotas por fora). A CBS "por fora" NÃO
+  // pode ser embutida por multiplicação — senão o líquido cai junto. Divide p/ preservar.
+  const suggestedPrice2027 = netPriceCurrent / (1 - newOnTopRate)
   const priceDifference = suggestedPrice2027 - revenue
   const priceDifferencePercent = revenue > 0 ? (priceDifference / revenue) * 100 : 0
 
@@ -386,4 +387,122 @@ export function buildPonteStateFromTaxContext(input: {
     issRate: input.issRate,
     acquisitions,
   }
+}
+
+// ============================================================================
+// FASE 2 — COMPARATIVO DE REGIMES 2027 · CRÉDITO B2B · SENSIBILIDADE POR MARGEM
+// ============================================================================
+
+/** Carga 2027 por regime, com a MESMA receita e aquisições (crédito compartilhado) */
+export interface RegimeCompare2027 {
+  regime: Ponte2027Regime
+  regimeName: string
+  /** Carga total 2027: CBS líquida + IBS + ICMS/ISS integrais */
+  total2027Burden: number
+  effectiveRate: number
+  /** Carga do sistema atual do próprio regime (referência) */
+  currentSalesTaxes: number
+  currentEffectiveRate: number
+  burdenDifference: number
+  is2027Better: boolean
+}
+
+export function compareRegimes2027(state: Ponte2027State): RegimeCompare2027[] {
+  const regimes: Ponte2027Regime[] = ['presumido', 'real', 'simples']
+  return regimes.map((regime) => {
+    const r = calculatePonte2027({ ...state, regime })
+    return {
+      regime,
+      regimeName: regimeName(regime),
+      total2027Burden: r.total2027Burden,
+      effectiveRate: r.total2027EffectiveRate,
+      currentSalesTaxes: r.currentSalesTaxes,
+      currentEffectiveRate: r.currentEffectiveRate,
+      burdenDifference: r.burdenDifference,
+      is2027Better: r.is2027Better,
+    }
+  })
+}
+
+/**
+ * Crédito B2B — o que o cliente PJ credita sobre a venda, hoje × 2027.
+ * Hoje: cliente credita o ICMS destacado (LP/LR); vendedor SN não destaca —
+ * cliente não credita nada. Em 2027: todos destacam CBS e o cliente PJ credita.
+ */
+export interface B2BCreditResult {
+  regime: Ponte2027Regime
+  /** CBS destacada na venda (o cliente PJ credita integralmente) */
+  cbsDelivered: number
+  /** Crédito do cliente no sistema atual (ICMS + PIS/COFINS p/ LR; nada p/ vendedor SN) */
+  currentSystemCredit: number
+  creditDifference: number
+}
+
+export function computeB2BCredit(
+  revenue: number,
+  regime: Ponte2027Regime,
+  icmsRate: number,
+): B2BCreditResult {
+  const cbsDelivered = Math.max(0, revenue) * (CBS_2027_RATE / 100)
+  let currentSystemCredit = 0
+  if (regime === 'presumido') {
+    currentSystemCredit = Math.max(0, revenue) * (icmsRate / 100)
+  } else if (regime === 'real') {
+    currentSystemCredit = Math.max(0, revenue) * ((icmsRate + PIS_COFINS_NAO_CUMULATIVO) / 100)
+  }
+  return {
+    regime,
+    cbsDelivered,
+    currentSystemCredit,
+    creditDifference: cbsDelivered - currentSystemCredit,
+  }
+}
+
+export interface MarginSensitivityPoint {
+  marginPct: number
+  /** Margem líquida em R$ hoje (mantida em 2027 com reprecificação) */
+  netIncome: number
+  /** Preço de lista hoje (referência = receita) */
+  priceToday: number
+  /** Preço de lista 2027 que entrega a MESMA margem R$ (desembute) */
+  price2027: number
+  deltaPct: number
+  /** Crédito B2B que o cliente PJ credita sobre o preço 2027 (CBS 8,8%) */
+  creditB2B2027: number
+  /** Margem R$ se NÃO reprecificar (preço mantido): sai PIS/COFINS, entra CBS+IBS — ICMS/ISS permanecem */
+  netIncomeNoReprice: number
+}
+
+/**
+ * Sensibilidade por margem — o desembute em números (lente isolada do preço:
+ * custos constantes; o efeito da CBS sobre custos está no confronto item a item).
+ * Preço 2027 que mantém a margem: P × (1−e) ÷ (1−o) — o % é igual para toda margem
+ * (jogo de alíquotas); o que cresce com a margem é o R$ em jogo.
+ */
+export function marginSensitivity(
+  revenue: number,
+  regime: Ponte2027Regime,
+  icmsRate: number,
+  issRate: number,
+): MarginSensitivityPoint[] {
+  const P = Math.max(0, revenue)
+  const e = (icmsRate + issRate + currentPisCofinsRate(regime)) / 100
+  const o = (CBS_2027_RATE + IBS_2027_RATE) / 100
+  const margins = [10, 15, 20, 25, 30]
+  const pc = currentPisCofinsRate(regime) / 100
+  return margins.map((m) => {
+    const margin = m / 100
+    const price2027 = (P * (1 - e)) / (1 - o)
+    return {
+      marginPct: m,
+      netIncome: P * margin,
+      priceToday: P,
+      price2027,
+      deltaPct: P > 0 ? ((1 - e) / (1 - o) - 1) * 100 : 0,
+      creditB2B2027: price2027 * (CBS_2027_RATE / 100),
+      // Sem reprecificação: preço antigo, custos antigos; PIS/COFINS extinto (pc sai),
+      // CBS+IBS entram por fora (o), ICMS/ISS PERMANECEM (janela 2027–2028).
+      netIncomeNoReprice: P * (margin + pc - o),
+    }
+  })
 }

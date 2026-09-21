@@ -11,6 +11,7 @@ import {
   IBS_2027_RATE,
 } from '@/lib/ponte2027Calculations'
 import { formatBRL, formatPercentBR, parseBRNumber, formatNumberBR } from '@/lib/taxCalculations'
+import { Ponte2027Phase2Section } from '@/components/demo/Ponte2027Phase2Section'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { PageHero } from '@/components/demo/PageHero'
 import { Button } from '@/components/ui/button'
@@ -535,6 +536,15 @@ export default function Ponte2027Page() {
             </div>
           </div>
         </div>
+
+        {/* ===================== FASE 2: COMPARATIVO · B2B · MARGEM ===================== */}
+        <Ponte2027Phase2Section
+          revenue2027={revenue2027}
+          regime={regime}
+          icmsRate={18}
+          issRate={5}
+          ponteState={ponteState}
+        />
 
         {/* Rodapé de base legal */}
         <div className="text-[10px] text-slate-500 font-mono leading-relaxed border-t border-slate-800 pt-3">
