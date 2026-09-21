@@ -32,10 +32,8 @@ Depois de simular, a linha do produto mostra o sub-resultado:
 
 RL alvo por produto, modo Receita Líquida:
 
-| Produto         | RL alvo     | Lucro Presumido | Lucro Real      | Simples Nacional |
-| --------------- | ----------- | --------------- | --------------- | ---------------- |
-| Celular Samsung | R$ 2.335,00 | **R$ 3.195,06** | **R$ 3.392,23** | **R$ 2.738,34**  |
-| Capa Protetora  | R$ 60,00    | **R$ 82,10**    | **R$ 87,17**    | **R$ 70,36**     |
+- **Celular Samsung** (RL alvo R$ 2.335,00) — Lucro Presumido: **R$ 3.195,06** · Lucro Real: **R$ 3.392,23** · Simples Nacional: **R$ 2.738,34**
+- **Capa Protetora** (RL alvo R$ 60,00) — Lucro Presumido: **R$ 82,10** · Lucro Real: **R$ 87,17** · Simples Nacional: **R$ 70,36**
 
 _Valores canônicos do motor. Note: partindo da mesma RL alvo, o Lucro Real exige preço maior (tributos não cumulativos com alíquotas cheias) e o Simples, menor (DAS de 4%)._
 

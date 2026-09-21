@@ -27,10 +27,8 @@ O campo **"Margem de lucro (%)"** é **readonly** (derivado) quando o produto ve
 
 Cesta com margem 51,9% nos dois produtos, modo Custo + Margem:
 
-| Produto         | Custo       | Lucro Presumido | Lucro Real      | Simples Nacional |
-| --------------- | ----------- | --------------- | --------------- | ---------------- |
-| Celular Samsung | R$ 1.158,93 | **R$ 3.296,23** | **R$ 3.172,18** | **R$ 3.445,87**  |
-| Capa Protetora  | R$ 30,00    | **R$ 85,53**    | **R$ 82,31**    | **R$ 89,41**     |
+- **Celular Samsung** (custo R$ 1.158,93) — Lucro Presumido: **R$ 3.296,23** · Lucro Real: **R$ 3.172,18** · Simples Nacional: **R$ 3.445,87**
+- **Capa Protetora** (custo R$ 30,00) — Lucro Presumido: **R$ 85,53** · Lucro Real: **R$ 82,31** · Simples Nacional: **R$ 89,41**
 
 _Valores canônicos do motor (suíte de integridade Card ↔ Memória ↔ DRE). Reproduza na sua tela: mesmos campos, mesmos centavos._
 
