@@ -46,6 +46,7 @@ import {
   Landmark,
   Plus,
   RefreshCw,
+  SlidersHorizontal,
   Trash2,
   XCircle,
 } from 'lucide-react'
@@ -94,6 +95,10 @@ export default function Ponte2027Page() {
   // Fonte de verdade dos itens: edição local (quando o usuário altera) ou lista derivada do motor
   const [localAcquisitions, setLocalAcquisitions] = useState<PonteAcquisitionItem[] | null>(null)
 
+  // Parâmetros de ICMS/ISS — parametrizáveis (padrão: 18% / 5%), valem para todas as fases
+  const [icmsRate, setIcmsRate] = useState(18)
+  const [issRate, setIssRate] = useState(5)
+
   const derivedAcquisitions = useMemo(() => {
     const purchases = (purchasesItems || []).map((p) => ({
       name: p.name,
@@ -108,8 +113,8 @@ export default function Ponte2027Page() {
     return buildPonteStateFromTaxContext({
       regime,
       revenue: totalConsolidatedRevenue,
-      icmsRate: 18,
-      issRate: 5,
+      icmsRate,
+      issRate,
       purchases,
       operatingExpenses: (expenseList || []).map((e) => ({
         description: e.description,
@@ -132,8 +137,8 @@ export default function Ponte2027Page() {
   const ponteState: Ponte2027State = {
     regime,
     revenue2027,
-    icmsRate: 18,
-    issRate: 5,
+    icmsRate,
+    issRate,
     acquisitions,
   }
 
@@ -167,7 +172,52 @@ export default function Ponte2027Page() {
           badge="FASE 1 · CRÉDITO FINANCEIRO ITEM A ITEM"
           icon={Landmark}
         />
-
+        {/* Barra de parâmetros — ICMS/ISS parametrizáveis (valem para todas as fases) */}
+        <div className="flex items-center gap-3 flex-wrap rounded-xl border border-slate-700/60 bg-[#0b1512]/90 p-3">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="w-4 h-4 text-emerald-400" />
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300">
+              Parâmetros
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-mono text-slate-400">ICMS:</span>
+            <Input
+              type="text"
+              value={formatPercentBR(icmsRate)}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value.replace('%', '').replace(',', '.'))
+                if (Number.isFinite(v)) setIcmsRate(Math.min(100, Math.max(0, v)))
+              }}
+              className="h-7 w-20 text-[11px] bg-slate-900/70 border-slate-800 text-slate-100"
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-mono text-slate-400">ISS:</span>
+            <Input
+              type="text"
+              value={formatPercentBR(issRate)}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value.replace('%', '').replace(',', '.'))
+                if (Number.isFinite(v)) setIssRate(Math.min(100, Math.max(0, v)))
+              }}
+              className="h-7 w-20 text-[11px] bg-slate-900/70 border-slate-800 text-slate-100"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setIcmsRate(18)
+              setIssRate(5)
+            }}
+            className="px-2 py-1 rounded border text-[10px] font-mono bg-slate-900/80 border-slate-700 text-slate-400 hover:border-emerald-500/40 cursor-pointer"
+          >
+            Restaurar 18% / 5%
+          </button>
+          <span className="text-[10px] font-mono text-slate-500">
+            valem para todas as fases — confronto, comparativo, B2B, margem e Carteira 2027
+          </span>
+        </div>
         {/* Alerta da janela 2027–2028 */}
         {result.windowAlert.active && (
           <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
@@ -180,7 +230,6 @@ export default function Ponte2027Page() {
             </div>
           </div>
         )}
-
         {/* Aviso quando não há dados no motor */}
         {revenue2027 <= 0 && (
           <div className="flex items-start gap-3 rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-4">
@@ -194,7 +243,6 @@ export default function Ponte2027Page() {
             </div>
           </div>
         )}
-
         {/* ===================== CONFRONTO PRINCIPAL ===================== */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Card: Sistema atual */}
@@ -273,7 +321,6 @@ export default function Ponte2027Page() {
             </p>
           </div>
         </div>
-
         {/* ===================== CRÉDITO B2B ===================== */}
         <div className="rounded-2xl border border-teal-500/30 bg-[#07201c]/80 p-5">
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -299,7 +346,6 @@ export default function Ponte2027Page() {
             </div>
           </div>
         </div>
-
         {/* ===================== TABELA DE AQUISIÇÕES ===================== */}
         <div className="rounded-2xl border border-slate-700/60 bg-[#0b1512]/90 overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b border-slate-800 flex-wrap gap-3">
@@ -497,7 +543,6 @@ export default function Ponte2027Page() {
             </div>
           </div>
         </div>
-
         {/* ===================== PRECIFICAÇÃO ===================== */}
         <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-b from-[#0c2c22]/80 to-[#071712]/90 p-5">
           <div className="flex items-center gap-2.5 mb-4">
@@ -540,16 +585,14 @@ export default function Ponte2027Page() {
             </div>
           </div>
         </div>
-
         {/* ===================== FASE 2: COMPARATIVO · B2B · MARGEM ===================== */}
         <Ponte2027Phase2Section
           revenue2027={revenue2027}
           regime={regime}
-          icmsRate={18}
-          issRate={5}
+          icmsRate={icmsRate}
+          issRate={issRate}
           ponteState={ponteState}
         />
-
         {/* ===================== FASE 3: SPLIT PAYMENT · FLUXO DE CAIXA · CARTEIRA 2027 ===================== */}
         <Ponte2027Phase3Section
           revenue2027={revenue2027}
@@ -557,23 +600,22 @@ export default function Ponte2027Page() {
           ponteState={ponteState}
           result={result}
           comparativo={compareRegimes2027(ponteState)}
-          b2b={computeB2BCredit(revenue2027, regime, 18)}
-          margens={marginSensitivity(revenue2027, regime, 18, 5).map((m) => ({
+          b2b={computeB2BCredit(revenue2027, regime, icmsRate)}
+          margens={marginSensitivity(revenue2027, regime, icmsRate, issRate).map((m) => ({
             marginPct: m.marginPct,
             price2027: m.price2027,
             netIncome: m.netIncome,
             netIncomeNoReprice: m.netIncomeNoReprice,
           }))}
         />
-
         {/* Rodapé de base legal */}
         <div className="text-[10px] text-slate-500 font-mono leading-relaxed border-t border-slate-800 pt-3">
           Base legal: EC 132/2023 (ADCT arts. 125–133) · LC 214/2025, arts. 47–48 (creditamento e
           destaque do imposto), art. 31 (split payment — Fase 3) e art. 168, I (vedação — aquisições
           de optante do Simples Nacional). CBS de referência estimada em{' '}
           {formatPercentBR(CBS_2027_RATE)} (LC 214/25, art. 349). Alíquotas de ICMS/ISS estimadas em{' '}
-          {formatPercentBR(18)} e {formatPercentBR(5)} — parametrizáveis na Fase 2.
-        </div>
+          {formatPercentBR(icmsRate)} e {formatPercentBR(issRate)} — parametrizáveis na barra acima.
+        </div>{' '}
       </div>
     </DemoLayout>
   )
