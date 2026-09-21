@@ -41,7 +41,7 @@ export const CRONOGRAMA_OFICIAL: ScheduleRow[] = [
   { exercicio: 2030, cbsRate: 8.8, ibsRate: 3.54, icmsPct: 80, ipiRate: 0, habilitado: true },
   { exercicio: 2031, cbsRate: 8.8, ibsRate: 5.31, icmsPct: 70, ipiRate: 0, habilitado: true },
   { exercicio: 2032, cbsRate: 8.8, ibsRate: 7.08, icmsPct: 60, ipiRate: 0, habilitado: true },
-  { exercicio: 2033, cbsRate: 8.8, ibsRate: 17.7, icmsPct: 0, ipiRate: 0, habilitado: false },
+  { exercicio: 2033, cbsRate: 8.8, ibsRate: 17.7, icmsPct: 0, ipiRate: 0, habilitado: true },
 ]
 
 // Persistência das edições no mecanismo local já usado pelo sistema (sem backend novo)
@@ -150,17 +150,32 @@ export const r2 = (x: number): number => Math.round((x + Number.EPSILON) * 100) 
 const fmt = (v: number): string =>
   v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
-/** Fator de repasse do fornecedor sobre o bruto (A3). 1 = bruto congelado. */
+/**
+ * Fator de repasse do fornecedor sobre o bruto (A3). 1 = bruto congelado.
+ *
+ * 2027–2032 (transição): CBS/IBS "por dentro" no fornecedor — remove o embutimento
+ * de PIS/COFINS e embute a CBS: fator = (1+CBS)/(1+embutido).
+ * 2033 (desembute total): o ICMS extinto SAI do preço (×(1−ICMS), cobrado "por dentro"
+ * hoje) e CBS+IBS entram POR FORA (destacados): fator = (1−ICMS)×(1+CBS+IBS)/(1+embutido).
+ * O resultado é ≈1,00 — o preço do fornecedor quase não muda; o custo real muda porque
+ * o crédito do adquirente cai (IBS 17,7% < ICMS 18% embutido).
+ */
 export function repasseFactor(
   config: CellConfig,
-  cbsRate: number,
-  exercicio: ExercicioKey,
+  input: CmvExercicioInput,
+  row: ScheduleRow,
 ): number {
   if (config.fornecedorRegime === 'simples') return 1 // regime próprio — nota não se altera
-  if (exercicio < 2027) return 1 // 2026: CBS teste é compensável — sem alteração de preço
+  if (row.exercicio < 2027) return 1 // 2026: CBS teste é compensável — sem alteração de preço
   // Embutimento removido pelo fornecedor (PIS/COFINS embutidos no preço hoje)
   const embutido = config.fornecedorRegime === 'presumido' ? 0.0365 : 0.0925
-  const fatorIntegral = (1 + cbsRate / 100) / (1 + embutido)
+  if (row.exercicio >= 2033) {
+    // Desembute total: ICMS sai (por dentro), CBS+IBS entram por fora (destacados)
+    return (
+      ((1 - input.icmsRate / 100) * (1 + row.cbsRate / 100 + row.ibsRate / 100)) / (1 + embutido)
+    )
+  }
+  const fatorIntegral = (1 + row.cbsRate / 100) / (1 + embutido)
   if (config.repasse === 'integral') return fatorIntegral
   if (config.repasse === 'nenhum') return 1 // bruto congelado
   return 1 + (config.repassePct / 100) * (fatorIntegral - 1)
@@ -257,7 +272,7 @@ export function computeExercicioSide(
   config: CellConfig,
   row: ScheduleRow,
 ): SideResult {
-  const f = repasseFactor(config, row.cbsRate, row.exercicio)
+  const f = repasseFactor(config, input, row)
   const merc = r2(input.quantity * input.unitPrice * f)
   const frete = r2(input.freightValue * f)
 
@@ -298,7 +313,7 @@ export function computeExercicioSide(
   const fornecedorEmiteDestaque = config.fornecedorRegime !== 'simples'
   const compradorCredita = config.compradorRegime !== 'simples'
 
-  // ICMS — permanece integral em 2027/2028; cede a partir de 2029 (icmsPct)
+  // ICMS — permanece integral em 2027/2028; cede a partir de 2029 (icmsPct); extinto em 2033
   const icmsMerc = r2(merc * (input.icmsRate / 100))
   const icmsFrete = r2(frete * (input.icmsFreightRate / 100))
   const creditoIcms =
@@ -307,28 +322,33 @@ export function computeExercicioSide(
       : 0
   lines.push({
     key: 'icms',
-    label: `(−) ICMS (${fmt(row.icmsPct)}% da alíquota)`,
+    label: row.icmsPct === 0 ? '(−) ICMS — extinto' : `(−) ICMS (${fmt(row.icmsPct)}% da alíquota)`,
     formula:
-      compradorCredita && fornecedorEmiteDestaque
-        ? `(${fmt(icmsMerc)} + ${fmt(icmsFrete)}) × ${fmt(row.icmsPct)}%`
-        : fornecedorEmiteDestaque
-          ? 'Comprador SN — sem crédito'
-          : 'NF de fornecedor SN — sem destaque de ICMS',
+      row.icmsPct === 0
+        ? '2029+ cede 1/11 por ano; 2033: extinto — sem crédito e fora do preço'
+        : compradorCredita && fornecedorEmiteDestaque
+          ? `(${fmt(icmsMerc)} + ${fmt(icmsFrete)}) × ${fmt(row.icmsPct)}%`
+          : fornecedorEmiteDestaque
+            ? 'Comprador SN — sem crédito'
+            : 'NF de fornecedor SN — sem destaque de ICMS',
     value: -creditoIcms,
     kind: 'credito',
   })
 
-  // CBS "por dentro" (regra da transição): crédito = bruto × CBS/(100+CBS)
+  // CBS: "por dentro" na transição (2027–2032); POR FORA (destacada) a partir de 2033
+  const cbsPorFora = row.exercicio >= 2033
   const creditoCbs =
     compradorCredita && fornecedorEmiteDestaque
-      ? r2(bruto * (row.cbsRate / (100 + row.cbsRate)))
+      ? cbsPorFora
+        ? r2(bruto * (row.cbsRate / 100))
+        : r2(bruto * (row.cbsRate / (100 + row.cbsRate)))
       : 0
   lines.push({
     key: 'cbs',
-    label: `(−) CBS ${fmt(row.cbsRate)}% (por dentro)`,
+    label: `(−) CBS ${fmt(row.cbsRate)}%${cbsPorFora ? ' (por fora — destacada)' : ' (por dentro)'}`,
     formula:
       compradorCredita && fornecedorEmiteDestaque
-        ? `${fmt(bruto)} × ${fmt(row.cbsRate)} ÷ (100 + ${fmt(row.cbsRate)})`
+        ? `${fmt(bruto)} × ${fmt(row.cbsRate)}%${cbsPorFora ? ' (base limpa — desembute)' : ' ÷ (100 + ' + fmt(row.cbsRate) + ')'}`
         : config.compradorRegime === 'simples'
           ? 'NF sem CBS destacada — sem crédito'
           : 'NF de fornecedor SN — sem destaque de CBS',
@@ -336,17 +356,19 @@ export function computeExercicioSide(
     kind: 'credito',
   })
 
-  // IBS — linha explícita mesmo pequena; mesmas regras de crédito do ICMS
+  // IBS: "por dentro" na transição; POR FORA (destacado) a partir de 2033
   const creditoIbs =
     compradorCredita && fornecedorEmiteDestaque
-      ? r2(bruto * (row.ibsRate / (100 + row.ibsRate)))
+      ? cbsPorFora
+        ? r2(bruto * (row.ibsRate / 100))
+        : r2(bruto * (row.ibsRate / (100 + row.ibsRate)))
       : 0
   lines.push({
     key: 'ibs',
-    label: `(−) IBS ${fmt(row.ibsRate)}% (por dentro)`,
+    label: `(−) IBS ${fmt(row.ibsRate)}%${cbsPorFora ? ' (por fora — destacado)' : ' (por dentro)'}`,
     formula:
       compradorCredita && fornecedorEmiteDestaque
-        ? `${fmt(bruto)} × ${fmt(row.ibsRate)} ÷ (100 + ${fmt(row.ibsRate)})`
+        ? `${fmt(bruto)} × ${fmt(row.ibsRate)}%${cbsPorFora ? ' (base limpa — desembute)' : ' ÷ (100 + ' + fmt(row.ibsRate) + ')'}`
         : config.compradorRegime === 'simples'
           ? 'Comprador SN — sem crédito'
           : 'NF de fornecedor SN — sem destaque de IBS',
@@ -484,6 +506,24 @@ export const OURO_LPLP_2032 = {
   liquido: 33157.43,
   unitario: 1105.25,
   deltaPct: -4.63,
+}
+
+/**
+ * VALOR DE OURO LP×LP 2033 (Fase D — desembute total): ICMS extinto (0%), CBS 8,8% e
+ * IBS 17,7% POR FORA (destacados, crédito sobre base limpa). Fator de repasse ≈1,0008:
+ * o preço do fornecedor quase não muda — o custo sobe porque o crédito cai
+ * (IBS 17,7% < ICMS 18% embutido). Último degrau é o maior: +12,87/un vs 2032.
+ */
+export const OURO_LPLP_2033 = {
+  mercadoria: 42032.42,
+  frete: 400.31,
+  bruto: 42432.73,
+  icms: 0,
+  cbs: 2951.84,
+  ibs: 5937.23,
+  liquido: 33543.66,
+  unitario: 1118.12,
+  deltaPct: -3.52,
 }
 
 export const OURO_REPASSE_LPLP_2027 = {

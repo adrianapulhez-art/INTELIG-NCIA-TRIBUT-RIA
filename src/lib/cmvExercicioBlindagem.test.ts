@@ -34,13 +34,17 @@ describe('Blindagem Fase A — CMV por Exercício (Página Reforma)', () => {
   })
 
   it('fator de repasse integral: (1+8,8%)/(1+3,65%) ≈ 1,049735 (LP) e 1,049229 (LR)', () => {
-    const fLP = repasseFactor(LP_LP, row2027.cbsRate, 2027)
+    const fLP = repasseFactor(LP_LP, CASO_CANONICO, row2027)
     expect(fLP).toBeCloseTo(1.049686, 5)
-    const fLR = repasseFactor({ ...LP_LP, fornecedorRegime: 'real' }, row2027.cbsRate, 2027)
+    const fLR = repasseFactor({ ...LP_LP, fornecedorRegime: 'real' }, CASO_CANONICO, row2027)
     expect(fLR).toBeCloseTo(1.088 / 1.0925, 6)
     // SN e "nenhum": fator 1 (congelado)
-    expect(repasseFactor({ ...LP_LP, fornecedorRegime: 'simples' }, row2027.cbsRate, 2027)).toBe(1)
-    expect(repasseFactor({ ...LP_LP, repasse: 'nenhum' }, row2027.cbsRate, 2027)).toBe(1)
+    expect(repasseFactor({ ...LP_LP, fornecedorRegime: 'simples' }, CASO_CANONICO, row2027)).toBe(1)
+    expect(repasseFactor({ ...LP_LP, repasse: 'nenhum' }, CASO_CANONICO, row2027)).toBe(1)
+    // 2033 (desembute total): ICMS sai (×0,82), CBS+IBS entram por fora (×1,265), PIS/COFINS sai (÷1,0365) → ≈1,0008
+    const row2033 = CRONOGRAMA_OFICIAL.find((r) => r.exercicio === 2033) as ScheduleRow
+    const f2033 = repasseFactor(LP_LP, CASO_CANONICO, row2033)
+    expect(f2033).toBeCloseTo(1.000772, 5)
   })
 
   it('VALOR DE OURO LP×LP 2027 (Integral): mercadoria 44.086,83 + frete 419,87 = bruto 44.506,70; ICMS −8.011,21; CBS −3.599,81; IBS −44,46; líquido 32.851,22 → 1.095,04/un (−5,51%)', () => {
@@ -252,6 +256,28 @@ describe('Blindagem Fase A — CMV por Exercício (Página Reforma)', () => {
       CRONOGRAMA_OFICIAL[0],
     )
     expect(indInd.hoje.creditos).toBeGreaterThan(0)
+  })
+
+  it('VALOR DE OURO LP×LP 2033 (Fase D — desembute total): ICMS extinto, CBS 8,8% e IBS 17,7% por fora; líquido 33.543,66 → 1.118,12/un (−3,52%)', () => {
+    const row2033 = CRONOGRAMA_OFICIAL.find((r) => r.exercicio === 2033) as ScheduleRow
+    expect(row2033.habilitado).toBe(true)
+    const cell = computeCell(CASO_CANONICO, LP_LP, row2033)
+    const ex = cell.exercicio
+    expect(ex.lines.find((l) => l.key === 'icms')?.value).toBe(-0)
+    expect(ex.lines.find((l) => l.key === 'icms')?.label).toContain('extinto')
+    expect(ex.lines.find((l) => l.key === 'cbs')?.value).toBe(-2951.84)
+    expect(ex.lines.find((l) => l.key === 'cbs')?.label).toContain('por fora')
+    expect(ex.lines.find((l) => l.key === 'ibs')?.value).toBe(-5937.23)
+    expect(ex.lines.find((l) => l.key === 'ibs')?.label).toContain('por fora')
+    expect(ex.liquido).toBe(33543.66)
+    expect(ex.unitario).toBe(1118.12)
+    expect(cell.deltaPct).toBe(-3.52)
+    // O último degrau é o maior da escada: +12,87/un vs 2032
+    expect(ex.unitario).toBeGreaterThan(1105.25)
+    // Réguas convergem em 2033 (fator ≈1): integral ≈ parcial ≈ nenhum
+    const integral = computeCell(CASO_CANONICO, { ...LP_LP, repasse: 'integral' }, row2033)
+    const nenhum = computeCell(CASO_CANONICO, { ...LP_LP, repasse: 'nenhum' }, row2033)
+    expect(Math.abs(integral.exercicio.unitario - nenhum.exercicio.unitario)).toBeLessThan(1)
   })
 
   it('constantes de ouro registradas batem com a fórmula (teste de ouro da Fase A)', () => {
