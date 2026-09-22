@@ -450,7 +450,9 @@ export function computeExercicioArt12(
         label: '(−) PIS/COFINS cumulativo embutido — excluído da base',
         formula: `${fmt(bruto)} × 3,65% (montante incidente)`,
         value: -pisEmbutido,
-        kind: 'credito',
+        // Exclusão da BASE (§2º, V) — NÃO é crédito do adquirente: LP não credita
+        // PIS/COFINS. O tributo embutido sai da base do IBS/CBS, não do custo.
+        kind: 'nota',
         fundamento: {
           dispositivo: 'LC 214/2025, art. 12, §2º, V',
           efeito: 'tributo embutido no preço NÃO integra a base do IBS/CBS',
@@ -474,20 +476,15 @@ export function computeExercicioArt12(
     })
   }
 
-  // Base limpa
-  const baseLimpa = r2(
-    bruto -
-      icmsDest -
-      ipiValor -
-      Math.max(
-        0,
-        ...lines.filter((l) => l.key === 'piscofins' && l.value < 0).map((l) => -l.value),
-      ),
+  // Base limpa (exclusões §2º: ICMS/ISS, IPI e PIS/COFINS — qualquer que seja a classificação da linha)
+  const exclusoesPisCofins = r2(
+    lines.filter((l) => l.key === 'piscofins' && l.value < 0).reduce((acc, l) => acc + -l.value, 0),
   )
+  const baseLimpa = r2(bruto - icmsDest - ipiValor - exclusoesPisCofins)
   lines.push({
     key: 'baselimpa',
     label: '(=) Base limpa do IBS/CBS',
-    formula: `${fmt(bruto)} − ICMS ${fmt(icmsDest)}${ipiValor ? ` − IPI ${fmt(ipiValor)}` : ''}${row.exercicio === 2026 && !fornecedorSN ? ' − PIS/COFINS' : ''}`,
+    formula: `${fmt(bruto)} − ICMS ${fmt(icmsDest)}${ipiValor ? ` − IPI ${fmt(ipiValor)}` : ''}${exclusoesPisCofins > 0 ? ' − PIS/COFINS' : ''}`,
     value: baseLimpa,
     kind: 'nota',
     fundamento: {
