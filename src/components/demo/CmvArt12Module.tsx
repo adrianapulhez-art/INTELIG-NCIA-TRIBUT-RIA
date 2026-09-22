@@ -37,6 +37,7 @@ import type {
   CmvArt12Input,
   ExercicioKey,
   Fundamento,
+  MemoryLineArt,
   RegimeId,
   ScheduleRowArt,
   Semaforo,
@@ -78,6 +79,90 @@ const VALIDADE_STYLE: Record<string, { label: string; cls: string }> = {
   pendente: { label: 'Pendente de definição', cls: 'text-rose-400 border-rose-500/40' },
 }
 
+/** Modal "Memória da linha" — derivação passo a passo (padrão "Abrir" da Calculadora de CMV). */
+function LineMemoryDialog({
+  line,
+  lineLabel,
+  open,
+  onOpenChange,
+  contexto,
+}: {
+  line: MemoryLineArt
+  lineLabel: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  contexto: string
+}) {
+  const passos = line.passos || []
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+            <Calculator className="w-5 h-5 text-emerald-400" />
+            <span>Memória de Cálculo — {lineLabel}</span>
+          </DialogTitle>
+          <DialogDescription className="text-xs text-slate-400">
+            {contexto} · Derivação passo a passo com 6 casas (sem arredondamento intermediário);
+            arredondamento a 2 casas (half-up) somente no resultado final.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <div className="flex items-start justify-between gap-2 bg-slate-900/60 rounded-lg border border-slate-800 p-2.5">
+            <div>
+              <span className="text-[11px] font-mono font-bold text-slate-200 block">
+                {line.label}
+              </span>
+              <span className="text-[10px] font-mono text-slate-500 break-words">
+                {line.formula}
+              </span>
+            </div>
+            <span className="text-[11px] font-mono font-black text-emerald-300 shrink-0">
+              {line.kind === 'nota' ? '—' : formatBRL(line.value)}
+            </span>
+          </div>
+          {passos.length > 0 && (
+            <div className="space-y-1.5 pt-1">
+              {passos.map((p) => (
+                <div
+                  key={p.ordem}
+                  className="flex items-start gap-2.5 bg-slate-950/60 rounded-lg border border-slate-800/70 px-3 py-2"
+                >
+                  <span className="w-5 h-5 shrink-0 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono font-bold flex items-center justify-center mt-0.5">
+                    {p.ordem}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[11px] font-semibold text-slate-200 block leading-tight">
+                      {p.descricao}
+                    </span>
+                    <span className="text-[10px] font-mono text-sky-300 block break-words mt-0.5">
+                      {p.expressao}
+                    </span>
+                    {p.fundamento && (
+                      <span className="text-[9px] font-mono text-slate-500 block break-words mt-0.5">
+                        {p.fundamento}
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    className={`text-[11px] font-mono font-bold shrink-0 ${p.resultado.includes('R$') ? 'text-amber-200' : 'text-emerald-200'}`}
+                  >
+                    {p.resultado}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="text-[10px] font-mono text-slate-500 border-t border-slate-800 pt-2 leading-relaxed">
+            Fundamento da linha: {line.fundamento?.dispositivo} — {line.fundamento?.efeito}.
+            {line.fundamento?.nota ? ` ${line.fundamento.nota}` : ''}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function ValidadeBadge({ fundamento }: { fundamento: Fundamento }) {
   const s = VALIDADE_STYLE[fundamento.validade]
   return (
@@ -102,10 +187,13 @@ function SideColumnArt({
   title,
   side,
   accent,
+  onOpenLine,
 }: {
   title: string
   side: SideResultArt
   accent: string
+  /** Quando fornecido, cada linha (com passos de derivação) ganha botão "Abrir". */
+  onOpenLine?: (line: MemoryLineArt) => void
 }) {
   return (
     <div className={`flex-1 min-w-[320px] rounded-xl border p-3 space-y-1.5 ${accent}`}>
@@ -168,6 +256,15 @@ function SideColumnArt({
               </span>
             )}
           </div>
+          {onOpenLine && line.passos && line.passos.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onOpenLine(line)}
+              className="w-full mt-0.5 inline-flex items-center justify-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-mono font-bold text-emerald-300 hover:bg-emerald-500/20 cursor-pointer"
+            >
+              <Calculator className="w-3 h-3" /> Abrir memória da linha
+            </button>
+          )}
         </div>
       ))}
       <div className="pt-1 space-y-1">
@@ -247,6 +344,9 @@ function CellMemoryDialogArt({
             title={`EXERCÍCIO ${row.exercicio}`}
             side={cell.exercicio}
             accent="border-emerald-500/30 bg-emerald-500/[0.04]"
+            onOpenLine={(line) =>
+              setLineMemory({ line, label: `${line.label} — ${row.exercicio}` })
+            }
           />
         </div>
         <div className="text-[10px] font-mono text-slate-500 border-t border-slate-800 pt-2">
@@ -269,6 +369,7 @@ export function CmvArt12Module() {
     cell: CellResultArt
     row: ScheduleRowArt
   } | null>(null)
+  const [lineMemory, setLineMemory] = useState<{ line: MemoryLineArt; label: string } | null>(null)
 
   const row = useMemo(
     () => CRONOGRAMA_ART12.find((s) => s.exercicio === exercicio) || CRONOGRAMA_ART12[1],
@@ -615,6 +716,7 @@ export function CmvArt12Module() {
             title={`EXERCÍCIO ${exercicio}`}
             side={activeCell.exercicio}
             accent="border-emerald-500/30 bg-emerald-500/[0.04]"
+            onOpenLine={(line) => setLineMemory({ line, label: `${line.label} — ${exercicio}` })}
           />
         </div>
         {/* Delta + semáforo + porquê */}
@@ -754,6 +856,15 @@ export function CmvArt12Module() {
           row={memoryCell.row}
           open={!!memoryCell}
           onOpenChange={(o) => !o && setMemoryCell(null)}
+        />
+      )}
+      {lineMemory && (
+        <LineMemoryDialog
+          line={lineMemory.line}
+          lineLabel={lineMemory.label}
+          open={!!lineMemory}
+          onOpenChange={(o) => !o && setLineMemory(null)}
+          contexto={`Exercício ${exercicio} · ${REGIME_LABEL_FULL[config.fornecedorRegime]} (fornecedor) × ${REGIME_LABEL_FULL[config.compradorRegime]} (comprador) · repasse ${config.repasse === 'integral' ? 'integral' : config.repasse === 'parcial' ? `parcial ${formatNumberBR(config.repassePct)}%` : 'nenhum'}`}
         />
       )}
     </div>
