@@ -1,6 +1,7 @@
 import { Layers } from 'lucide-react'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { PageHero } from '@/components/demo/PageHero'
+import { CmvArt12Module } from '@/components/demo/CmvArt12Module'
 
 export function ReformaPage() {
   return (
@@ -17,6 +18,9 @@ export function ReformaPage() {
           badge="ETAPA 5 · TRANSIÇÃO TRIBUTÁRIA COMPLETA"
           icon={Layers}
         />
+
+        {/* Módulo CMV por Exercício — reconstruído conforme o Art. 12 da LC 214/2025 */}
+        <CmvArt12Module />
       </div>
     </DemoLayout>
   )
