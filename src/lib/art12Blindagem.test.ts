@@ -189,6 +189,83 @@ describe('CMV Art. 12 — indústria e ZFM (IPI §2º, II)', () => {
   })
 })
 
+describe('CMV Art. 12 — camada de auditoria (cada passo recalculado = valor exibido)', () => {
+  const parseBR = (s: string): number => Number(s.replace(/\./g, '').replace(',', '.'))
+
+  it('Mercadoria 2027: os 6 passos reproduzem o fator e o valor exibido (6 casas e centavo)', () => {
+    const row = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
+    const cell = computeCellArt12(CASO_CANONICO_ART12, { ...CONFIG_PADRAO_ART12 }, row)
+    const linha = cell.exercicio.lines.find((l) => l.key === 'mercadoria')!
+    const passos = linha.passos!
+    // passo a passo recalculado
+    const t = CASO_CANONICO_ART12.icmsRate / 100
+    const e = 0.0365 // LP
+    const tEx = t * (row.icmsPct / 100)
+    const fCalc = (1 - t - e) / (1 - tEx)
+    // passos 1–3: constantes exibidas com 6 casas = valores recalculados
+    expect(passos[0].resultado).toBe('0,180000')
+    expect(passos[1].resultado).toBe('0,036500')
+    expect(passos[2].resultado).toBe('1,000000')
+    // passo 4 (numerador), 5 (denominador), 6 (fator)
+    expect(passos[3].resultado).toBe((1 - t - e).toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }))
+    expect(passos[4].resultado).toBe((1 - tEx).toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }))
+    expect(passos[5].resultado).toBe(fCalc.toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }))
+    expect(passos[5].resultado).toBe('0,955488')
+    // passo final: 30 × 1.400 × f = valor exibido da linha (ao centavo)
+    const mercCalc = Math.floor(30 * 1400 * fCalc * 100 + 0.5) / 100
+    expect(parseBR(passos[6].resultado)).toBe(mercCalc)
+    expect(parseBR(passos[6].resultado)).toBe(linha.value)
+    expect(fmt(linha.value)).toBe('40130.49')
+  })
+
+  it('Base limpa 2027: bruto − ICMS − IPI − PIS/COFINS = base exibida (recalculado do zero)', () => {
+    const row = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
+    const cell = computeCellArt12(CASO_CANONICO_ART12, { ...CONFIG_PADRAO_ART12 }, row)
+    const base = cell.exercicio.lines.find((l) => l.key === 'baselimpa')!
+    const recalc = cell.exercicio.bruto - 7292.28 - 0 - 0 // ICMS da memória; sem IPI/PIS no LP 2027
+    expect(fmt(base.value)).toBe(fmt(recalc))
+    expect(fmt(base.value)).toBe('33220.41')
+    // passos exibem 6 casas com versão comercial entre parênteses
+    expect(base.passos![0].resultado).toContain('(R$')
+    expect(base.passos![1].resultado).toContain('(R$ 7.292,28)')
+  })
+
+  it('CBS/IBS 2027: base limpa × alíquota (6 casas) = destaque exibido; dependência registrada no passo 1', () => {
+    const row = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
+    const cell = computeCellArt12(CASO_CANONICO_ART12, { ...CONFIG_PADRAO_ART12 }, row)
+    const cbs = cell.exercicio.lines.find((l) => l.key === 'cbs')!
+    const ibs = cell.exercicio.lines.find((l) => l.key === 'ibs')!
+    expect(cbs.passos![0].descricao).toContain('Depende de: Base limpa')
+    expect(parseBR2(cbs.passos![1].resultado)).toBe(cbs.value)
+    expect(parseBR2(ibs.passos![1].resultado)).toBe(ibs.value)
+    expect(fmt(cbs.value)).toBe('2923.40')
+    expect(fmt(ibs.value)).toBe('33.22')
+  })
+
+  it('fórmula exibida da linha nunca arredonda o fator (contém 0,955488, não 0,96)', () => {
+    const row = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
+    const cell = computeCellArt12(CASO_CANONICO_ART12, { ...CONFIG_PADRAO_ART12 }, row)
+    const linha = cell.exercicio.lines.find((l) => l.key === 'mercadoria')!
+    expect(linha.formula).toContain('0,955488')
+    expect(linha.formula).not.toContain('× 0,96')
+  })
+
+  it('2026 (f=1): passos mostram fator 1,000000 e resultado = HOJE', () => {
+    const row = CRONOGRAMA_ART12.find((r) => r.exercicio === 2026)!
+    const cell = computeCellArt12(CASO_CANONICO_ART12, { ...CONFIG_PADRAO_ART12 }, row)
+    const linha = cell.exercicio.lines.find((l) => l.key === 'mercadoria')!
+    const passos = linha.passos!
+    expect(passos.some((p) => p.resultado === '1,000000')).toBe(true)
+    expect(parseBR2(passos[passos.length - 1].resultado)).toBe(42000)
+  })
+})
+
+/** Parse de "R$ 1.234,567890 (R$ 1.234,57)" ou "1.234,567890" → number (parte 6 casas). */
+function parseBR2(s: string): number {
+  const principal = s.includes('(') ? s.slice(0, s.indexOf('(')) : s
+  return Number(principal.replace(/[R$\s.]/g, '').replace(',', '.'))
+})
+
 describe('CMV Art. 12 — semáforo e porquê', () => {
   it('semáforo reflete o lado do comprador (neutro = âmbar na cadeia plena integral)', () => {
     const row = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
