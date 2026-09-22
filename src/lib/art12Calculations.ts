@@ -597,7 +597,10 @@ export function computeExercicioArt12(
     lines.filter((l) => l.kind === 'credito').reduce((acc, l) => acc + -l.value, 0),
   )
   const debitos = r2(lines.filter((l) => l.kind === 'debito').reduce((acc, l) => acc + l.value, 0))
-  const liquido = fornecedorSN ? bruto : pleno ? r2(bruto - creditos) : r2(bruto + debitos)
+  // Custo líquido = bruto + destaques pagos (CBS/IBS por fora) − créditos do adquirente.
+  // Cadeia plena com crédito integral: o destaque entra e sai — custo = preço líquido do
+  // fornecedor (neutro). Comprador SN: destaque sem crédito vira custo. Fornecedor SN: bruto.
+  const liquido = r2(bruto + debitos - creditos)
   return {
     lines,
     bruto,
@@ -634,7 +637,7 @@ export function computeCellArt12(
     porque =
       'Cadeia plena com crédito integral: o destaque de CBS/IBS entra no preço do fornecedor e sai no crédito do adquirente (art. 12 + art. 47) — o custo acompanha o preço líquido do fornecedor. Variação relevante só ocorre se o repasse falhar.'
   } else if (config.repasse === 'nenhum') {
-    porque = `Fornecedor não repassa: o adquirente absorve a CBS/IBS sem redução equivalente do bruto — quem absorve o impacto é o COMPRADOR (custo sobe pela diferença de créditos).`
+    porque = `Fornecedor não repassa: o adquirente paga CBS/IBS sobre a base limpa sem redução equivalente do bruto — quem absorve o impacto é o COMPRADOR.`
   } else {
     porque = `Repasse parcial (${fmt(config.repassePct)}%): fornecedor absorve ${fmt(100 - config.repassePct)}% do impacto na margem; comprador absorve o restante via preço.`
   }
