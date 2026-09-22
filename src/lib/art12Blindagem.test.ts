@@ -207,9 +207,15 @@ describe('CMV Art. 12 — camada de auditoria (cada passo recalculado = valor ex
     expect(passos[1].resultado).toBe('0,036500')
     expect(passos[2].resultado).toBe('1,000000')
     // passo 4 (numerador), 5 (denominador), 6 (fator)
-    expect(passos[3].resultado).toBe((1 - t - e).toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }))
-    expect(passos[4].resultado).toBe((1 - tEx).toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }))
-    expect(passos[5].resultado).toBe(fCalc.toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }))
+    expect(passos[3].resultado).toBe(
+      (1 - t - e).toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }),
+    )
+    expect(passos[4].resultado).toBe(
+      (1 - tEx).toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }),
+    )
+    expect(passos[5].resultado).toBe(
+      fCalc.toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }),
+    )
     expect(passos[5].resultado).toBe('0,955488')
     // passo final: 30 × 1.400 × f = valor exibido da linha (ao centavo)
     const mercCalc = Math.floor(30 * 1400 * fCalc * 100 + 0.5) / 100
@@ -264,7 +270,7 @@ describe('CMV Art. 12 — camada de auditoria (cada passo recalculado = valor ex
 function parseBR2(s: string): number {
   const principal = s.includes('(') ? s.slice(0, s.indexOf('(')) : s
   return Number(principal.replace(/[R$\s.]/g, '').replace(',', '.'))
-})
+}
 
 describe('CMV Art. 12 — semáforo e porquê', () => {
   it('semáforo reflete o lado do comprador (neutro = âmbar na cadeia plena integral)', () => {
