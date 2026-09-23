@@ -618,7 +618,7 @@ export function computeExercicioArt12(
     label:
       ganhoNaoRepassado > 0
         ? '(=) Base limpa do fornecedor no exercício'
-        : '(=) Base limpa de referência — art. 12 (caput + §2º, I, II, V)',
+        : '(=) Base limpa de referência',
     formula: `${fmt(mercReal)} + ${fmt(freteReal)} − ICMS ${fmt(r2(icmsMercRef + icmsFreteRef))}${mostraPisCofins ? ` − PIS/COFINS ${fmt(r2(pisRef + cofinsRef))}` : ''}${ganhoNaoRepassado > 0 ? ` + ganho ${fmt(ganhoNaoRepassado)}` : ''}`,
     value: baseLimpa,
     kind: 'nota',
@@ -681,6 +681,16 @@ export function computeExercicioArt12(
           ? '§2º, V com vigência expressa: 01/01/2026 a 31/12/2032.'
           : '§2º, V expira em 31/12/2032 — base de 2033 sem definição.',
     },
+  })
+
+  // Botão único "Memória + base legal" — renderizado APÓS a base limpa (marcador de posição)
+  lines.push({
+    key: 'memoria_bloco1',
+    label: 'MEMORIA_BLOCO1',
+    formula: '',
+    value: 0,
+    kind: 'nota',
+    bloco: 1,
   })
 
   // 6) CBS e IBS — por fora (destacadas); sobre a base limpa

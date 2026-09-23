@@ -86,6 +86,98 @@ const VALIDADE_STYLE: Record<string, { label: string; cls: string }> = {
   },
 }
 
+function BlocoMemoryDialog({
+  side,
+  bloco,
+  blocoLabel,
+  open,
+  onOpenChange,
+  contexto,
+}: {
+  side: SideResultArt
+  bloco: number
+  blocoLabel: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  contexto?: string
+}) {
+  const linhas = side.lines.filter(
+    (l) => l.bloco === bloco && l.label !== 'MEMORIA_BLOCO1' && l.passos && l.passos.length > 0,
+  )
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+            <Calculator className="w-5 h-5 text-emerald-400" />
+            <span>Memória + base legal — {blocoLabel}</span>
+          </DialogTitle>
+          <DialogDescription className="text-xs text-slate-400">{contexto}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          {linhas.map((line) => (
+            <div key={line.key} className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] font-mono font-bold text-slate-200">{line.label}</span>
+                <span className="text-[11px] font-mono font-bold text-emerald-300 shrink-0">
+                  {line.kind === 'nota' && line.value === 0 ? '—' : formatBRL(line.value)}
+                </span>
+              </div>
+              {(line.passos || []).map((p) => (
+                <div
+                  key={p.ordem}
+                  className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5 space-y-1"
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="text-[10px] font-mono font-black text-emerald-400 shrink-0">
+                      {p.ordem}.
+                    </span>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="text-[11px] font-mono font-semibold text-slate-200">
+                        {p.descricao}
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-400 break-words">
+                        {p.expressao}
+                      </div>
+                      <div className="text-[11px] font-mono font-bold text-emerald-300 break-words">
+                        = {p.resultado}
+                      </div>
+                      {p.fundamento && (
+                        <div className="text-[9px] font-mono text-slate-500 break-words">
+                          {p.fundamento}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-lg border border-sky-500/40 bg-sky-500/[0.06] p-2.5 space-y-1">
+                <div className="text-[10px] font-mono font-bold uppercase text-sky-300">
+                  Base legal
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <ArtBadge dispositivo={line.fundamento?.dispositivo || '—'} />
+                  <ValidadeBadge fundamento={line.fundamento} />
+                </div>
+                {line.fundamento?.efeito && (
+                  <div className="text-[10px] font-mono text-slate-300 break-words">
+                    {line.fundamento.efeito}
+                  </div>
+                )}
+                {line.fundamento?.nota && (
+                  <div className="text-[9px] font-mono text-slate-500 break-words">
+                    {line.fundamento.nota}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function LineMemoryDialog({
   line,
   lineLabel,
@@ -206,12 +298,15 @@ function SideColumnArt({
   side,
   accent,
   onOpenLine,
+  onOpenBloco,
 }: {
   title: string
   side: SideResultArt
   accent: string
   /** Quando fornecido, cada linha (com passos de derivação) ganha botão "Abrir". */
   onOpenLine?: (line: MemoryLineArt) => void
+  /** Abre a memória completa do bloco (todas as linhas com derivação + base legal). */
+  onOpenBloco?: (side: SideResultArt, bloco: number) => void
 }) {
   const blocos = [...new Set(side.lines.map((l) => l.bloco))].sort((a, b) => a - b)
   return (
@@ -238,10 +333,7 @@ function SideColumnArt({
                   <button
                     key={line.key}
                     type="button"
-                    onClick={() => {
-                      const alvo = side.lines.find((l) => l.key === 'baselimpa')
-                      if (alvo) onOpenLine(alvo)
-                    }}
+                    onClick={() => onOpenBloco(side, bloco)}
                     className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1.5 text-[10px] font-mono font-bold text-emerald-300 hover:bg-emerald-500/20 cursor-pointer"
                   >
                     <Calculator className="w-3 h-3" /> Memória + base legal
@@ -433,6 +525,11 @@ export function CmvArt12Module() {
     row: ScheduleRowArt
   } | null>(null)
   const [lineMemory, setLineMemory] = useState<{ line: MemoryLineArt; label: string } | null>(null)
+  const [blocoMemory, setBlocoMemory] = useState<{
+    side: SideResultArt
+    bloco: number
+    label: string
+  } | null>(null)
 
   const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
 
@@ -808,12 +905,26 @@ export function CmvArt12Module() {
             side={activeCell.hoje}
             accent="border-slate-700/70 bg-slate-900/40"
             onOpenLine={(line) => setLineMemory({ line, label: `${line.label} — HOJE` })}
+            onOpenBloco={(side, bloco) =>
+              setBlocoMemory({
+                side,
+                bloco,
+                label: `${BLOCO_TITULOS[bloco] || `BLOCO ${bloco}`} — HOJE`,
+              })
+            }
           />
           <SideColumnArt
             title={`EXERCÍCIO ${exercicio}`}
             side={activeCell.exercicio}
             accent="border-emerald-500/30 bg-emerald-500/[0.04]"
             onOpenLine={(line) => setLineMemory({ line, label: `${line.label} — ${exercicio}` })}
+            onOpenBloco={(side, bloco) =>
+              setBlocoMemory({
+                side,
+                bloco,
+                label: `${BLOCO_TITULOS[bloco] || `BLOCO ${bloco}`} — Exercício ${exercicio}`,
+              })
+            }
           />
         </div>
         {/* Delta + semáforo + porquê */}
@@ -962,6 +1073,16 @@ export function CmvArt12Module() {
           open={!!lineMemory}
           onOpenChange={(o) => !o && setLineMemory(null)}
           contexto={`Exercício ${exercicio} · ${REGIME_LABEL_FULL[config.fornecedorRegime]} (fornecedor) × ${REGIME_LABEL_FULL[config.compradorRegime]} (comprador) · repasse ${config.repasse === 'integral' ? 'integral' : config.repasse === 'parcial' ? `parcial ${formatNumberBR(config.repassePct)}%` : 'nenhum'} · tese: ${config.baseIcmsTransicao === 'fisco' ? 'do Fisco' : 'do Contribuinte'}`}
+        />
+      )}
+      {blocoMemory && (
+        <BlocoMemoryDialog
+          side={blocoMemory.side}
+          bloco={blocoMemory.bloco}
+          blocoLabel={blocoMemory.label}
+          open={!!blocoMemory}
+          onOpenChange={(o) => !o && setBlocoMemory(null)}
+          contexto={`Exercício ${exercicio} · ${REGIME_LABEL_FULL[config.fornecedorRegime]} (fornecedor) × ${REGIME_LABEL_FULL[config.compradorRegime]} (comprador) · derivação de 6 casas por linha · base legal por linha`}
         />
       )}
     </div>
