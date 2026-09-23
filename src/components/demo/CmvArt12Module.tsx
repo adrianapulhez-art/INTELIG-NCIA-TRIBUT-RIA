@@ -282,7 +282,7 @@ function SideColumnArt({
                       : formatBRL(line.value)}
                   </span>
                 </div>
-                {onOpenLine && line.passos && line.passos.length > 0 ? (
+                {onOpenLine ? (
                   <button
                     type="button"
                     onClick={() => onOpenLine(line)}
@@ -388,6 +388,7 @@ function CellMemoryDialogArt({
             title="HOJE"
             side={cell.hoje}
             accent="border-slate-700/70 bg-slate-900/40"
+            onOpenLine={(line) => setLineMemory({ line, label: `${line.label} — HOJE` })}
           />
           <SideColumnArt
             title={`EXERCÍCIO ${row.exercicio}`}
@@ -802,6 +803,7 @@ export function CmvArt12Module() {
             title="HOJE"
             side={activeCell.hoje}
             accent="border-slate-700/70 bg-slate-900/40"
+            onOpenLine={(line) => setLineMemory({ line, label: `${line.label} — HOJE` })}
           />
           <SideColumnArt
             title={`EXERCÍCIO ${exercicio}`}
