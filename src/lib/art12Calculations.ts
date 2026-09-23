@@ -602,16 +602,6 @@ export function computeExercicioArt12(
     })
   }
 
-  // Botão único "Memória + base legal" — exibido após a base limpa (o módulo o renderiza aqui)
-  lines.push({
-    key: 'memoria_bloco1',
-    label: 'MEMORIA_BLOCO1',
-    formula: '',
-    value: 0,
-    kind: 'nota',
-    bloco: 1,
-  })
-
   // Base limpa do fornecedor (alvo do IBS/CBS) — soma dos elementos exibidos
   lines.push({
     key: 'baselimpa',
