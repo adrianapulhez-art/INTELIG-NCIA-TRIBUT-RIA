@@ -487,7 +487,7 @@ export function computeExercicioArt12(
   lines.push({
     key: 'icms_merc',
     label: '(−) ICMS sobre mercadorias',
-    formula: `${fmt(input.icmsRate)}% × ${fmt(mercReal)}`,
+    formula: `${fmt(input.icmsRate)}% × ${fmt(mercReal)} = ${fmt(icmsMercRef)}`,
     value: -icmsMercRef,
     kind: 'nota',
     bloco: 1,
@@ -504,7 +504,7 @@ export function computeExercicioArt12(
   lines.push({
     key: 'icms_frete',
     label: '(−) ICMS sobre fretes',
-    formula: `${fmt(input.icmsFreightRate)}% × ${fmt(freteReal)}`,
+    formula: `${fmt(input.icmsFreightRate)}% × ${fmt(freteReal)} = ${fmt(icmsFreteRef)}`,
     value: -icmsFreteRef,
     kind: 'nota',
     bloco: 1,
@@ -530,7 +530,7 @@ export function computeExercicioArt12(
     lines.push({
       key: 'pis',
       label: `(−) PIS ${rotuloExercicio}`,
-      formula: `${fmt(PIS_RATE[config.fornecedorRegime] * 100)}% × ${fmt(baseSemIcmsRef)} — base sem ICMS (tese do século)`,
+      formula: `${fmt(PIS_RATE[config.fornecedorRegime] * 100)}% × ${fmt(baseSemIcmsRef)} = ${fmt(pisRef)}`,
       value: -pisRef,
       kind: 'nota',
       bloco: 1,
@@ -547,7 +547,7 @@ export function computeExercicioArt12(
     lines.push({
       key: 'cofins',
       label: `(−) COFINS ${rotuloExercicio}`,
-      formula: `${fmt(COFINS_RATE[config.fornecedorRegime] * 100)}% × ${fmt(baseSemIcmsRef)} — base sem ICMS (tese do século)`,
+      formula: `${fmt(COFINS_RATE[config.fornecedorRegime] * 100)}% × ${fmt(baseSemIcmsRef)} = ${fmt(cofinsRef)}`,
       value: -cofinsRef,
       kind: 'nota',
       bloco: 1,
@@ -601,6 +601,16 @@ export function computeExercicioArt12(
       },
     })
   }
+
+  // Botão único "Memória + base legal" — exibido após a base limpa (o módulo o renderiza aqui)
+  lines.push({
+    key: 'memoria_bloco1',
+    label: 'MEMORIA_BLOCO1',
+    formula: '',
+    value: 0,
+    kind: 'nota',
+    bloco: 1,
+  })
 
   // Base limpa do fornecedor (alvo do IBS/CBS) — soma dos elementos exibidos
   lines.push({
@@ -708,7 +718,7 @@ export function computeExercicioArt12(
   lines.push({
     key: 'cbs',
     label: `(+) CBS ${fmt(row.cbsRate)}% destacada (por fora)`,
-    formula: `${fmtMoney6(baseLimpa)} × ${fmt6(row.cbsRate / 100)}`,
+    formula: `${fmtMoney6(baseLimpa)} × ${fmt6(row.cbsRate / 100)} = ${fmtMoney6(cbsV)}`,
     value: cbsV,
     kind: 'debito',
     bloco: 1,
@@ -751,7 +761,7 @@ export function computeExercicioArt12(
   lines.push({
     key: 'ibs',
     label: `(+) IBS ${fmt(row.ibsRate)}% destacado (por fora)`,
-    formula: `${fmtMoney6(baseLimpa)} × ${fmt6(row.ibsRate / 100)}`,
+    formula: `${fmtMoney6(baseLimpa)} × ${fmt6(row.ibsRate / 100)} = ${fmtMoney6(ibsV)}`,
     value: ibsV,
     kind: 'debito',
     bloco: 1,

@@ -232,72 +232,76 @@ function SideColumnArt({
           </div>
           {side.lines
             .filter((l) => l.bloco === bloco)
-            .map((line) => (
-              <div
-                key={line.key}
-                className={`rounded-lg px-2.5 py-1.5 space-y-1 ${line.subtotal ? 'bg-emerald-500/10 border border-emerald-500/40' : 'bg-slate-950/50 border border-slate-800/60'}`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <span
-                      className={`text-[11px] font-mono font-semibold block ${
-                        line.kind === 'bruto'
-                          ? 'text-slate-200'
-                          : line.kind === 'debito'
-                            ? 'text-amber-300'
-                            : line.kind === 'nota'
-                              ? 'text-sky-300'
-                              : 'text-emerald-300'
-                      }`}
-                    >
-                      {line.label}
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-500 leading-tight block break-words">
-                      {line.formula}
-                    </span>
-                  </div>
-                  <span
-                    className={`text-[11px] font-mono font-bold shrink-0 ${
-                      line.kind === 'nota'
-                        ? ['baselimpa', 'preconota', 'comprasliquidas', 'custounitario'].includes(
-                            line.key,
-                          )
-                          ? 'text-emerald-300'
-                          : 'text-sky-300'
-                        : line.value > 0
-                          ? line.kind === 'debito'
-                            ? 'text-amber-300'
-                            : 'text-slate-100'
-                          : line.value < 0
-                            ? 'text-emerald-300'
-                            : 'text-slate-500'
-                    }`}
-                  >
-                    {line.kind === 'nota'
-                      ? ['baselimpa', 'preconota', 'comprasliquidas', 'custounitario'].includes(
-                          line.key,
-                        )
-                        ? formatBRL(line.value)
-                        : '—'
-                      : formatBRL(line.value)}
-                  </span>
-                </div>
-                {onOpenLine ? (
+            .map((line) =>
+              line.label === 'MEMORIA_BLOCO1' ? (
+                onOpenLine ? (
                   <button
+                    key={line.key}
                     type="button"
-                    onClick={() => onOpenLine(line)}
-                    className="w-full mt-0.5 inline-flex items-center justify-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-mono font-bold text-emerald-300 hover:bg-emerald-500/20 cursor-pointer"
+                    onClick={() => {
+                      const alvo = side.lines.find((l) => l.key === 'baselimpa')
+                      if (alvo) onOpenLine(alvo)
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1.5 text-[10px] font-mono font-bold text-emerald-300 hover:bg-emerald-500/20 cursor-pointer"
                   >
                     <Calculator className="w-3 h-3" /> Memória + base legal
                   </button>
-                ) : (
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <ArtBadge dispositivo={line.fundamento?.dispositivo || '—'} />
-                    <ValidadeBadge fundamento={line.fundamento} />
+                ) : null
+              ) : (
+                <div
+                  key={line.key}
+                  className={`rounded-lg px-2.5 py-1.5 space-y-1 ${line.subtotal ? 'bg-emerald-500/10 border border-emerald-500/40' : 'bg-slate-950/50 border border-slate-800/60'}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span
+                        className={`text-[11px] font-mono font-semibold block ${
+                          line.kind === 'bruto'
+                            ? 'text-slate-200'
+                            : line.kind === 'debito'
+                              ? 'text-amber-300'
+                              : line.kind === 'nota'
+                                ? 'text-sky-300'
+                                : 'text-emerald-300'
+                        }`}
+                      >
+                        {line.label}
+                      </span>
+                      {line.formula && (
+                        <span className="text-[10px] font-mono text-slate-400 leading-tight block break-words">
+                          {line.formula}
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`text-[11px] font-mono font-bold shrink-0 ${
+                        line.kind === 'nota'
+                          ? ['baselimpa', 'preconota', 'comprasliquidas', 'custounitario'].includes(
+                              line.key,
+                            )
+                            ? 'text-emerald-300'
+                            : 'text-sky-300'
+                          : line.value > 0
+                            ? line.kind === 'debito'
+                              ? 'text-amber-300'
+                              : 'text-slate-100'
+                            : line.value < 0
+                              ? 'text-emerald-300'
+                              : 'text-slate-500'
+                      }`}
+                    >
+                      {line.kind === 'nota'
+                        ? ['baselimpa', 'preconota', 'comprasliquidas', 'custounitario'].includes(
+                            line.key,
+                          )
+                          ? formatBRL(line.value)
+                          : '—'
+                        : formatBRL(line.value)}
+                    </span>
                   </div>
-                )}
-              </div>
-            ))}
+                </div>
+              ),
+            )}
           {side.lines.some((l) => l.bloco === bloco && l.subtotal) && (
             <div className="flex items-center gap-1.5 pb-0.5">
               <span className="text-[9px] font-mono font-bold text-emerald-400/90">
