@@ -231,90 +231,6 @@ export function fatorRepasseArt12(
   return 1 + (config.repassePct / 100) * (fIntegral - 1)
 }
 
-/** Passos de derivação da linha "Mercadoria (preço reprecificado)" — 6 casas. */
-function buildPassosMercadoria(
-  input: CmvArt12Input,
-  config: CellConfigArt,
-  row: ScheduleRowArt,
-  f: number,
-  merc: number,
-): DerivaPasso[] {
-  const t = input.icmsRate / 100
-  const e = EMBUTIDO[config.fornecedorRegime]
-  const tEx = t * (row.icmsPct / 100)
-  const passos: DerivaPasso[] = [
-    {
-      ordem: 1,
-      descricao: 'Alíquota de ICMS da mercadoria',
-      expressao: `${fmt(input.icmsRate)}% ÷ 100`,
-      resultado: fmt6(t),
-      fundamento: 'Origem: parâmetro da aquisição (Calculadora de Compras / caso canônico).',
-    },
-    {
-      ordem: 2,
-      descricao:
-        'PIS/COFINS embutido no preço do fornecedor — sobre a BASE SEM ICMS (tese do século)',
-      expressao: EMBUTIDO_LABEL[config.fornecedorRegime],
-      resultado: fmt6(e),
-      fundamento: 'STJ RE 1.188.403 + STF Tema 1098: ICMS não integra a base do PIS/COFINS.',
-    },
-    {
-      ordem: 3,
-      descricao: `Fração do ICMS no exercício ${row.exercicio}`,
-      expressao: `${fmt(row.icmsPct)}% ÷ 100`,
-      resultado: fmt6(row.icmsPct / 100),
-      fundamento:
-        row.icmsPct === 100
-          ? 'ADCT, art. 128: ICMS integral até 2028.'
-          : `ADCT, art. 128: ICMS a ${fmt(row.icmsPct)}% da alíquota no exercício.`,
-    },
-  ]
-  if (f === 1) {
-    passos.push({
-      ordem: 4,
-      descricao: 'Fator de repasse',
-      expressao:
-        'f = 1 (fornecedor SN: nota congelada — LC 123/2006; ou 2026: tributos inalterados)',
-      resultado: fmt6(1),
-      fundamento: 'Sem repasse: o bruto do fornecedor não muda neste exercício.',
-    })
-  } else {
-    passos.push(
-      {
-        ordem: 4,
-        descricao: 'Receita líquida unitária HOJE do fornecedor (por real de bruto)',
-        expressao: `(1 − ${fmt6(t)}) × (1 − ${fmt6(e)}) — ICMS por dentro + PIS/COFINS sobre base sem ICMS`,
-        resultado: fmt6((1 - t) * (1 - e)),
-        fundamento: 'Tese do século: PIS/COFINS sobre base sem ICMS (STJ RE 1.188.403).',
-      },
-      {
-        ordem: 5,
-        descricao:
-          'Denominador — o que sobra de cada real no exercício (só ICMS à fração; PIS/COFINS extintos)',
-        expressao: `1 − ${fmt6(t)} × ${fmt6(row.icmsPct / 100)}`,
-        resultado: fmt6(1 - tEx),
-        fundamento: 'EC 132, art. 22, I (PIS/COFINS extintos) + ADCT, art. 128 (fração do ICMS).',
-      },
-      {
-        ordem: 6,
-        descricao: 'Fator de repasse (receita líquida do fornecedor constante)',
-        expressao: `${fmt6((1 - t) * (1 - e))} ÷ ${fmt6(1 - tEx)}`,
-        resultado: fmt6(f),
-        fundamento: 'f = (1 − ICMS) × (1 − PIS/COFINS) ÷ (1 − ICMS × fração do exercício).',
-      },
-    )
-  }
-  passos.push({
-    ordem: passos.length + 1,
-    descricao:
-      'Valor da mercadoria no exercício (resultado final — arredondado a 2 casas, half-up)',
-    expressao: `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)} × ${fmt6(f)}`,
-    resultado: fmt(merc),
-    fundamento: 'LC 214/2025, art. 12, caput: valor da operação.',
-  })
-  return passos
-}
-
 /** Lado HOJE (régua): sem Art. 12 — direito atual. Custo canônico R$ 1.158,93/un no caso LP×LP comércio. */
 export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): SideResultArt {
   const semFund: Fundamento = {
@@ -457,54 +373,52 @@ export function computeExercicioArt12(
   const lines: MemoryLineArt[] = []
 
   // ==================== BLOCO 1 — FORMAÇÃO DO PREÇO DO FORNECEDOR ====================
-  // 1) Mercadoria — valor da operação (caput), com fator de repasse sobre base limpa
+  // 1) Mercadorias — ELEMENTO REAL (qtd × preço unitário), sem fator na exibição
+  const mercReal = r2(input.quantity * input.unitPrice)
+  const freteReal = r2(input.freightValue)
   lines.push({
     key: 'mercadoria',
-    label: 'Mercadoria (preço reprecificado)',
-    formula:
-      f === 1
-        ? `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)} — bruto congelado`
-        : `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)} × ${fmt6(f)} — fator: (1−ICMS)×(1−PIS/COFINS)÷(1−ICMS×${fmt6(row.icmsPct / 100)})`,
-    value: merc,
-    kind: 'bruto',
-    bloco: 1,
-    passos: buildPassosMercadoria(input, config, row, f, merc),
-    fundamento: {
-      dispositivo: 'LC 214/2025, art. 12, caput',
-      efeito: 'valor da operação compõe a base',
-      validade: 'condicionada',
-      nota:
-        f === 1
-          ? config.fornecedorRegime === 'simples'
-            ? 'Fornecedor SN — nota congelada (LC 123/2006).'
-            : '2026: tributos do fornecedor inalterados — repasse nulo.'
-          : 'Repasse depende da prática de mercado — validade condicionada à negociação.',
-    },
-  })
-
-  // 2) Frete — INTEGRA a base (§1º, IV)
-  lines.push({
-    key: 'frete',
-    label: 'Frete',
-    formula: f === 1 ? 'valor da nota' : `${fmt(input.freightValue)} × ${fmt6(f)} (repasse)`,
-    value: frete,
+    label: '(+) Mercadorias',
+    formula: `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)}`,
+    value: mercReal,
     kind: 'bruto',
     bloco: 1,
     passos: [
       {
         ordem: 1,
-        descricao: 'Frete da aquisição (integra a base — acompanha o repasse do bruto)',
-        expressao: f === 1 ? 'valor da nota' : `${fmt(input.freightValue)} × ${fmt6(f)}`,
-        resultado: fmt(frete),
+        descricao: 'Quantidade × preço unitário (elemento da operação — sem fator)',
+        expressao: `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)}`,
+        resultado: fmt(mercReal),
+        fundamento: 'LC 214/2025, art. 12, caput: valor da operação.',
+      },
+    ],
+    fundamento: {
+      dispositivo: 'LC 214/2025, art. 12, caput',
+      efeito: 'valor da operação compõe a base',
+      validade: 'integral',
+      nota:
+        f === 1
+          ? 'Bruto congelado neste exercício (sem reprecificação).'
+          : 'Elemento da operação de hoje — a reprecificação do exercício entra no desembute do ICMS e no repasse (linhas seguintes).',
+    },
+  })
+
+  // 2) Frete — INTEGRA a base (§1º, IV) — ELEMENTO REAL
+  lines.push({
+    key: 'frete',
+    label: '(+) Frete sobre compras',
+    formula: 'valor da nota',
+    value: freteReal,
+    kind: 'bruto',
+    bloco: 1,
+    passos: [
+      {
+        ordem: 1,
+        descricao: 'Frete da aquisição (integra a base do IBS/CBS)',
+        expressao: 'valor da nota',
+        resultado: fmt(freteReal),
         fundamento:
           'LC 214/2025, art. 12, §1º, IV: transporte cobrado pelo fornecedor INTEGRA a base.',
-      },
-      {
-        ordem: 2,
-        descricao: 'Resultado final (arredondado a 2 casas, half-up)',
-        expressao: '—',
-        resultado: fmt(frete),
-        fundamento: 'Mesmo fator da mercadoria (mesma operação).',
       },
     ],
     fundamento: {
@@ -564,114 +478,186 @@ export function computeExercicioArt12(
     }
   }
 
-  // 4) ICMS embutido no preço do fornecedor — à fração do exercício (ADCT 128)
+  // 4) ICMS sobre mercadorias / fretes — ALÍQUOTA CHEIA sobre o elemento real
+  //    (estrutura de hoje — a fração do exercício entra no desembute e no crédito do bloco 2)
+  const icmsMercRef = r2(mercReal * (input.icmsRate / 100))
+  const icmsFreteRef = r2(freteReal * (input.icmsFreightRate / 100))
+  // ICMS à fração do exercício (caminho EXATO do motor v2 chancelado — base reprecificada)
   const icmsDest = r2((merc + frete) * (input.icmsRate / 100) * (row.icmsPct / 100))
   lines.push({
-    key: 'icms',
-    label: '(−) ICMS embutido no preço (fração do exercício)',
-    formula: `(${fmt(merc)} + ${fmt(frete)}) × ${fmt(input.icmsRate)}% × ${fmt(row.icmsPct)}%`,
-    value: -icmsDest,
+    key: 'icms_merc',
+    label: '(−) ICMS sobre mercadorias',
+    formula: `${fmt(input.icmsRate)}% × ${fmt(mercReal)}`,
+    value: -icmsMercRef,
     kind: 'nota',
     bloco: 1,
     fundamento: {
-      dispositivo: 'ADCT, art. 128, I–IV (EC 132/2023)',
-      efeito:
-        row.icmsPct === 100
-          ? 'ICMS integral até 2028 — frações começam em 2029 (9/10)'
-          : `ICMS cede ${fmt(100 - row.icmsPct)}% da alíquota ao IBS neste exercício`,
+      dispositivo: 'LC 214/2025, art. 12, §2º, V + ADCT, art. 128, I–IV',
+      efeito: 'ICMS fora da base do IBS/CBS — alíquota cheia da estrutura de hoje',
       validade: 'integral',
-      nota: 'Extinção em 2033: ADCT, art. 129.',
+      nota:
+        row.icmsPct === 100
+          ? 'ICMS integral até 2028 — frações começam em 2029 (9/10): ver desembute e crédito.'
+          : `ICMS cede ${fmt(100 - row.icmsPct)}% da alíquota ao IBS neste exercício — fração no desembute (÷) e no crédito do bloco 2.`,
+    },
+  })
+  lines.push({
+    key: 'icms_frete',
+    label: '(−) ICMS sobre fretes',
+    formula: `${fmt(input.icmsFreightRate)}% × ${fmt(freteReal)}`,
+    value: -icmsFreteRef,
+    kind: 'nota',
+    bloco: 1,
+    fundamento: {
+      dispositivo: 'LC 214/2025, art. 12, §2º, V + §1º, IV',
+      efeito: 'ICMS sobre o frete (que integra a base) — fora da base do IBS/CBS',
+      validade: 'integral',
     },
   })
 
-  // 5) PIS/COFINS embutidos — sobre BASE SEM ICMS (tese do século); só em 2026 (extintos 2027+)
-  if (row.exercicio === 2026 && !fornecedorSN) {
-    // Base do PIS/COFINS = operação sem ICMS e sem IPI (IPI destacado não integra a base do PIS/COFINS)
-    const basePisForn = r2(merc + frete - icmsDest)
-    const pisEmbutido = r2(basePisForn * EMBUTIDO[config.fornecedorRegime])
+  // 5) PIS e COFINS embutidos no preço de hoje — separados, sobre BASE SEM ICMS (tese do século)
+  const PIS_RATE: Record<RegimeId, number> = { presumido: 0.0065, real: 0.0165, simples: 0 }
+  const COFINS_RATE: Record<RegimeId, number> = { presumido: 0.03, real: 0.076, simples: 0 }
+  const baseSemIcmsRef = r2(mercReal + freteReal - icmsMercRef - icmsFreteRef)
+  const pisRef = r2(baseSemIcmsRef * PIS_RATE[config.fornecedorRegime])
+  const cofinsRef = r2(baseSemIcmsRef * COFINS_RATE[config.fornecedorRegime])
+  const mostraPisCofins = !fornecedorSN
+  if (mostraPisCofins) {
+    const rotuloExercicio =
+      row.exercicio === 2026
+        ? 'embutido no preço'
+        : 'embutido no preço de hoje — extinto no exercício (referência da base)'
     lines.push({
-      key: 'piscofins',
-      label: '(−) PIS/COFINS embutidos — excluídos da base (base sem ICMS)',
-      formula: `${fmt(basePisForn)} × ${fmt(EMBUTIDO[config.fornecedorRegime] * 100)}% (tese do século)`,
-      value: -pisEmbutido,
+      key: 'pis',
+      label: `(−) PIS ${rotuloExercicio}`,
+      formula: `${fmt(PIS_RATE[config.fornecedorRegime] * 100)}% × ${fmt(baseSemIcmsRef)} — base sem ICMS (tese do século)`,
+      value: -pisRef,
       kind: 'nota',
       bloco: 1,
       fundamento: {
         dispositivo: 'LC 214/2025, art. 12, §2º, V + STJ RE 1.188.403 (Tema 1098 STF)',
-        efeito: 'PIS/COFINS embutidos no preço NÃO integram a base do IBS/CBS',
+        efeito: 'PIS embutido no preço NÃO integra a base do IBS/CBS',
         validade: 'integral',
-        nota: 'Base sem ICMS: tese do século, sedimentada no sistema. Vigência da exclusão: 2026–2032.',
+        nota:
+          row.exercicio === 2026
+            ? 'Base sem ICMS: tese do século, sedimentada no sistema.'
+            : 'Extinto a partir de 2027 (EC 132/2023, art. 22, I) — a reprecificação preserva a base líquida de referência.',
       },
     })
-  } else if (row.exercicio >= 2027 && !fornecedorSN) {
     lines.push({
-      key: 'piscofins',
-      label: 'PIS/COFINS — extintos',
-      formula: 'sem destaque ou exclusão a partir de 2027',
-      value: 0,
+      key: 'cofins',
+      label: `(−) COFINS ${rotuloExercicio}`,
+      formula: `${fmt(COFINS_RATE[config.fornecedorRegime] * 100)}% × ${fmt(baseSemIcmsRef)} — base sem ICMS (tese do século)`,
+      value: -cofinsRef,
       kind: 'nota',
       bloco: 1,
       fundamento: {
-        dispositivo: 'EC 132/2023, art. 22, I',
-        efeito: 'revogação do art. 195, I, "b" e IV da CF a partir de 2027',
+        dispositivo: 'LC 214/2025, art. 12, §2º, V + STJ RE 1.188.403 (Tema 1098 STF)',
+        efeito: 'COFINS embutida no preço NÃO integra a base do IBS/CBS',
         validade: 'integral',
+        nota:
+          row.exercicio === 2026
+            ? 'Base sem ICMS: tese do século, sedimentada no sistema.'
+            : 'Extinta a partir de 2027 (EC 132/2023, art. 22, I) — a reprecificação preserva a base líquida de referência.',
       },
     })
   }
 
-  // Base limpa do fornecedor (exclusões §2º: ICMS/ISS, IPI e PIS/COFINS)
+  // 5c) Base limpa do fornecedor (alvo do IBS/CBS) — caminho EXATO do motor v2 chancelado:
+  //     bruto reprecificado − ICMS à fração − IPI − PIS/COFINS (invariante da cadeia plena).
+  //     A exibição é por ELEMENTOS (linhas acima); o fator f permanece internamente no cálculo.
   const exclusoesPisCofins = r2(
-    lines.filter((l) => l.key === 'piscofins' && l.value < 0).reduce((acc, l) => acc + -l.value, 0),
+    lines
+      .filter(
+        (l) => (l.key === 'pis' || l.key === 'cofins') && l.value < 0 && row.exercicio === 2026,
+      )
+      .reduce((acc, l) => acc + -l.value, 0),
   )
   const baseLimpa = r2(bruto - icmsDest - ipiValor - exclusoesPisCofins)
+
+  // 5b) Repasse — a diferença entre a referência de hoje e a base do exercício, explicada como ELEMENTO
+  //     (f continua no motor para o cálculo; aqui só a leitura por elementos)
+  const baseReferencia = r2(baseSemIcmsRef - pisRef - cofinsRef)
+  const ganhoNaoRepassado = row.exercicio >= 2027 ? r2(baseLimpa - baseReferencia) : 0
+  if (ganhoNaoRepassado > 0) {
+    lines.push({
+      key: 'ganho',
+      label:
+        config.repasse === 'nenhum'
+          ? '(+) Sem repasse: ganho do fornecedor fica no preço (ICMS à fração + PIS/COFINS extintos)'
+          : `(+) Repasse parcial (${fmt(config.repassePct)}%): parte do ganho fica no preço`,
+      formula: `${fmt(baseLimpa)} (base do exercício) − ${fmt(baseReferencia)} (referência de hoje)`,
+      value: ganhoNaoRepassado,
+      kind: 'debito',
+      bloco: 1,
+      fundamento: {
+        dispositivo: 'Repasse: prática de mercado (sem obrigação na LC 214/2025)',
+        efeito:
+          config.repasse === 'nenhum'
+            ? 'fornecedor não reprecifica: a extinção de PIS/COFINS e a fração do ICMS elevam a base dele — quem absorve é o COMPRADOR'
+            : 'reprecificação parcial: o ganho se divide entre margem do fornecedor e custo do comprador',
+        validade: 'condicionada',
+        nota: 'Depende da negociação — validade condicionada à prática de mercado.',
+      },
+    })
+  }
+
+  // Base limpa do fornecedor (alvo do IBS/CBS) — soma dos elementos exibidos
   lines.push({
     key: 'baselimpa',
-    label: '(=) Base limpa do fornecedor (alvo do IBS/CBS)',
-    formula: `${fmtMoney6(bruto)} − ICMS ${fmtMoney6(icmsDest)}${ipiValor ? ` − IPI ${fmtMoney6(ipiValor)}` : ''}${exclusoesPisCofins > 0 ? ' − PIS/COFINS' : ''}`,
+    label:
+      ganhoNaoRepassado > 0
+        ? '(=) Base limpa do fornecedor no exercício'
+        : '(=) Base limpa de referência — art. 12 (caput + §2º, I, II, V)',
+    formula: `${fmt(mercReal)} + ${fmt(freteReal)} − ICMS ${fmt(r2(icmsMercRef + icmsFreteRef))}${mostraPisCofins ? ` − PIS/COFINS ${fmt(r2(pisRef + cofinsRef))}` : ''}${ganhoNaoRepassado > 0 ? ` + ganho ${fmt(ganhoNaoRepassado)}` : ''}`,
     value: baseLimpa,
     kind: 'nota',
     bloco: 1,
     passos: [
       {
         ordem: 1,
-        descricao: 'Bruto (valor da operação) — sem arredondamento intermediário',
-        expressao: 'mercadoria + frete' + (ipiValor > 0 ? ' + IPI' : ''),
-        resultado: fmtMoney6(bruto),
-        fundamento: 'LC 214/2025, art. 12, caput.',
+        descricao: 'Elementos da operação (reais)',
+        expressao: `${fmt(mercReal)} + ${fmt(freteReal)}`,
+        resultado: fmt(r2(mercReal + freteReal)),
+        fundamento: 'LC 214/2025, art. 12, caput + §1º, IV.',
       },
       {
         ordem: 2,
-        descricao: 'Exclusão: ICMS/ISS embutido (fração do exercício)',
-        expressao: `(${fmt(merc)} + ${fmt(frete)}) × ${fmt(input.icmsRate)}% × ${fmt(row.icmsPct)}%`,
-        resultado: fmtMoney6(icmsDest),
-        fundamento: 'Art. 12, §2º, V — vigência 01/01/2026 a 31/12/2032; fração: ADCT, art. 128.',
+        descricao: 'Exclusão: ICMS (alíquota cheia — estrutura de hoje)',
+        expressao: `${fmt(icmsMercRef)} + ${fmt(icmsFreteRef)}`,
+        resultado: fmtMoney6(r2(icmsMercRef + icmsFreteRef)),
+        fundamento:
+          'Art. 12, §2º, V. Fração do exercício: ADCT, art. 128 — entra no desembute (÷) e no crédito (bloco 2).',
       },
-      ...(ipiValor > 0
+      ...(mostraPisCofins
         ? [
             {
               ordem: 3,
-              descricao: 'Exclusão: IPI (exclusão permanente — todos os exercícios)',
-              expressao: `${fmt(merc)} × ${fmt(ipiEfetivo)}%`,
-              resultado: fmtMoney6(ipiValor),
-              fundamento: 'Art. 12, §2º, II.',
+              descricao: 'Exclusão: PIS/COFINS embutidos — sobre base sem ICMS (tese do século)',
+              expressao: `${fmt(baseSemIcmsRef)} × ${fmt(EMBUTIDO[config.fornecedorRegime] * 100)}%`,
+              resultado: fmtMoney6(r2(pisRef + cofinsRef)),
+              fundamento: 'Art. 12, §2º, V + STJ RE 1.188.403. Vigência 2026–2032.',
             },
           ]
         : []),
-      ...(exclusoesPisCofins > 0
+      ...(ganhoNaoRepassado > 0
         ? [
             {
-              ordem: ipiValor > 0 ? 4 : 3,
-              descricao: 'Exclusão: PIS/COFINS embutidos — sobre base sem ICMS (tese do século)',
-              expressao: `${fmt(r2(merc + frete - icmsDest))} × ${fmt(EMBUTIDO[config.fornecedorRegime] * 100)}%`,
-              resultado: fmtMoney6(exclusoesPisCofins),
-              fundamento: 'Art. 12, §2º, V + STJ RE 1.188.403. Vigência 2026–2032.',
+              ordem: 4,
+              descricao:
+                config.repasse === 'nenhum'
+                  ? 'Sem repasse: ganho do fornecedor (ICMS à fração + PIS/COFINS extintos) permanece no preço'
+                  : `Repasse parcial (${fmt(config.repassePct)}%): parte do ganho permanece no preço`,
+              expressao: `${fmt(baseLimpa)} − ${fmt(baseReferencia)}`,
+              resultado: fmtMoney6(ganhoNaoRepassado),
+              fundamento: 'Repasse é prática de mercado — sem obrigação na lei.',
             },
           ]
         : []),
       {
         ordem: 9,
         descricao: 'Base limpa (resultado final — arredondado a 2 casas, half-up)',
-        expressao: 'bruto − ICMS − IPI − PIS/COFINS',
+        expressao: 'elementos − ICMS − PIS/COFINS + ganho (se houver)',
         resultado: fmt(baseLimpa),
         fundamento: 'Base do IBS/CBS: caput + §2º, I, II e V.',
       },
