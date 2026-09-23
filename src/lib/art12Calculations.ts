@@ -718,7 +718,7 @@ export function computeExercicioArt12(
   lines.push({
     key: 'cbs',
     label: `(+) CBS ${fmt(row.cbsRate)}% destacada (por fora)`,
-    formula: `${fmtMoney6(baseLimpa)} × ${fmt6(row.cbsRate / 100)} = ${fmtMoney6(cbsV)}`,
+    formula: `${fmt(row.cbsRate)}% × ${fmt(baseLimpa)} = ${fmt(cbsV)}`,
     value: cbsV,
     kind: 'debito',
     bloco: 1,
@@ -761,7 +761,7 @@ export function computeExercicioArt12(
   lines.push({
     key: 'ibs',
     label: `(+) IBS ${fmt(row.ibsRate)}% destacado (por fora)`,
-    formula: `${fmtMoney6(baseLimpa)} × ${fmt6(row.ibsRate / 100)} = ${fmtMoney6(ibsV)}`,
+    formula: `${fmt(row.ibsRate)}% × ${fmt(baseLimpa)} = ${fmt(ibsV)}`,
     value: ibsV,
     kind: 'debito',
     bloco: 1,
