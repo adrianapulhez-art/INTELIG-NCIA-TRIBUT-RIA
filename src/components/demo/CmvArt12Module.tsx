@@ -154,11 +154,17 @@ function LineMemoryDialog({
               ))}
             </div>
           )}
-          <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5 space-y-1">
+          <div className="rounded-lg border border-sky-500/40 bg-sky-500/[0.06] p-2.5 space-y-1">
+            <div className="text-[10px] font-mono font-bold uppercase text-sky-300">Base legal</div>
             <div className="flex items-center gap-1.5 flex-wrap">
               <ArtBadge dispositivo={line.fundamento?.dispositivo || '—'} />
               <ValidadeBadge fundamento={line.fundamento} />
             </div>
+            {line.fundamento?.efeito && (
+              <div className="text-[10px] font-mono text-slate-300 break-words">
+                {line.fundamento.efeito}
+              </div>
+            )}
             {line.fundamento?.nota && (
               <div className="text-[9px] font-mono text-slate-500 break-words">
                 {line.fundamento.nota}
@@ -276,23 +282,19 @@ function SideColumnArt({
                       : formatBRL(line.value)}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <ArtBadge dispositivo={line.fundamento?.dispositivo || '—'} />
-                  <ValidadeBadge fundamento={line.fundamento} />
-                  {line.fundamento?.nota && (
-                    <span className="text-[9px] font-mono text-slate-500 break-words">
-                      {line.fundamento.nota}
-                    </span>
-                  )}
-                </div>
-                {onOpenLine && line.passos && line.passos.length > 0 && (
+                {onOpenLine && line.passos && line.passos.length > 0 ? (
                   <button
                     type="button"
                     onClick={() => onOpenLine(line)}
                     className="w-full mt-0.5 inline-flex items-center justify-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-mono font-bold text-emerald-300 hover:bg-emerald-500/20 cursor-pointer"
                   >
-                    <Calculator className="w-3 h-3" /> Abrir memória da linha
+                    <Calculator className="w-3 h-3" /> Memória + base legal
                   </button>
+                ) : (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <ArtBadge dispositivo={line.fundamento?.dispositivo || '—'} />
+                    <ValidadeBadge fundamento={line.fundamento} />
+                  </div>
                 )}
               </div>
             ))}
@@ -304,6 +306,11 @@ function SideColumnArt({
                   : '▸ Subtotal: custo unitário'}
               </span>
               <span className="flex-1 h-px bg-emerald-500/20" />
+            </div>
+          )}
+          {bloco === 1 && (
+            <div className="text-[8px] font-mono text-slate-600 pt-0.5">
+              Base legal: LC 214/2025, art. 12 — detalhe por linha dentro da memória.
             </div>
           )}
         </div>
