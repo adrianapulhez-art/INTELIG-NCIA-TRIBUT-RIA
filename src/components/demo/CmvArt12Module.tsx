@@ -39,7 +39,7 @@ import {
   type SideResultArt,
   r2,
 } from '@/lib/art12Calculations'
-import { formatBRL, formatNumberBR } from '@/lib/format'
+import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 
 const EXERCICIOS: ExercicioKey[] = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033]
 
