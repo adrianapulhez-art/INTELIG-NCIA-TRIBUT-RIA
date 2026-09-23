@@ -1,27 +1,36 @@
 /**
  * ============================================================================
  * MOTOR ART. 12 — CMV POR EXERCÍCIO CONFORME A LC 214/2025 (v2)
+ * Estrutura da proposta da CEO adotada em 23/09/2026 (Opção A).
  * ============================================================================
- * v2 (23/09/2026) — reestruturação aprovada pela CEO (Opção A):
- * 1. PIS/COFINS do fornecedor incidentes sobre a BASE SEM ICMS (tese do
- *    século — STJ RE 1.188.403; STF Tema 1098, RE 1.210.186). Coerente com a
- *    Composição dos Tributos do Markup.
- * 2. Memória em 2 BLOCOS TITULADOS:
- *    ① Formação do preço do fornecedor (do preço HOJE à recomposição)
- *    ② Custo da aquisição para o comprador (da nota às compras líquidas)
- * 3. Pendência parametrizada: base do ICMS na transição (CBS/IBS integram ou
- *    não a base do ICMS embutido) — leitura 'fiscos' (padrão) × 'plp16'.
- *    Cadeia plena fecha IGUAL nas duas leituras; difere no comprador SN.
+ * Mudanças v2:
+ * 1. PIS/COFINS do fornecedor sobre BASE SEM ICMS (tese do século — STJ RE
+ *    1.188.403; STF Tema 1098, RE 1.210.186). Coerente com a Composição dos
+ *    Tributos do Markup. Substitui o 3,65%/9,25% sobre bruto do v1.
+ * 2. Memória do lado Exercício em 2 BLOCOS titulados:
+ *    BLOCO 1 — Formação do preço do fornecedor (até o preço da nota);
+ *    BLOCO 2 — Custo da aquisição para o comprador (até o custo unitário).
+ * 3. Seletor baseIcmsTransicao: 'fisco' | 'contribuinte' — a lei não define se
+ *    CBS/IBS integram a base do ICMS na transição (2026–2032).
+ *    Fisco: integram — ICMS por dentro sobre operação + CBS + IBS.
+ *    Contribuinte: não integram (PLP 16/25). Cadeia plena fecha igual nas duas
+ *    (o crédito lava o destaque); muda a nota e o custo do comprador SN.
+ * 4. Erro de R$ 0,36 da proposta original corrigido (base limpa 33.498,97).
  *
  * FUNDAMENTOS (verificados no texto da lei, Planalto/normas.leg.br):
- * - Art. 12, caput: base = valor da operação. §1º, IV: frete INTEGRA a base.
- * - §2º, I: IBS/CBS fora da própria base. §2º, II: IPI fora (todos os exercícios).
- * - §2º, V: ICMS/ISS/PIS/COFINS fora — vigência expressa 01/01/2026 a 31/12/2032.
- * - EC 132/2023, art. 22, I: PIS/COFINS extintos a partir de 2027.
+ * - Art. 12, caput: base = valor da operação.
+ * - Art. 12, §1º, IV: frete cobrado pelo fornecedor INTEGRA a base.
+ * - Art. 12, §2º, I: IBS/CBS não integram a própria base (por fora).
+ * - Art. 12, §2º, II: IPI não integra a base (fora em TODOS os exercícios).
+ * - Art. 12, §2º, V: ICMS, ISS, PIS e COFINS não integram a base —
+ *   vigência EXPRESSA de 01/01/2026 a 31/12/2032 (fundamenta o 2033 pendente).
  * - Art. 47, §2º: crédito do adquirente = débito destacado no documento fiscal.
- * - Art. 344: IBS 2027–2028 = 0,1%. Art. 347: CBS 2027–2028 = referência − 0,1 p.p.
- * - ADCT art. 128, I–IV: ICMS/ISS a 9/10 (2029) … 6/10 (2032); art. 129: extintos 2033.
- * - CF art. 153, §3º + LC 214 art. 454: IPI zerado 2027+ (ZFM: ADCT art. 92-B).
+ * - Art. 344: IBS 2027–2028 = 0,1% (0,05% estadual + 0,05% municipal).
+ * - Art. 347: CBS 2027–2028 = alíquota de referência − 0,1 p.p.
+ * - ADCT art. 128, I–IV: ICMS/ISS a 9/10 (2029), 8/10 (2030), 7/10 (2031), 6/10 (2032).
+ * - ADCT art. 129: ICMS/ISS extintos a partir de 2033.
+ * - CF art. 153, §3º + LC 214 art. 454: IPI zerado a partir de 2027,
+ *   ressalvados produtos com industrialização incentivada na ZFM (ADCT art. 92-B).
  * - LC 123/2006: fornecedor do Simples Nacional — nota congelada, sem destaque.
  *
  * PACTO DA HONESTIDADE: nenhuma premissa escondida. O que a lei não define
@@ -34,7 +43,8 @@ export type RegimeId = 'presumido' | 'real' | 'simples'
 export type PerfilId = 'comercio' | 'industria'
 export type RepasseMode = 'integral' | 'parcial' | 'nenhum'
 export type Semaforo = 'verde' | 'ambar' | 'vermelho'
-export type BaseIcmsLeitura = 'fiscos' | 'plp16'
+export type BaseIcmsTransicao = 'fisco' | 'contribuinte'
+/** Validade da exclusão/efeito da linha: integral = expresso na lei; condicionada = depende de fato/prática; pendente = sem definição legal. */
 export type Validade = 'integral' | 'condicionada' | 'nao_aplicavel' | 'pendente'
 
 export interface Fundamento {
@@ -46,14 +56,15 @@ export interface Fundamento {
 
 export interface ScheduleRowArt {
   exercicio: ExercicioKey
-  cbsRate: number
-  ibsRate: number
-  icmsPct: number
-  ipiZero: boolean
+  cbsRate: number // % CBS no exercício
+  ibsRate: number // % IBS no exercício
+  icmsPct: number // fração da alíquota de ICMS/ISS vigente (100 = integral)
+  ipiZero: boolean // IPI zerado a partir de 2027 (ressalva ZFM tratada à parte)
   habilitado: boolean
   pendente?: string
 }
 
+/** Fração do IBS na transição = complementar à fração do ICMS (ADCT art. 128): 2029 → 1/10 de 17,7% etc. */
 export const IBS_PLENO = 17.7
 
 export const CRONOGRAMA_ART12: ScheduleRowArt[] = [
@@ -80,11 +91,12 @@ export interface CmvArt12Input {
   quantity: number
   unitPrice: number
   freightValue: number
-  icmsRate: number
-  icmsFreightRate: number
-  ipiRate: number
+  icmsRate: number // % ICMS na mercadoria
+  icmsFreightRate: number // % ICMS no frete
+  ipiRate: number // % IPI (só indústria; ZFM mantém)
 }
 
+/** Caso canônico: 30 un. × R$ 1.400,00 + frete R$ 400,00; ICMS 18%; IPI 10% (só indústria). */
 export const CASO_CANONICO_ART12: CmvArt12Input = {
   quantity: 30,
   unitPrice: 1400,
@@ -101,9 +113,9 @@ export interface CellConfigArt {
   compradorPerfil: PerfilId
   zfm: boolean
   repasse: RepasseMode
-  repassePct: number
-  /** PENDENTE DE DEFINIÇÃO (parametrizado): CBS/IBS integram a base do ICMS embutido na transição? */
-  baseIcmsLeitura: BaseIcmsLeitura
+  repassePct: number // % quando repasse = 'parcial'
+  /** Tese sobre a base do ICMS na transição (2026–2032): 'fisco' (padrão) ou 'contribuinte' (PLP 16/25). */
+  baseIcmsTransicao: BaseIcmsTransicao
 }
 
 export const CONFIG_PADRAO_ART12: CellConfigArt = {
@@ -114,26 +126,32 @@ export const CONFIG_PADRAO_ART12: CellConfigArt = {
   zfm: false,
   repasse: 'integral',
   repassePct: 50,
-  baseIcmsLeitura: 'fiscos',
+  baseIcmsTransicao: 'fisco',
 }
 
 export interface MemoryLineArt {
   key: string
   label: string
   formula: string
-  value: number
-  kind: 'bruto' | 'credito' | 'debito' | 'nota' | 'subtotal'
-  /** Bloco da memória em 2 atos (v2). */
-  bloco?: 'fornecedor' | 'comprador'
+  value: number // positivo = soma ao bruto; negativo = dedução/crédito
+  kind: 'bruto' | 'credito' | 'debito' | 'nota'
   fundamento: Fundamento
+  /** BLOCO da memória (estrutura da proposta): 1 = formação do preço do fornecedor; 2 = custo da aquisição do comprador. */
+  bloco: 1 | 2
+  /** Subtotal do bloco: 'preco_nota' (fim do bloco 1) ou 'custo_unitario' (fim do bloco 2). */
+  subtotal?: 'preco_nota' | 'custo_unitario'
+  /** Camada de auditoria (Fase A): derivação passo a passo, 6 casas, sem arredondamento intermediário. */
   passos?: DerivaPasso[]
 }
 
+/** Um passo de derivação: conta explícita com precisão de 6 casas e origem legal/técnica. */
 export interface DerivaPasso {
   ordem: number
   descricao: string
   expressao: string
+  /** Resultado do passo em 6 casas (string pt-BR) — nunca truncado. */
   resultado: string
+  /** Origem da constante ou dispositivo legal do passo. */
   fundamento?: string
 }
 
@@ -141,7 +159,7 @@ export interface SideResultArt {
   lines: MemoryLineArt[]
   bruto: number
   creditos: number
-  debitos: number
+  debitos: number // CBS+IBS destacados na nota (custo quando não creditáveis)
   baseLimpa: number | null
   liquido: number
   unitario: number
@@ -160,15 +178,144 @@ export const r2 = (x: number): number => Math.floor(x * 100 + 0.5) / 100
 const fmt = (v: number): string =>
   v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+/** Exibição de grandeza não-monetária com EXATAMENTE 6 casas (auditabilidade — nunca truncar). */
 const fmt6 = (v: number): string =>
   v.toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 })
 
+/** Exibição de valor monetário intermediário: 6 casas + versão comercial entre parênteses. */
 const fmtMoney6 = (v: number): string => `${fmt6(v)} (R$ ${fmt(v)})`
 
-/** PIS/COFINS embutidos no preço do fornecedor — sobre a BASE SEM ICMS (tese do século). */
+/** PIS/COFINS embutido no preço do fornecedor — ALÍQUOTA sobre BASE SEM ICMS (tese do século). */
 const EMBUTIDO: Record<RegimeId, number> = { presumido: 0.0365, real: 0.0925, simples: 0 }
+export const EMBUTIDO_LABEL: Record<RegimeId, string> = {
+  presumido: '3,65% (cumulativo — LP)',
+  real: '9,25% (não cumulativo — LR)',
+  simples: '— (SN)',
+}
 
-/** Lado HOJE (régua): sem Art. 12 — direito atual. Custo canônico R$ 1.158,93/un (LP×LP comércio). */
+/**
+ * FATOR DE REPASSE (v2 — tese do século na base do PIS/COFINS).
+ *
+ * O fornecedor hoje cobra o bruto B que contém, embutidos "por dentro", o ICMS
+ * (alíquota t) e o PIS/COFINS (e) incidentes sobre a BASE SEM ICMS — tese do
+ * século (STJ RE 1.188.403; STF Tema 1098). Receita líquida dele HOJE:
+ *
+ *   B − t·B − e·(B − t·B) = B·(1 − t)·(1 − e)
+ *
+ * No exercício (≥ 2027) PIS/COFINS estão extintos (EC 132, art. 22, I) e a CBS
+ * entra por fora (art. 12, §2º, I). Preservando a receita líquida:
+ *
+ *   B·f·(1 − t_ex) = B·(1 − t)·(1 − e)
+ *   f = (1 − t)·(1 − e) / (1 − t_ex)
+ *
+ * onde t_ex = t × fração do exercício (ADCT art. 128). Em 2026 não há mudança
+ * de tributos do fornecedor: f = 1. Fornecedor SN: nota congelada: f = 1.
+ *
+ * A tese do FISCO (CBS/IBS dentro da base do ICMS) atua no DESEMBUTE da nota
+ * (preço da nota = (base+CBS+IBS)÷(1−t_ex)), não no fator — a receita líquida
+ * alvo do fornecedor é a mesma nas duas teses.
+ */
+export function fatorRepasseArt12(
+  config: CellConfigArt,
+  input: CmvArt12Input,
+  row: ScheduleRowArt,
+): number {
+  if (config.fornecedorRegime === 'simples') return 1
+  if (row.exercicio === 2026) return 1
+  const t = input.icmsRate / 100
+  const e = EMBUTIDO[config.fornecedorRegime]
+  const tEx = t * (row.icmsPct / 100)
+  const fIntegral = ((1 - t) * (1 - e)) / (1 - tEx)
+  if (config.repasse === 'integral') return fIntegral
+  if (config.repasse === 'nenhum') return 1
+  return 1 + (config.repassePct / 100) * (fIntegral - 1)
+}
+
+/** Passos de derivação da linha "Mercadoria (preço reprecificado)" — 6 casas. */
+function buildPassosMercadoria(
+  input: CmvArt12Input,
+  config: CellConfigArt,
+  row: ScheduleRowArt,
+  f: number,
+  merc: number,
+): DerivaPasso[] {
+  const t = input.icmsRate / 100
+  const e = EMBUTIDO[config.fornecedorRegime]
+  const tEx = t * (row.icmsPct / 100)
+  const passos: DerivaPasso[] = [
+    {
+      ordem: 1,
+      descricao: 'Alíquota de ICMS da mercadoria',
+      expressao: `${fmt(input.icmsRate)}% ÷ 100`,
+      resultado: fmt6(t),
+      fundamento: 'Origem: parâmetro da aquisição (Calculadora de Compras / caso canônico).',
+    },
+    {
+      ordem: 2,
+      descricao:
+        'PIS/COFINS embutido no preço do fornecedor — sobre a BASE SEM ICMS (tese do século)',
+      expressao: EMBUTIDO_LABEL[config.fornecedorRegime],
+      resultado: fmt6(e),
+      fundamento: 'STJ RE 1.188.403 + STF Tema 1098: ICMS não integra a base do PIS/COFINS.',
+    },
+    {
+      ordem: 3,
+      descricao: `Fração do ICMS no exercício ${row.exercicio}`,
+      expressao: `${fmt(row.icmsPct)}% ÷ 100`,
+      resultado: fmt6(row.icmsPct / 100),
+      fundamento:
+        row.icmsPct === 100
+          ? 'ADCT, art. 128: ICMS integral até 2028.'
+          : `ADCT, art. 128: ICMS a ${fmt(row.icmsPct)}% da alíquota no exercício.`,
+    },
+  ]
+  if (f === 1) {
+    passos.push({
+      ordem: 4,
+      descricao: 'Fator de repasse',
+      expressao:
+        'f = 1 (fornecedor SN: nota congelada — LC 123/2006; ou 2026: tributos inalterados)',
+      resultado: fmt6(1),
+      fundamento: 'Sem repasse: o bruto do fornecedor não muda neste exercício.',
+    })
+  } else {
+    passos.push(
+      {
+        ordem: 4,
+        descricao: 'Receita líquida unitária HOJE do fornecedor (por real de bruto)',
+        expressao: `(1 − ${fmt6(t)}) × (1 − ${fmt6(e)}) — ICMS por dentro + PIS/COFINS sobre base sem ICMS`,
+        resultado: fmt6((1 - t) * (1 - e)),
+        fundamento: 'Tese do século: PIS/COFINS sobre base sem ICMS (STJ RE 1.188.403).',
+      },
+      {
+        ordem: 5,
+        descricao:
+          'Denominador — o que sobra de cada real no exercício (só ICMS à fração; PIS/COFINS extintos)',
+        expressao: `1 − ${fmt6(t)} × ${fmt6(row.icmsPct / 100)}`,
+        resultado: fmt6(1 - tEx),
+        fundamento: 'EC 132, art. 22, I (PIS/COFINS extintos) + ADCT, art. 128 (fração do ICMS).',
+      },
+      {
+        ordem: 6,
+        descricao: 'Fator de repasse (receita líquida do fornecedor constante)',
+        expressao: `${fmt6((1 - t) * (1 - e))} ÷ ${fmt6(1 - tEx)}`,
+        resultado: fmt6(f),
+        fundamento: 'f = (1 − ICMS) × (1 − PIS/COFINS) ÷ (1 − ICMS × fração do exercício).',
+      },
+    )
+  }
+  passos.push({
+    ordem: passos.length + 1,
+    descricao:
+      'Valor da mercadoria no exercício (resultado final — arredondado a 2 casas, half-up)',
+    expressao: `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)} × ${fmt6(f)}`,
+    resultado: fmt(merc),
+    fundamento: 'LC 214/2025, art. 12, caput: valor da operação.',
+  })
+  return passos
+}
+
+/** Lado HOJE (régua): sem Art. 12 — direito atual. Custo canônico R$ 1.158,93/un no caso LP×LP comércio. */
 export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): SideResultArt {
   const semFund: Fundamento = {
     dispositivo: '—',
@@ -188,6 +335,7 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
       formula: `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)}`,
       value: merc,
       kind: 'bruto',
+      bloco: 1,
       fundamento: semFund,
     },
     {
@@ -196,6 +344,7 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
       formula: 'valor da nota',
       value: frete,
       kind: 'bruto',
+      bloco: 1,
       fundamento: semFund,
     },
   ]
@@ -206,6 +355,7 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
       formula: `${fmt(merc)} × ${fmt(input.ipiRate)}%`,
       value: ipiValor,
       kind: 'bruto',
+      bloco: 1,
       fundamento: semFund,
     })
   }
@@ -225,10 +375,10 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
         : 'NF de fornecedor SN — sem destaque',
     value: -creditoIcms,
     kind: 'credito',
+    bloco: 2,
     fundamento: semFund,
   })
 
-  // Tese do século: base do PIS/COFINS EXCLUI o ICMS destacado (STJ RE 1.188.403; STF Tema 1098)
   const basePis = r2(merc - icmsMerc + (frete - icmsFrete))
   const creditoPis = config.fornecedorRegime === 'real' && pleno ? r2(basePis * 0.0925) : 0
   lines.push({
@@ -244,6 +394,7 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
           : 'fornecedor SN — sem destaque',
     value: -creditoPis,
     kind: 'credito',
+    bloco: 2,
     fundamento: semFund,
   })
 
@@ -258,6 +409,7 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
         : 'operação sem IPI',
     value: -(tomaIpi ? ipiValor : 0),
     kind: 'credito',
+    bloco: 2,
     fundamento: semFund,
   })
 
@@ -274,135 +426,22 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
   }
 }
 
-/** Passos do Ato 1 — formação do preço do fornecedor (6 casas, sem arredondamento intermediário). */
-function buildPassosPreco(
-  config: CellConfigArt,
-  row: ScheduleRowArt,
-  baseOper: number,
-  icmsHoje: number,
-  pisCofinsHoje: number,
-  baseLimpaHoje: number,
-  tEx: number,
-  V: number,
-  modo: string,
-): DerivaPasso[] {
-  const leitura = config.baseIcmsLeitura || 'fiscos'
-  const cbsRate = row.cbsRate / 100
-  const ibsRate = row.ibsRate / 100
-  const e = EMBUTIDO[config.fornecedorRegime]
-  const baseSemIcmsHoje = r2(baseOper - icmsHoje)
-  const cbsIbsTotal = r2(baseLimpaHoje * (cbsRate + ibsRate))
-  const passos: DerivaPasso[] = [
-    {
-      ordem: 1,
-      descricao: 'Base sem ICMS do preço HOJE',
-      expressao: `${fmt(baseOper)} − ${fmt(icmsHoje)}`,
-      resultado: fmtMoney6(baseSemIcmsHoje),
-      fundamento: 'ICMS embutido no preço HOJE (por dentro): preço × alíquota.',
-    },
-    {
-      ordem: 2,
-      descricao: 'PIS/COFINS embutidos no preço HOJE (sobre a base SEM ICMS — tese do século)',
-      expressao: `${fmt6(baseSemIcmsHoje)} × ${fmt6(e)}`,
-      resultado: fmtMoney6(pisCofinsHoje),
-      fundamento:
-        'STJ RE 1.188.403 + STF Tema 1098 (RE 1.210.186): ICMS destacado NÃO integra a base do PIS/COFINS. LP 3,65% (cumulativo) · LR 9,25% (não cumulativo).',
-    },
-    {
-      ordem: 3,
-      descricao: 'Base limpa do fornecedor (o que ele realmente líquida HOJE)',
-      expressao: `${fmt6(baseSemIcmsHoje)} − ${fmt6(pisCofinsHoje)}`,
-      resultado: fmtMoney6(baseLimpaHoje),
-      fundamento: 'Preço HOJE sem ICMS e sem PIS/COFINS — referência do repasse.',
-    },
-  ]
-  if (modo === 'congelado' || modo === 'nenhum') {
-    passos.push({
-      ordem: 4,
-      descricao:
-        modo === 'nenhum'
-          ? 'Fornecedor NÃO repassa — preço congelado'
-          : config.fornecedorRegime === 'simples'
-            ? 'Fornecedor SN — nota congelada (LC 123/2006)'
-            : row.exercicio === 2026
-              ? '2026 — tributos do fornecedor inalterados: preço congelado'
-              : 'Exercício pendente — sem repasse calculado',
-      expressao: 'preço HOJE',
-      resultado: fmtMoney6(V),
-      fundamento: 'Repasse é prática de mercado, não imposição legal.',
-    })
-    return passos
-  }
-  passos.push(
-    {
-      ordem: 4,
-      descricao: `CBS ${fmt(row.cbsRate)}% + IBS ${fmt(row.ibsRate)}% sobre a base limpa (alvo do repasse integral)`,
-      expressao: `${fmt6(baseLimpaHoje)} × ${fmt6(cbsRate + ibsRate)}`,
-      resultado: fmtMoney6(cbsIbsTotal),
-      fundamento: 'LC 214/2025, art. 12, §2º, I: CBS/IBS por fora da própria base.',
-    },
-    {
-      ordem: 5,
-      descricao:
-        leitura === 'fiscos'
-          ? 'Valor da operação — base do ICMS (LEITURA DO FISCO: CBS/IBS integram)'
-          : 'Valor da operação (LEITURA DO CONTRIBUINTE — PLP 16/25: CBS/IBS por fora)',
-      expressao: leitura === 'fiscos' ? `${fmt6(baseLimpaHoje)} + CBS + IBS` : 'base limpa',
-      resultado: fmtMoney6(leitura === 'fiscos' ? r2(baseLimpaHoje + cbsIbsTotal) : baseLimpaHoje),
-      fundamento:
-        'PENDENTE DE DEFINIÇÃO (transição 2026–2032): a lei não exclui expressamente IBS/CBS da base do ICMS. Fisco: integram. PLP 16/25: exclui (lógica do IPI — CF, art. 155, §2º, XI).',
-    },
-    {
-      ordem: 6,
-      descricao: 'Desembute do ICMS à fração do exercício (preço por dentro)',
-      expressao: `valor da operação ÷ (1 − ${fmt6(tEx)})`,
-      resultado: fmtMoney6(V),
-      fundamento: `ICMS embutido à fração do exercício (ADCT, art. 128): ${fmt(row.icmsPct)}% da alíquota.`,
-    },
-  )
-  if (leitura === 'plp16') {
-    passos.push({
-      ordem: 7,
-      descricao: 'CBS/IBS destacados POR FORA (somados à nota)',
-      expressao: `+ ${fmt(cbsIbsTotal)}`,
-      resultado: fmtMoney6(r2(V + cbsIbsTotal)),
-      fundamento: 'Leitura do contribuinte: destaque por fora, fora da base do ICMS.',
-    })
-  }
-  passos.push({
-    ordem: passos.length + 1,
-    descricao: 'Preço do fornecedor (resultado final — arredondado a 2 casas, half-up)',
-    expressao: '—',
-    resultado: fmt(V),
-    fundamento:
-      'Repasse integral = receita líquida do fornecedor constante (base limpa preservada).',
-  })
-  return passos
-}
-
-/** Lado EXERCÍCIO — memória Art. 12 em 2 blocos (① fornecedor → ② comprador). */
+/** Lado EXERCÍCIO — memória Art. 12 em 2 BLOCOS (estrutura da proposta da CEO). */
 export function computeExercicioArt12(
   input: CmvArt12Input,
   config: CellConfigArt,
   row: ScheduleRowArt,
 ): SideResultArt {
-  const leitura = config.baseIcmsLeitura || 'fiscos'
+  const f = fatorRepasseArt12(config, input, row)
+  const merc = r2(input.quantity * input.unitPrice * f)
+  const frete = r2(input.freightValue * f)
+
   const fornecedorSN = config.fornecedorRegime === 'simples'
   const compradorSN = config.compradorRegime === 'simples'
   const pleno = !fornecedorSN && !compradorSN
-  const qtd = Math.max(1, input.quantity)
+  const leituraFisco = config.baseIcmsTransicao === 'fisco'
 
-  // ---- Referências HOJE do fornecedor
-  const mercHoje = r2(input.quantity * input.unitPrice)
-  const freteHoje = r2(input.freightValue)
-  const baseOper = r2(mercHoje + freteHoje)
-  const t = input.icmsRate / 100
-  const icmsHoje = r2(baseOper * t)
-  const e = EMBUTIDO[config.fornecedorRegime]
-  const pisCofinsHoje = fornecedorSN ? 0 : r2((baseOper - icmsHoje) * e)
-  const baseLimpaHoje = fornecedorSN ? 0 : r2(baseOper - icmsHoje - pisCofinsHoje)
-
-  // ---- IPI do exercício (§2º, II; zerado 2027+; ZFM mantém)
+  // IPI: fora da base em todos (§2º, II); zerado 2027+ (CF 153 §3º + art. 454); ZFM mantém (ADCT 92-B)
   const ipiEfetivo =
     config.fornecedorPerfil === 'industria'
       ? row.ipiZero
@@ -412,544 +451,703 @@ export function computeExercicioArt12(
         : input.ipiRate
       : 0
   const temIpi = ipiEfetivo > 0
+  const ipiValor = temIpi ? r2(merc * (ipiEfetivo / 100)) : 0
+  const bruto = r2(merc + frete + ipiValor)
 
-  // ---- Ato 1: preço do fornecedor
-  const tEx = t * (row.icmsPct / 100)
-  const cbsRate = row.cbsRate / 100
-  const ibsRate = row.ibsRate / 100
-  const cbsIbsTotal = r2(baseLimpaHoje * (cbsRate + ibsRate))
-  const semCalculo = !row.habilitado
-  const congelado = fornecedorSN || row.exercicio === 2026 || semCalculo
-  const modo: string = congelado ? 'congelado' : config.repasse
-  const Vint =
-    leitura === 'fiscos'
-      ? r2((baseLimpaHoje + cbsIbsTotal) / (1 - tEx))
-      : r2(baseLimpaHoje / (1 - tEx))
-  const V = congelado
-    ? baseOper
-    : modo === 'integral'
-      ? Vint
-      : modo === 'nenhum'
-        ? baseOper
-        : r2(baseOper + (config.repassePct / 100) * (Vint - baseOper))
-
-  const mercEx = congelado ? mercHoje : r2(V * (mercHoje / baseOper))
-  const ipiValor = temIpi ? r2(mercEx * (ipiEfetivo / 100)) : 0
-  const bruto = r2(V + ipiValor)
-
-  // ---- ICMS destacado no exercício (fração ADCT 128) — base = valor da operação (V)
-  const icmsDestEx = r2(V * tEx)
-
-  // ---- CBS/IBS devidos pelo fornecedor (base dele no exercício)
-  // inside = parcela de CBS/IBS JÁ EMBUTIDA no preço recomposto; porfora = destaque por fora
-  let inside = 0
-  let baseForn = 0
-  if (!fornecedorSN && row.habilitado) {
-    if (row.exercicio === 2026) {
-      baseForn = r2(V - icmsDestEx - pisCofinsHoje) // PIS/COFINS vivos: excluídos (§2º, V)
-    } else if (modo === 'integral') {
-      inside = leitura === 'fiscos' ? cbsIbsTotal : 0
-      baseForn = r2(V - icmsDestEx - inside)
-    } else if (modo === 'parcial') {
-      inside = leitura === 'fiscos' ? r2((config.repassePct / 100) * cbsIbsTotal) : 0
-      baseForn = r2(V - icmsDestEx - inside)
-    } else {
-      inside = 0
-      baseForn = r2(V - icmsDestEx)
-    }
-  }
-  const cbsDue = !fornecedorSN && row.habilitado ? r2(baseForn * cbsRate) : 0
-  const ibsDue = !fornecedorSN && row.habilitado ? r2(baseForn * ibsRate) : 0
-  const due = r2(cbsDue + ibsDue)
-  const porfora = r2(due - inside)
-
-  // ---- Créditos do comprador
-  const creditoIcms = pleno ? icmsDestEx : 0
-  const creditoCbsIbs = pleno ? due : 0
-  const creditoIpi = temIpi && config.compradorPerfil === 'industria' ? ipiValor : 0
-  const creditoPisCofins =
-    row.exercicio === 2026 && config.fornecedorRegime === 'real' && pleno
-      ? r2((baseOper - icmsHoje) * 0.0925)
-      : 0
-  const creditos = r2(creditoIcms + creditoCbsIbs + creditoIpi + creditoPisCofins)
-  const debitos = porfora
-  const liquido = r2(bruto + debitos - creditos)
-
-  // ============================ LINHAS ============================
   const lines: MemoryLineArt[] = []
 
-  // ---------- BLOCO ① — FORMAÇÃO DO PREÇO DO FORNECEDOR ----------
+  // ==================== BLOCO 1 — FORMAÇÃO DO PREÇO DO FORNECEDOR ====================
+  // 1) Mercadoria — valor da operação (caput), com fator de repasse sobre base limpa
   lines.push({
     key: 'mercadoria',
-    bloco: 'fornecedor',
-    label: 'Mercadoria — preço HOJE',
-    formula: `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)}`,
-    value: mercHoje,
+    label: 'Mercadoria (preço reprecificado)',
+    formula:
+      f === 1
+        ? `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)} — bruto congelado`
+        : `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)} × ${fmt6(f)} — fator: (1−ICMS)×(1−PIS/COFINS)÷(1−ICMS×${fmt6(row.icmsPct / 100)})`,
+    value: merc,
     kind: 'bruto',
+    bloco: 1,
+    passos: buildPassosMercadoria(input, config, row, f, merc),
     fundamento: {
       dispositivo: 'LC 214/2025, art. 12, caput',
       efeito: 'valor da operação compõe a base',
-      validade: 'integral',
+      validade: 'condicionada',
+      nota:
+        f === 1
+          ? config.fornecedorRegime === 'simples'
+            ? 'Fornecedor SN — nota congelada (LC 123/2006).'
+            : '2026: tributos do fornecedor inalterados — repasse nulo.'
+          : 'Repasse depende da prática de mercado — validade condicionada à negociação.',
     },
   })
+
+  // 2) Frete — INTEGRA a base (§1º, IV)
   lines.push({
     key: 'frete',
-    bloco: 'fornecedor',
-    label: 'Frete — preço HOJE',
-    formula: 'valor da nota',
-    value: freteHoje,
+    label: 'Frete',
+    formula: f === 1 ? 'valor da nota' : `${fmt(input.freightValue)} × ${fmt6(f)} (repasse)`,
+    value: frete,
     kind: 'bruto',
+    bloco: 1,
+    passos: [
+      {
+        ordem: 1,
+        descricao: 'Frete da aquisição (integra a base — acompanha o repasse do bruto)',
+        expressao: f === 1 ? 'valor da nota' : `${fmt(input.freightValue)} × ${fmt6(f)}`,
+        resultado: fmt(frete),
+        fundamento:
+          'LC 214/2025, art. 12, §1º, IV: transporte cobrado pelo fornecedor INTEGRA a base.',
+      },
+      {
+        ordem: 2,
+        descricao: 'Resultado final (arredondado a 2 casas, half-up)',
+        expressao: '—',
+        resultado: fmt(frete),
+        fundamento: 'Mesmo fator da mercadoria (mesma operação).',
+      },
+    ],
     fundamento: {
       dispositivo: 'LC 214/2025, art. 12, §1º, IV',
       efeito: 'transporte cobrado pelo fornecedor INTEGRA a base',
       validade: 'integral',
     },
   })
-  if (temIpi) {
-    lines.push({
-      key: 'ipi',
-      bloco: 'fornecedor',
-      label: config.zfm ? 'IPI destacado (ZFM mantém)' : 'IPI destacado',
-      formula: `${fmt(mercEx)} × ${fmt(ipiEfetivo)}%`,
-      value: ipiValor,
-      kind: 'bruto',
-      fundamento: {
-        dispositivo: config.zfm
-          ? 'ADCT, art. 92-B (EC 132/2023)'
-          : 'CF, art. 153, §3º (EC 132/2023)',
-        efeito: config.zfm
-          ? 'diferencial competitivo da ZFM preservado — IPI mantido'
-          : 'IPI vigente — fora da base do IBS/CBS',
-        validade: config.zfm ? 'condicionada' : 'integral',
-        nota: 'Exclusão expressa: LC 214/2025, art. 12, §2º, II (vale em todos os exercícios).',
-      },
-    })
-  } else if (
-    config.fornecedorPerfil === 'industria' &&
-    row.habilitado &&
-    row.ipiZero &&
-    !config.zfm
-  ) {
-    lines.push({
-      key: 'ipi',
-      bloco: 'fornecedor',
-      label: 'IPI — zerado neste exercício',
-      formula: 'sem destaque na nota',
-      value: 0,
-      kind: 'nota',
-      fundamento: {
-        dispositivo: 'CF, art. 153, §3º + LC 214/2025, art. 454',
-        efeito: 'alíquotas do IPI reduzidas a zero a partir de 2027',
-        validade: 'integral',
-        nota: 'Fora da base em qualquer hipótese: art. 12, §2º, II. Crédito só ao industrial.',
-      },
-    })
+
+  // 3) IPI destacado (indústria) / zerado / ZFM
+  if (config.fornecedorPerfil === 'industria') {
+    if (temIpi && !row.ipiZero) {
+      lines.push({
+        key: 'ipi',
+        label: 'IPI destacado',
+        formula: `${fmt(merc)} × ${fmt(ipiEfetivo)}%`,
+        value: ipiValor,
+        kind: 'bruto',
+        bloco: 1,
+        fundamento: {
+          dispositivo: 'CF, art. 153, §3º (EC 132/2023)',
+          efeito: 'IPI vigente em 2026 — fora da base do IBS/CBS',
+          validade: 'integral',
+          nota: 'Exclusão expressa: LC 214/2025, art. 12, §2º, II (vale em todos os exercícios).',
+        },
+      })
+    } else if (temIpi && config.zfm) {
+      lines.push({
+        key: 'ipi',
+        label: 'IPI destacado (ZFM mantém)',
+        formula: `${fmt(merc)} × ${fmt(ipiEfetivo)}%`,
+        value: ipiValor,
+        kind: 'bruto',
+        bloco: 1,
+        fundamento: {
+          dispositivo: 'ADCT, art. 92-B (EC 132/2023)',
+          efeito: 'diferencial competitivo da ZFM preservado — IPI mantido',
+          validade: 'condicionada',
+          nota: 'Ressalva à zerada geral de 2027 (CF, art. 153, §3º; LC 214/2025, art. 454).',
+        },
+      })
+    } else {
+      lines.push({
+        key: 'ipi',
+        label: 'IPI — zerado neste exercício',
+        formula: 'sem destaque na nota',
+        value: 0,
+        kind: 'nota',
+        bloco: 1,
+        fundamento: {
+          dispositivo: 'CF, art. 153, §3º + LC 214/2025, art. 454',
+          efeito: 'alíquotas do IPI reduzidas a zero a partir de 2027',
+          validade: 'integral',
+          nota: 'Fora da base em qualquer hipótese: art. 12, §2º, II. Crédito só ao industrial.',
+        },
+      })
+    }
   }
+
+  // 4) ICMS embutido no preço do fornecedor — à fração do exercício (ADCT 128)
+  const icmsDest = r2((merc + frete) * (input.icmsRate / 100) * (row.icmsPct / 100))
   lines.push({
-    key: 'icmshoje',
-    bloco: 'fornecedor',
-    label: '(−) ICMS embutido no preço HOJE',
-    formula: `${fmt(baseOper)} × ${fmt(input.icmsRate)}%`,
-    value: -icmsHoje,
+    key: 'icms',
+    label: '(−) ICMS embutido no preço (fração do exercício)',
+    formula: `(${fmt(merc)} + ${fmt(frete)}) × ${fmt(input.icmsRate)}% × ${fmt(row.icmsPct)}%`,
+    value: -icmsDest,
     kind: 'nota',
+    bloco: 1,
     fundamento: {
-      dispositivo: 'ICMS por dentro (preço × alíquota)',
-      efeito: 'exclusão para chegar à base limpa do fornecedor',
-      validade: 'nao_aplicavel',
-    },
-  })
-  lines.push({
-    key: 'piscofinshoje',
-    bloco: 'fornecedor',
-    label:
-      row.exercicio >= 2027 && !fornecedorSN
-        ? '(−) PIS/COFINS embutidos HOJE — extintos no exercício'
-        : '(−) PIS/COFINS — fora da base do IBS/CBS',
-    formula: fornecedorSN
-      ? 'fornecedor SN — regime próprio (LC 123/2006)'
-      : `${fmt(baseOper - icmsHoje)} × ${fmt(e * 100)}% (base SEM ICMS — tese do século)`,
-    value: -pisCofinsHoje,
-    kind: 'nota',
-    fundamento: {
-      dispositivo:
-        row.exercicio >= 2027 ? 'EC 132/2023, art. 22, I' : 'LC 214/2025, art. 12, §2º, V',
+      dispositivo: 'ADCT, art. 128, I–IV (EC 132/2023)',
       efeito:
-        row.exercicio >= 2027
-          ? 'PIS/COFINS revogados a partir de 2027 — o embutido sai do preço'
-          : 'tributo vivo NÃO integra a base do IBS/CBS (vigência 2026–2032)',
+        row.icmsPct === 100
+          ? 'ICMS integral até 2028 — frações começam em 2029 (9/10)'
+          : `ICMS cede ${fmt(100 - row.icmsPct)}% da alíquota ao IBS neste exercício`,
       validade: 'integral',
-      nota: 'STJ RE 1.188.403 + STF Tema 1098: ICMS destacado não integra a base do PIS/COFINS.',
-    },
-  })
-  if (!fornecedorSN) {
-    lines.push({
-      key: 'baselimpa',
-      bloco: 'fornecedor',
-      label: '(=) Base limpa do fornecedor',
-      formula: `${fmt(baseOper)} − ICMS ${fmt(icmsHoje)} − PIS/COFINS ${fmt(pisCofinsHoje)}`,
-      value: baseLimpaHoje,
-      kind: 'nota',
-      passos: [
-        {
-          ordem: 1,
-          descricao: 'Base sem ICMS do preço HOJE',
-          expressao: `${fmt(baseOper)} − ${fmt(icmsHoje)}`,
-          resultado: fmtMoney6(r2(baseOper - icmsHoje)),
-          fundamento: 'ICMS por dentro.',
-        },
-        {
-          ordem: 2,
-          descricao: 'PIS/COFINS embutidos (base SEM ICMS — tese do século)',
-          expressao: `${fmt6(baseOper - icmsHoje)} × ${fmt6(e)}`,
-          resultado: fmtMoney6(pisCofinsHoje),
-          fundamento: 'STJ RE 1.188.403 + STF Tema 1098.',
-        },
-        {
-          ordem: 3,
-          descricao: 'Base limpa (resultado final — 2 casas, half-up)',
-          expressao: 'base sem ICMS − PIS/COFINS',
-          resultado: fmt(baseLimpaHoje),
-          fundamento: 'Referência do repasse: receita líquida do fornecedor.',
-        },
-      ],
-      fundamento: {
-        dispositivo: 'LC 214/2025, art. 12, caput + §2º, I, II e V',
-        efeito: 'base = valor da operação SEM IBS/CBS, IPI, ICMS/ISS e PIS/COFINS',
-        validade: row.exercicio <= 2032 ? 'integral' : 'pendente',
-      },
-    })
-  }
-  if (modo === 'integral' && !fornecedorSN && row.habilitado) {
-    lines.push({
-      key: 'cbsforn',
-      bloco: 'fornecedor',
-      label: `(+) CBS ${fmt(row.cbsRate)}% sobre a base limpa`,
-      formula: `${fmt(baseLimpaHoje)} × ${fmt(row.cbsRate)}%`,
-      value: cbsDue,
-      kind: 'nota',
-      fundamento: {
-        dispositivo: 'LC 214/2025, art. 12, §2º, I',
-        efeito: 'CBS por fora da própria base — compõe o preço recomposto',
-        validade: 'integral',
-        nota:
-          leitura === 'fiscos'
-            ? 'Leitura do Fisco: integra a base do ICMS na transição (pendente de definição).'
-            : 'Leitura do contribuinte: por fora da base do ICMS (PLP 16/25).',
-      },
-    })
-    lines.push({
-      key: 'ibsforne',
-      bloco: 'fornecedor',
-      label: `(+) IBS ${fmt(row.ibsRate)}% sobre a base limpa`,
-      formula: `${fmt(baseLimpaHoje)} × ${fmt(row.ibsRate)}%`,
-      value: ibsDue,
-      kind: 'nota',
-      fundamento: {
-        dispositivo: 'LC 214/2025, art. 12, §2º, I',
-        efeito: 'IBS por fora da própria base — compõe o preço recomposto',
-        validade: 'integral',
-        nota:
-          leitura === 'fiscos'
-            ? 'Leitura do Fisco: integra a base do ICMS na transição (pendente de definição).'
-            : 'Leitura do contribuinte: por fora da base do ICMS (PLP 16/25).',
-      },
-    })
-    lines.push({
-      key: 'valorop',
-      bloco: 'fornecedor',
-      label:
-        leitura === 'fiscos'
-          ? '(=) Valor da operação — base do ICMS (leitura do Fisco)'
-          : '(=) Valor da operação — CBS/IBS por fora (leitura do contribuinte)',
-      formula:
-        leitura === 'fiscos'
-          ? `${fmt(baseLimpaHoje)} + CBS ${fmt(cbsDue)} + IBS ${fmt(ibsDue)}`
-          : `base limpa ${fmt(baseLimpaHoje)} (PLP 16/25)`,
-      value: leitura === 'fiscos' ? r2(baseLimpaHoje + due) : baseLimpaHoje,
-      kind: 'nota',
-      fundamento: {
-        dispositivo: 'PENDENTE DE DEFINIÇÃO (transição 2026–2032)',
-        efeito:
-          leitura === 'fiscos'
-            ? 'leitura do Fisco: IBS/CBS integram a base do ICMS embutido'
-            : 'leitura do contribuinte: IBS/CBS por fora da base do ICMS',
-        validade: 'pendente',
-        nota: 'Cadeia plena fecha igual nas duas leituras; difere no comprador SN.',
-      },
-    })
-  }
-  if (modo === 'parcial' && !fornecedorSN && row.habilitado) {
-    lines.push({
-      key: 'cbsibsparcial',
-      bloco: 'fornecedor',
-      label: `(+) CBS/IBS devidos — ${fmt(config.repassePct)}% embutidos no preço`,
-      formula: `base exercício ${fmt(baseForn)} × ${fmt(row.cbsRate + row.ibsRate)}% · embutido ${fmt(inside)} · por fora ${fmt(porfora)}`,
-      value: due,
-      kind: 'nota',
-      fundamento: {
-        dispositivo: 'LC 214/2025, art. 12, §2º, I + prática de mercado',
-        efeito: 'repasses parciais dividem o impacto entre fornecedor e comprador',
-        validade: 'condicionada',
-        nota: 'Repasse é prática de mercado, não imposição legal.',
-      },
-    })
-  }
-  if ((modo === 'nenhum' || modo === 'congelado') && !fornecedorSN && row.habilitado) {
-    lines.push({
-      key: 'cbsibsfora',
-      bloco: 'fornecedor',
-      label:
-        row.exercicio === 2026
-          ? '(+) CBS/IBS-teste por fora (compensáveis ao fornecedor)'
-          : '(+) CBS/IBS por fora — fornecedor NÃO repassa',
-      formula: `base ${fmt(baseForn)} × ${fmt(row.cbsRate + row.ibsRate)}%`,
-      value: due,
-      kind: 'nota',
-      fundamento: {
-        dispositivo:
-          row.exercicio === 2026 ? 'LC 214/2025, arts. 343 e 344' : 'LC 214/2025, art. 12, §2º, I',
-        efeito:
-          row.exercicio === 2026
-            ? 'alíquotas-teste de 2026 — compensação contra PIS/COFINS/IBS'
-            : 'preço congelado: destaque por fora, absorvido pelo fornecedor',
-        validade: row.exercicio === 2026 ? 'integral' : 'condicionada',
-        nota:
-          row.exercicio === 2026 ? undefined : 'Repasse é prática de mercado, não imposição legal.',
-      },
-    })
-  }
-  lines.push({
-    key: 'precofornecedor',
-    bloco: 'fornecedor',
-    label:
-      modo === 'integral'
-        ? '(=) PREÇO DO FORNECEDOR — recomposto'
-        : modo === 'parcial'
-          ? `(=) PREÇO DO FORNECEDOR — repasse ${fmt(config.repassePct)}%`
-          : '(=) PREÇO DO FORNECEDOR — congelado',
-    formula:
-      modo === 'integral' && leitura === 'fiscos'
-        ? `(base limpa + CBS + IBS) ÷ (1 − ${fmt6(tEx)})`
-        : modo === 'integral'
-          ? `base limpa ÷ (1 − ${fmt6(tEx)}) + CBS/IBS por fora`
-          : modo === 'parcial'
-            ? `${fmt(baseOper)} + ${fmt(config.repassePct)}% × (preço integral − ${fmt(baseOper)})`
-            : 'preço HOJE (sem repasse)',
-    value: V,
-    kind: 'subtotal',
-    passos: buildPassosPreco(
-      config,
-      row,
-      baseOper,
-      icmsHoje,
-      pisCofinsHoje,
-      baseLimpaHoje,
-      tEx,
-      V,
-      modo,
-    ),
-    fundamento: {
-      dispositivo:
-        modo === 'integral' ? 'LC 214/2025, art. 12 + prática de mercado' : 'Prática de mercado',
-      efeito:
-        modo === 'integral'
-          ? 'repasse integral: receita líquida do fornecedor constante (base limpa preservada)'
-          : modo === 'parcial'
-            ? 'repasse parcial: impacto dividido entre fornecedor e comprador'
-            : 'preço congelado: fornecedor absorve o impacto',
-      validade: 'condicionada',
-      nota: fornecedorSN ? 'Fornecedor SN — nota congelada (LC 123/2006).' : undefined,
+      nota: 'Extinção em 2033: ADCT, art. 129.',
     },
   })
 
-  // ---------- BLOCO ② — CUSTO DA AQUISIÇÃO PARA O COMPRADOR ----------
+  // 5) PIS/COFINS embutidos — sobre BASE SEM ICMS (tese do século); só em 2026 (extintos 2027+)
+  if (row.exercicio === 2026 && !fornecedorSN) {
+    // Base do PIS/COFINS = operação sem ICMS e sem IPI (IPI destacado não integra a base do PIS/COFINS)
+    const basePisForn = r2(merc + frete - icmsDest)
+    const pisEmbutido = r2(basePisForn * EMBUTIDO[config.fornecedorRegime])
+    lines.push({
+      key: 'piscofins',
+      label: '(−) PIS/COFINS embutidos — excluídos da base (base sem ICMS)',
+      formula: `${fmt(basePisForn)} × ${fmt(EMBUTIDO[config.fornecedorRegime] * 100)}% (tese do século)`,
+      value: -pisEmbutido,
+      kind: 'nota',
+      bloco: 1,
+      fundamento: {
+        dispositivo: 'LC 214/2025, art. 12, §2º, V + STJ RE 1.188.403 (Tema 1098 STF)',
+        efeito: 'PIS/COFINS embutidos no preço NÃO integram a base do IBS/CBS',
+        validade: 'integral',
+        nota: 'Base sem ICMS: tese do século, sedimentada no sistema. Vigência da exclusão: 2026–2032.',
+      },
+    })
+  } else if (row.exercicio >= 2027 && !fornecedorSN) {
+    lines.push({
+      key: 'piscofins',
+      label: 'PIS/COFINS — extintos',
+      formula: 'sem destaque ou exclusão a partir de 2027',
+      value: 0,
+      kind: 'nota',
+      bloco: 1,
+      fundamento: {
+        dispositivo: 'EC 132/2023, art. 22, I',
+        efeito: 'revogação do art. 195, I, "b" e IV da CF a partir de 2027',
+        validade: 'integral',
+      },
+    })
+  }
+
+  // Base limpa do fornecedor (exclusões §2º: ICMS/ISS, IPI e PIS/COFINS)
+  const exclusoesPisCofins = r2(
+    lines.filter((l) => l.key === 'piscofins' && l.value < 0).reduce((acc, l) => acc + -l.value, 0),
+  )
+  const baseLimpa = r2(bruto - icmsDest - ipiValor - exclusoesPisCofins)
   lines.push({
-    key: 'brutonota',
-    bloco: 'comprador',
+    key: 'baselimpa',
+    label: '(=) Base limpa do fornecedor (alvo do IBS/CBS)',
+    formula: `${fmtMoney6(bruto)} − ICMS ${fmtMoney6(icmsDest)}${ipiValor ? ` − IPI ${fmtMoney6(ipiValor)}` : ''}${exclusoesPisCofins > 0 ? ' − PIS/COFINS' : ''}`,
+    value: baseLimpa,
+    kind: 'nota',
+    bloco: 1,
+    passos: [
+      {
+        ordem: 1,
+        descricao: 'Bruto (valor da operação) — sem arredondamento intermediário',
+        expressao: 'mercadoria + frete' + (ipiValor > 0 ? ' + IPI' : ''),
+        resultado: fmtMoney6(bruto),
+        fundamento: 'LC 214/2025, art. 12, caput.',
+      },
+      {
+        ordem: 2,
+        descricao: 'Exclusão: ICMS/ISS embutido (fração do exercício)',
+        expressao: `(${fmt(merc)} + ${fmt(frete)}) × ${fmt(input.icmsRate)}% × ${fmt(row.icmsPct)}%`,
+        resultado: fmtMoney6(icmsDest),
+        fundamento: 'Art. 12, §2º, V — vigência 01/01/2026 a 31/12/2032; fração: ADCT, art. 128.',
+      },
+      ...(ipiValor > 0
+        ? [
+            {
+              ordem: 3,
+              descricao: 'Exclusão: IPI (exclusão permanente — todos os exercícios)',
+              expressao: `${fmt(merc)} × ${fmt(ipiEfetivo)}%`,
+              resultado: fmtMoney6(ipiValor),
+              fundamento: 'Art. 12, §2º, II.',
+            },
+          ]
+        : []),
+      ...(exclusoesPisCofins > 0
+        ? [
+            {
+              ordem: ipiValor > 0 ? 4 : 3,
+              descricao: 'Exclusão: PIS/COFINS embutidos — sobre base sem ICMS (tese do século)',
+              expressao: `${fmt(r2(merc + frete - icmsDest))} × ${fmt(EMBUTIDO[config.fornecedorRegime] * 100)}%`,
+              resultado: fmtMoney6(exclusoesPisCofins),
+              fundamento: 'Art. 12, §2º, V + STJ RE 1.188.403. Vigência 2026–2032.',
+            },
+          ]
+        : []),
+      {
+        ordem: 9,
+        descricao: 'Base limpa (resultado final — arredondado a 2 casas, half-up)',
+        expressao: 'bruto − ICMS − IPI − PIS/COFINS',
+        resultado: fmt(baseLimpa),
+        fundamento: 'Base do IBS/CBS: caput + §2º, I, II e V.',
+      },
+    ],
+    fundamento: {
+      dispositivo: 'LC 214/2025, art. 12, caput + §2º, I, II e V',
+      efeito: 'base = valor da operação SEM IBS/CBS, IPI, ICMS/ISS e PIS/COFINS',
+      validade: row.exercicio <= 2032 ? 'integral' : 'pendente',
+      nota:
+        row.exercicio <= 2032
+          ? '§2º, V com vigência expressa: 01/01/2026 a 31/12/2032.'
+          : '§2º, V expira em 31/12/2032 — base de 2033 sem definição.',
+    },
+  })
+
+  // 6) CBS e IBS — por fora (destacadas); sobre a base limpa
+  const cbsV = r2(baseLimpa * (row.cbsRate / 100))
+  const ibsV = r2(baseLimpa * (row.ibsRate / 100))
+  if (fornecedorSN) {
+    lines.push({
+      key: 'cbsibs',
+      label: 'CBS/IBS — sem destaque (fornecedor SN)',
+      formula: 'nota do Simples Nacional não destaca CBS/IBS',
+      value: 0,
+      kind: 'nota',
+      bloco: 1,
+      fundamento: {
+        dispositivo: 'LC 123/2006 (regime próprio do SN)',
+        efeito: 'sem destaque → sem crédito e sem acréscimo ao custo',
+        validade: 'condicionada',
+        nota: 'Congelamento da nota: hipótese da cadeia SN — validar na prática de mercado.',
+      },
+    })
+    // Fornecedor SN: nota congelada — bloco 2 = bruto direto
+    const creditosSN = 0
+    const liquidoSN = r2(bruto + 0 - creditosSN)
+    return {
+      lines,
+      bruto,
+      creditos: creditosSN,
+      debitos: 0,
+      baseLimpa: null,
+      liquido: liquidoSN,
+      unitario: r2(liquidoSN / Math.max(1, input.quantity)),
+    }
+  }
+
+  lines.push({
+    key: 'cbs',
+    label: `(+) CBS ${fmt(row.cbsRate)}% destacada (por fora)`,
+    formula: `${fmtMoney6(baseLimpa)} × ${fmt6(row.cbsRate / 100)}`,
+    value: cbsV,
+    kind: 'debito',
+    bloco: 1,
+    passos: [
+      {
+        ordem: 1,
+        descricao: 'Depende de: Base limpa do fornecedor',
+        expressao: 'bruto − ICMS − IPI − PIS/COFINS',
+        resultado: fmtMoney6(baseLimpa),
+        fundamento: 'A CBS nasce da base limpa — ver memória da linha de origem.',
+      },
+      {
+        ordem: 2,
+        descricao: 'CBS por fora (destacada na nota)',
+        expressao: `${fmt6(baseLimpa)} × ${fmt6(row.cbsRate / 100)}`,
+        resultado: fmtMoney6(cbsV),
+        fundamento: 'Art. 12, §2º, I: CBS não integra a própria base.',
+      },
+      {
+        ordem: 3,
+        descricao: 'Resultado final (arredondado a 2 casas, half-up)',
+        expressao: '—',
+        resultado: fmt(cbsV),
+        fundamento:
+          row.cbsRate === 0.9
+            ? 'Alíquota-teste 2026 (art. 343).'
+            : 'CBS 2027–2028 = referência − 0,1 p.p. (art. 347).',
+      },
+    ],
+    fundamento: {
+      dispositivo: 'LC 214/2025, art. 12, §2º, I',
+      efeito: 'CBS não integra a própria base — incidência por fora',
+      validade: 'integral',
+      nota:
+        row.cbsRate === 0.9
+          ? 'Alíquota-teste 2026 (LC 214/2025, art. 343).'
+          : 'CBS 2027–2028 = referência − 0,1 p.p. (art. 347).',
+    },
+  })
+  lines.push({
+    key: 'ibs',
+    label: `(+) IBS ${fmt(row.ibsRate)}% destacado (por fora)`,
+    formula: `${fmtMoney6(baseLimpa)} × ${fmt6(row.ibsRate / 100)}`,
+    value: ibsV,
+    kind: 'debito',
+    bloco: 1,
+    passos: [
+      {
+        ordem: 1,
+        descricao: 'Depende de: Base limpa do fornecedor',
+        expressao: 'bruto − ICMS − IPI − PIS/COFINS',
+        resultado: fmtMoney6(baseLimpa),
+        fundamento: 'O IBS nasce da base limpa — ver memória da linha de origem.',
+      },
+      {
+        ordem: 2,
+        descricao: 'IBS por fora (destacado na nota)',
+        expressao: `${fmt6(baseLimpa)} × ${fmt6(row.ibsRate / 100)}`,
+        resultado: fmtMoney6(ibsV),
+        fundamento: 'Art. 12, §2º, I: IBS não integra a própria base.',
+      },
+      {
+        ordem: 3,
+        descricao: 'Resultado final (arredondado a 2 casas, half-up)',
+        expressao: '—',
+        resultado: fmt(ibsV),
+        fundamento:
+          row.ibsRate === 0.1
+            ? 'IBS-teste 0,1% (art. 344: 0,05% estadual + 0,05% municipal).'
+            : `Fração de ${fmt(row.ibsRate)}% de ${fmt(17.7)}% (ADCT art. 128).`,
+      },
+    ],
+    fundamento: {
+      dispositivo: 'LC 214/2025, art. 12, §2º, I',
+      efeito: 'IBS não integra a própria base — incidência por fora',
+      validade: 'integral',
+      nota:
+        row.ibsRate === 0.1
+          ? 'IBS-teste 0,1% (art. 344: 0,05% estadual + 0,05% municipal).'
+          : `Fração de ${fmt(row.ibsRate)}% de ${fmt(IBS_PLENO)}% (ADCT art. 128).`,
+    },
+  })
+
+  // 7) PENDÊNCIA — base do ICMS na transição: preço da nota do fornecedor
+  // Tese do Fisco: ICMS por dentro sobre operação + CBS + IBS → nota = (base+CBS+IBS)/(1−t_ex)
+  // Tese do Contribuinte: ICMS sobre a operação sem CBS/IBS → nota = base/(1−t_ex) + CBS + IBS
+  let precoNota: number
+  let icmsNota: number
+  if (row.exercicio === 2026) {
+    // 2026: tributos do fornecedor inalterados — SEM reprecificação (f=1).
+    // A nota é a de hoje + CBS/IBS-teste destacadas por fora (compensáveis — art. 343/344).
+    precoNota = r2(merc + frete + cbsV + ibsV)
+    icmsNota = r2((merc + frete) * (input.icmsRate / 100) * (row.icmsPct / 100))
+  } else if (leituraFisco) {
+    const baseRecomposta = r2(baseLimpa + cbsV + ibsV)
+    precoNota = r2(baseRecomposta / (1 - (input.icmsRate / 100) * (row.icmsPct / 100)))
+    icmsNota = r2(precoNota * (input.icmsRate / 100) * (row.icmsPct / 100))
+  } else {
+    const valorOperacao = r2(baseLimpa / (1 - (input.icmsRate / 100) * (row.icmsPct / 100)))
+    precoNota = r2(valorOperacao + cbsV + ibsV)
+    icmsNota = r2(valorOperacao * (input.icmsRate / 100) * (row.icmsPct / 100))
+  }
+  lines.push({
+    key: 'preconota',
+    label:
+      row.exercicio === 2026
+        ? '(=) Preço da nota do fornecedor (2026: sem reprecificação)'
+        : `(=) Preço da nota do fornecedor — tese do ${leituraFisco ? 'FISCO' : 'CONTRIBUINTE'}`,
+    formula:
+      row.exercicio === 2026
+        ? `${fmt(r2(merc + frete))} + CBS ${fmt(cbsV)} + IBS ${fmt(ibsV)} — tributos do fornecedor inalterados, CBS/IBS-teste por fora`
+        : leituraFisco
+          ? `(${fmt(baseLimpa)} + ${fmt(cbsV)} + ${fmt(ibsV)}) ÷ (1 − ${fmt(input.icmsRate)}% × ${fmt(row.icmsPct)}%) — ICMS por dentro sobre operação + CBS + IBS`
+          : `${fmt(baseLimpa)} ÷ (1 − ${fmt(input.icmsRate)}% × ${fmt(row.icmsPct)}%) + ${fmt(cbsV)} + ${fmt(ibsV)} — ICMS sobre a operação sem CBS/IBS`,
+    value: precoNota,
+    kind: 'nota',
+    bloco: 1,
+    subtotal: 'preco_nota',
+    passos:
+      row.exercicio === 2026
+        ? [
+            {
+              ordem: 1,
+              descricao: 'Nota de hoje (sem reprecificação — f = 1)',
+              expressao: `${fmt(r2(merc + frete))}`,
+              resultado: fmtMoney6(r2(merc + frete)),
+              fundamento: '2026: tributos do fornecedor inalterados.',
+            },
+            {
+              ordem: 2,
+              descricao: 'CBS/IBS-teste destacadas por fora (compensáveis)',
+              expressao: `${fmt(cbsV)} + ${fmt(ibsV)}`,
+              resultado: fmtMoney6(r2(cbsV + ibsV)),
+              fundamento: 'LC 214/2025, arts. 343 e 344: alíquotas-teste de 2026.',
+            },
+            {
+              ordem: 3,
+              descricao: 'Preço da nota do fornecedor (subtotal do bloco 1)',
+              expressao: '—',
+              resultado: fmt(precoNota),
+              fundamento: 'Valor que chega ao comprador na nota fiscal.',
+            },
+          ]
+        : [
+            {
+              ordem: 1,
+              descricao: 'Depende de: Base limpa + CBS + IBS',
+              expressao: `${fmt(baseLimpa)} + ${fmt(cbsV)} + ${fmt(ibsV)}`,
+              resultado: fmtMoney6(r2(baseLimpa + cbsV + ibsV)),
+              fundamento: 'Base recomposta do fornecedor.',
+            },
+            {
+              ordem: 2,
+              descricao: leituraFisco
+                ? 'Desembute do ICMS por dentro (tese do Fisco: base inclui CBS+IBS)'
+                : 'Desembute do ICMS (tese do Contribuinte: base sem CBS/IBS)',
+              expressao: `÷ (1 − ${fmt6((input.icmsRate / 100) * (row.icmsPct / 100))})`,
+              resultado: fmtMoney6(
+                leituraFisco
+                  ? precoNota
+                  : r2(baseLimpa / (1 - (input.icmsRate / 100) * (row.icmsPct / 100))),
+              ),
+              fundamento: leituraFisco
+                ? 'Tese do Fisco: CBS/IBS integram a base do ICMS na transição (lacuna normativa — pendência).'
+                : 'Tese do Contribuinte: CBS/IBS fora da base do ICMS (PLP 16/25 — pendência).',
+            },
+            ...(leituraFisco
+              ? []
+              : [
+                  {
+                    ordem: 3,
+                    descricao: 'Soma das parcelas por fora (CBS + IBS)',
+                    expressao: `${fmt(r2(baseLimpa / (1 - (input.icmsRate / 100) * (row.icmsPct / 100))))} + ${fmt(cbsV)} + ${fmt(ibsV)}`,
+                    resultado: fmtMoney6(precoNota),
+                    fundamento: 'CBS/IBS destacadas por fora da operação.',
+                  },
+                ]),
+            {
+              ordem: leituraFisco ? 3 : 4,
+              descricao: 'Preço da nota do fornecedor (subtotal do bloco 1)',
+              expressao: '—',
+              resultado: fmt(precoNota),
+              fundamento: 'Valor que chega ao comprador na nota fiscal.',
+            },
+          ],
+    fundamento: {
+      dispositivo:
+        row.exercicio === 2026
+          ? 'LC 214/2025, arts. 343 e 344 (alíquotas-teste 2026)'
+          : 'LC 214/2025, art. 12, caput + §2º, I (pendência: base do ICMS na transição)',
+      efeito:
+        row.exercicio === 2026
+          ? 'CBS/IBS-teste destacadas por fora — compensáveis, sem reprecificação'
+          : leituraFisco
+            ? 'Tese do Fisco: CBS/IBS integram a base do ICMS — ICMS por dentro sobre operação + CBS + IBS'
+            : 'Tese do Contribuinte: CBS/IBS por fora da base do ICMS (PLP 16/25)',
+      validade: row.exercicio === 2026 ? 'integral' : 'pendente',
+      nota:
+        row.exercicio === 2026
+          ? 'Alíquotas-teste: CBS 0,9% (art. 343) e IBS 0,1% (art. 344).'
+          : 'A lei não define expressamente. Cadeia plena fecha igual nas duas teses; muda a nota e o custo do comprador SN.',
+    },
+  })
+  if (ipiValor > 0) {
+    lines.push({
+      key: 'ipi_nota',
+      label: '(+) IPI destacado na nota',
+      formula: `${fmt(ipiValor)} (fora da base — art. 12, §2º, II)`,
+      value: ipiValor,
+      kind: 'debito',
+      bloco: 1,
+      fundamento: {
+        dispositivo: 'LC 214/2025, art. 12, §2º, II',
+        efeito: 'IPI fora da base do IBS/CBS — destacado na nota',
+        validade: 'integral',
+      },
+    })
+  }
+
+  // ==================== BLOCO 2 — CUSTO DA AQUISIÇÃO PARA O COMPRADOR ====================
+  const notaTotal = r2(precoNota + ipiValor)
+  lines.push({
+    key: 'bruto_nota',
     label: 'Valor bruto da nota',
-    formula: porfora > 0 ? `${fmt(V)} + CBS/IBS por fora ${fmt(porfora)}` : 'preço do fornecedor',
-    value: bruto,
+    formula: ipiValor > 0 ? `${fmt(precoNota)} + IPI ${fmt(ipiValor)}` : `${fmt(precoNota)}`,
+    value: notaTotal,
     kind: 'bruto',
+    bloco: 2,
     fundamento: {
       dispositivo: 'LC 214/2025, art. 12, caput',
       efeito: 'valor da operação pago pelo comprador',
       validade: 'integral',
     },
   })
-  if (porfora > 0) {
-    lines.push({
-      key: 'cbsfora',
-      bloco: 'comprador',
-      label: `(+) CBS ${fmt(row.cbsRate)}% destacada por fora`,
-      formula: `${fmt(baseForn)} × ${fmt(row.cbsRate)}%`,
-      value: cbsDue,
-      kind: 'debito',
-      fundamento: {
-        dispositivo: 'LC 214/2025, art. 12, §2º, I',
-        efeito: 'destaque por fora (leitura do contribuinte / preço congelado)',
-        validade: 'integral',
-      },
-    })
-    lines.push({
-      key: 'ibsfora',
-      bloco: 'comprador',
-      label: `(+) IBS ${fmt(row.ibsRate)}% destacado por fora`,
-      formula: `${fmt(baseForn)} × ${fmt(row.ibsRate)}%`,
-      value: ibsDue,
-      kind: 'debito',
-      fundamento: {
-        dispositivo: 'LC 214/2025, art. 12, §2º, I',
-        efeito: 'destaque por fora (leitura do contribuinte / preço congelado)',
-        validade: 'integral',
-      },
-    })
-  }
+
+  // Crédito ICMS do comprador — destaque na nota (tese define o tamanho do destaque)
+  const creditoIcms = pleno ? icmsNota : 0
   lines.push({
-    key: 'icmsdest',
-    bloco: 'comprador',
+    key: 'creditoicms',
     label: pleno
-      ? `(−) ICMS destacado — crédito${row.icmsPct < 100 ? ` (${fmt(row.icmsPct)}% da alíquota)` : ''}`
-      : '(−) ICMS destacado — sem crédito (SN)',
+      ? '(−) Crédito ICMS destacado'
+      : compradorSN
+        ? '(−) ICMS destacado — sem crédito (comprador SN)'
+        : '(−) ICMS destacado — NF de fornecedor SN não destaca',
     formula: pleno
-      ? `${fmt(V)} × ${fmt(input.icmsRate)}% × ${fmt(row.icmsPct)}%`
-      : fornecedorSN
-        ? 'NF de fornecedor SN — sem destaque (LC 123/2006)'
-        : 'LC 123/2006 + art. 47: optante do SN não apropria crédito',
+      ? `${fmt(precoNota)} × ${fmt(input.icmsRate)}% × ${fmt(row.icmsPct)}% (${leituraFisco ? 'tese do Fisco: base inclui CBS+IBS' : 'tese do Contribuinte: base sem CBS/IBS'})`
+      : 'sem crédito',
     value: -creditoIcms,
-    kind: pleno ? 'credito' : 'nota',
+    kind: 'credito',
+    bloco: 2,
     fundamento: {
-      dispositivo: 'ADCT, art. 128, I–IV (EC 132/2023) + LC 214/2025, art. 47, §2º',
-      efeito: pleno
-        ? row.icmsPct === 100
-          ? 'ICMS integral até 2028 — crédito do adquirente'
-          : `ICMS cede ${fmt(100 - row.icmsPct)}% da alíquota ao IBS neste exercício`
-        : 'sem crédito — o destaque vira custo',
+      dispositivo: 'LC 214/2025, art. 47, §2º + ADCT, art. 128',
+      efeito: 'crédito do adquirente = débito destacado no documento fiscal',
       validade: 'integral',
-      nota: 'Extinção em 2033: ADCT, art. 129.',
+      nota: leituraFisco
+        ? 'Tese do Fisco: destaque maior (base inclui CBS+IBS) — crédito maior.'
+        : 'Tese do Contribuinte: destaque sobre a operação sem CBS/IBS.',
     },
   })
-  if (!fornecedorSN) {
+
+  if (!compradorSN) {
     lines.push({
-      key: 'cbsdest',
-      bloco: 'comprador',
-      label: pleno ? '(−) CBS destacada — crédito' : '(−) CBS destacada — sem crédito (SN)',
-      formula: pleno
-        ? `${fmt(cbsDue)} (débito destacado na nota — art. 47, §2º)`
-        : 'destaque vira custo integral',
-      value: pleno ? -cbsDue : 0,
-      kind: pleno ? 'credito' : 'nota',
+      key: 'creditocbs',
+      label: '(−) Crédito CBS',
+      formula: `${fmt(cbsV)} (débito destacado na nota)`,
+      value: -cbsV,
+      kind: 'credito',
+      bloco: 2,
       fundamento: {
         dispositivo: 'LC 214/2025, art. 47, §2º',
-        efeito: pleno ? 'crédito do adquirente = débito destacado' : 'sem crédito — custo integral',
+        efeito: 'crédito do adquirente = débito destacado no documento fiscal',
         validade: 'integral',
+        nota: 'Apropriação condicionada à extinção do débito da operação (art. 47, caput).',
       },
     })
     lines.push({
-      key: 'ibsdest',
-      bloco: 'comprador',
-      label: pleno ? '(−) IBS destacado — crédito' : '(−) IBS destacado — sem crédito (SN)',
-      formula: pleno
-        ? `${fmt(ibsDue)} (débito destacado na nota — art. 47, §2º)`
-        : 'destaque vira custo integral',
-      value: pleno ? -ibsDue : 0,
-      kind: pleno ? 'credito' : 'nota',
+      key: 'creditoibs',
+      label: '(−) Crédito IBS',
+      formula: `${fmt(ibsV)} (débito destacado na nota)`,
+      value: -ibsV,
+      kind: 'credito',
+      bloco: 2,
       fundamento: {
         dispositivo: 'LC 214/2025, art. 47, §2º',
-        efeito: pleno ? 'crédito do adquirente = débito destacado' : 'sem crédito — custo integral',
+        efeito: 'crédito do adquirente = débito destacado no documento fiscal',
+        validade: 'integral',
+      },
+    })
+  } else {
+    lines.push({
+      key: 'creditocbsibs',
+      label: 'CBS/IBS — sem crédito (comprador SN)',
+      formula: 'destaque vira custo integral',
+      value: 0,
+      kind: 'nota',
+      bloco: 2,
+      fundamento: {
+        dispositivo: 'LC 123/2006 + LC 214/2025, art. 47',
+        efeito: 'optante do SN não apropria crédito do regime regular',
         validade: 'integral',
       },
     })
   }
-  if (creditoIpi > 0) {
+
+  // Crédito IPI do comprador industrial (IPI destacado na nota — crédito integral)
+  if (ipiValor > 0 && config.compradorPerfil === 'industria') {
     lines.push({
       key: 'creditoipi',
-      bloco: 'comprador',
-      label: '(−) Crédito IPI (industrial)',
-      formula: `${fmt(ipiValor)} — crédito integral`,
-      value: -creditoIpi,
+      label: '(−) Crédito IPI (comprador industrial)',
+      formula: `${fmt(ipiValor)} (crédito integral — industrial)`,
+      value: -ipiValor,
       kind: 'credito',
+      bloco: 2,
       fundamento: {
-        dispositivo: 'CF, art. 153, §3º + LC 214/2025, art. 454',
-        efeito: 'IPI mantido na ZFM — crédito ao industrial',
-        validade: 'condicionada',
-      },
-    })
-  }
-  if (creditoPisCofins > 0) {
-    lines.push({
-      key: 'creditopiscofins',
-      bloco: 'comprador',
-      label: '(−) Crédito PIS/COFINS (fornecedor não cumulativo)',
-      formula: `${fmt(baseOper - icmsHoje)} × 9,25% (base sem ICMS — tese do século)`,
-      value: -creditoPisCofins,
-      kind: 'credito',
-      fundamento: {
-        dispositivo: 'LC 10.865/2003 + STJ RE 1.188.403',
-        efeito: 'crédito na aquisição de fornecedor não cumulativo (2026)',
+        dispositivo: 'LC 214/2025, art. 47, §2º + CF, art. 153, §3º',
+        efeito: 'crédito do adquirente industrial = IPI destacado na nota',
         validade: 'integral',
       },
     })
   }
+
+  // Crédito PIS/COFINS do comprador LR (2026 — fornecedor LR destaca)
+  if (row.exercicio === 2026 && config.fornecedorRegime === 'real' && pleno) {
+    // Base do crédito = valor da operação da nota de hoje (sem reprecificação) − ICMS destacado
+    const basePisC = r2(merc + frete - icmsNota)
+    const creditoPis = r2(basePisC * 0.0925)
+    lines.push({
+      key: 'creditopiscofins',
+      label: '(−) Crédito PIS/COFINS (comprador LR)',
+      formula: `${fmt(basePisC)} × 9,25% (base sem ICMS — tese do século)`,
+      value: -creditoPis,
+      kind: 'credito',
+      bloco: 2,
+      fundamento: {
+        dispositivo: 'LC 10.865/2003 + STJ RE 1.188.403',
+        efeito: 'crédito do adquirente LR na aquisição (regime não cumulativo)',
+        validade: 'integral',
+      },
+    })
+  }
+
+  const creditos = r2(
+    lines
+      .filter((l) => l.kind === 'credito' && l.bloco === 2)
+      .reduce((acc, l) => acc + -l.value, 0),
+  )
+  const debitos = r2(
+    lines.filter((l) => l.kind === 'debito' && l.bloco === 2).reduce((acc, l) => acc + l.value, 0),
+  )
+  // Compras líquidas = nota − créditos (o destaque de CBS/IBS já está dentro do preço da nota)
+  const comprasLiquidas = r2(notaTotal - creditos)
   lines.push({
     key: 'comprasliquidas',
-    bloco: 'comprador',
-    label: '(=) COMPRAS LÍQUIDAS — custo do comprador',
-    formula: `${fmt(bruto)}${porfora > 0 ? ` + ${fmt(porfora)}` : ''} − créditos ${fmt(creditos)}`,
-    value: liquido,
-    kind: 'subtotal',
+    label: '(=) Compras líquidas',
+    formula: `${fmt(notaTotal)} − créditos ${fmt(creditos)}`,
+    value: comprasLiquidas,
+    kind: 'nota',
+    bloco: 2,
+    subtotal: 'custo_unitario',
     passos: [
       {
         ordem: 1,
-        descricao: 'Valor bruto da nota (preço do fornecedor + por fora, se houver)',
-        expressao: porfora > 0 ? `${fmt(V)} + ${fmt(porfora)}` : fmt(V),
-        resultado: fmtMoney6(bruto),
-        fundamento: 'Bloco ① — ver memória da linha "Preço do fornecedor".',
+        descricao: 'Valor bruto da nota (subtotal do bloco 1)',
+        expressao: '—',
+        resultado: fmtMoney6(notaTotal),
+        fundamento: 'Preço da nota do fornecedor (+ IPI, se houver).',
       },
       {
         ordem: 2,
         descricao:
-          'Créditos do adquirente (ICMS + CBS/IBS destacados' +
-          (creditoIpi > 0 ? ' + IPI' : '') +
-          (creditoPisCofins > 0 ? ' + PIS/COFINS' : '') +
+          'Créditos do adquirente (ICMS + CBS + IBS' +
+          (row.exercicio === 2026 && config.fornecedorRegime === 'real' ? ' + PIS/COFINS' : '') +
           ')',
-        expressao:
-          `${fmt(icmsDestEx)} + ${fmt(due)}` +
-          (creditoIpi > 0 ? ` + ${fmt(creditoIpi)}` : '') +
-          (creditoPisCofins > 0 ? ` + ${fmt(creditoPisCofins)}` : ''),
+        expressao: '—',
         resultado: fmtMoney6(creditos),
-        fundamento: 'LC 214/2025, art. 47, §2º: crédito = débito destacado no documento fiscal.',
+        fundamento: 'Art. 47, §2º: crédito = débito destacado. Comprador SN: sem créditos.',
       },
       {
         ordem: 3,
-        descricao: 'Compras líquidas (resultado final — 2 casas, half-up)',
-        expressao: 'bruto − créditos',
-        resultado: fmt(liquido),
-        fundamento:
-          'Cadeia plena com crédito integral: o custo = preço líquido do fornecedor (base limpa).',
-      },
-      {
-        ordem: 4,
-        descricao: 'Custo unitário',
-        expressao: `${fmt(liquido)} ÷ ${fmt(input.quantity)} un.`,
-        resultado: fmt(r2(liquido / qtd)),
-        fundamento: 'CMV unitário do exercício.',
+        descricao: 'Compras líquidas (subtotal do bloco 2)',
+        expressao: '—',
+        resultado: fmt(comprasLiquidas),
+        fundamento: 'Custo da aquisição para o comprador.',
       },
     ],
     fundamento: {
-      dispositivo: 'LC 214/2025, art. 12 + art. 47, §2º',
-      efeito: 'custo da aquisição = nota − créditos destacados',
+      dispositivo: 'LC 214/2025, art. 47',
+      efeito: 'custo da aquisição = nota − créditos do adquirente',
       validade: 'integral',
+    },
+  })
+
+  const unitario = r2(comprasLiquidas / Math.max(1, input.quantity))
+  lines.push({
+    key: 'custounitario',
+    label: '(÷) Custo unitário',
+    formula: `${fmt(comprasLiquidas)} ÷ ${fmt(input.quantity)} un.`,
+    value: unitario,
+    kind: 'nota',
+    bloco: 2,
+    subtotal: 'custo_unitario',
+    passos: [
+      {
+        ordem: 1,
+        descricao: 'Compras líquidas ÷ quantidade',
+        expressao: `${fmt(comprasLiquidas)} ÷ ${fmt(input.quantity)}`,
+        resultado: fmt(unitario),
+        fundamento: 'Custo unitário da aquisição no exercício.',
+      },
+    ],
+    fundamento: {
+      dispositivo: '—',
+      efeito: 'custo unitário do CMV no exercício',
+      validade: 'nao_aplicavel',
     },
   })
 
   return {
     lines,
-    bruto,
+    bruto: notaTotal,
     creditos,
     debitos,
-    baseLimpa: fornecedorSN ? null : baseForn,
-    liquido,
-    unitario: r2(liquido / qtd),
+    baseLimpa,
+    liquido: comprasLiquidas,
+    unitario,
   }
 }
 
@@ -972,13 +1170,13 @@ export function computeCellArt12(
     porque =
       'Fornecedor SN: nota congelada (LC 123/2006), sem repasse e sem destaque. O custo do comprador muda apenas pelo lado dos créditos próprios.'
   } else if (config.compradorRegime === 'simples') {
-    porque = `Comprador SN não credita CBS/IBS (LC 123/2006 + art. 47): o destaque vira custo integral. Leitura da base do ICMS (${config.baseIcmsLeitura === 'plp16' ? 'contribuinte — PLP 16/25' : 'Fisco'}) muda o resultado desta célula.`
+    porque =
+      'Comprador SN não credita CBS/IBS (LC 123/2006 + art. 47): o destaque destacado na nota vira custo integral.'
   } else if (config.repasse === 'integral') {
     porque =
-      'Cadeia plena com repasse integral: o preço do fornecedor é recomposto e o crédito do adquirente lava o destaque (art. 12 + art. 47) — o custo acompanha o preço líquido do fornecedor (base limpa preservada). Variação relevante só ocorre se o repasse falhar.'
+      'Cadeia plena com crédito integral: o destaque de CBS/IBS entra no preço do fornecedor e sai no crédito do adquirente (art. 12 + art. 47) — o custo acompanha o preço líquido do fornecedor. Variação relevante só ocorre se o repasse falhar.'
   } else if (config.repasse === 'nenhum') {
-    porque =
-      'Fornecedor não repassa: o adquirente paga CBS/IBS sobre a base sem redução equivalente do bruto — quem absorve o impacto é o COMPRADOR.'
+    porque = `Fornecedor não repassa: o adquirente paga CBS/IBS sobre a base limpa sem redução equivalente do bruto — quem absorve o impacto é o COMPRADOR.`
   } else {
     porque = `Repasse parcial (${fmt(config.repassePct)}%): fornecedor absorve ${fmt(100 - config.repassePct)}% do impacto na margem; comprador absorve o restante via preço.`
   }
@@ -986,7 +1184,7 @@ export function computeCellArt12(
   return { hoje, exercicio, deltaPct, semaforo, porque }
 }
 
-/** Réguas de repasse (Integral / Parcial % / Nenhum). */
+/** Réguas de repasse (Integral / Parcial % / Nenhum) sobre o fator reconstruído. */
 export function reguasArt12(input: CmvArt12Input, config: CellConfigArt, row: ScheduleRowArt) {
   const modes: RepasseMode[] = ['integral', 'parcial', 'nenhum']
   return modes.map((mode) => {

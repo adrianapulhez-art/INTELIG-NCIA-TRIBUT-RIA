@@ -20,28 +20,26 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 import {
+  CRONOGRAMA_ART12,
   CASO_CANONICO_ART12,
   CONFIG_PADRAO_ART12,
-  CRONOGRAMA_ART12,
   computeCellArt12,
-  escadaArt12,
-  matrizArt12,
   reguasArt12,
+  matrizArt12,
+  escadaArt12,
+  type CellConfigArt,
+  type CellResultArt,
+  type ExercicioKey,
+  type Fundamento,
+  type MemoryLineArt,
+  type RegimeId,
+  type ScheduleRowArt,
+  type Semaforo,
+  type SideResultArt,
   r2,
 } from '@/lib/art12Calculations'
-import type {
-  CellConfigArt,
-  CellResultArt,
-  CmvArt12Input,
-  ExercicioKey,
-  Fundamento,
-  MemoryLineArt,
-  RegimeId,
-  ScheduleRowArt,
-  Semaforo,
-} from '@/lib/art12Calculations'
+import { formatBRL, formatNumberBR } from '@/lib/format'
 
 const EXERCICIOS: ExercicioKey[] = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033]
 
@@ -59,27 +57,35 @@ const REGIME_LABEL_FULL: Record<RegimeId, string> = {
 
 const SEMAFORO_STYLE: Record<Semaforo, { bg: string; icon: React.ReactNode }> = {
   verde: {
-    bg: 'bg-emerald-500/10 border-emerald-500/40',
-    icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />,
+    bg: 'bg-emerald-500/10 border border-emerald-500/40',
+    icon: <CheckCircle2 className="w-5 h-5 text-emerald-400" />,
   },
   ambar: {
-    bg: 'bg-amber-500/10 border-amber-500/40',
-    icon: <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />,
+    bg: 'bg-amber-500/10 border border-amber-500/40',
+    icon: <AlertTriangle className="w-5 h-5 text-amber-400" />,
   },
   vermelho: {
-    bg: 'bg-rose-500/10 border-rose-500/40',
-    icon: <XCircle className="w-3.5 h-3.5 text-rose-400" />,
+    bg: 'bg-rose-500/10 border border-rose-500/40',
+    icon: <XCircle className="w-5 h-5 text-rose-400" />,
   },
 }
 
 const VALIDADE_STYLE: Record<string, { label: string; cls: string }> = {
-  integral: { label: 'Vigência integral', cls: 'text-emerald-400 border-emerald-500/40' },
-  condicionada: { label: 'Validade condicionada', cls: 'text-amber-400 border-amber-500/40' },
-  nao_aplicavel: { label: 'Baseline (sem Art. 12)', cls: 'text-slate-400 border-slate-600' },
-  pendente: { label: 'Pendente de definição', cls: 'text-rose-400 border-rose-500/40' },
+  integral: {
+    label: 'expresso na lei',
+    cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',
+  },
+  condicionada: {
+    label: 'condicionado',
+    cls: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
+  },
+  nao_aplicavel: { label: '—', cls: 'bg-slate-800 text-slate-400 border-slate-700' },
+  pendente: {
+    label: 'pendente de definição',
+    cls: 'bg-rose-500/15 text-rose-300 border-rose-500/40',
+  },
 }
 
-/** Modal "Memória da linha" — derivação passo a passo (padrão "Abrir" da Calculadora de CMV). */
 function LineMemoryDialog({
   line,
   lineLabel,
@@ -91,71 +97,73 @@ function LineMemoryDialog({
   lineLabel: string
   open: boolean
   onOpenChange: (open: boolean) => void
-  contexto: string
+  contexto?: string
 }) {
   const passos = line.passos || []
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
         <DialogHeader>
           <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
             <Calculator className="w-5 h-5 text-emerald-400" />
-            <span>Memória de Cálculo — {lineLabel}</span>
+            <span>Memória da linha — {lineLabel}</span>
           </DialogTitle>
-          <DialogDescription className="text-xs text-slate-400">
-            {contexto} · Derivação passo a passo com 6 casas (sem arredondamento intermediário);
-            arredondamento a 2 casas (half-up) somente no resultado final.
-          </DialogDescription>
+          <DialogDescription className="text-xs text-slate-400">{contexto}</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <div className="flex items-start justify-between gap-2 bg-slate-900/60 rounded-lg border border-slate-800 p-2.5">
-            <div>
-              <span className="text-[11px] font-mono font-bold text-slate-200 block">
-                {line.label}
-              </span>
-              <span className="text-[10px] font-mono text-slate-500 break-words">
-                {line.formula}
-              </span>
-            </div>
-            <span className="text-[11px] font-mono font-black text-emerald-300 shrink-0">
+          <div className="rounded-lg border border-slate-700/60 bg-slate-900/60 p-3 space-y-1">
+            <div className="text-[10px] font-mono uppercase text-slate-500">Linha</div>
+            <div className="text-xs font-mono font-bold text-slate-200">{line.label}</div>
+            <div className="text-[10px] font-mono text-slate-400 break-words">{line.formula}</div>
+            <div className="text-sm font-black font-mono text-emerald-300">
               {line.kind === 'nota' ? '—' : formatBRL(line.value)}
-            </span>
+            </div>
           </div>
           {passos.length > 0 && (
-            <div className="space-y-1.5 pt-1">
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-mono uppercase text-slate-500">
+                Derivação passo a passo (precisão de 6 casas — sem arredondamento intermediário)
+              </div>
               {passos.map((p) => (
                 <div
                   key={p.ordem}
-                  className="flex items-start gap-2.5 bg-slate-950/60 rounded-lg border border-slate-800/70 px-3 py-2"
+                  className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5 space-y-1"
                 >
-                  <span className="w-5 h-5 shrink-0 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono font-bold flex items-center justify-center mt-0.5">
-                    {p.ordem}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[11px] font-semibold text-slate-200 block leading-tight">
-                      {p.descricao}
+                  <div className="flex items-start gap-2">
+                    <span className="text-[10px] font-mono font-black text-emerald-400 shrink-0">
+                      {p.ordem}.
                     </span>
-                    <span className="text-[10px] font-mono text-sky-300 block break-words mt-0.5">
-                      {p.expressao}
-                    </span>
-                    {p.fundamento && (
-                      <span className="text-[9px] font-mono text-slate-500 block break-words mt-0.5">
-                        {p.fundamento}
-                      </span>
-                    )}
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="text-[11px] font-mono font-semibold text-slate-200">
+                        {p.descricao}
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-400 break-words">
+                        {p.expressao}
+                      </div>
+                      <div className="text-[11px] font-mono font-bold text-emerald-300 break-words">
+                        = {p.resultado}
+                      </div>
+                      {p.fundamento && (
+                        <div className="text-[9px] font-mono text-slate-500 break-words">
+                          {p.fundamento}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <span
-                    className={`text-[11px] font-mono font-bold shrink-0 ${p.resultado.includes('R$') ? 'text-amber-200' : 'text-emerald-200'}`}
-                  >
-                    {p.resultado}
-                  </span>
                 </div>
               ))}
             </div>
           )}
-          <div className="text-[10px] font-mono text-slate-500 border-t border-slate-800 pt-2 leading-relaxed">
-            Fundamento da linha: {line.fundamento?.dispositivo} — {line.fundamento?.efeito}.
-            {line.fundamento?.nota ? ` ${line.fundamento.nota}` : ''}
+          <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5 space-y-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <ArtBadge dispositivo={line.fundamento?.dispositivo || '—'} />
+              <ValidadeBadge fundamento={line.fundamento} />
+            </div>
+            {line.fundamento?.nota && (
+              <div className="text-[9px] font-mono text-slate-500 break-words">
+                {line.fundamento.nota}
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
@@ -167,7 +175,7 @@ function ValidadeBadge({ fundamento }: { fundamento: Fundamento }) {
   const s = VALIDADE_STYLE[fundamento.validade]
   return (
     <span
-      className={`inline-flex items-center text-[9px] font-mono border rounded px-1.5 py-0.5 ${s.cls}`}
+      className={`text-[8px] font-mono font-bold uppercase rounded px-1 py-0.5 border ${s.cls}`}
     >
       {s.label}
     </span>
@@ -175,12 +183,16 @@ function ValidadeBadge({ fundamento }: { fundamento: Fundamento }) {
 }
 
 function ArtBadge({ dispositivo }: { dispositivo: string }) {
-  if (!dispositivo || dispositivo === '—') return null
   return (
-    <span className="inline-flex items-center text-[9px] font-mono text-sky-300 border border-sky-500/40 rounded px-1.5 py-0.5">
+    <span className="text-[8px] font-mono font-bold uppercase rounded px-1 py-0.5 border bg-sky-500/15 text-sky-300 border-sky-500/40">
       {dispositivo}
     </span>
   )
+}
+
+const BLOCO_TITULOS: Record<number, string> = {
+  1: '① FORMAÇÃO DO PREÇO DO FORNECEDOR',
+  2: '② CUSTO DA AQUISIÇÃO PARA O COMPRADOR',
 }
 
 function SideColumnArt({
@@ -195,6 +207,7 @@ function SideColumnArt({
   /** Quando fornecido, cada linha (com passos de derivação) ganha botão "Abrir". */
   onOpenLine?: (line: MemoryLineArt) => void
 }) {
+  const blocos = [...new Set(side.lines.map((l) => l.bloco))].sort((a, b) => a - b)
   return (
     <div className={`flex-1 min-w-[320px] rounded-xl border p-3 space-y-1.5 ${accent}`}>
       <div className="flex items-center justify-between">
@@ -203,133 +216,98 @@ function SideColumnArt({
           {side.lines.length} linhas
         </Badge>
       </div>
-      {(() => {
-        // v2: memória em 2 blocos titulados (① fornecedor → ② comprador) — só no lado Exercício
-        const renderLine = (line: MemoryLineArt) => (
-          <div
-            key={line.key}
-            className="bg-slate-950/50 rounded-lg px-2.5 py-1.5 border border-slate-800/60 space-y-1"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <span
-                  className={`text-[11px] font-mono font-semibold block ${
-                    line.kind === 'bruto'
-                      ? 'text-slate-200'
-                      : line.kind === 'debito'
-                        ? 'text-amber-300'
-                        : line.kind === 'nota'
-                          ? 'text-sky-300'
-                          : line.kind === 'subtotal'
-                            ? 'text-emerald-300'
-                            : 'text-emerald-300'
-                  }`}
-                >
-                  {line.label}
-                </span>
-                <span className="text-[10px] font-mono text-slate-500 leading-tight block break-words">
-                  {line.formula}
-                </span>
-              </div>
-              <span
-                className={`text-[11px] font-mono font-bold shrink-0 ${
-                  line.kind === 'nota'
-                    ? 'text-sky-300'
-                    : line.value > 0
-                      ? line.kind === 'debito'
-                        ? 'text-amber-300'
-                        : 'text-slate-100'
-                      : line.value < 0
-                        ? 'text-emerald-300'
-                        : 'text-slate-500'
-                }`}
-              >
-                {line.kind === 'nota'
-                  ? line.key === 'baselimpa' || line.key === 'valorop'
-                    ? formatBRL(line.value)
-                    : '—'
-                  : formatBRL(line.value)}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <ArtBadge dispositivo={line.fundamento?.dispositivo || '—'} />
-              <ValidadeBadge fundamento={line.fundamento} />
-              {line.fundamento?.nota && (
-                <span className="text-[9px] font-mono text-slate-500 break-words">
-                  {line.fundamento.nota}
-                </span>
-              )}
-            </div>
-            {onOpenLine && line.passos && line.passos.length > 0 && (
-              <button
-                type="button"
-                onClick={() => onOpenLine(line)}
-                className="w-full mt-0.5 inline-flex items-center justify-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-mono font-bold text-emerald-300 hover:bg-emerald-500/20 cursor-pointer"
-              >
-                <Calculator className="w-3 h-3" /> Abrir memória da linha
-              </button>
-            )}
+      {blocos.map((bloco) => (
+        <div key={bloco} className="space-y-1">
+          <div className="flex items-center gap-1.5 pt-1">
+            <span className="text-[10px] font-mono font-black uppercase tracking-wider text-emerald-300">
+              {BLOCO_TITULOS[bloco] || `BLOCO ${bloco}`}
+            </span>
+            <span className="flex-1 h-px bg-emerald-500/25" />
           </div>
-        )
-        const temBlocos = side.lines.some((l) => l.bloco)
-        if (!temBlocos) {
-          return side.lines.map((line) => renderLine(line))
-        }
-        const blocos: { titulo: string; sub: string; cor: string; chaves: string[] }[] = [
-          {
-            titulo: '① Formação do preço do fornecedor',
-            sub: 'do preço HOJE à recomposição com CBS/IBS',
-            cor: 'text-sky-300 border-sky-500/40 bg-sky-500/[0.06]',
-            chaves: [
-              'mercadoria',
-              'frete',
-              'ipi',
-              'icmshoje',
-              'piscofinshoje',
-              'baselimpa',
-              'cbsforn',
-              'ibsforne',
-              'valorop',
-              'cbsibsparcial',
-              'cbsibsfora',
-              'precofornecedor',
-            ],
-          },
-          {
-            titulo: '② Custo da aquisição para o comprador',
-            sub: 'da nota às compras líquidas',
-            cor: 'text-emerald-300 border-emerald-500/40 bg-emerald-500/[0.06]',
-            chaves: [
-              'brutonota',
-              'cbsfora',
-              'ibsfora',
-              'icmsdest',
-              'cbsdest',
-              'ibsdest',
-              'creditoipi',
-              'creditopiscofins',
-              'comprasliquidas',
-            ],
-          },
-        ]
-        const porChave = new Map(side.lines.map((l) => [l.key, l]))
-        return blocos.map((b) => {
-          const linhas = b.chaves.map((k) => porChave.get(k)).filter((l): l is MemoryLineArt => !!l)
-          if (linhas.length === 0) return null
-          return (
-            <div key={b.titulo} className={`rounded-lg border p-2 space-y-1.5 ${b.cor}`}>
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-mono font-black uppercase tracking-wide block">
-                  {b.titulo}
-                </span>
-                <span className="text-[9px] font-mono text-slate-500 block">{b.sub}</span>
+          {side.lines
+            .filter((l) => l.bloco === bloco)
+            .map((line) => (
+              <div
+                key={line.key}
+                className={`rounded-lg px-2.5 py-1.5 space-y-1 ${line.subtotal ? 'bg-emerald-500/10 border border-emerald-500/40' : 'bg-slate-950/50 border border-slate-800/60'}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <span
+                      className={`text-[11px] font-mono font-semibold block ${
+                        line.kind === 'bruto'
+                          ? 'text-slate-200'
+                          : line.kind === 'debito'
+                            ? 'text-amber-300'
+                            : line.kind === 'nota'
+                              ? 'text-sky-300'
+                              : 'text-emerald-300'
+                      }`}
+                    >
+                      {line.label}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500 leading-tight block break-words">
+                      {line.formula}
+                    </span>
+                  </div>
+                  <span
+                    className={`text-[11px] font-mono font-bold shrink-0 ${
+                      line.kind === 'nota'
+                        ? ['baselimpa', 'preconota', 'comprasliquidas', 'custounitario'].includes(
+                            line.key,
+                          )
+                          ? 'text-emerald-300'
+                          : 'text-sky-300'
+                        : line.value > 0
+                          ? line.kind === 'debito'
+                            ? 'text-amber-300'
+                            : 'text-slate-100'
+                          : line.value < 0
+                            ? 'text-emerald-300'
+                            : 'text-slate-500'
+                    }`}
+                  >
+                    {line.kind === 'nota'
+                      ? ['baselimpa', 'preconota', 'comprasliquidas', 'custounitario'].includes(
+                          line.key,
+                        )
+                        ? formatBRL(line.value)
+                        : '—'
+                      : formatBRL(line.value)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <ArtBadge dispositivo={line.fundamento?.dispositivo || '—'} />
+                  <ValidadeBadge fundamento={line.fundamento} />
+                  {line.fundamento?.nota && (
+                    <span className="text-[9px] font-mono text-slate-500 break-words">
+                      {line.fundamento.nota}
+                    </span>
+                  )}
+                </div>
+                {onOpenLine && line.passos && line.passos.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenLine(line)}
+                    className="w-full mt-0.5 inline-flex items-center justify-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-mono font-bold text-emerald-300 hover:bg-emerald-500/20 cursor-pointer"
+                  >
+                    <Calculator className="w-3 h-3" /> Abrir memória da linha
+                  </button>
+                )}
               </div>
-              {linhas.map((line) => renderLine(line))}
+            ))}
+          {side.lines.some((l) => l.bloco === bloco && l.subtotal) && (
+            <div className="flex items-center gap-1.5 pb-0.5">
+              <span className="text-[9px] font-mono font-bold text-emerald-400/90">
+                {bloco === 1
+                  ? '▸ Subtotal: preço da nota do fornecedor'
+                  : '▸ Subtotal: custo unitário'}
+              </span>
+              <span className="flex-1 h-px bg-emerald-500/20" />
             </div>
-          )
-        })
-      })()}
-      =======
+          )}
+        </div>
+      ))}
       <div className="pt-1 space-y-1">
         <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
           <span>Bruto (valor da operação)</span>
@@ -382,6 +360,7 @@ function CellMemoryDialogArt({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const [lineMemory, setLineMemory] = useState<{ line: MemoryLineArt; label: string } | null>(null)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
@@ -417,6 +396,15 @@ function CellMemoryDialogArt({
           (frete na base) e §2º, I, II e V (IBS/CBS, IPI, ICMS/ISS e PIS/COFINS fora da base —
           vigência expressa do §2º, V: 01/01/2026 a 31/12/2032).
         </div>
+        {lineMemory && (
+          <LineMemoryDialog
+            line={lineMemory.line}
+            lineLabel={lineMemory.label}
+            open={!!lineMemory}
+            onOpenChange={(o) => !o && setLineMemory(null)}
+            contexto={`Exercício ${row.exercicio} · memória expandida da célula`}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -434,12 +422,9 @@ export function CmvArt12Module() {
   } | null>(null)
   const [lineMemory, setLineMemory] = useState<{ line: MemoryLineArt; label: string } | null>(null)
 
-  const row = useMemo(
-    () => CRONOGRAMA_ART12.find((s) => s.exercicio === exercicio) || CRONOGRAMA_ART12[1],
-    [exercicio],
-  )
+  const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
 
-  const input = useMemo<CmvArt12Input>(() => {
+  const input = useMemo(() => {
     if (usarCompras && purchasesItems.length > 0) {
       const quantity = purchasesItems.reduce((acc, it) => acc + (it.quantity || 0), 0)
       const merchandise = purchasesItems.reduce((acc, it) => acc + (it.merchandiseValue || 0), 0)
@@ -448,29 +433,25 @@ export function CmvArt12Module() {
       const icmsTotal = purchasesItems.reduce((acc, it) => acc + (it.calculatedIcms || 0), 0)
       const icmsRate = merchandise > 0 ? r2((icmsTotal / merchandise) * 100) : 18
       const icmsFreightTotal = purchasesItems.reduce(
-        (acc, it) => acc + (it.icmsFreightValue || 0),
+        (acc, it) => acc + (it.calculatedIcmsFreight || 0),
         0,
       )
       const icmsFreightRate = freight > 0 ? r2((icmsFreightTotal / freight) * 100) : 18
       const ipiRate = r2(purchasesItems[0]?.ipiRate || 0)
-      return { quantity, unitPrice, freightValue: r2(freight), icmsRate, icmsFreightRate, ipiRate }
+      return { quantity, unitPrice, freightValue: freight, icmsRate, icmsFreightRate, ipiRate }
     }
-    return { ...CASO_CANONICO_ART12 }
+    return CASO_CANONICO_ART12
   }, [usarCompras, purchasesItems])
 
   const usandoExemplo = !usarCompras || purchasesItems.length === 0
 
   const activeCell = useMemo(() => computeCellArt12(input, config, row), [input, config, row])
-
   const reguas = useMemo(() => reguasArt12(input, config, row), [input, config, row])
-
   const matriz = useMemo(() => matrizArt12(input, config, row), [input, config, row])
-
   const escada = useMemo(() => escadaArt12(input, config), [input, config])
 
   const semaforoStyle = SEMAFORO_STYLE[activeCell.semaforo]
 
-  // Menor custo da matriz (destaque visual da Fase C)
   const menorCusto = useMemo(() => {
     const all = matriz.flatMap((l) => l.cells.map((c) => c.cell.exercicio.unitario))
     return Math.min(...all)
@@ -504,37 +485,6 @@ export function CmvArt12Module() {
             </Button>
           </div>
         </div>
-        {/* Seletor de leitura da base do ICMS na transição (pendente de definição) */}
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5">
-          <ShieldAlert className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          <span className="text-[10px] font-mono font-bold uppercase text-amber-300">
-            Pendente de definição — base do ICMS na transição (2026–2032):
-          </span>
-          <div className="flex gap-1">
-            {(
-              [
-                { id: 'fiscos', label: 'Tese do Fisco' },
-                { id: 'plp16', label: 'Tese do Contribuinte (PLP 16/25)' },
-              ] as const
-            ).map((op) => (
-              <button
-                key={op.id}
-                type="button"
-                onClick={() => setConfig((c) => ({ ...c, baseIcmsLeitura: op.id }))}
-                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
-                  (config.baseIcmsLeitura || 'fiscos') === op.id
-                    ? 'bg-amber-500 text-slate-950 border-amber-400'
-                    : 'bg-slate-950 text-amber-300 border-amber-700/60 hover:bg-slate-900'
-                }`}
-              >
-                {op.label}
-              </button>
-            ))}
-          </div>
-          <span className="text-[9px] font-mono text-amber-200/70">
-            Cadeia plena fecha igual nas duas leituras · difere no comprador SN
-          </span>
-        </div>
         {/* Nota legal do cabeçalho */}
         <div className="text-[10px] font-mono text-slate-400 bg-slate-950/60 border border-slate-800 rounded-lg p-2.5 leading-relaxed">
           <ShieldAlert className="w-3.5 h-3.5 text-sky-400 inline mr-1 -mt-0.5" />
@@ -544,7 +494,9 @@ export function CmvArt12Module() {
           ADCT, art. 128, I–IV. IPI zerado 2027+: CF, art. 153, §3º + LC 214/2025, art. 454 (ZFM:
           ADCT, art. 92-B). Crédito do adquirente: art. 47, §2º. Desconto incondicional (consta do
           documento e não depende de evento posterior): fora da base — art. 12, §2º, III. Devolução
-          e cancelamento: base da operação original — art. 12, §7º.
+          e cancelamento: base da operação original — art. 12, §7º. PIS/COFINS embutidos sobre base
+          sem ICMS: tese do século (STJ RE 1.188.403; STF Tema 1098). PENDENTE DE DEFINIÇÃO: se
+          CBS/IBS integram a base do ICMS na transição — simule as duas teses no seletor acima.
         </div>
         {/* Seletor de exercícios */}
         <div className="flex flex-wrap gap-1.5">
@@ -566,6 +518,44 @@ export function CmvArt12Module() {
               </button>
             )
           })}
+        </div>
+        {/* Seletor de tese — base do ICMS na transição (pendente de definição na lei) */}
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/[0.06] p-2.5">
+          <ShieldAlert className="w-4 h-4 shrink-0 text-amber-400" />
+          <span className="text-[10px] font-mono font-bold uppercase text-amber-300">
+            Base do ICMS na transição (2026–2032) — pendente de definição:
+          </span>
+          <div className="flex gap-1">
+            {(
+              [
+                { id: 'fisco', label: 'Tese do Fisco', desc: 'CBS/IBS integram a base do ICMS' },
+                {
+                  id: 'contribuinte',
+                  label: 'Tese do Contribuinte',
+                  desc: 'CBS/IBS por fora (PLP 16/25)',
+                },
+              ] as const
+            ).map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                title={t.desc}
+                onClick={() => setConfig((c) => ({ ...c, baseIcmsTransicao: t.id }))}
+                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border transition-colors ${
+                  config.baseIcmsTransicao === t.id
+                    ? 'bg-amber-400 text-slate-950 border-amber-300'
+                    : 'bg-slate-950 text-slate-300 border-slate-700 hover:bg-slate-800'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[9px] font-mono text-slate-400">
+            {config.baseIcmsTransicao === 'fisco'
+              ? 'ICMS por dentro sobre operação + CBS + IBS — nota maior, crédito maior. Cadeia plena fecha igual; muda o custo do comprador SN.'
+              : 'ICMS sobre a operação sem CBS/IBS (PLP 16/25) — nota menor. Cadeia plena fecha igual; muda o custo do comprador SN.'}
+          </span>
         </div>
         {row.pendente && (
           <div className="flex items-start gap-2 text-[11px] font-mono text-rose-300 bg-rose-500/10 border border-rose-500/40 rounded-lg p-2.5">
@@ -958,7 +948,7 @@ export function CmvArt12Module() {
           lineLabel={lineMemory.label}
           open={!!lineMemory}
           onOpenChange={(o) => !o && setLineMemory(null)}
-          contexto={`Exercício ${exercicio} · ${REGIME_LABEL_FULL[config.fornecedorRegime]} (fornecedor) × ${REGIME_LABEL_FULL[config.compradorRegime]} (comprador) · repasse ${config.repasse === 'integral' ? 'integral' : config.repasse === 'parcial' ? `parcial ${formatNumberBR(config.repassePct)}%` : 'nenhum'}`}
+          contexto={`Exercício ${exercicio} · ${REGIME_LABEL_FULL[config.fornecedorRegime]} (fornecedor) × ${REGIME_LABEL_FULL[config.compradorRegime]} (comprador) · repasse ${config.repasse === 'integral' ? 'integral' : config.repasse === 'parcial' ? `parcial ${formatNumberBR(config.repassePct)}%` : 'nenhum'} · tese: ${config.baseIcmsTransicao === 'fisco' ? 'do Fisco' : 'do Contribuinte'}`}
         />
       )}
     </div>
