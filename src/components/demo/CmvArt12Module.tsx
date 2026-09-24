@@ -992,7 +992,7 @@ export function CmvArt12Module() {
       {/* ================= Matriz 3×3 ================= */}
       <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-2">
         <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-          Matriz 3×3 — comprador (linhas) × fornecedor (colunas) · Exercício {exercicio}
+          Matriz — comprador (linhas) × fornecedor (colunas) · Exercício {exercicio}
         </span>
         <div className="overflow-x-auto">
           <table className="w-full text-[10px] font-mono">
