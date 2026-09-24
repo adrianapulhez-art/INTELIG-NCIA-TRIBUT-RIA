@@ -40,6 +40,7 @@ import {
   r2,
 } from '@/lib/art12Calculations'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
+import { EspelhoRepasseDialog } from './EspelhoRepasseDialog'
 
 const EXERCICIOS: ExercicioKey[] = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033]
 
@@ -651,6 +652,9 @@ export function CmvArt12Module() {
     label: string
   } | null>(null)
   const [matrizModal, setMatrizModal] = useState<{ open: boolean }>({ open: false })
+  const [espelhoModal, setEspelhoModal] = useState<{ open: boolean; mode: RepasseMode } | null>(
+    null,
+  )
 
   const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
 
@@ -935,7 +939,10 @@ export function CmvArt12Module() {
             <button
               key={mode}
               type="button"
-              onClick={() => setConfig((c) => ({ ...c, repasse: mode }))}
+              onClick={() => {
+                setConfig((c) => ({ ...c, repasse: mode }))
+                setEspelhoModal({ open: true, mode })
+              }}
               className={`p-2.5 rounded-lg border text-left cursor-pointer transition-colors ${
                 config.repasse === mode
                   ? 'border-emerald-400 bg-emerald-500/10'
@@ -1160,6 +1167,25 @@ export function CmvArt12Module() {
           })
         }}
       />
+      {espelhoModal && (
+        <EspelhoRepasseDialog
+          input={input}
+          baseConfig={config}
+          row={row}
+          exercicio={exercicio}
+          mode={espelhoModal.mode}
+          open={espelhoModal.open}
+          onOpenChange={(o) => !o && setEspelhoModal(null)}
+          onAbrirCelula={(comprador, fornecedor, cell) => {
+            setEspelhoModal(null)
+            setMemoryCell({
+              label: `${REGIME_LABEL[comprador]} × ${REGIME_LABEL[fornecedor]} — ${exercicio}`,
+              cell,
+              row,
+            })
+          }}
+        />
+      )}
     </div>
   )
 }
