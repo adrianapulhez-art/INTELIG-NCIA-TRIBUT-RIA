@@ -226,7 +226,8 @@ export function fatorRepasseArt12(
   input: CmvArt12Input,
   row: ScheduleRowArt,
 ): number {
-  if (config.fornecedorRegime === 'simples') return 1
+  if (config.fornecedorRegime === 'simples' || config.fornecedorRegime === 'simples_hibrido')
+    return 1
   if (row.exercicio === 2026) return 1
   const t = input.icmsRate / 100
   const e = EMBUTIDO[config.fornecedorRegime]
@@ -284,8 +285,14 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
 
   const icmsMerc = r2(merc * (input.icmsRate / 100))
   const icmsFrete = r2(frete * (input.icmsFreightRate / 100))
-  const fornecedorEmite = config.fornecedorRegime !== 'simples'
-  const pleno = config.compradorRegime !== 'simples' && fornecedorEmite
+  // HOJE não conhece o híbrido (opção a partir de 2027): fornecedor SN-híbrido = SN padrão;
+  // comprador SN-híbrido = SN padrão (sem créditos hoje).
+  const fornecedorEmite =
+    config.fornecedorRegime !== 'simples' && config.fornecedorRegime !== 'simples_hibrido'
+  const pleno =
+    config.compradorRegime !== 'simples' &&
+    config.compradorRegime !== 'simples_hibrido' &&
+    fornecedorEmite
   const creditoIcms = pleno ? r2(icmsMerc + icmsFrete) : 0
   lines.push({
     key: 'icms',
@@ -753,7 +760,9 @@ export function computeExercicioArt12(
       })
     }
     // Fornecedor SN (padrão ou híbrido): nota congelada — bloco 2 = bruto direto (+ CBS/IBS se híbrido)
-    const creditosSN = 0
+    // Créditos do comprador: só IBS/CBS destacados (LC 214 art. 47) — e só quem apura no
+    // regime regular (pleno ou SN híbrido). SN padrão não credita.
+    const creditosSN = fornecedorSNHib && !compradorSN ? r2(cbsSNHib + ibsSNHib) : 0
     const liquidoSN = r2(bruto + cbsSNHib + ibsSNHib - creditosSN)
     return {
       lines,
