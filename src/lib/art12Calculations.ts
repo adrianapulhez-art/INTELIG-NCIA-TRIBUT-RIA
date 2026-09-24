@@ -39,7 +39,7 @@
  */
 
 export type ExercicioKey = 2026 | 2027 | 2028 | 2029 | 2030 | 2031 | 2032 | 2033
-export type RegimeId = 'presumido' | 'real' | 'simples'
+export type RegimeId = 'presumido' | 'real' | 'simples' | 'simples_hibrido'
 export type PerfilId = 'comercio' | 'industria'
 export type RepasseMode = 'integral' | 'parcial' | 'nenhum'
 export type Semaforo = 'verde' | 'ambar' | 'vermelho'
@@ -186,11 +186,17 @@ const fmt6 = (v: number): string =>
 const fmtMoney6 = (v: number): string => `${fmt6(v)} (R$ ${fmt(v)})`
 
 /** PIS/COFINS embutido no preço do fornecedor — ALÍQUOTA sobre BASE SEM ICMS (tese do século). */
-const EMBUTIDO: Record<RegimeId, number> = { presumido: 0.0365, real: 0.0925, simples: 0 }
+const EMBUTIDO: Record<RegimeId, number> = {
+  presumido: 0.0365,
+  real: 0.0925,
+  simples: 0,
+  simples_hibrido: 0,
+}
 export const EMBUTIDO_LABEL: Record<RegimeId, string> = {
   presumido: '3,65% (cumulativo — LP)',
   real: '9,25% (não cumulativo — LR)',
   simples: '— (SN)',
+  simples_hibrido: '— (SN híbrido — IBS/CBS por fora)',
 }
 
 /**
@@ -353,8 +359,10 @@ export function computeExercicioArt12(
   const frete = r2(input.freightValue * f)
 
   const fornecedorSN = config.fornecedorRegime === 'simples'
+  const fornecedorSNHib = config.fornecedorRegime === 'simples_hibrido'
   const compradorSN = config.compradorRegime === 'simples'
-  const pleno = !fornecedorSN && !compradorSN
+  const compradorSNHib = config.compradorRegime === 'simples_hibrido'
+  const pleno = !fornecedorSN && !fornecedorSNHib && !compradorSN && !compradorSNHib
   const leituraFisco = config.baseIcmsTransicao === 'fisco'
 
   // IPI: fora da base em todos (§2º, II); zerado 2027+ (CF 153 §3º + art. 454); ZFM mantém (ADCT 92-B)
@@ -516,8 +524,18 @@ export function computeExercicioArt12(
   })
 
   // 5) PIS e COFINS embutidos no preço de hoje — separados, sobre BASE SEM ICMS (tese do século)
-  const PIS_RATE: Record<RegimeId, number> = { presumido: 0.0065, real: 0.0165, simples: 0 }
-  const COFINS_RATE: Record<RegimeId, number> = { presumido: 0.03, real: 0.076, simples: 0 }
+  const PIS_RATE: Record<RegimeId, number> = {
+    presumido: 0.0065,
+    real: 0.0165,
+    simples: 0,
+    simples_hibrido: 0,
+  }
+  const COFINS_RATE: Record<RegimeId, number> = {
+    presumido: 0.03,
+    real: 0.076,
+    simples: 0,
+    simples_hibrido: 0,
+  }
   const baseSemIcmsRef = r2(mercReal + freteReal - icmsMercRef - icmsFreteRef)
   const pisRef = r2(baseSemIcmsRef * PIS_RATE[config.fornecedorRegime])
   const cofinsRef = r2(baseSemIcmsRef * COFINS_RATE[config.fornecedorRegime])
@@ -686,27 +704,60 @@ export function computeExercicioArt12(
   // 6) CBS e IBS — por fora (destacadas); sobre a base limpa
   const cbsV = r2(baseLimpa * (row.cbsRate / 100))
   const ibsV = r2(baseLimpa * (row.ibsRate / 100))
-  if (fornecedorSN) {
+  if (fornecedorSN || fornecedorSNHib) {
+    // ---- FORNECEDOR SN (padrão OU híbrido): nota congelada (LC 123/2006) ----
+    // Híbrido (LC 214/2025 art. 41 + Res. CGSN 186/2026): IBS/CBS saem do DAS e
+    // são destacados POR FORA na nota — premissa IT chancelada pela CEO (23/09):
+    // base do IBS/CBS = valor da operação SEM ICMS embutido (baseSemIcmsRef).
+    const cbsSNHib = fornecedorSNHib ? r2(baseSemIcmsRef * (row.cbsRate / 100)) : 0
+    const ibsSNHib = fornecedorSNHib ? r2(baseSemIcmsRef * (row.ibsRate / 100)) : 0
     lines.push({
       key: 'cbsibs',
-      label: 'CBS/IBS — sem destaque (fornecedor SN)',
-      formula: 'nota do Simples Nacional não destaca CBS/IBS',
-      value: 0,
-      kind: 'nota',
+      label: fornecedorSNHib
+        ? '(+) CBS/IBS destacados por fora (fornecedor SN híbrido)'
+        : 'CBS/IBS — sem destaque (fornecedor SN)',
+      formula: fornecedorSNHib
+        ? `${fmt(row.cbsRate)}% × ${fmt(baseSemIcmsRef)} = ${fmt(cbsSNHib)} + ${fmt(row.ibsRate)}% × ${fmt(baseSemIcmsRef)} = ${fmt(ibsSNHib)} — base sem ICMS (premissa IT)`
+        : 'nota do Simples Nacional não destaca CBS/IBS',
+      value: r2(cbsSNHib + ibsSNHib),
+      kind: fornecedorSNHib ? 'debito' : 'nota',
       bloco: 1,
       fundamento: {
-        dispositivo: 'LC 123/2006 (regime próprio do SN)',
-        efeito: 'sem destaque → sem crédito e sem acréscimo ao custo',
-        validade: 'condicionada',
-        nota: 'Congelamento da nota: hipótese da cadeia SN — validar na prática de mercado.',
+        dispositivo: fornecedorSNHib
+          ? 'LC 214/2025, art. 41 + LC 123/2006 + Res. CGSN 186/2026'
+          : 'LC 123/2006 (regime próprio do SN)',
+        efeito: fornecedorSNHib
+          ? 'regime regular de IBS/CBS no Simples: destaque por fora na nota — gera crédito ao adquirente'
+          : 'sem destaque → sem crédito e sem acréscimo ao custo',
+        validade: fornecedorSNHib ? 'condicionada' : 'condicionada',
+        nota: fornecedorSNHib
+          ? 'Premissa IT (chancelada pela CEO): base do IBS/CBS sem ICMS embutido — pendente de regulamentação detalhada. Demais tributos seguem no DAS.'
+          : 'Congelamento da nota: hipótese da cadeia SN — validar na prática de mercado.',
       },
     })
-    // Fornecedor SN: nota congelada — bloco 2 = bruto direto
+    if (fornecedorSNHib) {
+      lines.push({
+        key: 'preconota_snhib',
+        label: '(=) Preço da nota do fornecedor SN híbrido',
+        formula: `${fmt(bruto)} + CBS/IBS ${fmt(r2(cbsSNHib + ibsSNHib))}`,
+        value: r2(bruto + cbsSNHib + ibsSNHib),
+        kind: 'nota',
+        bloco: 1,
+        subtotal: 'preco_nota',
+        fundamento: {
+          dispositivo: 'LC 214/2025, art. 41 + LC 123/2006',
+          efeito: 'nota congelada + IBS/CBS por fora (regime regular no Simples)',
+          validade: 'condicionada',
+          nota: 'Premissa IT: base do IBS/CBS sem ICMS embutido.',
+        },
+      })
+    }
+    // Fornecedor SN (padrão ou híbrido): nota congelada — bloco 2 = bruto direto (+ CBS/IBS se híbrido)
     const creditosSN = 0
-    const liquidoSN = r2(bruto + 0 - creditosSN)
+    const liquidoSN = r2(bruto + cbsSNHib + ibsSNHib - creditosSN)
     return {
       lines,
-      bruto,
+      bruto: r2(bruto + cbsSNHib + ibsSNHib),
       creditos: creditosSN,
       debitos: 0,
       baseLimpa: null,
@@ -955,6 +1006,8 @@ export function computeExercicioArt12(
   })
 
   // Crédito ICMS do comprador — destaque na nota (tese define o tamanho do destaque)
+  // Comprador SN HÍBRIDO: IBS/CBS no regime regular, MAS ICMS/ISS/PIS/COFINS seguem
+  // no DAS (LC 214 art. 41) → NÃO credita ICMS nem PIS/COFINS da nota.
   const creditoIcms = pleno ? icmsNota : 0
   lines.push({
     key: 'creditoicms',
@@ -962,7 +1015,9 @@ export function computeExercicioArt12(
       ? '(−) Crédito ICMS destacado'
       : compradorSN
         ? '(−) ICMS destacado — sem crédito (comprador SN)'
-        : '(−) ICMS destacado — NF de fornecedor SN não destaca',
+        : compradorSNHib
+          ? '(−) ICMS destacado — sem crédito (SN híbrido: ICMS segue no DAS)'
+          : '(−) ICMS destacado — NF de fornecedor SN não destaca',
     formula: pleno
       ? `${fmt(precoNota)} × ${fmt(input.icmsRate)}% × ${fmt(row.icmsPct)}% (${leituraFisco ? 'tese do Fisco: base inclui CBS+IBS' : 'tese do Contribuinte: base sem CBS/IBS'})`
       : 'sem crédito',
@@ -982,28 +1037,38 @@ export function computeExercicioArt12(
   if (!compradorSN) {
     lines.push({
       key: 'creditocbs',
-      label: '(−) Crédito CBS',
-      formula: `${fmt(cbsV)} (débito destacado na nota)`,
+      label: compradorSNHib ? '(−) Crédito CBS (SN híbrido — destaque da nota)' : '(−) Crédito CBS',
+      formula: compradorSNHib
+        ? `${fmt(cbsV)} (débito destacado na nota do fornecedor)`
+        : `${fmt(cbsV)} (débito destacado na nota)`,
       value: -cbsV,
       kind: 'credito',
       bloco: 2,
       fundamento: {
         dispositivo: 'LC 214/2025, art. 47, §2º',
-        efeito: 'crédito do adquirente = débito destacado no documento fiscal',
+        efeito: compradorSNHib
+          ? 'SN híbrido apura IBS/CBS no regime regular — credita o destaque da nota'
+          : 'crédito do adquirente = débito destacado no documento fiscal',
         validade: 'integral',
-        nota: 'Apropriação condicionada à extinção do débito da operação (art. 47, caput).',
+        nota: compradorSNHib
+          ? 'Optante pelo regime regular de IBS/CBS no Simples (LC 214/2025, art. 41).'
+          : 'Apropriação condicionada à extinção do débito da operação (art. 47, caput).',
       },
     })
     lines.push({
       key: 'creditoibs',
-      label: '(−) Crédito IBS',
-      formula: `${fmt(ibsV)} (débito destacado na nota)`,
+      label: compradorSNHib ? '(−) Crédito IBS (SN híbrido — destaque da nota)' : '(−) Crédito IBS',
+      formula: compradorSNHib
+        ? `${fmt(ibsV)} (débito destacado na nota do fornecedor)`
+        : `${fmt(ibsV)} (débito destacado na nota)`,
       value: -ibsV,
       kind: 'credito',
       bloco: 2,
       fundamento: {
         dispositivo: 'LC 214/2025, art. 47, §2º',
-        efeito: 'crédito do adquirente = débito destacado no documento fiscal',
+        efeito: compradorSNHib
+          ? 'SN híbrido apura IBS/CBS no regime regular — credita o destaque da nota'
+          : 'crédito do adquirente = débito destacado no documento fiscal',
         validade: 'integral',
       },
     })
@@ -1162,9 +1227,15 @@ export function computeCellArt12(
   let porque: string
   if (!row.habilitado) {
     porque = 'Pendente de definição — sem cálculo.'
+  } else if (config.fornecedorRegime === 'simples_hibrido') {
+    porque =
+      'Fornecedor SN híbrido: nota congelada + IBS/CBS destacados por fora (LC 214/2025, art. 41) — o destaque gera crédito ao adquirente pleno. Premissa IT: base do IBS/CBS sem ICMS.'
   } else if (config.fornecedorRegime === 'simples') {
     porque =
       'Fornecedor SN: nota congelada (LC 123/2006), sem repasse e sem destaque. O custo do comprador muda apenas pelo lado dos créditos próprios.'
+  } else if (config.compradorRegime === 'simples_hibrido') {
+    porque =
+      'Comprador SN híbrido: credita IBS/CBS da nota (regime regular — LC 214/2025, art. 41), mas ICMS/PIS/COFINS seguem no DAS, sem crédito.'
   } else if (config.compradorRegime === 'simples') {
     porque =
       'Comprador SN não credita CBS/IBS (LC 123/2006 + art. 47): o destaque destacado na nota vira custo integral.'
@@ -1189,9 +1260,9 @@ export function reguasArt12(input: CmvArt12Input, config: CellConfigArt, row: Sc
   })
 }
 
-/** Matriz 3×3: comprador (linhas) × fornecedor (colunas). */
+/** Matriz 3×6: comprador (linhas) × fornecedor (colunas — SN ganhou a variante híbrida). */
 export function matrizArt12(input: CmvArt12Input, config: CellConfigArt, row: ScheduleRowArt) {
-  const regimes: RegimeId[] = ['presumido', 'real', 'simples']
+  const regimes: RegimeId[] = ['presumido', 'real', 'simples', 'simples_hibrido']
   return regimes.map((comprador) => ({
     comprador,
     cells: regimes.map((fornecedor) => {

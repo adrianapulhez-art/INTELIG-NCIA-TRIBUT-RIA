@@ -47,12 +47,14 @@ const REGIME_LABEL: Record<RegimeId, string> = {
   presumido: 'LP',
   real: 'LR',
   simples: 'SN',
+  simples_hibrido: 'SN híb',
 }
 
 const REGIME_LABEL_FULL: Record<RegimeId, string> = {
   presumido: 'Lucro Presumido',
   real: 'Lucro Real',
   simples: 'Simples Nacional',
+  simples_hibrido: 'Simples Nacional — regime regular IBS/CBS (híbrido)',
 }
 
 const SEMAFORO_STYLE: Record<Semaforo, { bg: string; icon: React.ReactNode }> = {
@@ -744,7 +746,7 @@ export function CmvArt12Module() {
           <div className="space-y-1">
             <label className="text-[9px] font-mono text-slate-500 uppercase">Fornecedor</label>
             <div className="flex gap-1">
-              {(['presumido', 'real', 'simples'] as RegimeId[]).map((rg) => (
+              {(['presumido', 'real', 'simples', 'simples_hibrido'] as RegimeId[]).map((rg) => (
                 <button
                   key={rg}
                   type="button"
@@ -784,7 +786,7 @@ export function CmvArt12Module() {
           <div className="space-y-1">
             <label className="text-[9px] font-mono text-slate-500 uppercase">Comprador</label>
             <div className="flex gap-1">
-              {(['presumido', 'real', 'simples'] as RegimeId[]).map((rg) => (
+              {(['presumido', 'real', 'simples', 'simples_hibrido'] as RegimeId[]).map((rg) => (
                 <button
                   key={rg}
                   type="button"
@@ -997,7 +999,7 @@ export function CmvArt12Module() {
             <thead>
               <tr className="text-slate-500">
                 <th className="text-left py-1 pr-2">Comprador ↓ / Fornecedor →</th>
-                {(['presumido', 'real', 'simples'] as RegimeId[]).map((f) => (
+                {(['presumido', 'real', 'simples', 'simples_hibrido'] as RegimeId[]).map((f) => (
                   <th key={f} className="text-left py-1 px-2">
                     {REGIME_LABEL_FULL[f]}
                   </th>
@@ -1053,6 +1055,11 @@ export function CmvArt12Module() {
                               SN não credita CBS/IBS — destaque vira custo
                             </div>
                           )}
+                          {linha.comprador === 'simples_hibrido' && (
+                            <div className="text-[8px] font-mono text-orange-300 mt-0.5">
+                              SN híbrido credita IBS/CBS da nota
+                            </div>
+                          )}
                         </button>
                       </td>
                     )
@@ -1064,7 +1071,8 @@ export function CmvArt12Module() {
         </div>
         <p className="text-[10px] font-mono text-slate-500">
           Célula em destaque = menor custo da matriz. Fornecedor SN: bruto congelado, sem destaque
-          de ICMS/CBS/IBS (LC 123/2006) — nota visível em cada memória.
+          de ICMS/CBS/IBS (LC 123/2006) — nota visível em cada memória. Fornecedor SN híbrido: nota
+          congelada + IBS/CBS por fora (LC 214/2025, art. 41) — premissa IT: base sem ICMS.
         </p>
       </div>
 
