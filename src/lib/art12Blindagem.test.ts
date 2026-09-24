@@ -1,32 +1,25 @@
 /**
  * ============================================================================
- * BLINDAGEM — CMV POR EXERCÍCIO ART. 12 (LC 214/2025) — v3 (23/09/2026)
+ * BLINDAGEM — CMV POR EXERCÍCIO ART. 12 (LC 214/2025) — v3 + SN HÍBRIDO
  * ============================================================================
- * Estrutura da proposta da CEO adotada (Opção A): PIS/COFINS sobre BASE SEM
- * ICMS (tese do século — STJ RE 1.188.403; STF Tema 1098), memória em 2 blocos
- * (formação do preço do fornecedor → custo da aquisição do comprador) e
- * seletor de tese sobre a base do ICMS na transição (fisco × contribuinte).
- *
- * v3 — APRESENTAÇÃO POR ELEMENTOS (pedido da CEO, 23/09): a memória exibe os
- * VALORES DOS ELEMENTOS analisados (mercadorias, frete, ICMS sobre mercadorias,
- * ICMS sobre fretes, PIS, COFINS — alíquota × base em cada linha, padrão
- * Markup), sem fator na exibição. O fator permanece internamente no motor.
- *
  * VALORES DE OURO v2 — caso canônico (30 un. × R$ 1.400,00 + frete R$ 400,00,
  * ICMS 18%, IPI 10% só indústria), derivados em Python independente e
  * CHANCELADOS PELA CEO (23/09, 07:19) — referência oficial do módulo.
+ * Ouros HÍBRIDOS (SN × regime regular IBS/CBS — art. 41 LC 214 + CGSN 186/2026)
+ * derivados em Python, confirmados ao vivo na matriz (23/09) — premissa IT
+ * chancelada pela CEO: base do IBS/CBS do fornecedor SN híbrido = VO sem ICMS.
  * ============================================================================
- * INVARIANTES TRAVADAS (ouros chancelados — NÃO MUDAM na v3):
+ * INVARIANTES TRAVADAS:
  * - Cadeia plena integral 2027–2032: base limpa 33.498,97 · custo 1.116,63/un
  *   (−3,65%) nas DUAS teses (o crédito lava o destaque).
  * - Réguas 2027: integral 1.116,63 (−3,65%) · parcial 50% 1.137,78 (−1,82%) ·
  *   nenhum 1.158,93 (0,00%).
- * - Escada régua NENHUM: 1.158,93 (2026–2028, flat) → 1.184,37 (2029) →
- *   1.209,81 (2030) → 1.235,25 (2031) → 1.260,69 (2032); degrau +25,44/un.
+ * - Escada régua NENHUM: 1.158,93 (2026–2028, flat) → 1.260,69 (2032).
  * - Matriz 2027 (tese do Fisco): LP×LP 1.116,63 · LR×LR 1.051,73 (0,00%) ·
  *   SN×LP 1.482,94 · SN×LR 1.396,75 · SN×SN 1.413,33.
- * - Tese do Contribuinte: nota 43.833,81 · SN×LP 1.461,13 (pleno idêntico).
- * - HOJE: 1.158,93 (LP) / 1.051,73 (LR) — intocado.
+ * - Híbridos: LP×SN-híb 1.413,33 · SN-híb×LP 1.383,56 (−2,11%) ·
+ *   SN-híb×LR 1.303,15 (−7,80%) · SN×SN-híb 1.516,48 (+7,30%, pior caso).
+ * - HOJE: 1.158,93 (LP) / 1.051,73 (LR) — intocado; HOJE não conhece híbrido.
  * - 2026: sem reprecificação (f=1) — custo = HOJE nas cadeias plenas.
  * - 2033: pendente de definição (§2º, V expira em 31/12/2032).
  */
@@ -54,14 +47,9 @@ describe('CMV Art. 12 v2 — invariante central (cadeia plena neutra)', () => {
         expect(fmt(cell.exercicio.baseLimpa!)).toBe('33498.97')
         expect(fmt(cell.exercicio.unitario)).toBe('1116.63')
         expect(fmt(cell.deltaPct)).toBe('-3.65')
-})
-
-describe('CMV Art. 12 v2 — indústria e ZFM (IPI §2º, II)', () => {
-=======
-=======
-})
-
-describe('CMV Art. 12 v2 — indústria e ZFM (IPI §2º, II)', () => {
+      }
+    }
+  })
 
   it('fator de repasse v2: (1−ICMS)×(1−PIS/COFINS)÷(1−ICMS×fração) — 2027 LP = 0,963500', () => {
     const row2027 = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
@@ -234,7 +222,7 @@ describe('CMV Art. 12 v2 — réguas de repasse (quem absorve)', () => {
   })
 })
 
-describe('CMV Art. 12 v2 — matriz 3×3 (2027)', () => {
+describe('CMV Art. 12 v2 — matriz (2027)', () => {
   const row = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
 
   it('ouro por célula — tese do FISCO (unitário/delta vs próprio HOJE)', () => {
@@ -388,15 +376,9 @@ describe('CMV Art. 12 — SN HÍBRIDO (LC 214/2025 art. 41 + Res. CGSN 186/2026)
     const matriz = matrizArt12(CASO_CANONICO_ART12, { ...CONFIG_PADRAO_ART12 }, row)
     const all = matriz.flatMap((l) => l.cells.map((c) => c.cell.exercicio.unitario))
     expect(fmt(Math.min(...all))).toBe('1051.73')
-
-describe('CMV Art. 12 v2 — indústria e ZFM (IPI §2º, II)', () => {
-=======
     expect(fmt(Math.max(...all))).toBe('1516.48')
   })
 })
-
-describe('CMV Art. 12 v2 — indústria e ZFM (IPI §2º, II)', () => {
-=======
 
 describe('CMV Art. 12 v2 — indústria e ZFM (IPI §2º, II)', () => {
   it('fornecedor indústria 2027: IPI zerado (CF 153 §3º + art. 454) — linha de nota', () => {
