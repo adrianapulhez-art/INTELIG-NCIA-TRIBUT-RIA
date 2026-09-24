@@ -56,7 +56,12 @@ describe('CMV Art. 12 v2 — invariante central (cadeia plena neutra)', () => {
         expect(fmt(cell.deltaPct)).toBe('-3.65')
       }
     }
-  })
+  
+describe('CMV Art. 12 v2 — indústria e ZFM (IPI §2º, II)', () => {
+=======
+})
+
+describe('CMV Art. 12 v2 — indústria e ZFM (IPI §2º, II)', () => {
 
   it('fator de repasse v2: (1−ICMS)×(1−PIS/COFINS)÷(1−ICMS×fração) — 2027 LP = 0,963500', () => {
     const row2027 = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
@@ -286,6 +291,107 @@ describe('CMV Art. 12 v2 — matriz 3×3 (2027)', () => {
     expect(fmt(Math.min(...all))).toBe('1051.73')
   })
 })
+
+describe('CMV Art. 12 — SN HÍBRIDO (LC 214/2025 art. 41 + Res. CGSN 186/2026)', () => {
+  const row = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
+  // Ouros híbridos derivados em Python e confirmados ao vivo na matriz (23/09).
+  // Premissa chancelada pela CEO: base do IBS/CBS do fornecedor SN híbrido = VO sem ICMS.
+  const ourosHib: Record<string, { unit: string; delta: string }> = {
+    'presumido|simples_hibrido': { unit: '1413.33', delta: '0.00' }, // lava no crédito
+    'real|simples_hibrido': { unit: '1413.33', delta: '0.00' },
+    'simples|simples_hibrido': { unit: '1516.48', delta: '7.30' }, // pior caso
+    'simples_hibrido|presumido': { unit: '1383.56', delta: '-2.11' },
+    'simples_hibrido|real': { unit: '1303.15', delta: '-7.80' }, // menor custo da linha
+    'simples_hibrido|simples': { unit: '1413.33', delta: '0.00' },
+    'simples_hibrido|simples_hibrido': { unit: '1413.33', delta: '0.00' },
+  }
+
+  it('ouros por célula híbrida — tese do FISCO', () => {
+    const matriz = matrizArt12(CASO_CANONICO_ART12, { ...CONFIG_PADRAO_ART12 }, row)
+    const get = (c: string, f: string) => {
+      const linha = matriz.find((l) => l.comprador === c)!
+      return linha.cells.find((x) => x.fornecedor === f)!.cell
+    }
+    for (const [par, ouro] of Object.entries(ourosHib)) {
+      const [c, f] = par.split('|')
+      const cell = get(c, f)
+      expect(fmt(cell.exercicio.unitario), `${c}×${f} unit`).toBe(ouro.unit)
+      expect(fmt(cell.deltaPct), `${c}×${f} delta`).toBe(ouro.delta)
+    }
+  })
+
+  it('fornecedor SN híbrido: nota congelada + CBS/IBS por fora sobre base SEM ICMS (premissa IT)', () => {
+    const cell = computeCellArt12(
+      CASO_CANONICO_ART12,
+      { ...CONFIG_PADRAO_ART12, fornecedorRegime: 'simples_hibrido' },
+      row,
+    )
+    const get = (k: string) => cell.exercicio.lines.find((l) => l.key === k)!
+    expect(fmt(get('cbsibs').value)).toBe('3094.35') // CBS 3.059,58 + IBS 34,77
+    expect(get('cbsibs').formula).toContain('base sem ICMS')
+    expect(get('cbsibs').fundamento.dispositivo).toContain('art. 41')
+    // Fundamento neutro (auditoria v0.0.241): crédito depende do regime do ADQUIRENTE
+    expect(get('cbsibs').fundamento.efeito).toContain('depende do regime')
+    expect(fmt(get('preconota_snhib').value)).toBe('45494.35')
+    expect(fmt(cell.exercicio.bruto)).toBe('45494.35')
+  })
+
+  it('comprador SN padrão sobre fornecedor híbrido: SEM crédito — destaque vira custo (art. 47 + LC 123)', () => {
+    const cell = computeCellArt12(
+      CASO_CANONICO_ART12,
+      {
+        ...CONFIG_PADRAO_ART12,
+        fornecedorRegime: 'simples_hibrido',
+        compradorRegime: 'simples',
+      },
+      row,
+    )
+    const creditos = cell.exercicio.lines.filter((l) => l.kind === 'credito' && l.bloco === 2)
+    const somaCreditos = creditos.reduce((acc, l) => acc + l.value, 0)
+    expect(fmt(somaCreditos)).toBe('-0.00')
+    expect(fmt(cell.exercicio.unitario)).toBe('1516.48')
+  })
+
+  it('comprador SN HÍBRIDO: credita CBS/IBS da nota, NÃO credita ICMS nem PIS/COFINS (seguem no DAS)', () => {
+    const cell = computeCellArt12(
+      CASO_CANONICO_ART12,
+      {
+        ...CONFIG_PADRAO_ART12,
+        fornecedorRegime: 'presumido',
+        compradorRegime: 'simples_hibrido',
+      },
+      row,
+    )
+    const get = (k: string) => cell.exercicio.lines.find((l) => l.key === k)!
+    expect(fmt(get('creditocbs').value)).toBe('-2947.91')
+    expect(fmt(get('creditoibs').value)).toBe('-33.50')
+    expect(get('creditocbs').fundamento.efeito).toContain('regime regular')
+    const creditoIcms = get('creditoicms')
+    expect(creditoIcms.value).toBe(0)
+    expect(creditoIcms.label).toContain('DAS')
+  })
+
+  it('HOJE não conhece o híbrido (opção a partir de 2027): trata como SN padrão', () => {
+    const cell = computeCellArt12(
+      CASO_CANONICO_ART12,
+      {
+        ...CONFIG_PADRAO_ART12,
+        fornecedorRegime: 'simples_hibrido',
+        compradorRegime: 'simples_hibrido',
+      },
+      row,
+    )
+    expect(fmt(cell.hoje.unitario)).toBe('1413.33')
+  })
+
+  it('matriz 4×4: menor custo geral segue LR×LR (1.051,73); pior caso = SN×SN-híb (1.516,48)', () => {
+    const matriz = matrizArt12(CASO_CANONICO_ART12, { ...CONFIG_PADRAO_ART12 }, row)
+    const all = matriz.flatMap((l) => l.cells.map((c) => c.cell.exercicio.unitario))
+    expect(fmt(Math.min(...all))).toBe('1051.73')
+    expect(fmt(Math.max(...all))).toBe('1516.48')
+  })
+})
+=======
 
 describe('CMV Art. 12 v2 — indústria e ZFM (IPI §2º, II)', () => {
   it('fornecedor indústria 2027: IPI zerado (CF 153 §3º + art. 454) — linha de nota', () => {
