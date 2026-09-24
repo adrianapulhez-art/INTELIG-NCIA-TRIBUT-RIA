@@ -734,7 +734,7 @@ export function computeExercicioArt12(
           ? 'LC 214/2025, art. 41 + LC 123/2006 + Res. CGSN 186/2026'
           : 'LC 123/2006 (regime próprio do SN)',
         efeito: fornecedorSNHib
-          ? 'regime regular de IBS/CBS no Simples: destaque por fora na nota — gera crédito ao adquirente'
+          ? 'regime regular de IBS/CBS no Simples: destaque por fora na nota (art. 41) — o crédito do adquirente depende do regime DELE (art. 47)'
           : 'sem destaque → sem crédito e sem acréscimo ao custo',
         validade: fornecedorSNHib ? 'condicionada' : 'condicionada',
         nota: fornecedorSNHib
