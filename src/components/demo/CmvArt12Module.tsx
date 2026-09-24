@@ -88,6 +88,110 @@ const VALIDADE_STYLE: Record<string, { label: string; cls: string }> = {
   },
 }
 
+function MatrizResumoDialog({
+  matriz,
+  menorCusto,
+  exercicio,
+  open,
+  onOpenChange,
+  onAbrirCelula,
+}: {
+  matriz: ReturnType<typeof matrizArt12>
+  menorCusto: number
+  exercicio: ExercicioKey
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onAbrirCelula: (comprador: RegimeId, fornecedor: RegimeId, cell: CellResultArt) => void
+}) {
+  const regimes: RegimeId[] = ['presumido', 'real', 'simples', 'simples_hibrido']
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+            <Calculator className="w-5 h-5 text-emerald-400" />
+            <span>Resultado: COMPRADOR × FORNECEDOR — Exercício {exercicio}</span>
+          </DialogTitle>
+          <DialogDescription className="text-xs text-slate-400">
+            Custo unitário do CMV (e Δ vs o HOJE do próprio cruzamento) em cada célula. Clique na
+            célula para abrir a memória de cálculo completa.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[11px] font-mono border-collapse">
+            <thead>
+              <tr className="text-slate-400">
+                <th className="text-left py-2 pr-3 border-b border-slate-700">
+                  COMPRADOR ↓ / FORNECEDOR →
+                </th>
+                {regimes.map((f) => (
+                  <th key={f} className="text-left py-2 px-2 border-b border-slate-700">
+                    {REGIME_LABEL[f]}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {matriz.map((linha) => (
+                <tr key={linha.comprador}>
+                  <td className="py-2 pr-3 font-black text-slate-200 border-b border-slate-800/60">
+                    {REGIME_LABEL[linha.comprador]}
+                  </td>
+                  {linha.cells.map(({ fornecedor, cell }) => {
+                    const isMenor = cell.exercicio.unitario === menorCusto
+                    return (
+                      <td key={fornecedor} className="py-1 px-1 border-b border-slate-800/60">
+                        <button
+                          type="button"
+                          onClick={() => onAbrirCelula(linha.comprador, fornecedor, cell)}
+                          className={`w-full text-left rounded-lg border p-2 cursor-pointer hover:brightness-125 ${
+                            isMenor
+                              ? 'border-emerald-400/70 bg-emerald-500/10 ring-1 ring-emerald-400/60'
+                              : 'border-slate-700/60 bg-slate-900/40'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-black text-white text-[11px]">
+                              {formatBRL(cell.exercicio.unitario)}/un
+                            </span>
+                            {isMenor && (
+                              <span className="text-[8px] font-mono font-bold text-emerald-300 border border-emerald-500/50 rounded px-1">
+                                MENOR
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            className={
+                              cell.deltaPct > 0
+                                ? 'text-rose-300'
+                                : cell.deltaPct < 0
+                                  ? 'text-emerald-300'
+                                  : 'text-slate-400'
+                            }
+                          >
+                            {cell.deltaPct > 0 ? '+' : ''}
+                            {formatNumberBR(cell.deltaPct)}%
+                          </div>
+                        </button>
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[10px] font-mono text-slate-500">
+          LP = Lucro Presumido · LR = Lucro Real · SN = Simples Nacional (padrão) · SNH = SN híbrido
+          (regime regular IBS/CBS — LC 214/2025, art. 41). Fornecedor SN/SNH: nota congelada.
+          Premissa IT: base do IBS/CBS do fornecedor SNH sem ICMS. Célula em destaque = menor custo
+          da matriz.
+        </p>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function BlocoMemoryDialog({
   side,
   bloco,
@@ -546,6 +650,7 @@ export function CmvArt12Module() {
     bloco: number
     label: string
   } | null>(null)
+  const [matrizModal, setMatrizModal] = useState<{ open: boolean }>({ open: false })
 
   const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
 
@@ -989,90 +1094,25 @@ export function CmvArt12Module() {
         </p>
       </div>
 
-      {/* ================= Matriz 3×3 ================= */}
+      {/* ================= Matriz — RESUMO na tela + TABELA COMPLETA na camada interna ================= */}
       <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-2">
-        <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-          Matriz — comprador (linhas) × fornecedor (colunas) · Exercício {exercicio}
-        </span>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[10px] font-mono">
-            <thead>
-              <tr className="text-slate-500">
-                <th className="text-left py-1 pr-2">Comprador ↓ / Fornecedor →</th>
-                {(['presumido', 'real', 'simples', 'simples_hibrido'] as RegimeId[]).map((f) => (
-                  <th key={f} className="text-left py-1 px-2">
-                    {REGIME_LABEL_FULL[f]}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {matriz.map((linha) => (
-                <tr key={linha.comprador}>
-                  <td className="py-1 pr-2 font-bold text-slate-300">
-                    {REGIME_LABEL_FULL[linha.comprador]}
-                  </td>
-                  {linha.cells.map(({ fornecedor, cell }) => {
-                    const st = SEMAFORO_STYLE[cell.semaforo]
-                    const isMenor = cell.exercicio.unitario === menorCusto
-                    return (
-                      <td key={fornecedor} className="p-1">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setMemoryCell({
-                              label: `${REGIME_LABEL[linha.comprador]} × ${REGIME_LABEL[fornecedor]} — ${exercicio}`,
-                              cell,
-                              row,
-                            })
-                          }
-                          className={`w-full text-left rounded-lg border p-2 cursor-pointer hover:brightness-125 ${st.bg} ${isMenor ? 'ring-2 ring-emerald-400/70' : ''}`}
-                        >
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="font-black text-white text-[11px]">
-                              {formatBRL(cell.exercicio.unitario)}/un
-                            </span>
-                            {isMenor && (
-                              <span className="text-[8px] font-mono font-bold text-emerald-300 border border-emerald-500/50 rounded px-1">
-                                MENOR CUSTO
-                              </span>
-                            )}
-                          </div>
-                          <div
-                            className={
-                              cell.deltaPct > 0
-                                ? 'text-rose-300'
-                                : cell.deltaPct < 0
-                                  ? 'text-emerald-300'
-                                  : 'text-slate-400'
-                            }
-                          >
-                            {cell.deltaPct > 0 ? '+' : ''}
-                            {formatNumberBR(cell.deltaPct)}%
-                          </div>
-                          {linha.comprador === 'simples' && (
-                            <div className="text-[8px] font-mono text-amber-300 mt-0.5">
-                              SN não credita CBS/IBS — destaque vira custo
-                            </div>
-                          )}
-                          {linha.comprador === 'simples_hibrido' && (
-                            <div className="text-[8px] font-mono text-orange-300 mt-0.5">
-                              SN híbrido credita IBS/CBS da nota
-                            </div>
-                          )}
-                        </button>
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+            Cruzamento de regimes · Exercício {exercicio}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setMatrizModal({ open: true })}
+            className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+          >
+            <Calculator className="w-3.5 h-3.5 mr-1" /> Ver tabela completa (4×4)
+          </Button>
         </div>
         <p className="text-[10px] font-mono text-slate-500">
-          Célula em destaque = menor custo da matriz. Fornecedor SN: bruto congelado, sem destaque
-          de ICMS/CBS/IBS (LC 123/2006) — nota visível em cada memória. Fornecedor SN híbrido: nota
-          congelada + IBS/CBS por fora (LC 214/2025, art. 41) — premissa IT: base sem ICMS.
+          Os 16 cruzamentos comprador × fornecedor, com custo unitário e Δ — na camada interna.
+          Fornecedor SN: nota congelada (LC 123/2006). Fornecedor SN híbrido: IBS/CBS por fora (art.
+          41) — premissa IT: base sem ICMS.
         </p>
       </div>
 
@@ -1105,6 +1145,21 @@ export function CmvArt12Module() {
           contexto={`Exercício ${exercicio} · ${REGIME_LABEL_FULL[config.fornecedorRegime]} (fornecedor) × ${REGIME_LABEL_FULL[config.compradorRegime]} (comprador) · derivação de 6 casas por linha · base legal por linha`}
         />
       )}
+      <MatrizResumoDialog
+        matriz={matriz}
+        menorCusto={menorCusto}
+        exercicio={exercicio}
+        open={matrizModal.open}
+        onOpenChange={(o) => setMatrizModal({ open: o })}
+        onAbrirCelula={(comprador, fornecedor, cell) => {
+          setMatrizModal({ open: false })
+          setMemoryCell({
+            label: `${REGIME_LABEL[comprador]} × ${REGIME_LABEL[fornecedor]} — ${exercicio}`,
+            cell,
+            row,
+          })
+        }}
+      />
     </div>
   )
 }
