@@ -54,10 +54,10 @@ describe('CMV Art. 12 v2 — invariante central (cadeia plena neutra)', () => {
         expect(fmt(cell.exercicio.baseLimpa!)).toBe('33498.97')
         expect(fmt(cell.exercicio.unitario)).toBe('1116.63')
         expect(fmt(cell.deltaPct)).toBe('-3.65')
-      }
-    }
-  
+})
+
 describe('CMV Art. 12 v2 — indústria e ZFM (IPI §2º, II)', () => {
+=======
 =======
 })
 
@@ -388,9 +388,14 @@ describe('CMV Art. 12 — SN HÍBRIDO (LC 214/2025 art. 41 + Res. CGSN 186/2026)
     const matriz = matrizArt12(CASO_CANONICO_ART12, { ...CONFIG_PADRAO_ART12 }, row)
     const all = matriz.flatMap((l) => l.cells.map((c) => c.cell.exercicio.unitario))
     expect(fmt(Math.min(...all))).toBe('1051.73')
+
+describe('CMV Art. 12 v2 — indústria e ZFM (IPI §2º, II)', () => {
+=======
     expect(fmt(Math.max(...all))).toBe('1516.48')
   })
 })
+
+describe('CMV Art. 12 v2 — indústria e ZFM (IPI §2º, II)', () => {
 =======
 
 describe('CMV Art. 12 v2 — indústria e ZFM (IPI §2º, II)', () => {
