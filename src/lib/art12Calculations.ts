@@ -309,15 +309,21 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
   })
 
   const basePis = r2(merc - icmsMerc + (frete - icmsFrete))
-  const creditoPis = config.fornecedorRegime === 'real' && pleno ? r2(basePis * 0.0925) : 0
+  // Crédito PIS/COFINS exige AMBOS: fornecedor LR (destaca) E comprador LR (apropria — regime
+  // não cumulativo). Comprador LP NÃO credita PIS/COFINS (só ICMS) — correção auditada com a CEO.
+  const compradorLR = config.compradorRegime === 'real'
+  const creditoPis =
+    config.fornecedorRegime === 'real' && compradorLR && pleno ? r2(basePis * 0.0925) : 0
   lines.push({
     key: 'piscofins',
     label: '(−) Crédito PIS/COFINS',
     formula:
       config.fornecedorRegime === 'real'
-        ? pleno
+        ? compradorLR && pleno
           ? `${fmt(basePis)} × 9,25% (base sem ICMS — tese do século)`
-          : 'Comprador SN — sem crédito'
+          : config.compradorRegime === 'simples' || config.compradorRegime === 'simples_hibrido'
+            ? 'Comprador SN — sem crédito'
+            : 'Comprador LP — sem crédito de PIS/COFINS (só ICMS)'
         : config.fornecedorRegime === 'presumido'
           ? 'cumulativo — sem aproveitamento'
           : 'fornecedor SN — sem destaque',

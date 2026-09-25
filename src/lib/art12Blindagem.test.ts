@@ -69,6 +69,17 @@ describe('CMV Art. 12 v2 — invariante central (cadeia plena neutra)', () => {
       row,
     )
     expect(fmt(lr.hoje.unitario)).toBe('1051.73')
+    // FIX 25/09 (auditado com a CEO): comprador LP NÃO credita PIS/COFINS — só o LR credita.
+    // LP×LR HOJE: créditos = só ICMS (7.632) → compras líq 34.768 → 1.158,93 (era 10.848,04 → 1.051,73)
+    const lpXlr = computeCellArt12(
+      CASO_CANONICO_ART12,
+      { ...CONFIG_PADRAO_ART12, fornecedorRegime: 'real', compradorRegime: 'presumido' },
+      row,
+    )
+    expect(fmt(lpXlr.hoje.unitario)).toBe('1158.93')
+    const piscofins = lpXlr.hoje.lines.find((l) => l.key === 'piscofins')!
+    expect(piscofins.value).toBe(0)
+    expect(piscofins.formula).toContain('Comprador LP')
   })
 
   it('2026: sem reprecificação (f=1) e custo idêntico ao HOJE nas cadeias plenas (CBS teste compensável)', () => {
@@ -235,8 +246,9 @@ describe('CMV Art. 12 v2 — matriz (2027)', () => {
     expect(fmt(get('presumido', 'presumido').exercicio.unitario)).toBe('1116.63')
     expect(fmt(get('real', 'real').exercicio.unitario)).toBe('1051.73')
     expect(fmt(get('real', 'real').deltaPct)).toBe('0.00') // LR×LR NEUTRO — já creditava PIS/COFINS
+    // FIX 25/09: LP×LR — exercício 1.051,73 vs HOJE corrigido 1.158,93 → −9,25% (não mais 0,00%)
     expect(fmt(get('presumido', 'real').exercicio.unitario)).toBe('1051.73')
-    expect(fmt(get('presumido', 'real').deltaPct)).toBe('0.00')
+    expect(fmt(get('presumido', 'real').deltaPct)).toBe('-9.25')
     expect(fmt(get('real', 'presumido').exercicio.unitario)).toBe('1116.63')
     expect(fmt(get('real', 'presumido').deltaPct)).toBe('-3.65')
     // Comprador SN: destaque vira custo integral
