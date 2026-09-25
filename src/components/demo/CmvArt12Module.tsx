@@ -9,7 +9,7 @@ import {
   ShieldAlert,
   ShieldCheck,
 } from 'lucide-react'
-import { useTaxContext } from '@/contexts/TaxContext'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -636,10 +636,8 @@ function CellMemoryDialogArt({
 }
 
 export function CmvArt12Module() {
-  const { purchasesItems } = useTaxContext()
   const [exercicio, setExercicio] = useState<ExercicioKey>(2027)
   const [config, setConfig] = useState<CellConfigArt>(CONFIG_PADRAO_ART12)
-  const [usarCompras] = useState(false)
   const [memoryCell, setMemoryCell] = useState<{
     label: string
     cell: CellResultArt
@@ -658,24 +656,7 @@ export function CmvArt12Module() {
 
   const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
 
-  const input = useMemo(() => {
-    if (usarCompras && purchasesItems.length > 0) {
-      const quantity = purchasesItems.reduce((acc, it) => acc + (it.quantity || 0), 0)
-      const merchandise = purchasesItems.reduce((acc, it) => acc + (it.merchandiseValue || 0), 0)
-      const freight = purchasesItems.reduce((acc, it) => acc + (it.freightValue || 0), 0)
-      const unitPrice = quantity > 0 ? r2(merchandise / quantity) : 0
-      const icmsTotal = purchasesItems.reduce((acc, it) => acc + (it.calculatedIcms || 0), 0)
-      const icmsRate = merchandise > 0 ? r2((icmsTotal / merchandise) * 100) : 18
-      const icmsFreightTotal = purchasesItems.reduce(
-        (acc, it) => acc + (it.calculatedIcmsFreight || 0),
-        0,
-      )
-      const icmsFreightRate = freight > 0 ? r2((icmsFreightTotal / freight) * 100) : 18
-      const ipiRate = r2(purchasesItems[0]?.ipiRate || 0)
-      return { quantity, unitPrice, freightValue: freight, icmsRate, icmsFreightRate, ipiRate }
-    }
-    return CASO_CANONICO_ART12
-  }, [usarCompras, purchasesItems])
+  const input = useMemo(() => CASO_CANONICO_ART12, [])
 
   const activeCell = useMemo(() => computeCellArt12(input, config, row), [input, config, row])
   const reguas = useMemo(() => reguasArt12(input, config, row), [input, config, row])
@@ -796,12 +777,6 @@ export function CmvArt12Module() {
           </div>
         )}
       </div>
-
-      {/* ================= Parâmetros do caso canônico ================= */}
-      <p className="text-[10px] font-mono text-slate-500">
-        Caso canônico: 30 un. × R$ 1.400,00 + frete R$ 400,00 · ICMS 18% · IPI 10% (só indústria) ·
-        custo HOJE canônico R$ 1.158,93/un.
-      </p>
 
       {/* ================= Configuração da célula ================= */}
       <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-3">
