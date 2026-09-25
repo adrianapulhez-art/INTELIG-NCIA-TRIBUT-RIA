@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { FileText } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -11,6 +10,7 @@ import {
 import {
   type CellResultArt,
   type ExercicioKey,
+  type RegimeId,
   type RepasseMode,
   type ScheduleRowArt,
   type SideResultArt,
@@ -19,10 +19,26 @@ import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 
 /**
  * NOTAS EXPLICATIVAS — relatório da situação, atrelado ao CARD (pedido da CEO, 25/09).
- * Cada quadro de bloco (Formação do preço do fornecedor / Custo da aquisição do comprador)
- * ganha o botão abaixo do "Memória + base legal"; a nota pormenoriza a situação daquele
- * card específico: o que a escolha gerou, com os números reais da memória exibida.
+ * Modelo: relatório LP×LP elaborado pela própria CEO (ótica do fornecedor → ótica do
+ * adquirente → confronto pré × pós-reforma → estratégia → pendência). Replicado para
+ * cada combinação de regimes e cada cenário de repasse, com os números REAIS da célula.
+ * REGRA INEGOCIÁVEL: nunca inventar informação — todo número vem da memória do card;
+ * toda leitura vem de dispositivo legal (LC 214/2025, LC 123/2006, EC 132/2023) ou da
+ * aritmética do motor chancelado. Pendências são marcadas como pendências.
  */
+
+const REGIME_NOME: Record<RegimeId, string> = {
+  presumido: 'Lucro Presumido',
+  real: 'Lucro Real',
+  simples: 'Simples Nacional',
+  simples_hibrido: 'Simples Nacional híbrido',
+}
+
+const REPASSE_NOME: Record<RepasseMode, string> = {
+  integral: 'repasse integral',
+  parcial: 'repasse parcial',
+  nenhum: 'sem repasse',
+}
 
 function Par({ children }: { children: React.ReactNode }) {
   return (
@@ -47,13 +63,280 @@ function LinhaRelato({ label, valor }: { label: string; valor: string }) {
   )
 }
 
-/** Extrai o valor de uma linha do bloco pela key (para relatar com número real). */
 const val = (side: SideResultArt, key: string) => {
   const l = side.lines.find((x) => x.key === key)
   return l ? l.value : 0
 }
 
-/** Nota explicativa de UM bloco (card) — relato da situação com os números do próprio card. */
+/** Tabela de memória de cálculo no formato do relatório da CEO. */
+function TabelaMemoria({ linhas }: { linhas: { label: string; valor: string; destaque?: boolean }[] }) {
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-2 space-y-0.5">
+      {linhas.map((l, i) => (
+        <div
+          key={i}
+          className={`flex items-center justify-between gap-2 px-1.5 py-0.5 rounded ${l.destaque ? 'bg-orange-500/10 border border-orange-500/40' : ''}`}
+        >
+          <span className={`text-[10px] font-mono ${l.destaque ? 'font-bold text-orange-300' : 'text-slate-400'}`}>
+            {l.label}
+          </span>
+          <span className={`text-[10px] font-mono ${l.destaque ? 'font-black text-orange-300' : 'font-bold text-slate-100'}`}>
+            {l.valor}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** ============================================================
+ * NOTA DA CÉLULA DO ESPELHO — relato pormenorizado da combinação
+ * COMPRADOR × FORNECEDOR × REPASSE, no modelo do relatório da CEO.
+ * ============================================================ */
+export function NotaExplicativaCelula({
+  cell,
+  row,
+  exercicio,
+  comprador,
+  fornecedor,
+  repasse,
+  repassePct,
+}: {
+  cell: CellResultArt
+  row: ScheduleRowArt
+  exercicio: ExercicioKey
+  comprador: RegimeId
+  fornecedor: RegimeId
+  repasse: RepasseMode
+  repassePct: number
+}) {
+  const nomeC = REGIME_NOME[comprador]
+  const nomeF = REGIME_NOME[fornecedor]
+  const hojeU = cell.hoje.unitario
+  const novoU = cell.exercicio.unitario
+  const d = cell.deltaPct
+  const snC = comprador === 'simples'
+  const snhC = comprador === 'simples_hibrido'
+  const snF = fornecedor === 'simples'
+  const snhF = fornecedor === 'simples_hibrido'
+  const plenoF = !snF && !snhF
+  const repasseTxt =
+    repasse === 'parcial'
+      ? `repasse parcial (${formatNumberBR(repassePct)}%)`
+      : repasse === 'nenhum'
+        ? 'sem repasse'
+        : 'repasse integral'
+
+  // números reais da célula
+  const brutoEx = cell.exercicio.bruto
+  const credEx = cell.exercicio.creditos
+  const liqEx = cell.exercicio.liquido
+  const cbsV = Math.abs(val(cell.exercicio, 'cbs'))
+  const ibsV = Math.abs(val(cell.exercicio, 'ibs'))
+  const icmsNota = Math.abs(val(cell.exercicio, 'creditoicms'))
+  const credHoje = cell.hoje.creditos
+  const liqHoje = cell.hoje.liquido
+  const brutoHoje = cell.hoje.bruto
+
+  const repasseTxt2 =
+    repasse === 'parcial'
+      ? `repasse parcial (${formatNumberBR(repassePct)}%)`
+      : repasse === 'nenhum'
+        ? 'sem repasse'
+        : 'repasse integral'
+
+  return (
+    <div className="space-y-3">
+      <div className="text-[11px] font-mono font-black uppercase text-orange-300">
+        ADQUIRENTE {nomeC.toUpperCase()} × FORNECEDOR {nomeF.toUpperCase()} · Exercício {exercicio} ·{' '}
+        {repasseTxt2}
+      </div>
+
+      {/* ============ ÓTICA DO FORNECEDOR ============ */}
+      <div className="space-y-1.5">
+        <TituloNota>1. Análise sob a ótica do fornecedor</TituloNota>
+        <Par>
+          {snF ? (
+            <>
+              A nota do fornecedor do Simples Nacional é <b className="text-slate-100">congelada</b>{' '}
+              (LC 123/2006): o Simples recolhe por dentro do DAS, sem destaque de tributo na nota.
+              Não há reprecificação a analisar — o preço dele não se altera com a Reforma, e não há
+              CBS/IBS destacados para o adquirente recuperar. Quem define o resultado desta
+              combinação é o regime do adquirente.
+            </>
+          ) : snhF ? (
+            <>
+              O fornecedor do SN híbrido optou pelo regime regular de IBS/CBS (LC 214/2025, art. 41):
+              mantém a nota no valor de hoje (congelada) e destaca CBS e IBS por fora —{' '}
+              <b className="text-slate-100">{formatBRL(cbsV)}</b> e{' '}
+              <b className="text-slate-100">{formatBRL(ibsV)}</b> sobre a base sem ICMS (premissa IT,
+              pendente de regulamentação). O líquido dele fica preservado e o destaque gera crédito
+              ao adquirente em regime regular (art. 47).
+            </>
+          ) : (
+            <>
+              Para recompor a base líquida com a mesma condição do sistema pré-reforma, o fornecedor{' '}
+              {nomeF} parte da receita líquida de vendas (RLV): a receita bruta menos ICMS
+              {' '}e PIS/COFINS (embutidos sobre base sem ICMS — tese do século, STJ RE 1.188.403).{' '}
+              A base para a CBS e o IBS é o valor da operação (LC 214/2025, art. 12), e ambos incidem
+              por fora — por isso a reprecificação divide a base líquida pelo fator (1 − 18%): o ICMS
+              continua por dentro do preço até 2032, e a divisão garante que, descontado o ICMS da
+              nota nova, sobre exatamente o líquido de antes. É a lógica do líquido mínimo: ele
+              busca receber, líquido, no mínimo o que auferia antes.
+            </>
+          )}
+        </Par>
+        {plenoF && (
+          <TabelaMemoria
+            linhas={[
+              { label: 'RBV (preço pré-reforma)', valor: formatBRL(cell.hoje.bruto) },
+              { label: '(−) ICMS', valor: formatBRL(cell.hoje.bruto * 0.18) },
+              { label: '(−) PIS/COFINS', valor: formatBRL(Math.max(0, cell.hoje.bruto - cell.hoje.bruto * 0.18 - (cell.hoje.baseLimpa || 0))) },
+              { label: '(=) RLV — base limpa', valor: formatBRL(cell.hoje.baseLimpa || 0), destaque: true },
+              { label: 'CBS por fora (8,80%)', valor: formatBRL(cbsV) },
+              { label: 'IBS por fora (0,10%)', valor: formatBRL(ibsV) },
+              { label: 'PREÇO DE VENDA (pós-reforma)', valor: formatBRL(brutoEx), destaque: true },
+            ]}
+          />
+        )}
+        {plenoF && (
+          <Par>
+            Com {repasseTxt}, o preço de venda passa a{' '}
+            <b className="text-slate-100">{formatBRL(brutoEx)}</b> —{' '}
+            {repasse === 'integral'
+              ? 'o líquido do fornecedor fica idêntico ao de antes: o bruto sobe porque CBS/IBS entram por fora, e a margem dele fica preservada. É a tendência estrutural ao aumento dos preços: quem vende recompõe o líquido mínimo que auferia.'
+              : repasse === 'parcial'
+                ? `o fornecedor absorve ${formatNumberBR(100 - repassePct)}% do impacto na margem e transfere o restante ao preço — negociação entre os agentes, não imposição legal.`
+                : 'o fornecedor mantém o bruto de hoje e ainda destaca CBS/IBS por fora: o ganho dele fica no preço e o custo da não reprecificação é transferido ao adquirente.'}
+          </Par>
+        )}
+      </div>
+
+      {/* ============ ÓTICA DO ADQUIRENTE ============ */}
+      <div className="space-y-1.5">
+        <TituloNota>2. Análise sob a ótica do adquirente</TituloNota>
+        <Par>
+          {snC
+            ? 'No sistema pré-reforma, o adquirente do Simples Nacional não recupera crédito algum: o tributo embutido no preço vira custo integral. No pós-reforma, a situação não muda — LC 123/2006 + art. 47: o destaque de CBS/IBS na nota não gera crédito ao optante.'
+            : snhC
+              ? 'No sistema pré-reforma, o adquirente (então SN padrão) não creditava nada. Optando pelo regime regular de IBS/CBS (art. 41), passa a creditar o destaque de CBS/IBS da nota — mas ICMS, PIS e COFINS seguem no DAS, sem crédito.'
+              : comprador === 'real'
+                ? 'No sistema pré-reforma, o adquirente do Lucro Real deduz do custo os créditos de ICMS, PIS e COFINS — é o comprador que mais recupera, e por isso compra mais barato que o LP. No pós-reforma, credita também CBS e IBS (art. 47, §2º).'
+                : 'No sistema pré-reforma, a composição do custo do adquirente Lucro Presumido é deduzida apenas pelo crédito de ICMS — não há crédito de PIS/COFINS neste regime, que portanto compõem o custo das mercadorias adquiridas.'}
+        </Par>
+        <TabelaMemoria
+          linhas={[
+            { label: 'PRÉ-REFORMA: bruto da nota', valor: formatBRL(cell.hoje.bruto) },
+            { label: '(−) Créditos do regime', valor: formatBRL(credHoje) },
+            { label: '(=) Compras líquidas', valor: formatBRL(liqHoje), destaque: true },
+            { label: 'Custo líquido unitário', valor: `${formatBRL(hojeU)}/un`, destaque: true },
+            { label: 'PÓS-REFORMA: bruto da nota', valor: formatBRL(brutoEx) },
+            { label: '(−) Créditos do regime', valor: formatBRL(credEx) },
+            { label: '(=) Compras líquidas', valor: formatBRL(liqEx), destaque: true },
+            { label: 'Custo líquido unitário', valor: `${formatBRL(novoU)}/un`, destaque: true },
+          ]}
+        />
+      </div>
+
+      {/* ============ CONFRONTO ============ */}
+      <div className="space-y-1.5">
+        <TituloNota>3. Confronto pré × pós-reforma</TituloNota>
+        <Par>
+          Embora o desembolso no ato da compra{' '}
+          {brutoEx > cell.hoje.bruto
+            ? `passe a ser maior (${formatBRL(cell.hoje.bruto)} → ${formatBRL(brutoEx)}), impactando diretamente o caixa da empresa`
+            : brutoEx < cell.hoje.bruto
+              ? `seja menor (${formatBRL(cell.hoje.bruto)} → ${formatBRL(brutoEx)})`
+              : `permaneça o mesmo (${formatBRL(brutoEx)})`}
+          ,{' '}
+          {d < -0.5
+            ? `o custo líquido da mercadoria é MENOR na transação (${formatBRL(hojeU)} → ${formatBRL(novoU)}/un, ${formatNumberBR(d)}%)`
+            : d > 0.5
+              ? `o custo líquido da mercadoria sobe (${formatBRL(hojeU)} → ${formatBRL(novoU)}/un, +${formatNumberBR(d)}%)`
+              : `o custo líquido da mercadoria permanece estável (${formatBRL(hojeU)} → ${formatBRL(novoU)}/un)`}
+          .{' '}
+          {snC
+            ? 'Para o comprador SN não há minimização: o destaque destacado na nota vira custo integral — o pior cenário da matriz quando há repasse. A decisão aqui é estratégica: migrar para o regime regular (SN híbrido) ou renegociar o fornecedor.'
+            : snhC
+              ? 'O impacto é parcialmente minimizado: CBS/IBS viram crédito (regime regular), mas ICMS/PIS/COFINS seguem no DAS, sem crédito.'
+              : 'O que gera uma estratégia da empresa em também reprecificar pensando em tornar-se mais competitiva no mercado, ou mais lucrativa.'}
+        </Par>
+      </div>
+
+      {/* ============ PENDÊNCIA ============ */}
+      <div className="space-y-1.5">
+        <TituloNota>4. Pendência registrada</TituloNota>
+        <Par>
+          Ainda está pendente de definição a base de ICMS na transição (tese do Fisco × PLP 16/25 —
+          tese do contribuinte). Afeta a nota e o destaque do ICMS; o custo do comprador pleno fecha
+          igual nas duas teses — a diferença aparece no comprador SN.
+        </Par>
+      </div>
+    </div>
+  )
+}
+
+/** Modal da nota da célula do espelho. */
+export function NotaCelulaTrigger({
+  cell,
+  row,
+  exercicio,
+  comprador,
+  fornecedor,
+  repasse,
+  repassePct,
+}: {
+  cell: CellResultArt
+  row: ScheduleRowArt
+  exercicio: ExercicioKey
+  comprador: RegimeId
+  fornecedor: RegimeId
+  repasse: RepasseMode
+  repassePct: number
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-[9px] font-mono font-bold text-sky-300 hover:bg-sky-500/20 cursor-pointer"
+      >
+        <FileText className="w-3 h-3" /> Notas explicativas
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-sky-500/30 text-slate-100 p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-sky-400" />
+              <span>
+                Nota explicativa — {REGIME_NOME[comprador]} × {REGIME_NOME[fornecedor]}
+              </span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400">
+              Relatório da situação deste card · Exercício {exercicio} · CBS{' '}
+              {formatNumberBR(row.cbsRate)}% · IBS {formatNumberBR(row.ibsRate)}% · ICMS{' '}
+              {formatNumberBR(row.icmsPct)}% da alíquota
+            </DialogDescription>
+          </DialogHeader>
+          <NotaExplicativaCelula
+            cell={cell}
+            row={row}
+            exercicio={exercicio}
+            comprador={comprador}
+            fornecedor={fornecedor}
+            repasse={repasse}
+            repassePct={repassePct}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+/** ============================================================
+ * NOTA DO CARD DE BLOCO (página) — relato do bloco no mesmo modelo.
+ * ============================================================ */
 export function NotaExplicativaBloco({
   side,
   bloco,
@@ -66,7 +349,7 @@ export function NotaExplicativaBloco({
   forn,
 }: {
   side: SideResultArt
-  bloco: 1 | 2
+  bloco 1 | 2
   cell: CellResultArt
   row: ScheduleRowArt
   exercicio: ExercicioKey
@@ -78,12 +361,11 @@ export function NotaExplicativaBloco({
   const hojeU = cell.hoje.unitario
   const novoU = cell.exercicio.unitario
   const d = cell.deltaPct
-  const cbsV = Math.abs(val(side, 'cbs') || val(side, 'cbsibs') || val(cell.exercicio, 'cbs'))
-  const ibsV = Math.abs(val(side, 'ibs') || val(cell.exercicio, 'ibs'))
+  const cbsV = Math.abs(val(side, 'cbs') || val(cell.exercicio, 'cbs'))
+  const ibsV = Math.abs(val(side, 'ibs'))
   const credIcms = Math.abs(val(side, 'creditoicms'))
   const comprasLiq = val(side, 'comprasliquidas') || side.liquido
   const brutoNota = val(side, 'bruto_nota') || side.bruto
-
   const repasseTxt =
     repasse === 'parcial'
       ? `repasse parcial (${formatNumberBR(repassePct)}%)`
@@ -92,132 +374,89 @@ export function NotaExplicativaBloco({
         : 'repasse integral'
 
   return (
-    <div className="space-y-2.5">
-      {/* ===== Situação 1: o que este card representa ===== */}
+    <div className="space-y-3">
+      <div className="text-[11px] font-mono font-black uppercase text-orange-300">{titulo}</div>
+
+      {bloco === 1 ? (
+        <>
+          <div className="space-y-1.5">
+            <TituloNota>1. Análise sob a ótica do fornecedor</TituloNota>
+            <Par>
+              Precisamos olhar a operação com os olhos do fornecedor para pensar na formação do
+              preço que satisfaça a mesma condição do sistema pré-reforma. Para recompor a base
+              líquida, o fornecedor considera que nela há o ICMS, o PIS e o COFINS — a receita
+              líquida (receita − tributos) é a base limpa. Para receber esse valor líquido no
+              pós-reforma, ele reprecifica de modo que a CBS e o IBS — que incidem por fora — não
+              interfiram no líquido a receber. A base para a CBS e o IBS é o valor da operação (LC
+              214/2025, art. 12): CBS {formatBRL(cbsV)} e IBS {formatBRL(ibsV)} sobre a base limpa.
+              Como o ICMS incide por dentro do preço, invertemos o cálculo através da divisão pelo
+              fator: BC ICMS = base líquida + CBS + IBS ÷ (1 − 18%). Com {repasseTxt}, o preço de
+              venda resultante é <b className="text-slate-100">{formatBRL(brutoNota)}</b>.
+            </Par>
+            <TabelaMemoria
+              linhas={[
+                { label: 'RBV (preço pré-reforma)', valor: formatBRL(cell.hoje.bruto) },
+                { label: '(−) ICMS', valor: formatBRL(cell.hoje.bruto * 0.18) },
+                { label: '(=) RLV — base limpa', valor: formatBRL(cell.hoje.baseLimpa || 0), destaque: true },
+                { label: 'CBS por fora', valor: formatBRL(cbsV) },
+                { label: 'IBS por fora', valor: formatBRL(ibsV) },
+                { label: 'PREÇO DE VENDA (pós-reforma)', valor: formatBRL(brutoNota), destaque: true },
+              ]}
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="space-y-1.5">
+            <TituloNota>2. Análise sob a ótica do adquirente</TituloNota>
+            <Par>
+              O custo do adquirente sofre mudança do sistema anterior para o atual, e a análise
+              precisa olhar a perspectiva do regime tributário dele. Abaixo, a composição do custo
+              no sistema pré-reforma e no pós-reforma, com os números deste card. Com{' '}
+              {repasseTxt}, o custo líquido unitário vai de{' '}
+              <b className="text-slate-100">{formatBRL(hojeU)}</b> para{' '}
+              <b className="text-slate-100">{formatBRL(novoU)}/un</b> ({d > 0 ? '+' : ''}
+              {formatNumberBR(d)}%).
+            </Par>
+            <TabelaMemoria
+              linhas={[
+                { label: 'PRÉ: bruto da nota', valor: formatBRL(cell.hoje.bruto) },
+                { label: 'PRÉ: (−) créditos', valor: formatBRL(cell.hoje.creditos) },
+                { label: 'PRÉ: (=) compras líquidas', valor: formatBRL(cell.hoje.liquido), destaque: true },
+                { label: 'PRÉ: custo unitário', valor: `${formatBRL(hojeU)}/un`, destaque: true },
+                { label: 'PÓS: bruto da nota', valor: formatBRL(brutoNota) },
+                { label: 'PÓS: (−) ICMS', valor: formatBRL(credIcms) },
+                { label: 'PÓS: (−) CBS', valor: formatBRL(cbsV) },
+                { label: 'PÓS: (−) IBS', valor: formatBRL(ibsV) },
+                { label: 'PÓS: (=) compras líquidas', valor: formatBRL(comprasLiq), destaque: true },
+                { label: 'PÓS: custo unitário', valor: `${formatBRL(side.unitario)}/un`, destaque: true },
+              ]}
+            />
+          </div>
+        </>
+      )}
+
       <div className="space-y-1.5">
-        <TituloNota>A situação deste card</TituloNota>
+        <TituloNota>Confronto e leitura</TituloNota>
         <Par>
-          {bloco === 1 ? (
-            <>
-              Este card mostra a <b className="text-slate-100">formação do preço do fornecedor</b>{' '}
-              no exercício {exercicio} ({repasseTxt}). O fornecedor parte do que precisa receber
-              líquido — o mesmo valor auferido na operação anterior —, desembute o ICMS dividindo a
-              base limpa por (1 − 18%), e acrescenta CBS e IBS por fora, destacados na nota (LC
-              214/2025, art. 12, caput e §2º, I). É deste card que sai o valor bruto da nota que o
-              comprador paga.
-            </>
-          ) : (
-            <>
-              Este card mostra o{' '}
-              <b className="text-slate-100">custo da aquisição para o comprador</b> no exercício{' '}
-              {exercicio} ({repasseTxt}): o que ele paga na nota, o que recupera como crédito e o
-              que sobra de custo efetivo. É aqui que a escolha do regime do fornecedor e o repasse
-              negociado viram impacto no caixa.
-            </>
-          )}
+          {bloco === 1
+            ? `Este card registra o lado do fornecedor: preço emitido no pós-reforma, destaque de CBS/IBS separado e líquido preservado. ${repasse === 'nenhum' ? 'Sem repasse, o ganho dele fica no preço — quem paga é o comprador no card ao lado. A tendência ao aumento vem da lógica do líquido mínimo.' : repasse === 'parcial' ? `No parcial, ele absorve ${formatNumberBR(100 - repassePct)}% na margem — negociação entre agentes, não imposição legal.` : 'No integral, a margem dele fica preservada e o impacto é transmitido ao preço.'}`
+            : `Confrontando os valores da aquisição pré × pós-reforma: o desembolso no ato da compra ${brutoNota > cell.hoje.bruto ? `passe a ser maior (${formatBRL(cell.hoje.bruto)} → ${formatBRL(brutoNota)}), impactando diretamente o caixa` : 'permanece estável'}, e o custo líquido ${d < -0.5 ? 'cai' : d > 0.5 ? 'sobe' : 'fica estável'} (${formatBRL(hojeU)} → ${formatBRL(novoU)}/un). O que gera uma estratégia da empresa em também reprecificar pensando em tornar-se mais competitiva no mercado, ou mais lucrativa.`}
         </Par>
       </div>
 
-      {/* ===== Situação 2: relato dos números do próprio card ===== */}
       <div className="space-y-1.5">
-        <TituloNota>O que aconteceu nos números</TituloNota>
-        <div className="space-y-1">
-          {bloco === 1 ? (
-            <>
-              <LinhaRelato label="Valor bruto da nota emitida" valor={formatBRL(brutoNota)} />
-              <LinhaRelato label="CBS destacada por fora" valor={formatBRL(cbsV)} />
-              <LinhaRelato label="IBS destacado por fora" valor={formatBRL(ibsV)} />
-            </>
-          ) : (
-            <>
-              <LinhaRelato label="Valor bruto da nota paga" valor={formatBRL(brutoNota)} />
-              <LinhaRelato label="Crédito ICMS recuperado" valor={formatBRL(credIcms)} />
-              <LinhaRelato label="Compras líquidas (custo total)" valor={formatBRL(comprasLiq)} />
-              <LinhaRelato
-                label="Custo unitário resultante"
-                valor={`${formatBRL(side.unitario)}/un`}
-              />
-            </>
-          )}
-        </div>
+        <TituloNota>Pendência registrada</TituloNota>
         <Par>
-          {bloco === 1 ? (
-            <>
-              {repasse === 'nenhum' ? (
-                <>
-                  Sem repasse, o fornecedor mantém o bruto de hoje e ainda destaca CBS/IBS por fora:
-                  o ganho dele fica no preço, e quem paga a conta é o comprador no card ao lado. A
-                  tendência ao aumento dos preços vem daqui: ele busca receber, líquido, no mínimo o
-                  que auferia antes — se o líquido era o bruto menos a tributação, o novo regime
-                  segue a mesma lógica.
-                </>
-              ) : repasse === 'parcial' ? (
-                <>
-                  Com repasse parcial de {formatNumberBR(repassePct)}%, o fornecedor divide o
-                  impacto: absorve {formatNumberBR(100 - repassePct)}% na margem e transfere o resto
-                  ao preço. O bruto da nota fica entre o cenário integral e o sem repasse.
-                </>
-              ) : (
-                <>
-                  Com repasse integral, o preço novo recomposto garante ao fornecedor o mesmo
-                  líquido de antes: o bruto sobe porque CBS/IBS entram por fora, mas o líquido dele
-                  fica estável — a operação preserva a margem.
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              O desembolso na nota {d > 0.5 ? 'sobe' : d < -0.5 ? 'cai' : 'fica estável'} (
-              {formatBRL(hojeU)} → {formatBRL(novoU)}/un, {d > 0 ? '+' : ''}
-              {formatNumberBR(d)}%), mas o impacto no caixa é minimizado porque o valor pago a
-              título de CBS e IBS torna-se crédito (art. 47, §2º):{' '}
-              {credIcms > 0
-                ? 'o custo da mercadoria diminui pelo crédito recuperado'
-                : 'sem crédito de ICMS, o destaque destacado na nota vira custo'}
-              .{' '}
-              {repasse === 'nenhum'
-                ? 'Sem repasse, não há compensação: o comprador absorve sozinho o impacto — é a escada de custo que sobe ano a ano.'
-                : repasse === 'parcial'
-                  ? `No parcial, o comprador paga via preço a parte que o fornecedor não absorveu.`
-                  : 'No integral, o crédito lava o destaque e o custo acompanha o preço líquido do fornecedor.'}
-            </>
-          )}
-        </Par>
-      </div>
-
-      {/* ===== Situação 3: leitura do resultado ===== */}
-      <div className="space-y-1.5">
-        <TituloNota>Leitura do resultado</TituloNota>
-        <Par>
-          {bloco === 1 ? (
-            <>
-              No sistema pré-reforma, os tributos estavam dentro do preço da nota e o fornecedor não
-              precisava explicar regime: vendia-se o preço. No pós-reforma, a base de cálculo do IBS
-              e da CBS deve vir livre da tributação anterior (art. 12), mas é a negociação do
-              repasse — não a lei — que define se isso chega acontecendo. Este card registra o lado
-              dele: preço emitido, destaque separado e líquido preservado
-              {repasse === 'nenhum' ? ' — com o ganho ficando no preço' : ''}.
-            </>
-          ) : (
-            <>
-              No sistema pré-reforma, o comprador olhava o próprio regime (o que recupera) e
-              procurava o melhor preço — o regime do fornecedor era indiferente. No pós-reforma, ele
-              precisa analisar o regime do fornecedor para saber se haverá transmissão de carga
-              tributária do regime anterior ou não. Resultado desta escolha:{' '}
-              <b className="text-slate-100">
-                {formatBRL(novoU)}/un ({d > 0 ? '+' : ''}
-                {formatNumberBR(d)}% vs hoje)
-              </b>
-              .
-            </>
-          )}
+          Ainda está pendente de definição a base de ICMS na transição (tese do Fisco × PLP 16/25 —
+          tese do contribuinte).
         </Par>
       </div>
     </div>
   )
 }
 
-/** Modal que apresenta o relato do card (usado pelo botão dentro de cada quadro). */
+/** Modal do card da página. */
 export function NotaExplicativaCardDialog({
   side,
   bloco,
@@ -273,7 +512,7 @@ export function NotaExplicativaCardDialog({
   )
 }
 
-/** Botão NOTAS EXPLICATIVAS — abaixo do "Memória + base legal", dentro do card. */
+/** Botão dentro do card. */
 export function BotaoNotaCard({ onClick }: { onClick: () => void }) {
   return (
     <button
@@ -283,178 +522,6 @@ export function BotaoNotaCard({ onClick }: { onClick: () => void }) {
     >
       <FileText className="w-3 h-3" /> Notas explicativas
     </button>
-  )
-}
-
-const REGIME_NOME_C: Record<string, string> = {
-  presumido: 'Lucro Presumido',
-  real: 'Lucro Real',
-  simples: 'Simples Nacional',
-  simples_hibrido: 'Simples Nacional híbrido',
-}
-
-export function NotaExplicativaCelula({
-  cell,
-  row,
-  exercicio,
-  comprador,
-  fornecedor,
-  repasse,
-  repassePct,
-}: {
-  cell: CellResultArt
-  row: ScheduleRowArt
-  exercicio: ExercicioKey
-  comprador: RegimeId
-  fornecedor: RegimeId
-  repasse: RepasseMode
-  repassePct: number
-}) {
-  const hojeU = cell.hoje.unitario
-  const novoU = cell.exercicio.unitario
-  const d = cell.deltaPct
-  const nomeC = REGIME_NOME_C[comprador]
-  const nomeF = REGIME_NOME_C[fornecedor]
-  const snC = comprador === 'simples'
-  const snhC = comprador === 'simples_hibrido'
-  const snF = fornecedor === 'simples'
-  const snhF = fornecedor === 'simples_hibrido'
-  const repasseTxt =
-    repasse === 'parcial'
-      ? `repasse parcial (${formatNumberBR(repassePct)}%)`
-      : repasse === 'nenhum'
-        ? 'sem repasse'
-        : 'repasse integral'
-
-  return (
-    <div className="space-y-2.5">
-      <div className="space-y-1.5">
-        <TituloNota>A situação deste card</TituloNota>
-        <Par>
-          Comprador <b className="text-slate-100">{nomeC}</b> × Fornecedor{' '}
-          <b className="text-slate-100">{nomeF}</b> · exercício {exercicio} · {repasseTxt}. No
-          sistema pré-reforma, o custo de entrada do {nomeC} era{' '}
-          <b className="text-slate-100">{formatBRL(hojeU)}/un</b> —{' '}
-          {comprador === 'real'
-            ? 'recupera ICMS, PIS e COFINS, o que faz dele o comprador mais barato'
-            : snC
-              ? 'não recupera crédito algum: o tributo embutido no preço vira custo integral'
-              : snhC
-                ? 'segue com ICMS/PIS/COFINS no DAS, mas credita CBS/IBS da nota (regime regular)'
-                : 'recupera apenas ICMS — custo maior que o LR, menor que o SN'}
-          . Como os tributos estavam dentro do preço da nota, o comprador não olhava o regime do
-          fornecedor: procurava o melhor preço.
-        </Par>
-      </div>
-
-      <div className="space-y-1.5">
-        <TituloNota>O que aconteceu nos números</TituloNota>
-        <div className="space-y-1">
-          <LinhaRelato label="Valor bruto da nota paga" valor={formatBRL(cell.exercicio.bruto)} />
-          <LinhaRelato label="Créditos recuperados" valor={formatBRL(cell.exercicio.creditos)} />
-          <LinhaRelato
-            label="Compras líquidas (custo total)"
-            valor={formatBRL(cell.exercicio.liquido)}
-          />
-          <LinhaRelato label="Custo unitário resultante" valor={`${formatBRL(novoU)}/un`} />
-        </div>
-        <Par>
-          No pós-reforma, a escolha do fornecedor passa a importar: a base de cálculo do IBS e da
-          CBS deve vir livre da tributação anterior (LC 214/2025, art. 12), mas não necessariamente
-          isso ocorrerá nas negociações —{' '}
-          {snF
-            ? 'e a nota congelada do Simples (LC 123/2006) não destaca CBS/IBS: não há como separar o novo tributo'
-            : snhF
-              ? 'e o SN híbrido destaca CBS/IBS por fora (art. 41) — o destaque gera crédito ao adquirente em regime regular'
-              : 'e é o destaque na nota que permite ao comprador pleno recuperar o valor (art. 47, §2º)'}
-          . O desembolso {d > 0.5 ? 'sobe' : d < -0.5 ? 'cai' : 'fica estável'} ({formatBRL(hojeU)}{' '}
-          → {formatBRL(novoU)}/un, {d > 0 ? '+' : ''}
-          {formatNumberBR(d)}%){' '}
-          {snC
-            ? 'e NÃO há minimização: o comprador SN não credita CBS/IBS (LC 123/2006 + art. 47) — o destaque vira custo integral, o pior cenário quando há repasse'
-            : snhC
-              ? 'e o impacto é parcialmente minimizado: CBS/IBS viram crédito, mas ICMS/PIS/COFINS seguem no DAS sem crédito'
-              : 'e o impacto no caixa é minimizado: o valor pago a título de CBS e IBS torna-se crédito, o que faz o custo da mercadoria diminuir'}
-          .
-        </Par>
-      </div>
-
-      <div className="space-y-1.5">
-        <TituloNota>Leitura do resultado</TituloNota>
-        <Par>
-          {repasse === 'integral'
-            ? 'Com repasse integral, o fornecedor recomputa o preço para receber o mesmo líquido de antes — o bruto sobe com CBS/IBS por fora e o crédito lava o destaque: cadeia plena fecha neutra, e a diferença entre compradores está em quem credita o quê.'
-            : repasse === 'parcial'
-              ? `Com repasse parcial de ${formatNumberBR(repassePct)}%, o fornecedor absorve ${formatNumberBR(100 - repassePct)}% na margem e transfere o resto ao preço: o custo fica entre o integral e o sem repasse — e quem absorve cada fatia é negociável.`
-              : 'Sem repasse, o ganho do fornecedor fica no preço e o comprador absorve o impacto sozinho: é a escada de custo que sobe ano a ano. A tendência ao aumento vem da lógica do líquido mínimo: ele busca receber, líquido, no mínimo o que auferia antes.'}{' '}
-          Resultado desta escolha:{' '}
-          <b className="text-slate-100">
-            {formatBRL(novoU)}/un ({d > 0 ? '+' : ''}
-            {formatNumberBR(d)}% vs hoje)
-          </b>
-          . Pendente de definição: base do ICMS na transição (tese do Fisco × PLP 16/25 — tese do
-          Contribuinte).
-        </Par>
-      </div>
-    </div>
-  )
-}
-
-/** Gatilho + modal da nota de UMA célula do espelho. */
-export function NotaCelulaTrigger({
-  cell,
-  row,
-  exercicio,
-  comprador,
-  fornecedor,
-  repasse,
-  repassePct,
-}: {
-  cell: CellResultArt
-  row: ScheduleRowArt
-  exercicio: ExercicioKey
-  comprador: RegimeId
-  fornecedor: RegimeId
-  repasse: RepasseMode
-  repassePct: number
-}) {
-  const [open, setOpen] = useState(false)
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-[9px] font-mono font-bold text-sky-300 hover:bg-sky-500/20 cursor-pointer"
-      >
-        <FileText className="w-3 h-3" /> Notas explicativas
-      </button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-sky-500/30 text-slate-100 p-6">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-sky-400" />
-              <span>
-                Nota explicativa — {REGIME_NOME_C[comprador]} × {REGIME_NOME_C[fornecedor]}
-              </span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
-              Relatório da situação deste card · Exercício {exercicio} · CBS{' '}
-              {formatNumberBR(row.cbsRate)}% · IBS {formatNumberBR(row.ibsRate)}% · ICMS{' '}
-              {formatNumberBR(row.icmsPct)}% da alíquota
-            </DialogDescription>
-          </DialogHeader>
-          <NotaExplicativaCelula
-            cell={cell}
-            row={row}
-            exercicio={exercicio}
-            comprador={comprador}
-            fornecedor={fornecedor}
-            repasse={repasse}
-            repassePct={repassePct}
-          />
-        </DialogContent>
-      </Dialog>
-    </>
   )
 }
 
