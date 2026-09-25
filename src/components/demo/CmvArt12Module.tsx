@@ -639,7 +639,7 @@ export function CmvArt12Module() {
   const { purchasesItems } = useTaxContext()
   const [exercicio, setExercicio] = useState<ExercicioKey>(2027)
   const [config, setConfig] = useState<CellConfigArt>(CONFIG_PADRAO_ART12)
-  const [usarCompras, setUsarCompras] = useState(false)
+  const [usarCompras] = useState(false)
   const [memoryCell, setMemoryCell] = useState<{
     label: string
     cell: CellResultArt
@@ -676,8 +676,6 @@ export function CmvArt12Module() {
     }
     return CASO_CANONICO_ART12
   }, [usarCompras, purchasesItems])
-
-  const usandoExemplo = !usarCompras || purchasesItems.length === 0
 
   const activeCell = useMemo(() => computeCellArt12(input, config, row), [input, config, row])
   const reguas = useMemo(() => reguasArt12(input, config, row), [input, config, row])
@@ -800,51 +798,10 @@ export function CmvArt12Module() {
       </div>
 
       {/* ================= Parâmetros do caso canônico ================= */}
-      <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-            Parâmetros da aquisição
-          </span>
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={usarCompras}
-                onChange={(e) => setUsarCompras(e.target.checked)}
-                className="accent-emerald-500"
-              />
-              Usar itens da Calculadora de Compras (somente leitura)
-            </label>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-          {[
-            { key: 'quantity', label: 'Qtd (un.)', value: input.quantity },
-            { key: 'unitPrice', label: 'Preço unit.', value: input.unitPrice },
-            { key: 'freightValue', label: 'Frete', value: input.freightValue },
-            { key: 'icmsRate', label: 'ICMS %', value: input.icmsRate },
-            { key: 'icmsFreightRate', label: 'ICMS frete %', value: input.icmsFreightRate },
-            { key: 'ipiRate', label: 'IPI % (indústria)', value: input.ipiRate },
-          ].map((p) => (
-            <div key={p.key} className="space-y-1">
-              <label className="text-[9px] font-mono text-slate-500 uppercase">{p.label}</label>
-              <Input
-                type="number"
-                value={p.value}
-                onChange={(e) => setConfig((c) => c) /* inputs somente leitura no caso canônico */}
-                readOnly
-                className="bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200 h-8"
-              />
-            </div>
-          ))}
-        </div>
-        {usandoExemplo && (
-          <p className="text-[10px] font-mono text-slate-500">
-            Caso canônico: 30 un. × R$ 1.400,00 + frete R$ 400,00 · ICMS 18% · IPI 10% (só
-            indústria) · custo HOJE canônico R$ 1.158,93/un.
-          </p>
-        )}
-      </div>
+      <p className="text-[10px] font-mono text-slate-500">
+        Caso canônico: 30 un. × R$ 1.400,00 + frete R$ 400,00 · ICMS 18% · IPI 10% (só indústria) ·
+        custo HOJE canônico R$ 1.158,93/un.
+      </p>
 
       {/* ================= Configuração da célula ================= */}
       <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-3">
