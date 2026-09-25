@@ -706,6 +706,11 @@ export function computeExercicioArt12(
     value: 0,
     kind: 'nota',
     bloco: 1,
+    fundamento: {
+      dispositivo: '—',
+      efeito: 'marcador de posição para botão de memória do bloco',
+      validade: 'nao_aplicavel',
+    },
   })
 
   // 6) CBS e IBS — por fora (destacadas); sobre a base limpa

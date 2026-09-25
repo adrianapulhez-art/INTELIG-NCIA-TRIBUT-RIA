@@ -214,11 +214,11 @@ export function NotaExplicativaCelula({
               { label: 'RBV (preço pré-reforma)', valor: formatBRL(brutoHoje) },
               {
                 label: '(−) ICMS sobre mercadorias',
-                valor: `${formatBRL(icmsMerc)} (${formatNumberBR(input.icmsRate)}% × ${formatBRL(mercReal)})`,
+                valor: `${formatBRL(icmsMerc)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
               },
               {
                 label: '(−) ICMS sobre fretes',
-                valor: `${formatBRL(icmsFrete)} (${formatNumberBR(input.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
+                valor: `${formatBRL(icmsFrete)} (${formatNumberBR(CASO_CANONICO_ART12.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
               },
               {
                 label: `(−) PIS ${formatNumberBR(pisRate * 100)}% × base sem ICMS`,
@@ -247,7 +247,7 @@ export function NotaExplicativaCelula({
                 destaque: true,
               },
               {
-                label: `÷ (1 − ${formatNumberBR(input.icmsRate)}%) → PREÇO DE VENDA (pós-reforma)`,
+                label: `÷ (1 − ${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}%) → PREÇO DE VENDA (pós-reforma)`,
                 valor: formatBRL(precoNotaV),
                 destaque: true,
               },

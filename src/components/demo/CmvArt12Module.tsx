@@ -34,6 +34,7 @@ import {
   type Fundamento,
   type MemoryLineArt,
   type RegimeId,
+  type RepasseMode,
   type ScheduleRowArt,
   type Semaforo,
   type SideResultArt,
