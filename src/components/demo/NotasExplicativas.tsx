@@ -293,10 +293,11 @@ export function NotaExplicativaCelula({
               valor:
                 piscofinsHoje > 0
                   ? `${formatBRL(piscofinsHoje)} (9,25% × base sem ICMS — tese do século)`
-                  : 'sem crédito — ' +
-                    (comprador === 'real'
-                      ? 'fornecedor não destaca'
-                      : 'regime LP não apropria PIS/COFINS (só ICMS)'),
+                  : comprador === 'simples' || comprador === 'simples_hibrido'
+                    ? 'sem crédito — comprador SN não apropria crédito'
+                    : comprador === 'presumido'
+                      ? 'sem crédito — regime LP não apropria PIS/COFINS (só ICMS)'
+                      : 'sem crédito — fornecedor não destaca PIS/COFINS',
             },
             { label: '(=) Compras líquidas', valor: formatBRL(liqHoje), destaque: true },
             {
