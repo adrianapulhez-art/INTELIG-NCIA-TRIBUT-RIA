@@ -41,6 +41,7 @@ import {
 } from '@/lib/art12Calculations'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 import { EspelhoRepasseDialog } from './EspelhoRepasseDialog'
+import { NotasExplicativasDialog, BotaoNotasExplicativas } from './NotasExplicativas'
 
 const EXERCICIOS: ExercicioKey[] = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033]
 
@@ -653,6 +654,7 @@ export function CmvArt12Module() {
   const [espelhoModal, setEspelhoModal] = useState<{ open: boolean; mode: RepasseMode } | null>(
     null,
   )
+  const [notasModal, setNotasModal] = useState(false)
 
   const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
 
@@ -948,16 +950,19 @@ export function CmvArt12Module() {
           <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
             Memória de cálculo — HOJE × Exercício {exercicio}
           </span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              setMemoryCell({ label: `Exercício ${exercicio}`, cell: activeCell, row })
-            }
-            className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
-          >
-            <Calculator className="w-3.5 h-3.5 mr-1" /> Ampliar memória
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                setMemoryCell({ label: `Exercício ${exercicio}`, cell: activeCell, row })
+              }
+              className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+            >
+              <Calculator className="w-3.5 h-3.5 mr-1" /> Ampliar memória
+            </Button>
+            <BotaoNotasExplicativas onClick={() => setNotasModal(true)} />
+          </div>
         </div>
         <div className="flex flex-col lg:flex-row gap-3">
           <SideColumnArt
@@ -1118,6 +1123,15 @@ export function CmvArt12Module() {
           }}
         />
       )}
+      <NotasExplicativasDialog
+        matriz={matriz}
+        row={row}
+        exercicio={exercicio}
+        repasse={config.repasse}
+        repassePct={config.repassePct}
+        open={notasModal}
+        onOpenChange={setNotasModal}
+      />
     </div>
   )
 }
