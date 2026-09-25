@@ -156,6 +156,8 @@ export function NotaExplicativaCelula({
   const pisRate = baseSemIcmsRef > 0 ? pisV / baseSemIcmsRef : 0
   const cofinsRate = baseSemIcmsRef > 0 ? cofinsV / baseSemIcmsRef : 0
   const bcIcms = baseLimpaV + cbsV + ibsV
+  const icmsHoje = Math.abs(val(cell.hoje, 'icms'))
+  const piscofinsHoje = Math.abs(val(cell.hoje, 'piscofins'))
   const credHoje = cell.hoje.creditos
   const liqHoje = cell.hoje.liquido
   const brutoHoje = cell.hoje.bruto
@@ -282,13 +284,51 @@ export function NotaExplicativaCelula({
         <TabelaMemoria
           linhas={[
             { label: 'PRÉ-REFORMA: bruto da nota', valor: formatBRL(cell.hoje.bruto) },
-            { label: '(−) Créditos do regime', valor: formatBRL(credHoje) },
+            {
+              label: '(−) ICMS',
+              valor: `${formatBRL(icmsHoje)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
+            },
+            {
+              label: '(−) PIS/COFINS',
+              valor:
+                piscofinsHoje > 0
+                  ? `${formatBRL(piscofinsHoje)} (9,25% × base sem ICMS — tese do século)`
+                  : 'sem crédito — ' +
+                    (comprador === 'real'
+                      ? 'fornecedor não destaca'
+                      : 'regime LP não apropria PIS/COFINS (só ICMS)'),
+            },
             { label: '(=) Compras líquidas', valor: formatBRL(liqHoje), destaque: true },
-            { label: 'Custo líquido unitário', valor: `${formatBRL(hojeU)}/un`, destaque: true },
+            {
+              label: 'Custo líquido unitário',
+              valor: `${formatBRL(hojeU)}/un (${formatBRL(liqHoje)} ÷ ${formatNumberBR(CASO_CANONICO_ART12.quantity)})`,
+              destaque: true,
+            },
             { label: 'PÓS-REFORMA: bruto da nota', valor: formatBRL(brutoEx) },
-            { label: '(−) Créditos do regime', valor: formatBRL(credEx) },
+            {
+              label: '(−) ICMS',
+              valor: `${formatBRL(icmsNota)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(brutoEx)})`,
+            },
+            {
+              label: '(−) CBS',
+              valor:
+                cbsV > 0
+                  ? `${formatBRL(cbsV)} (destacado na nota do fornecedor)`
+                  : 'sem destaque (fornecedor SN)',
+            },
+            {
+              label: '(−) IBS',
+              valor:
+                ibsV > 0
+                  ? `${formatBRL(ibsV)} (destacado na nota do fornecedor)`
+                  : 'sem destaque (fornecedor SN)',
+            },
             { label: '(=) Compras líquidas', valor: formatBRL(liqEx), destaque: true },
-            { label: 'Custo líquido unitário', valor: `${formatBRL(novoU)}/un`, destaque: true },
+            {
+              label: 'Custo líquido unitário',
+              valor: `${formatBRL(novoU)}/un (${formatBRL(liqEx)} ÷ ${formatNumberBR(CASO_CANONICO_ART12.quantity)})`,
+              destaque: true,
+            },
           ]}
         />
       </div>
