@@ -1125,8 +1125,13 @@ export function computeExercicioArt12(
     })
   }
 
-  // Crédito PIS/COFINS do comprador LR (2026 — fornecedor LR destaca)
-  if (row.exercicio === 2026 && config.fornecedorRegime === 'real' && pleno) {
+  // Crédito PIS/COFINS do comprador LR (2026 — fornecedor LR destaca E comprador LR apropria)
+  if (
+    row.exercicio === 2026 &&
+    config.fornecedorRegime === 'real' &&
+    config.compradorRegime === 'real' &&
+    pleno
+  ) {
     // Base do crédito = valor da operação da nota de hoje (sem reprecificação) − ICMS destacado
     const basePisC = r2(merc + frete - icmsNota)
     const creditoPis = r2(basePisC * 0.0925)

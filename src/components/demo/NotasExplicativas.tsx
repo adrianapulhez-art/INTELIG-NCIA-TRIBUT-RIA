@@ -472,6 +472,8 @@ export function NotaExplicativaBloco({
   const bcIcms = baseLimpaV + cbsV + ibsV
   const mercReal = brutoNota - icmsMerc - icmsFrete
   const freteReal = CASO_CANONICO_ART12.freightValue
+  const icmsHoje = Math.abs(val(cell.hoje, 'icms'))
+  const piscofinsHoje = Math.abs(val(cell.hoje, 'piscofins'))
   const repasseTxt =
     repasse === 'parcial'
       ? `repasse parcial (${formatNumberBR(repassePct)}%)`
@@ -559,18 +561,47 @@ export function NotaExplicativaBloco({
             </Par>
             <TabelaMemoria
               linhas={[
-                { label: 'PRÉ: bruto da nota', valor: formatBRL(cell.hoje.bruto) },
-                { label: 'PRÉ: (−) créditos', valor: formatBRL(cell.hoje.creditos) },
+                { label: 'PRÉ-REFORMA: bruto da nota', valor: formatBRL(cell.hoje.bruto) },
                 {
-                  label: 'PRÉ: (=) compras líquidas',
+                  label: '(−) ICMS',
+                  valor: `${formatBRL(icmsHoje)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(cell.hoje.bruto)})`,
+                },
+                {
+                  label: '(−) PIS/COFINS',
+                  valor:
+                    piscofinsHoje > 0
+                      ? `${formatBRL(piscofinsHoje)} (9,25% × base sem ICMS — tese do século)`
+                      : 'sem crédito — regime LP não apropria PIS/COFINS (só ICMS)',
+                },
+                {
+                  label: '(=) Compras líquidas',
                   valor: formatBRL(cell.hoje.liquido),
                   destaque: true,
                 },
-                { label: 'PRÉ: custo unitário', valor: `${formatBRL(hojeU)}/un`, destaque: true },
-                { label: 'PÓS: bruto da nota', valor: formatBRL(brutoNota) },
-                { label: 'PÓS: (−) ICMS', valor: formatBRL(credIcms) },
-                { label: 'PÓS: (−) CBS', valor: formatBRL(cbsV) },
-                { label: 'PÓS: (−) IBS', valor: formatBRL(ibsV) },
+                {
+                  label: 'Custo líquido unitário',
+                  valor: `${formatBRL(hojeU)}/un (${formatBRL(cell.hoje.liquido)} ÷ ${formatNumberBR(CASO_CANONICO_ART12.quantity)})`,
+                  destaque: true,
+                },
+                { label: 'PÓS-REFORMA: bruto da nota', valor: formatBRL(brutoNota) },
+                {
+                  label: '(−) ICMS',
+                  valor: `${formatBRL(credIcms)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(brutoNota)})`,
+                },
+                {
+                  label: '(−) CBS',
+                  valor:
+                    cbsV > 0
+                      ? `${formatBRL(cbsV)} (destacado na nota do fornecedor)`
+                      : 'sem destaque (fornecedor SN)',
+                },
+                {
+                  label: '(−) IBS',
+                  valor:
+                    ibsV > 0
+                      ? `${formatBRL(ibsV)} (destacado na nota do fornecedor)`
+                      : 'sem destaque (fornecedor SN)',
+                },
                 {
                   label: 'PÓS: (=) compras líquidas',
                   valor: formatBRL(comprasLiq),
