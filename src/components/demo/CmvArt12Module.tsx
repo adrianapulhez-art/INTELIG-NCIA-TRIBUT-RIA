@@ -41,7 +41,7 @@ import {
 } from '@/lib/art12Calculations'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 import { EspelhoRepasseDialog } from './EspelhoRepasseDialog'
-import { NotasExplicativasDialog, BotaoNotasExplicativas } from './NotasExplicativas'
+import { NotaCardTrigger } from './NotasExplicativas'
 
 const EXERCICIOS: ExercicioKey[] = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033]
 
@@ -406,6 +406,13 @@ function SideColumnArt({
   side,
   onOpenLine,
   onOpenBloco,
+  cell,
+  row,
+  exercicio,
+  repasse,
+  repassePct,
+  regimeFornecedor,
+  regimeComprador,
 }: {
   title: string
   side: SideResultArt
@@ -413,6 +420,14 @@ function SideColumnArt({
   onOpenLine?: (line: MemoryLineArt) => void
   /** Abre a memória completa do bloco (todas as linhas com derivação + base legal). */
   onOpenBloco?: (side: SideResultArt, bloco: number) => void
+  /** Contexto para a nota explicativa atrelada ao card. */
+  cell?: CellResultArt
+  row?: ScheduleRowArt
+  exercicio?: ExercicioKey
+  repasse?: RepasseMode
+  repassePct?: number
+  regimeFornecedor?: string
+  regimeComprador?: string
 }) {
   const blocos = [...new Set(side.lines.map((l) => l.bloco))].sort((a, b) => a - b)
   return (
@@ -446,14 +461,28 @@ function SideColumnArt({
               .map((line) =>
                 line.label === 'MEMORIA_BLOCO1' ? (
                   onOpenLine ? (
-                    <button
-                      key={line.key}
-                      type="button"
-                      onClick={() => onOpenBloco(side, bloco)}
-                      className={`w-full inline-flex items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[10px] font-mono font-bold cursor-pointer ${forn ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20' : 'border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20'}`}
-                    >
-                      <Calculator className="w-3 h-3" /> Memória + base legal
-                    </button>
+                    <div key={line.key} className="space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => onOpenBloco(side, bloco)}
+                        className={`w-full inline-flex items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[10px] font-mono font-bold cursor-pointer ${forn ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20' : 'border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20'}`}
+                      >
+                        <Calculator className="w-3 h-3" /> Memória + base legal
+                      </button>
+                      {cell && row && exercicio && repasse && (
+                        <NotaCardTrigger
+                          side={side}
+                          bloco={bloco}
+                          cell={cell}
+                          row={row}
+                          exercicio={exercicio}
+                          repasse={repasse}
+                          repassePct={repassePct}
+                          titulo={`${BLOCO_TITULOS[bloco] || `BLOCO ${bloco}`} — ${title} · ${regimeFornecedor || ''} × ${regimeComprador || ''}`}
+                          forn={forn}
+                        />
+                      )}
+                    </div>
                   ) : null
                 ) : (
                   <div
@@ -654,7 +683,6 @@ export function CmvArt12Module() {
   const [espelhoModal, setEspelhoModal] = useState<{ open: boolean; mode: RepasseMode } | null>(
     null,
   )
-  const [notasModal, setNotasModal] = useState(false)
 
   const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
 
@@ -950,24 +978,28 @@ export function CmvArt12Module() {
           <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
             Memória de cálculo — HOJE × Exercício {exercicio}
           </span>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                setMemoryCell({ label: `Exercício ${exercicio}`, cell: activeCell, row })
-              }
-              className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
-            >
-              <Calculator className="w-3.5 h-3.5 mr-1" /> Ampliar memória
-            </Button>
-            <BotaoNotasExplicativas onClick={() => setNotasModal(true)} />
-          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              setMemoryCell({ label: `Exercício ${exercicio}`, cell: activeCell, row })
+            }
+            className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+          >
+            <Calculator className="w-3.5 h-3.5 mr-1" /> Ampliar memória
+          </Button>
         </div>
         <div className="flex flex-col lg:flex-row gap-3">
           <SideColumnArt
             title="HOJE"
             side={activeCell.hoje}
+            cell={activeCell}
+            row={row}
+            exercicio={exercicio}
+            repasse={config.repasse}
+            repassePct={config.repassePct}
+            regimeFornecedor={REGIME_LABEL[config.fornecedorRegime]}
+            regimeComprador={REGIME_LABEL[config.compradorRegime]}
             onOpenLine={(line) => setLineMemory({ line, label: `${line.label} — HOJE` })}
             onOpenBloco={(side, bloco) =>
               setBlocoMemory({
@@ -980,6 +1012,13 @@ export function CmvArt12Module() {
           <SideColumnArt
             title={`EXERCÍCIO ${exercicio}`}
             side={activeCell.exercicio}
+            cell={activeCell}
+            row={row}
+            exercicio={exercicio}
+            repasse={config.repasse}
+            repassePct={config.repassePct}
+            regimeFornecedor={REGIME_LABEL[config.fornecedorRegime]}
+            regimeComprador={REGIME_LABEL[config.compradorRegime]}
             onOpenLine={(line) => setLineMemory({ line, label: `${line.label} — ${exercicio}` })}
             onOpenBloco={(side, bloco) =>
               setBlocoMemory({
@@ -1123,15 +1162,6 @@ export function CmvArt12Module() {
           }}
         />
       )}
-      <NotasExplicativasDialog
-        matriz={matriz}
-        row={row}
-        exercicio={exercicio}
-        repasse={config.repasse}
-        repassePct={config.repassePct}
-        open={notasModal}
-        onOpenChange={setNotasModal}
-      />
     </div>
   )
 }
