@@ -150,8 +150,13 @@ export function NotaExplicativaCelula({
   const baseLimpaV = Math.abs(val(cell.exercicio, 'baselimpa'))
   const precoNotaV = Math.abs(val(cell.exercicio, 'preconota')) || cell.exercicio.bruto
   const mercReal =
-    cell.hoje.bruto - Math.abs(val(cell.hoje, 'icms_merc')) - Math.abs(val(cell.hoje, 'icms_frete'))
-  const freteReal = CASO_CANONICO_ART12.freightValue
+    icmsMerc > 0
+      ? icmsMerc / (CASO_CANONICO_ART12.icmsRate / 100)
+      : CASO_CANONICO_ART12.quantity * CASO_CANONICO_ART12.unitPrice
+  const freteReal =
+    icmsFrete > 0
+      ? icmsFrete / (CASO_CANONICO_ART12.icmsFreightRate / 100)
+      : CASO_CANONICO_ART12.freightValue
   const baseSemIcmsRef = Math.max(0, baseLimpaV + pisV + cofinsV)
   const pisRate = baseSemIcmsRef > 0 ? pisV / baseSemIcmsRef : 0
   const cofinsRate = baseSemIcmsRef > 0 ? cofinsV / baseSemIcmsRef : 0
@@ -471,8 +476,14 @@ export function NotaExplicativaBloco({
   const pisRate = baseSemIcmsRef > 0 ? pisV / baseSemIcmsRef : 0
   const cofinsRate = baseSemIcmsRef > 0 ? cofinsV / baseSemIcmsRef : 0
   const bcIcms = baseLimpaV + cbsV + ibsV
-  const mercReal = brutoNota - icmsMerc - icmsFrete
-  const freteReal = CASO_CANONICO_ART12.freightValue
+  const mercReal =
+    icmsMerc > 0
+      ? icmsMerc / (CASO_CANONICO_ART12.icmsRate / 100)
+      : CASO_CANONICO_ART12.quantity * CASO_CANONICO_ART12.unitPrice
+  const freteReal =
+    icmsFrete > 0
+      ? icmsFrete / (CASO_CANONICO_ART12.icmsFreightRate / 100)
+      : CASO_CANONICO_ART12.freightValue
   const icmsHoje = Math.abs(val(cell.hoje, 'icms'))
   const piscofinsHoje = Math.abs(val(cell.hoje, 'piscofins'))
   const repasseTxt =
