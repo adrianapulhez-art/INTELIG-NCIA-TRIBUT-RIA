@@ -69,7 +69,11 @@ const val = (side: SideResultArt, key: string) => {
 }
 
 /** Tabela de memória de cálculo no formato do relatório da CEO. */
-function TabelaMemoria({ linhas }: { linhas: { label: string; valor: string; destaque?: boolean }[] }) {
+function TabelaMemoria({
+  linhas,
+}: {
+  linhas: { label: string; valor: string; destaque?: boolean }[]
+}) {
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-2 space-y-0.5">
       {linhas.map((l, i) => (
@@ -77,10 +81,14 @@ function TabelaMemoria({ linhas }: { linhas: { label: string; valor: string; des
           key={i}
           className={`flex items-center justify-between gap-2 px-1.5 py-0.5 rounded ${l.destaque ? 'bg-orange-500/10 border border-orange-500/40' : ''}`}
         >
-          <span className={`text-[10px] font-mono ${l.destaque ? 'font-bold text-orange-300' : 'text-slate-400'}`}>
+          <span
+            className={`text-[10px] font-mono ${l.destaque ? 'font-bold text-orange-300' : 'text-slate-400'}`}
+          >
             {l.label}
           </span>
-          <span className={`text-[10px] font-mono ${l.destaque ? 'font-black text-orange-300' : 'font-bold text-slate-100'}`}>
+          <span
+            className={`text-[10px] font-mono ${l.destaque ? 'font-black text-orange-300' : 'font-bold text-slate-100'}`}
+          >
             {l.valor}
           </span>
         </div>
@@ -148,8 +156,8 @@ export function NotaExplicativaCelula({
   return (
     <div className="space-y-3">
       <div className="text-[11px] font-mono font-black uppercase text-orange-300">
-        ADQUIRENTE {nomeC.toUpperCase()} × FORNECEDOR {nomeF.toUpperCase()} · Exercício {exercicio} ·{' '}
-        {repasseTxt2}
+        ADQUIRENTE {nomeC.toUpperCase()} × FORNECEDOR {nomeF.toUpperCase()} · Exercício {exercicio}{' '}
+        · {repasseTxt2}
       </div>
 
       {/* ============ ÓTICA DO FORNECEDOR ============ */}
@@ -166,20 +174,20 @@ export function NotaExplicativaCelula({
             </>
           ) : snhF ? (
             <>
-              O fornecedor do SN híbrido optou pelo regime regular de IBS/CBS (LC 214/2025, art. 41):
-              mantém a nota no valor de hoje (congelada) e destaca CBS e IBS por fora —{' '}
+              O fornecedor do SN híbrido optou pelo regime regular de IBS/CBS (LC 214/2025, art.
+              41): mantém a nota no valor de hoje (congelada) e destaca CBS e IBS por fora —{' '}
               <b className="text-slate-100">{formatBRL(cbsV)}</b> e{' '}
-              <b className="text-slate-100">{formatBRL(ibsV)}</b> sobre a base sem ICMS (premissa IT,
-              pendente de regulamentação). O líquido dele fica preservado e o destaque gera crédito
-              ao adquirente em regime regular (art. 47).
+              <b className="text-slate-100">{formatBRL(ibsV)}</b> sobre a base sem ICMS (premissa
+              IT, pendente de regulamentação). O líquido dele fica preservado e o destaque gera
+              crédito ao adquirente em regime regular (art. 47).
             </>
           ) : (
             <>
               Para recompor a base líquida com a mesma condição do sistema pré-reforma, o fornecedor{' '}
-              {nomeF} parte da receita líquida de vendas (RLV): a receita bruta menos ICMS
-              {' '}e PIS/COFINS (embutidos sobre base sem ICMS — tese do século, STJ RE 1.188.403).{' '}
-              A base para a CBS e o IBS é o valor da operação (LC 214/2025, art. 12), e ambos incidem
-              por fora — por isso a reprecificação divide a base líquida pelo fator (1 − 18%): o ICMS
+              {nomeF} parte da receita líquida de vendas (RLV): a receita bruta menos ICMS e
+              PIS/COFINS (embutidos sobre base sem ICMS — tese do século, STJ RE 1.188.403). A base
+              para a CBS e o IBS é o valor da operação (LC 214/2025, art. 12), e ambos incidem por
+              fora — por isso a reprecificação divide a base líquida pelo fator (1 − 18%): o ICMS
               continua por dentro do preço até 2032, e a divisão garante que, descontado o ICMS da
               nota nova, sobre exatamente o líquido de antes. É a lógica do líquido mínimo: ele
               busca receber, líquido, no mínimo o que auferia antes.
@@ -191,8 +199,20 @@ export function NotaExplicativaCelula({
             linhas={[
               { label: 'RBV (preço pré-reforma)', valor: formatBRL(cell.hoje.bruto) },
               { label: '(−) ICMS', valor: formatBRL(cell.hoje.bruto * 0.18) },
-              { label: '(−) PIS/COFINS', valor: formatBRL(Math.max(0, cell.hoje.bruto - cell.hoje.bruto * 0.18 - (cell.hoje.baseLimpa || 0))) },
-              { label: '(=) RLV — base limpa', valor: formatBRL(cell.hoje.baseLimpa || 0), destaque: true },
+              {
+                label: '(−) PIS/COFINS',
+                valor: formatBRL(
+                  Math.max(
+                    0,
+                    cell.hoje.bruto - cell.hoje.bruto * 0.18 - (cell.hoje.baseLimpa || 0),
+                  ),
+                ),
+              },
+              {
+                label: '(=) RLV — base limpa',
+                valor: formatBRL(cell.hoje.baseLimpa || 0),
+                destaque: true,
+              },
               { label: 'CBS por fora (8,80%)', valor: formatBRL(cbsV) },
               { label: 'IBS por fora (0,10%)', valor: formatBRL(ibsV) },
               { label: 'PREÇO DE VENDA (pós-reforma)', valor: formatBRL(brutoEx), destaque: true },
@@ -349,7 +369,7 @@ export function NotaExplicativaBloco({
   forn,
 }: {
   side: SideResultArt
-  bloco 1 | 2
+  bloco: 1 | 2
   cell: CellResultArt
   row: ScheduleRowArt
   exercicio: ExercicioKey
@@ -397,10 +417,18 @@ export function NotaExplicativaBloco({
               linhas={[
                 { label: 'RBV (preço pré-reforma)', valor: formatBRL(cell.hoje.bruto) },
                 { label: '(−) ICMS', valor: formatBRL(cell.hoje.bruto * 0.18) },
-                { label: '(=) RLV — base limpa', valor: formatBRL(cell.hoje.baseLimpa || 0), destaque: true },
+                {
+                  label: '(=) RLV — base limpa',
+                  valor: formatBRL(cell.hoje.baseLimpa || 0),
+                  destaque: true,
+                },
                 { label: 'CBS por fora', valor: formatBRL(cbsV) },
                 { label: 'IBS por fora', valor: formatBRL(ibsV) },
-                { label: 'PREÇO DE VENDA (pós-reforma)', valor: formatBRL(brutoNota), destaque: true },
+                {
+                  label: 'PREÇO DE VENDA (pós-reforma)',
+                  valor: formatBRL(brutoNota),
+                  destaque: true,
+                },
               ]}
             />
           </div>
@@ -412,24 +440,35 @@ export function NotaExplicativaBloco({
             <Par>
               O custo do adquirente sofre mudança do sistema anterior para o atual, e a análise
               precisa olhar a perspectiva do regime tributário dele. Abaixo, a composição do custo
-              no sistema pré-reforma e no pós-reforma, com os números deste card. Com{' '}
-              {repasseTxt}, o custo líquido unitário vai de{' '}
-              <b className="text-slate-100">{formatBRL(hojeU)}</b> para{' '}
-              <b className="text-slate-100">{formatBRL(novoU)}/un</b> ({d > 0 ? '+' : ''}
+              no sistema pré-reforma e no pós-reforma, com os números deste card. Com {repasseTxt},
+              o custo líquido unitário vai de <b className="text-slate-100">{formatBRL(hojeU)}</b>{' '}
+              para <b className="text-slate-100">{formatBRL(novoU)}/un</b> ({d > 0 ? '+' : ''}
               {formatNumberBR(d)}%).
             </Par>
             <TabelaMemoria
               linhas={[
                 { label: 'PRÉ: bruto da nota', valor: formatBRL(cell.hoje.bruto) },
                 { label: 'PRÉ: (−) créditos', valor: formatBRL(cell.hoje.creditos) },
-                { label: 'PRÉ: (=) compras líquidas', valor: formatBRL(cell.hoje.liquido), destaque: true },
+                {
+                  label: 'PRÉ: (=) compras líquidas',
+                  valor: formatBRL(cell.hoje.liquido),
+                  destaque: true,
+                },
                 { label: 'PRÉ: custo unitário', valor: `${formatBRL(hojeU)}/un`, destaque: true },
                 { label: 'PÓS: bruto da nota', valor: formatBRL(brutoNota) },
                 { label: 'PÓS: (−) ICMS', valor: formatBRL(credIcms) },
                 { label: 'PÓS: (−) CBS', valor: formatBRL(cbsV) },
                 { label: 'PÓS: (−) IBS', valor: formatBRL(ibsV) },
-                { label: 'PÓS: (=) compras líquidas', valor: formatBRL(comprasLiq), destaque: true },
-                { label: 'PÓS: custo unitário', valor: `${formatBRL(side.unitario)}/un`, destaque: true },
+                {
+                  label: 'PÓS: (=) compras líquidas',
+                  valor: formatBRL(comprasLiq),
+                  destaque: true,
+                },
+                {
+                  label: 'PÓS: custo unitário',
+                  valor: `${formatBRL(side.unitario)}/un`,
+                  destaque: true,
+                },
               ]}
             />
           </div>
