@@ -286,6 +286,178 @@ export function BotaoNotaCard({ onClick }: { onClick: () => void }) {
   )
 }
 
+const REGIME_NOME_C: Record<string, string> = {
+  presumido: 'Lucro Presumido',
+  real: 'Lucro Real',
+  simples: 'Simples Nacional',
+  simples_hibrido: 'Simples Nacional híbrido',
+}
+
+export function NotaExplicativaCelula({
+  cell,
+  row,
+  exercicio,
+  comprador,
+  fornecedor,
+  repasse,
+  repassePct,
+}: {
+  cell: CellResultArt
+  row: ScheduleRowArt
+  exercicio: ExercicioKey
+  comprador: RegimeId
+  fornecedor: RegimeId
+  repasse: RepasseMode
+  repassePct: number
+}) {
+  const hojeU = cell.hoje.unitario
+  const novoU = cell.exercicio.unitario
+  const d = cell.deltaPct
+  const nomeC = REGIME_NOME_C[comprador]
+  const nomeF = REGIME_NOME_C[fornecedor]
+  const snC = comprador === 'simples'
+  const snhC = comprador === 'simples_hibrido'
+  const snF = fornecedor === 'simples'
+  const snhF = fornecedor === 'simples_hibrido'
+  const repasseTxt =
+    repasse === 'parcial'
+      ? `repasse parcial (${formatNumberBR(repassePct)}%)`
+      : repasse === 'nenhum'
+        ? 'sem repasse'
+        : 'repasse integral'
+
+  return (
+    <div className="space-y-2.5">
+      <div className="space-y-1.5">
+        <TituloNota>A situação deste card</TituloNota>
+        <Par>
+          Comprador <b className="text-slate-100">{nomeC}</b> × Fornecedor{' '}
+          <b className="text-slate-100">{nomeF}</b> · exercício {exercicio} · {repasseTxt}. No
+          sistema pré-reforma, o custo de entrada do {nomeC} era{' '}
+          <b className="text-slate-100">{formatBRL(hojeU)}/un</b> —{' '}
+          {comprador === 'real'
+            ? 'recupera ICMS, PIS e COFINS, o que faz dele o comprador mais barato'
+            : snC
+              ? 'não recupera crédito algum: o tributo embutido no preço vira custo integral'
+              : snhC
+                ? 'segue com ICMS/PIS/COFINS no DAS, mas credita CBS/IBS da nota (regime regular)'
+                : 'recupera apenas ICMS — custo maior que o LR, menor que o SN'}
+          . Como os tributos estavam dentro do preço da nota, o comprador não olhava o regime do
+          fornecedor: procurava o melhor preço.
+        </Par>
+      </div>
+
+      <div className="space-y-1.5">
+        <TituloNota>O que aconteceu nos números</TituloNota>
+        <div className="space-y-1">
+          <LinhaRelato label="Valor bruto da nota paga" valor={formatBRL(cell.exercicio.bruto)} />
+          <LinhaRelato label="Créditos recuperados" valor={formatBRL(cell.exercicio.creditos)} />
+          <LinhaRelato
+            label="Compras líquidas (custo total)"
+            valor={formatBRL(cell.exercicio.liquido)}
+          />
+          <LinhaRelato label="Custo unitário resultante" valor={`${formatBRL(novoU)}/un`} />
+        </div>
+        <Par>
+          No pós-reforma, a escolha do fornecedor passa a importar: a base de cálculo do IBS e da
+          CBS deve vir livre da tributação anterior (LC 214/2025, art. 12), mas não necessariamente
+          isso ocorrerá nas negociações —{' '}
+          {snF
+            ? 'e a nota congelada do Simples (LC 123/2006) não destaca CBS/IBS: não há como separar o novo tributo'
+            : snhF
+              ? 'e o SN híbrido destaca CBS/IBS por fora (art. 41) — o destaque gera crédito ao adquirente em regime regular'
+              : 'e é o destaque na nota que permite ao comprador pleno recuperar o valor (art. 47, §2º)'}
+          . O desembolso {d > 0.5 ? 'sobe' : d < -0.5 ? 'cai' : 'fica estável'} ({formatBRL(hojeU)}{' '}
+          → {formatBRL(novoU)}/un, {d > 0 ? '+' : ''}
+          {formatNumberBR(d)}%){' '}
+          {snC
+            ? 'e NÃO há minimização: o comprador SN não credita CBS/IBS (LC 123/2006 + art. 47) — o destaque vira custo integral, o pior cenário quando há repasse'
+            : snhC
+              ? 'e o impacto é parcialmente minimizado: CBS/IBS viram crédito, mas ICMS/PIS/COFINS seguem no DAS sem crédito'
+              : 'e o impacto no caixa é minimizado: o valor pago a título de CBS e IBS torna-se crédito, o que faz o custo da mercadoria diminuir'}
+          .
+        </Par>
+      </div>
+
+      <div className="space-y-1.5">
+        <TituloNota>Leitura do resultado</TituloNota>
+        <Par>
+          {repasse === 'integral'
+            ? 'Com repasse integral, o fornecedor recomputa o preço para receber o mesmo líquido de antes — o bruto sobe com CBS/IBS por fora e o crédito lava o destaque: cadeia plena fecha neutra, e a diferença entre compradores está em quem credita o quê.'
+            : repasse === 'parcial'
+              ? `Com repasse parcial de ${formatNumberBR(repassePct)}%, o fornecedor absorve ${formatNumberBR(100 - repassePct)}% na margem e transfere o resto ao preço: o custo fica entre o integral e o sem repasse — e quem absorve cada fatia é negociável.`
+              : 'Sem repasse, o ganho do fornecedor fica no preço e o comprador absorve o impacto sozinho: é a escada de custo que sobe ano a ano. A tendência ao aumento vem da lógica do líquido mínimo: ele busca receber, líquido, no mínimo o que auferia antes.'}{' '}
+          Resultado desta escolha:{' '}
+          <b className="text-slate-100">
+            {formatBRL(novoU)}/un ({d > 0 ? '+' : ''}
+            {formatNumberBR(d)}% vs hoje)
+          </b>
+          . Pendente de definição: base do ICMS na transição (tese do Fisco × PLP 16/25 — tese do
+          Contribuinte).
+        </Par>
+      </div>
+    </div>
+  )
+}
+
+/** Gatilho + modal da nota de UMA célula do espelho. */
+export function NotaCelulaTrigger({
+  cell,
+  row,
+  exercicio,
+  comprador,
+  fornecedor,
+  repasse,
+  repassePct,
+}: {
+  cell: CellResultArt
+  row: ScheduleRowArt
+  exercicio: ExercicioKey
+  comprador: RegimeId
+  fornecedor: RegimeId
+  repasse: RepasseMode
+  repassePct: number
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-[9px] font-mono font-bold text-sky-300 hover:bg-sky-500/20 cursor-pointer"
+      >
+        <FileText className="w-3 h-3" /> Notas explicativas
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-sky-500/30 text-slate-100 p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-sky-400" />
+              <span>
+                Nota explicativa — {REGIME_NOME_C[comprador]} × {REGIME_NOME_C[fornecedor]}
+              </span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400">
+              Relatório da situação deste card · Exercício {exercicio} · CBS{' '}
+              {formatNumberBR(row.cbsRate)}% · IBS {formatNumberBR(row.ibsRate)}% · ICMS{' '}
+              {formatNumberBR(row.icmsPct)}% da alíquota
+            </DialogDescription>
+          </DialogHeader>
+          <NotaExplicativaCelula
+            cell={cell}
+            row={row}
+            exercicio={exercicio}
+            comprador={comprador}
+            fornecedor={fornecedor}
+            repasse={repasse}
+            repassePct={repassePct}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
 /** Wrapper de estado: um par (botão + modal) por card. */
 export function NotaCardTrigger({
   side,
