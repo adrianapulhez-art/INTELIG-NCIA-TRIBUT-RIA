@@ -8,6 +8,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import {
+  CASO_CANONICO_ART12,
   type CellResultArt,
   type ExercicioKey,
   type RegimeId,
@@ -142,6 +143,19 @@ export function NotaExplicativaCelula({
   const cbsV = Math.abs(val(cell.exercicio, 'cbs'))
   const ibsV = Math.abs(val(cell.exercicio, 'ibs'))
   const icmsNota = Math.abs(val(cell.exercicio, 'creditoicms'))
+  const icmsMerc = Math.abs(val(cell.exercicio, 'icms_merc'))
+  const icmsFrete = Math.abs(val(cell.exercicio, 'icms_frete'))
+  const pisV = Math.abs(val(cell.exercicio, 'pis'))
+  const cofinsV = Math.abs(val(cell.exercicio, 'cofins'))
+  const baseLimpaV = Math.abs(val(cell.exercicio, 'baselimpa'))
+  const precoNotaV = Math.abs(val(cell.exercicio, 'preconota')) || cell.exercicio.bruto
+  const mercReal =
+    cell.hoje.bruto - Math.abs(val(cell.hoje, 'icms_merc')) - Math.abs(val(cell.hoje, 'icms_frete'))
+  const freteReal = CASO_CANONICO_ART12.freightValue
+  const baseSemIcmsRef = Math.max(0, baseLimpaV + pisV + cofinsV)
+  const pisRate = baseSemIcmsRef > 0 ? pisV / baseSemIcmsRef : 0
+  const cofinsRate = baseSemIcmsRef > 0 ? cofinsV / baseSemIcmsRef : 0
+  const bcIcms = baseLimpaV + cbsV + ibsV
   const credHoje = cell.hoje.creditos
   const liqHoje = cell.hoje.liquido
   const brutoHoje = cell.hoje.bruto
@@ -197,25 +211,46 @@ export function NotaExplicativaCelula({
         {plenoF && (
           <TabelaMemoria
             linhas={[
-              { label: 'RBV (preço pré-reforma)', valor: formatBRL(cell.hoje.bruto) },
-              { label: '(−) ICMS', valor: formatBRL(cell.hoje.bruto * 0.18) },
+              { label: 'RBV (preço pré-reforma)', valor: formatBRL(brutoHoje) },
               {
-                label: '(−) PIS/COFINS',
-                valor: formatBRL(
-                  Math.max(
-                    0,
-                    cell.hoje.bruto - cell.hoje.bruto * 0.18 - (cell.hoje.baseLimpa || 0),
-                  ),
-                ),
+                label: '(−) ICMS sobre mercadorias',
+                valor: `${formatBRL(icmsMerc)} (${formatNumberBR(input.icmsRate)}% × ${formatBRL(mercReal)})`,
+              },
+              {
+                label: '(−) ICMS sobre fretes',
+                valor: `${formatBRL(icmsFrete)} (${formatNumberBR(input.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
+              },
+              {
+                label: `(−) PIS ${formatNumberBR(pisRate * 100)}% × base sem ICMS`,
+                valor: formatBRL(pisV),
+              },
+              {
+                label: `(−) COFINS ${formatNumberBR(cofinsRate * 100)}% × base sem ICMS`,
+                valor: formatBRL(cofinsV),
               },
               {
                 label: '(=) RLV — base limpa',
-                valor: formatBRL(cell.hoje.baseLimpa || 0),
+                valor: formatBRL(baseLimpaV),
                 destaque: true,
               },
-              { label: 'CBS por fora (8,80%)', valor: formatBRL(cbsV) },
-              { label: 'IBS por fora (0,10%)', valor: formatBRL(ibsV) },
-              { label: 'PREÇO DE VENDA (pós-reforma)', valor: formatBRL(brutoEx), destaque: true },
+              {
+                label: `(+) CBS por fora (${formatNumberBR(row.cbsRate)}% × base limpa)`,
+                valor: formatBRL(cbsV),
+              },
+              {
+                label: `(+) IBS por fora (${formatNumberBR(row.ibsRate)}% × base limpa)`,
+                valor: formatBRL(ibsV),
+              },
+              {
+                label: '(=) BC do ICMS',
+                valor: formatBRL(bcIcms),
+                destaque: true,
+              },
+              {
+                label: `÷ (1 − ${formatNumberBR(input.icmsRate)}%) → PREÇO DE VENDA (pós-reforma)`,
+                valor: formatBRL(precoNotaV),
+                destaque: true,
+              },
             ]}
           />
         )}
