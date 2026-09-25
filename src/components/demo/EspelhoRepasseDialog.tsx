@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { NotaCelulaTrigger } from './NotasExplicativas'
 import {
   computeCellArt12,
   type CellConfigArt,
@@ -93,12 +94,20 @@ function CelulaComprador({
   fornecedor,
   isMenor,
   onAbrir,
+  row,
+  exercicio,
+  repasse,
+  repassePct,
 }: {
   cell: CellResultArt
   comprador: RegimeId
   fornecedor: RegimeId
   isMenor: boolean
   onAbrir: () => void
+  row?: ScheduleRowArt
+  exercicio?: ExercicioKey
+  repasse?: RepasseMode
+  repassePct?: number
 }) {
   const linhas = cell.exercicio.lines.filter((l) => l.bloco === 2 && l.label !== 'MEMORIA_BLOCO1')
   const deltaPositivo = cell.deltaPct > 0
@@ -155,6 +164,17 @@ function CelulaComprador({
       >
         <Calculator className="w-3 h-3" /> Memória + base legal
       </button>
+      {row && exercicio && repasse !== undefined && (
+        <NotaCelulaTrigger
+          cell={cell}
+          row={row}
+          exercicio={exercicio}
+          comprador={comprador}
+          fornecedor={fornecedor}
+          repasse={repasse}
+          repassePct={repassePct}
+        />
+      )}
     </div>
   )
 }
@@ -221,6 +241,10 @@ export function EspelhoRepasseDialog({
                 fornecedor={fornecedor}
                 isMenor={cell.exercicio.unitario === menor}
                 onAbrir={() => onAbrirCelula(linha.comprador, fornecedor, cell)}
+                row={row}
+                exercicio={exercicio}
+                repasse={mode}
+                repassePct={baseConfig.repassePct}
               />
             )),
           )}
