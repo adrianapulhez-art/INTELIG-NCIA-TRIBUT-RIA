@@ -63,6 +63,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   const {
     getSnapshot,
     loadSnapshot,
+    ativarCenario,
     totalOperatingExpenses,
     totalOperatingRevenues,
     regime,
@@ -308,10 +309,15 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     }
   }
 
-  // Restaurar cenário para a tela
+  // Restaurar cenário para a tela — agora ATIVA: persiste no navegador + hidrata no boot
   const handleRestore = (item: ClientSavedScenarioRecord) => {
     try {
-      loadSnapshot(item.snapshot)
+      ativarCenario({
+        id: item.id,
+        cliente: item.clientName || 'Cliente',
+        nome: item.name,
+        snapshot: item.snapshot,
+      })
       setRestoredId(item.id)
       const clientLabel = item.clientName ? ` (Cliente: ${item.clientName})` : ''
       showFeedback(

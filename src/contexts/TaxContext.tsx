@@ -824,6 +824,19 @@ export interface TaxContextType {
   // Limpar/Resetar tudo para zerado
   resetAll: () => void
 
+  // CENÁRIO ATIVO MULTI-CLIENTE — persistência e ciclo de vida
+  /** Cenário atualmente ativo nas telas (pré e pós-reforma), ou null. */
+  cenarioAtivo: { id: string; cliente: string; nome: string } | null
+  /** Registra o cenário como ativo (persistido no navegador + hidratado no boot). */
+  ativarCenario: (info: {
+    id: string
+    cliente: string
+    nome: string
+    snapshot: TaxStateSnapshot
+  }) => void
+  /** Remove o cenário ativo das telas (estado volta ao zerado). */
+  desativarCenario: () => void
+
   // Mecanismo de Histórico em Memória (Undo / Redo)
   undo: () => boolean
   redo: () => boolean
@@ -3882,6 +3895,62 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsSimplesSimulated(true)
   }
 
+  // ============ CENÁRIO ATIVO MULTI-CLIENTE (persistência + hidratação no boot) ============
+  const CENARIO_ATIVO_KEY = 'it_cenario_ativo_v1'
+  const [cenarioAtivo, setCenarioAtivoState] = useState<{
+    id: string
+    cliente: string
+    nome: string
+  } | null>(null)
+  const cenarioHidratadoRef = useRef<boolean>(false)
+
+  // Hidratação no boot: recarrega o cenário ativo (uma única vez, após a 1ª montagem)
+  useEffect(() => {
+    if (cenarioHidratadoRef.current) return
+    cenarioHidratadoRef.current = true
+    try {
+      const raw = localStorage.getItem(CENARIO_ATIVO_KEY)
+      if (!raw) return
+      const salvo = JSON.parse(raw) as {
+        id: string
+        cliente: string
+        nome: string
+        snapshot: TaxStateSnapshot
+      }
+      if (!salvo?.snapshot) return
+      loadSnapshot(salvo.snapshot)
+      setCenarioAtivoState({ id: salvo.id, cliente: salvo.cliente, nome: salvo.nome })
+    } catch (err) {
+      console.warn('Falha ao hidratar cenário ativo:', err)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /** Ativa: grava no navegador + registra como ativo. Snapshot congelado (imune a edições posteriores). */
+  const ativarCenario = useCallback(
+    (info: { id: string; cliente: string; nome: string; snapshot: TaxStateSnapshot }) => {
+      try {
+        localStorage.setItem(CENARIO_ATIVO_KEY, JSON.stringify({ ...info }))
+      } catch (err) {
+        console.warn('Falha ao persistir cenário ativo:', err)
+      }
+      setCenarioAtivoState({ id: info.id, cliente: info.cliente, nome: info.nome })
+      loadSnapshot(info.snapshot)
+    },
+    [loadSnapshot],
+  )
+
+  /** Desativa: limpa o registro e zera as telas. */
+  const desativarCenario = useCallback(() => {
+    try {
+      localStorage.removeItem(CENARIO_ATIVO_KEY)
+    } catch (err) {
+      console.warn('Falha ao remover cenário ativo:', err)
+    }
+    setCenarioAtivoState(null)
+    resetAll()
+  }, [resetAll])
+
   const resetAll = () => {
     setRegime('presumido')
     setMarkupModeState('liquid')
@@ -5029,6 +5098,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         },
 
         resetAll,
+
+        cenarioAtivo,
+        ativarCenario,
+        desativarCenario,
       }}
     >
       {children}

@@ -30,7 +30,25 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
-  const { resetAll, undo, redo, canUndo, canRedo, undoCount, redoCount } = useTaxContext()
+  const {
+    resetAll,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    undoCount,
+    redoCount,
+    cenarioAtivo,
+    desativarCenario,
+  } = useTaxContext()
+
+  const handleDesativarCenario = React.useCallback(() => {
+    desativarCenario()
+    toast.success('Cenário desativado — telas zeradas', {
+      duration: 2500,
+      className: 'bg-emerald-950 border-emerald-500/30 text-emerald-200 text-xs',
+    })
+  }, [desativarCenario])
 
   const handleUndo = React.useCallback(() => {
     if (undo()) {
@@ -155,6 +173,23 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
         </Link>
 
         <div className="flex items-center gap-3">
+          {/* Indicador de CENÁRIO ATIVO (multi-cliente) — persistente em pré e pós-reforma */}
+          {cenarioAtivo && (
+            <div className="hidden md:flex items-center gap-2 bg-sky-500/10 border border-sky-500/30 rounded-lg px-2.5 py-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+              <span className="text-[10px] font-mono text-sky-300 max-w-[220px] truncate">
+                Cenário ativo: {cenarioAtivo.cliente} · {cenarioAtivo.nome}
+              </span>
+              <button
+                type="button"
+                onClick={handleDesativarCenario}
+                title="Desativar o cenário ativo e zerar as telas"
+                className="text-[10px] font-mono font-bold text-rose-300 hover:text-rose-200 bg-rose-500/10 border border-rose-500/30 rounded px-1.5 py-0.5 cursor-pointer hover:bg-rose-500/20 transition-colors"
+              >
+                Desativar
+              </button>
+            </div>
+          )}
           {/* Botões de Desfazer e Refazer (Undo/Redo) */}
           <div className="flex items-center gap-1 bg-[#091511]/90 border border-emerald-500/20 rounded-lg p-0.5">
             <Tooltip>
