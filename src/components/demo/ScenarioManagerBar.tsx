@@ -47,7 +47,7 @@ export interface ScenarioManagerBarProps {
 
 export const ScenarioManagerBar: React.FC<ScenarioManagerBarProps> = ({ onGravarCenario }) => {
   const { user } = useAuth()
-  const { getSnapshot, loadSnapshot } = useTaxContext()
+  const { getSnapshot, loadSnapshot, ativarCenario } = useTaxContext()
 
   const [scenarios, setScenarios] = useState<TaxScenarioRecord[]>([])
   const [activeScenarioId, setActiveScenarioId] = useState<string | null>(null)
@@ -157,7 +157,14 @@ export const ScenarioManagerBar: React.FC<ScenarioManagerBarProps> = ({ onGravar
   // Carregar um cenário do banco/armazenamento
   const handleLoad = (scenario: TaxScenarioRecord) => {
     try {
-      loadSnapshot(scenario.data)
+      // PERSISTÊNCIA DO CENÁRIO ATIVO (bug da "fase anterior"): grava no localStorage
+      // + hidrata no boot — F5/nova aba não perde mais o estado restaurado.
+      ativarCenario({
+        id: scenario.id,
+        cliente: '',
+        nome: scenario.name,
+        snapshot: scenario.data,
+      })
       setActiveScenarioId(scenario.id)
       setActiveScenarioName(scenario.name)
       setIsQuickDropdownOpen(false)

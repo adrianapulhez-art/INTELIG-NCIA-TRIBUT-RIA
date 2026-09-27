@@ -51,7 +51,7 @@ import {
 export default function ClientsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { loadSnapshot, getSnapshot } = useTaxContext()
+  const { loadSnapshot, getSnapshot, ativarCenario } = useTaxContext()
 
   const [scenarios, setScenarios] = useState<TaxScenarioRecord[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -120,7 +120,13 @@ export default function ClientsPage() {
   // Carregar e navegar para a home da demo (/demo/markup)
   const handleLoadAndNavigate = (scenario: TaxScenarioRecord) => {
     try {
-      loadSnapshot(scenario.data)
+      // PERSISTÊNCIA DO CENÁRIO ATIVO: F5/nova aba não perde mais o estado restaurado.
+      ativarCenario({
+        id: scenario.id,
+        cliente: '',
+        nome: scenario.name,
+        snapshot: scenario.data,
+      })
       showFeedback('success', `Cenário "${scenario.name}" restaurado com sucesso!`)
       // Pequeno timeout para permitir que o usuário veja a confirmação se desejar
       navigate('/demo/markup')
@@ -577,7 +583,15 @@ export default function ClientsPage() {
                               <Button
                                 size="sm"
                                 onClick={() => {
-                                  loadSnapshot(sc.snapshot)
+                                  // PERSISTÊNCIA DO CENÁRIO ATIVO (bug da "fase anterior"):
+                                  // grava no localStorage + hidrata no boot — F5/nova aba
+                                  // não perde mais os itens da Compras nem o cálculo por item.
+                                  ativarCenario({
+                                    id: sc.id,
+                                    cliente: sc.client || '',
+                                    nome: sc.name,
+                                    snapshot: sc.snapshot,
+                                  })
                                   showFeedback(
                                     'success',
                                     `Cenário "${sc.name}" restaurado com sucesso!`,
