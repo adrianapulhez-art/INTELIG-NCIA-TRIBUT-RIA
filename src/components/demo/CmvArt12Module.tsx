@@ -8,6 +8,7 @@ import {
   XCircle,
   ShieldAlert,
   ShieldCheck,
+  Layers,
 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -43,6 +44,8 @@ import {
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 import { EspelhoRepasseDialog } from './EspelhoRepasseDialog'
 import { NotaCardTrigger } from './NotasExplicativas'
+import { PainelIntegracaoOrigem } from './PainelIntegracaoOrigem'
+import { derivarCasoDeItens, type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
 
 const EXERCICIOS: ExercicioKey[] = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033]
 
@@ -684,10 +687,21 @@ export function CmvArt12Module() {
   const [espelhoModal, setEspelhoModal] = useState<{ open: boolean; mode: RepasseMode } | null>(
     null,
   )
+  // INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA — itens importados da Calculadora de Compras
+  const [itensImportados, setItensImportados] = useState<ItemIntegracaoArt12[]>([])
+  const importarItem = (item: ItemIntegracaoArt12) =>
+    setItensImportados((prev) => (prev.some((i) => i.id === item.id) ? prev : [...prev, item]))
+  const removerItem = (id: string) => setItensImportados((prev) => prev.filter((i) => i.id !== id))
 
   const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
 
-  const input = useMemo(() => CASO_CANONICO_ART12, [])
+  // INTEGRAÇÃO: com itens importados, a célula calcula sobre a aquisição derivada da Compras;
+  // sem importação, o caso canônico chancelado segue intacto (mesmo motor, mesma fórmula).
+  const input = useMemo(
+    () => (itensImportados.length > 0 ? derivarCasoDeItens(itensImportados) : CASO_CANONICO_ART12),
+    [itensImportados],
+  )
+  const origemIntegrada = itensImportados.length > 0
 
   const activeCell = useMemo(() => computeCellArt12(input, config, row), [input, config, row])
   const reguas = useMemo(() => reguasArt12(input, config, row), [input, config, row])
@@ -801,6 +815,24 @@ export function CmvArt12Module() {
               : 'ICMS sobre a operação sem CBS/IBS (PLP 16/25) — nota menor. Cadeia plena fecha igual; muda o custo do comprador SN.'}
           </span>
         </div>
+        {/* INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA — 3 portas de origem */}
+        <PainelIntegracaoOrigem
+          importados={itensImportados}
+          onImportar={importarItem}
+          onRemover={removerItem}
+        />
+        {origemIntegrada && (
+          <div className="flex items-center gap-2 text-[10px] font-mono text-sky-300 bg-sky-500/10 border border-sky-500/40 rounded-lg p-2.5">
+            <Layers className="w-4 h-4 shrink-0 text-sky-400" />
+            <span>
+              Origem integrada ativa: a célula calcula sobre {itensImportados.length} item
+              {itensImportados.length === 1 ? '' : 's'} importado
+              {itensImportados.length === 1 ? '' : 's'} da Calculadora de Compras — todos os
+              resultados (memórias, matriz, réguas, espelho, notas) derivam desta aquisição. Sem
+              importação, o caso canônico volta.
+            </span>
+          </div>
+        )}
         {row.pendente && (
           <div className="flex items-start gap-2 text-[11px] font-mono text-rose-300 bg-rose-500/10 border border-rose-500/40 rounded-lg p-2.5">
             <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />

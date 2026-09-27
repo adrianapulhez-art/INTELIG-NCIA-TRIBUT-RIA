@@ -35,6 +35,11 @@ import {
   reguasArt12,
   r2,
 } from './art12Calculations'
+import {
+  derivarCasoDeItens,
+  montarItensIntegracao,
+  type ItemIntegracaoArt12,
+} from './integracaoComprasArt12'
 
 const fmt = (v: number): string => v.toFixed(2)
 
@@ -505,5 +510,139 @@ describe('CMV Art. 12 v2 — semáforo e porquê', () => {
     const sn = computeCellArt12(CASO_CANONICO_ART12, cfgSN, row)
     expect(sn.semaforo).toBe('vermelho')
     expect(sn.porque).toContain('custo integral')
+  })
+})
+
+describe('CMV Art. 12 — INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA (Fase 1)', () => {
+  const row = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
+
+  it('item canônico importado da Compras reproduz os ouros ao centavo (regra de consistência)', () => {
+    const itemCanonico: ItemIntegracaoArt12 = {
+      id: 'canonico',
+      name: 'Item canônico',
+      quantity: 30,
+      merchandiseValue: 42000,
+      freightValue: 400,
+      icmsRate: 18,
+      icmsFreightRate: 18,
+      ipiRate: 10,
+      hasSt: false,
+      stValue: 0,
+      valorNota: 46600,
+      abcPct: 100,
+      classe: 'A',
+    }
+    const input = derivarCasoDeItens([itemCanonico])
+    expect(input.quantity).toBe(30)
+    expect(input.unitPrice).toBe(1400)
+    expect(input.freightValue).toBe(400)
+    expect(input.icmsRate).toBe(18)
+    expect(input.ipiRate).toBe(10)
+    // Célula LP×LP com o input derivado = ouros chancelados
+    const cell = computeCellArt12(input, { ...CONFIG_PADRAO_ART12 }, row)
+    expect(fmt(cell.hoje.unitario)).toBe('1158.93')
+    expect(fmt(cell.exercicio.unitario)).toBe('1116.63')
+    expect(fmt(cell.deltaPct)).toBe('-3.65')
+  })
+
+  it('dois itens com alíquotas diferentes: médias ponderadas pela base + soma de qtd/merc/frete', () => {
+    const a: ItemIntegracaoArt12 = {
+      id: 'a',
+      name: 'A',
+      quantity: 30,
+      merchandiseValue: 42000,
+      freightValue: 400,
+      icmsRate: 18,
+      icmsFreightRate: 18,
+      ipiRate: 10,
+      hasSt: false,
+      stValue: 0,
+      valorNota: 46600,
+      abcPct: 80,
+      classe: 'A',
+    }
+    const b: ItemIntegracaoArt12 = {
+      id: 'b',
+      name: 'B',
+      quantity: 10,
+      merchandiseValue: 10000,
+      freightValue: 0,
+      icmsRate: 12,
+      icmsFreightRate: 0,
+      ipiRate: 0,
+      hasSt: false,
+      stValue: 0,
+      valorNota: 10000,
+      abcPct: 20,
+      classe: 'B',
+    }
+    const input = derivarCasoDeItens([a, b])
+    expect(input.quantity).toBe(40)
+    expect(fmt(input.freightValue)).toBe('400.00')
+    // ICMS médio: (42000×18 + 10000×12) / 52000 = 16.6153...% → 16.62
+    expect(input.icmsRate).toBe(16.62)
+    // IPI médio: (42000×10 + 0) / 52000 = 8.0769...% → 8.08
+    expect(input.ipiRate).toBe(8.08)
+    expect(input.unitPrice).toBe(1000)
+  })
+
+  it('ABC: classe A até 80% acumulado, B até 95%, C no resto; item sem valor = —', () => {
+    const itens = montarItensIntegracao([
+      {
+        id: '1',
+        name: 'Grande',
+        quantity: 1,
+        merchandiseValue: 80000,
+        freightValue: 0,
+        icmsRate: 18,
+        icmsFreightRate: 0,
+        ipiRate: 0,
+        hasSt: false,
+        stValue: 0,
+      },
+      {
+        id: '2',
+        name: 'Médio',
+        quantity: 1,
+        merchandiseValue: 15000,
+        freightValue: 0,
+        icmsRate: 18,
+        icmsFreightRate: 0,
+        ipiRate: 0,
+        hasSt: false,
+        stValue: 0,
+      },
+      {
+        id: '3',
+        name: 'Pequeno',
+        quantity: 1,
+        merchandiseValue: 5000,
+        freightValue: 0,
+        icmsRate: 18,
+        icmsFreightRate: 0,
+        ipiRate: 0,
+        hasSt: false,
+        stValue: 0,
+      },
+      {
+        id: '4',
+        name: 'Zero',
+        quantity: 1,
+        merchandiseValue: 0,
+        freightValue: 0,
+        icmsRate: 0,
+        icmsFreightRate: 0,
+        ipiRate: 0,
+        hasSt: false,
+        stValue: 0,
+      },
+    ])
+    const porId = Object.fromEntries(itens.map((i) => [i.id, i]))
+    expect(porId['1'].classe).toBe('A')
+    expect(porId['2'].classe).toBe('B')
+    expect(porId['3'].classe).toBe('C')
+    expect(porId['4'].classe).toBe('—')
+    expect(porId['1'].abcPct).toBe(80)
+    expect(porId['2'].abcPct).toBe(15)
   })
 })
