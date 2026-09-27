@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/dialog'
 import {
   CRONOGRAMA_ART12,
-  CASO_CANONICO_ART12,
   CONFIG_PADRAO_ART12,
   computeCellArt12,
   reguasArt12,
@@ -31,6 +30,7 @@ import {
   escadaArt12,
   type CellConfigArt,
   type CellResultArt,
+  type CmvArt12Input,
   type ExercicioKey,
   type Fundamento,
   type MemoryLineArt,
@@ -42,10 +42,11 @@ import {
   r2,
 } from '@/lib/art12Calculations'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
+import { useTaxContext } from '@/contexts/TaxContext'
 import { EspelhoRepasseDialog } from './EspelhoRepasseDialog'
 import { NotaCardTrigger } from './NotasExplicativas'
 import { PainelIntegracaoOrigem } from './PainelIntegracaoOrigem'
-import { derivarCasoDeItens, type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
+import { derivarCasoDeItens, montarItensIntegracao } from '@/lib/integracaoComprasArt12'
 
 const EXERCICIOS: ExercicioKey[] = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033]
 
@@ -408,6 +409,7 @@ const BLOCO_TITULOS: Record<number, string> = {
 function SideColumnArt({
   title,
   side,
+  inp,
   onOpenLine,
   onOpenBloco,
   cell,
@@ -420,6 +422,8 @@ function SideColumnArt({
 }: {
   title: string
   side: SideResultArt
+  /** Input real da célula (vínculo automático) — notas derivam dele, nunca do canônico. */
+  inp: CmvArt12Input
   /** Quando fornecido, cada linha (com passos de derivação) ganha botão "Abrir". */
   onOpenLine?: (line: MemoryLineArt) => void
   /** Abre a memória completa do bloco (todas as linhas com derivação + base legal). */
@@ -475,6 +479,7 @@ function SideColumnArt({
                       </button>
                       {cell && row && exercicio && repasse && (
                         <NotaCardTrigger
+                          inp={inp}
                           side={side}
                           bloco={bloco}
                           cell={cell}
@@ -672,6 +677,9 @@ function CellMemoryDialogArt({
 export function CmvArt12Module() {
   const [exercicio, setExercicio] = useState<ExercicioKey>(2027)
   const [config, setConfig] = useState<CellConfigArt>(CONFIG_PADRAO_ART12)
+  // VÍNCULO AUTOMÁTICO (regra da CEO, 25/09): a célula lê a Calculadora de Compras
+  // DIRETO do TaxContext — a MESMA fonte que o "Zerar campos" limpa. Zero lá = zero aqui.
+  const { purchasesItems, addPurchaseItem, updatePurchaseItem } = useTaxContext()
   const [memoryCell, setMemoryCell] = useState<{
     label: string
     cell: CellResultArt
@@ -687,21 +695,39 @@ export function CmvArt12Module() {
   const [espelhoModal, setEspelhoModal] = useState<{ open: boolean; mode: RepasseMode } | null>(
     null,
   )
-  // INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA — itens importados da Calculadora de Compras
-  const [itensImportados, setItensImportados] = useState<ItemIntegracaoArt12[]>([])
-  const importarItem = (item: ItemIntegracaoArt12) =>
-    setItensImportados((prev) => (prev.some((i) => i.id === item.id) ? prev : [...prev, item]))
-  const removerItem = (id: string) => setItensImportados((prev) => prev.filter((i) => i.id !== id))
+
+  // INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA — VÍNCULO AUTOMÁTICO: itens da Compras
+  // (mesma fonte do "Zerar campos") alimentam a célula sem importação manual.
+  const itensOrigem = useMemo(() => montarItensIntegracao(purchasesItems || []), [purchasesItems])
+  const itensComValor = useMemo(() => itensOrigem.filter((i) => i.valorNota > 0), [itensOrigem])
+  const temOrigem = itensComValor.length > 0
+  /** Caso exemplo: ESCREVE os itens canônicos NA Compras — os dois lados ficam iguais. */
+  const carregarCasoExemplo = () => {
+    const idA = addPurchaseItem('Celular Samsung (exemplo)')
+    updatePurchaseItem(idA, 'quantity', 30)
+    updatePurchaseItem(idA, 'unitPrice', 1400)
+    updatePurchaseItem(idA, 'merchandiseValue', 42000)
+    updatePurchaseItem(idA, 'freightValue', 400)
+    updatePurchaseItem(idA, 'icmsRate', 18)
+    updatePurchaseItem(idA, 'icmsFreightRate', 18)
+    updatePurchaseItem(idA, 'icmsFreightValue', 72)
+    updatePurchaseItem(idA, 'ipiRate', 10)
+    const idB = addPurchaseItem('Capa protetora (exemplo)')
+    updatePurchaseItem(idB, 'quantity', 30)
+    updatePurchaseItem(idB, 'unitPrice', 35)
+    updatePurchaseItem(idB, 'merchandiseValue', 1050)
+    updatePurchaseItem(idB, 'freightValue', 50)
+    updatePurchaseItem(idB, 'icmsRate', 18)
+    updatePurchaseItem(idB, 'icmsFreightRate', 18)
+    updatePurchaseItem(idB, 'icmsFreightValue', 9)
+  }
 
   const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
 
-  // INTEGRAÇÃO: com itens importados, a célula calcula sobre a aquisição derivada da Compras;
-  // sem importação, o caso canônico chancelado segue intacto (mesmo motor, mesma fórmula).
-  const input = useMemo(
-    () => (itensImportados.length > 0 ? derivarCasoDeItens(itensImportados) : CASO_CANONICO_ART12),
-    [itensImportados],
-  )
-  const origemIntegrada = itensImportados.length > 0
+  // VÍNCULO AUTOMÁTICO: a célula calcula sobre a aquisição derivada da Compras.
+  // Origem zerada → input zerado → célula zerada (zero=zero, sem fallback canônico).
+  const input = useMemo(() => derivarCasoDeItens(itensComValor), [itensComValor])
+  const origemIntegrada = temOrigem
 
   const activeCell = useMemo(() => computeCellArt12(input, config, row), [input, config, row])
   const reguas = useMemo(() => reguasArt12(input, config, row), [input, config, row])
@@ -815,21 +841,30 @@ export function CmvArt12Module() {
               : 'ICMS sobre a operação sem CBS/IBS (PLP 16/25) — nota menor. Cadeia plena fecha igual; muda o custo do comprador SN.'}
           </span>
         </div>
-        {/* INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA — 3 portas de origem */}
+        {/* INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA — vínculo automático com a Compras */}
         <PainelIntegracaoOrigem
-          importados={itensImportados}
-          onImportar={importarItem}
-          onRemover={removerItem}
+          itensOrigem={itensOrigem}
+          temOrigem={temOrigem}
+          onCarregarExemplo={carregarCasoExemplo}
         />
+        {!origemIntegrada && (
+          <div className="flex items-start gap-2 text-[10px] font-mono text-amber-300 bg-amber-500/[0.06] border border-amber-500/40 rounded-lg p-2.5">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+            <span>
+              Célula ZERADA — nenhum item com valor na Calculadora de Compras (regra: zero na
+              origem, zero na célula). Lance itens na Compras ou use "Carregar caso exemplo" no
+              painel acima — ele escreve os itens lá e os dois lados ficam iguais de verdade.
+            </span>
+          </div>
+        )}
         {origemIntegrada && (
           <div className="flex items-center gap-2 text-[10px] font-mono text-sky-300 bg-sky-500/10 border border-sky-500/40 rounded-lg p-2.5">
             <Layers className="w-4 h-4 shrink-0 text-sky-400" />
             <span>
-              Origem integrada ativa: a célula calcula sobre {itensImportados.length} item
-              {itensImportados.length === 1 ? '' : 's'} importado
-              {itensImportados.length === 1 ? '' : 's'} da Calculadora de Compras — todos os
-              resultados (memórias, matriz, réguas, espelho, notas) derivam desta aquisição. Sem
-              importação, o caso canônico volta.
+              Origem integrada ativa: a célula calcula sobre {itensComValor.length} item
+              {itensComValor.length === 1 ? '' : 's'} da Calculadora de Compras — todos os
+              resultados (memórias, matriz, réguas, espelho, notas) derivam desta aquisição. Zero na
+              origem, zero aqui.
             </span>
           </div>
         )}
@@ -1026,6 +1061,7 @@ export function CmvArt12Module() {
           <SideColumnArt
             title="HOJE"
             side={activeCell.hoje}
+            inp={input}
             cell={activeCell}
             row={row}
             exercicio={exercicio}
@@ -1045,6 +1081,7 @@ export function CmvArt12Module() {
           <SideColumnArt
             title={`EXERCÍCIO ${exercicio}`}
             side={activeCell.exercicio}
+            inp={input}
             cell={activeCell}
             row={row}
             exercicio={exercicio}

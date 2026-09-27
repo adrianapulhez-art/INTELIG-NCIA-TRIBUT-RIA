@@ -89,6 +89,7 @@ function LinhaCusto({ line }: { line: MemoryLineArt }) {
 
 /** Quadro do comprador para UMA combinação (formato do print — bloco 2 laranja). */
 function CelulaComprador({
+  inp,
   cell,
   comprador,
   fornecedor,
@@ -100,6 +101,7 @@ function CelulaComprador({
   repassePct,
 }: {
   cell: CellResultArt
+  inp: CmvArt12Input
   comprador: RegimeId
   fornecedor: RegimeId
   isMenor: boolean
@@ -166,6 +168,7 @@ function CelulaComprador({
       </button>
       {row && exercicio && repasse !== undefined && (
         <NotaCelulaTrigger
+          inp={inp}
           cell={cell}
           row={row}
           exercicio={exercicio}
@@ -236,6 +239,7 @@ export function EspelhoRepasseDialog({
             linha.cells.map(({ fornecedor, cell }) => (
               <CelulaComprador
                 key={`${linha.comprador}-${fornecedor}`}
+                inp={input}
                 cell={cell}
                 comprador={linha.comprador}
                 fornecedor={fornecedor}

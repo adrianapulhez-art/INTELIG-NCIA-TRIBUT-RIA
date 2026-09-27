@@ -8,7 +8,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import {
-  CASO_CANONICO_ART12,
+  type CmvArt12Input,
   type CellResultArt,
   type ExercicioKey,
   type RegimeId,
@@ -26,6 +26,8 @@ import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
  * REGRA INEGOCIÁVEL: nunca inventar informação — todo número vem da memória do card;
  * toda leitura vem de dispositivo legal (LC 214/2025, LC 123/2006, EC 132/2023) ou da
  * aritmética do motor chancelado. Pendências são marcadas como pendências.
+ * VÍNCULO AUTOMÁTICO (25/09): derivações de mercadoria/frete/qtd usam o INPUT REAL da
+ * célula (prop inp) — nunca o caso canônico. Zero na origem = zero nas notas.
  */
 
 const REGIME_NOME: Record<RegimeId, string> = {
@@ -103,6 +105,7 @@ function TabelaMemoria({
  * COMPRADOR × FORNECEDOR × REPASSE, no modelo do relatório da CEO.
  * ============================================================ */
 export function NotaExplicativaCelula({
+  inp,
   cell,
   row,
   exercicio,
@@ -112,6 +115,7 @@ export function NotaExplicativaCelula({
   repassePct,
 }: {
   cell: CellResultArt
+  inp: CmvArt12Input
   row: ScheduleRowArt
   exercicio: ExercicioKey
   comprador: RegimeId
@@ -149,14 +153,8 @@ export function NotaExplicativaCelula({
   const cofinsV = Math.abs(val(cell.exercicio, 'cofins'))
   const baseLimpaV = Math.abs(val(cell.exercicio, 'baselimpa'))
   const precoNotaV = Math.abs(val(cell.exercicio, 'preconota')) || cell.exercicio.bruto
-  const mercReal =
-    icmsMerc > 0
-      ? icmsMerc / (CASO_CANONICO_ART12.icmsRate / 100)
-      : CASO_CANONICO_ART12.quantity * CASO_CANONICO_ART12.unitPrice
-  const freteReal =
-    icmsFrete > 0
-      ? icmsFrete / (CASO_CANONICO_ART12.icmsFreightRate / 100)
-      : CASO_CANONICO_ART12.freightValue
+  const mercReal = icmsMerc > 0 ? icmsMerc / (inp.icmsRate / 100) : inp.quantity * inp.unitPrice
+  const freteReal = icmsFrete > 0 ? icmsFrete / (inp.icmsFreightRate / 100) : inp.freightValue
   const baseSemIcmsRef = Math.max(0, baseLimpaV + pisV + cofinsV)
   const pisRate = baseSemIcmsRef > 0 ? pisV / baseSemIcmsRef : 0
   const cofinsRate = baseSemIcmsRef > 0 ? cofinsV / baseSemIcmsRef : 0
@@ -221,11 +219,11 @@ export function NotaExplicativaCelula({
               { label: 'RBV (preço pré-reforma)', valor: formatBRL(brutoHoje) },
               {
                 label: '(−) ICMS sobre mercadorias',
-                valor: `${formatBRL(icmsMerc)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
+                valor: `${formatBRL(icmsMerc)} (${formatNumberBR(inp.icmsRate)}% × ${formatBRL(mercReal)})`,
               },
               {
                 label: '(−) ICMS sobre fretes',
-                valor: `${formatBRL(icmsFrete)} (${formatNumberBR(CASO_CANONICO_ART12.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
+                valor: `${formatBRL(icmsFrete)} (${formatNumberBR(inp.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
               },
               {
                 label: `(−) PIS ${formatNumberBR(pisRate * 100)}% × base sem ICMS`,
@@ -254,7 +252,7 @@ export function NotaExplicativaCelula({
                 destaque: true,
               },
               {
-                label: `÷ (1 − ${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}%) → PREÇO DE VENDA (pós-reforma)`,
+                label: `÷ (1 − ${formatNumberBR(inp.icmsRate)}%) → PREÇO DE VENDA (pós-reforma)`,
                 valor: formatBRL(precoNotaV),
                 destaque: true,
               },
@@ -291,11 +289,11 @@ export function NotaExplicativaCelula({
             { label: 'PRÉ-REFORMA: bruto da nota', valor: formatBRL(cell.hoje.bruto) },
             {
               label: '(−) ICMS sobre mercadorias',
-              valor: `${formatBRL(icmsMerc)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
+              valor: `${formatBRL(icmsMerc)} (${formatNumberBR(inp.icmsRate)}% × ${formatBRL(mercReal)})`,
             },
             {
               label: '(−) ICMS sobre fretes',
-              valor: `${formatBRL(icmsFrete)} (${formatNumberBR(CASO_CANONICO_ART12.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
+              valor: `${formatBRL(icmsFrete)} (${formatNumberBR(inp.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
             },
             {
               label: '(−) PIS/COFINS',
@@ -311,17 +309,17 @@ export function NotaExplicativaCelula({
             { label: '(=) Compras líquidas', valor: formatBRL(liqHoje), destaque: true },
             {
               label: 'Custo líquido unitário',
-              valor: `${formatBRL(hojeU)}/un (${formatBRL(liqHoje)} ÷ ${formatNumberBR(CASO_CANONICO_ART12.quantity, 0)})`,
+              valor: `${formatBRL(hojeU)}/un (${formatBRL(liqHoje)} ÷ ${formatNumberBR(inp.quantity, 0)})`,
               destaque: true,
             },
             { label: 'PÓS-REFORMA: bruto da nota', valor: formatBRL(brutoEx) },
             {
               label: '(−) ICMS sobre mercadorias',
-              valor: `${formatBRL(icmsMerc)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
+              valor: `${formatBRL(icmsMerc)} (${formatNumberBR(inp.icmsRate)}% × ${formatBRL(mercReal)})`,
             },
             {
               label: '(−) ICMS sobre fretes',
-              valor: `${formatBRL(icmsFrete)} (${formatNumberBR(CASO_CANONICO_ART12.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
+              valor: `${formatBRL(icmsFrete)} (${formatNumberBR(inp.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
             },
             {
               label: '(−) CBS',
@@ -340,7 +338,7 @@ export function NotaExplicativaCelula({
             { label: '(=) Compras líquidas', valor: formatBRL(liqEx), destaque: true },
             {
               label: 'Custo líquido unitário',
-              valor: `${formatBRL(novoU)}/un (${formatBRL(liqEx)} ÷ ${formatNumberBR(CASO_CANONICO_ART12.quantity, 0)})`,
+              valor: `${formatBRL(novoU)}/un (${formatBRL(liqEx)} ÷ ${formatNumberBR(inp.quantity, 0)})`,
               destaque: true,
             },
           ]}
@@ -387,6 +385,7 @@ export function NotaExplicativaCelula({
 
 /** Modal da nota da célula do espelho. */
 export function NotaCelulaTrigger({
+  inp,
   cell,
   row,
   exercicio,
@@ -396,6 +395,7 @@ export function NotaCelulaTrigger({
   repassePct,
 }: {
   cell: CellResultArt
+  inp: CmvArt12Input
   row: ScheduleRowArt
   exercicio: ExercicioKey
   comprador: RegimeId
@@ -429,6 +429,7 @@ export function NotaCelulaTrigger({
             </DialogDescription>
           </DialogHeader>
           <NotaExplicativaCelula
+            inp={inp}
             cell={cell}
             row={row}
             exercicio={exercicio}
@@ -447,6 +448,7 @@ export function NotaCelulaTrigger({
  * NOTA DO CARD DE BLOCO (página) — relato do bloco no mesmo modelo.
  * ============================================================ */
 export function NotaExplicativaBloco({
+  inp,
   side,
   bloco,
   cell,
@@ -460,6 +462,7 @@ export function NotaExplicativaBloco({
   side: SideResultArt
   bloco: 1 | 2
   cell: CellResultArt
+  inp: CmvArt12Input
   row: ScheduleRowArt
   exercicio: ExercicioKey
   repasse: RepasseMode
@@ -484,14 +487,8 @@ export function NotaExplicativaBloco({
   const pisRate = baseSemIcmsRef > 0 ? pisV / baseSemIcmsRef : 0
   const cofinsRate = baseSemIcmsRef > 0 ? cofinsV / baseSemIcmsRef : 0
   const bcIcms = baseLimpaV + cbsV + ibsV
-  const mercReal =
-    icmsMerc > 0
-      ? icmsMerc / (CASO_CANONICO_ART12.icmsRate / 100)
-      : CASO_CANONICO_ART12.quantity * CASO_CANONICO_ART12.unitPrice
-  const freteReal =
-    icmsFrete > 0
-      ? icmsFrete / (CASO_CANONICO_ART12.icmsFreightRate / 100)
-      : CASO_CANONICO_ART12.freightValue
+  const mercReal = icmsMerc > 0 ? icmsMerc / (inp.icmsRate / 100) : inp.quantity * inp.unitPrice
+  const freteReal = icmsFrete > 0 ? icmsFrete / (inp.icmsFreightRate / 100) : inp.freightValue
   const icmsHoje = Math.abs(val(cell.hoje, 'icms'))
   const piscofinsHoje = Math.abs(val(cell.hoje, 'piscofins'))
   const repasseTxt =
@@ -526,11 +523,11 @@ export function NotaExplicativaBloco({
                 { label: 'RBV (preço pré-reforma)', valor: formatBRL(cell.hoje.bruto) },
                 {
                   label: '(−) ICMS sobre mercadorias',
-                  valor: `${formatBRL(icmsMerc)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
+                  valor: `${formatBRL(icmsMerc)} (${formatNumberBR(inp.icmsRate)}% × ${formatBRL(mercReal)})`,
                 },
                 {
                   label: '(−) ICMS sobre fretes',
-                  valor: `${formatBRL(icmsFrete)} (${formatNumberBR(CASO_CANONICO_ART12.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
+                  valor: `${formatBRL(icmsFrete)} (${formatNumberBR(inp.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
                 },
                 {
                   label: `(−) PIS ${formatNumberBR(pisRate * 100)}% × base sem ICMS`,
@@ -559,7 +556,7 @@ export function NotaExplicativaBloco({
                   destaque: true,
                 },
                 {
-                  label: `÷ (1 − ${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}%) → PREÇO DE VENDA (pós-reforma)`,
+                  label: `÷ (1 − ${formatNumberBR(inp.icmsRate)}%) → PREÇO DE VENDA (pós-reforma)`,
                   valor: formatBRL(brutoNota),
                   destaque: true,
                 },
@@ -584,11 +581,11 @@ export function NotaExplicativaBloco({
                 { label: 'PRÉ-REFORMA: bruto da nota', valor: formatBRL(cell.hoje.bruto) },
                 {
                   label: '(−) ICMS sobre mercadorias',
-                  valor: `${formatBRL(icmsMerc)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
+                  valor: `${formatBRL(icmsMerc)} (${formatNumberBR(inp.icmsRate)}% × ${formatBRL(mercReal)})`,
                 },
                 {
                   label: '(−) ICMS sobre fretes',
-                  valor: `${formatBRL(icmsFrete)} (${formatNumberBR(CASO_CANONICO_ART12.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
+                  valor: `${formatBRL(icmsFrete)} (${formatNumberBR(inp.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
                 },
                 {
                   label: '(−) PIS/COFINS',
@@ -604,17 +601,17 @@ export function NotaExplicativaBloco({
                 },
                 {
                   label: 'Custo líquido unitário',
-                  valor: `${formatBRL(hojeU)}/un (${formatBRL(cell.hoje.liquido)} ÷ ${formatNumberBR(CASO_CANONICO_ART12.quantity, 0)})`,
+                  valor: `${formatBRL(hojeU)}/un (${formatBRL(cell.hoje.liquido)} ÷ ${formatNumberBR(inp.quantity, 0)})`,
                   destaque: true,
                 },
                 { label: 'PÓS-REFORMA: bruto da nota', valor: formatBRL(brutoNota) },
                 {
                   label: '(−) ICMS sobre mercadorias',
-                  valor: `${formatBRL(icmsMerc)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
+                  valor: `${formatBRL(icmsMerc)} (${formatNumberBR(inp.icmsRate)}% × ${formatBRL(mercReal)})`,
                 },
                 {
                   label: '(−) ICMS sobre fretes',
-                  valor: `${formatBRL(icmsFrete)} (${formatNumberBR(CASO_CANONICO_ART12.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
+                  valor: `${formatBRL(icmsFrete)} (${formatNumberBR(inp.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
                 },
                 {
                   label: '(−) CBS',
@@ -668,6 +665,7 @@ export function NotaExplicativaBloco({
 
 /** Modal do card da página. */
 export function NotaExplicativaCardDialog({
+  inp,
   side,
   bloco,
   cell,
@@ -683,6 +681,7 @@ export function NotaExplicativaCardDialog({
   side: SideResultArt
   bloco: 1 | 2
   cell: CellResultArt
+  inp: CmvArt12Input
   row: ScheduleRowArt
   exercicio: ExercicioKey
   repasse: RepasseMode
@@ -707,6 +706,7 @@ export function NotaExplicativaCardDialog({
           </DialogDescription>
         </DialogHeader>
         <NotaExplicativaBloco
+          inp={inp}
           side={side}
           bloco={bloco}
           cell={cell}
@@ -737,6 +737,7 @@ export function BotaoNotaCard({ onClick }: { onClick: () => void }) {
 
 /** Wrapper de estado: um par (botão + modal) por card. */
 export function NotaCardTrigger({
+  inp,
   side,
   bloco,
   cell,
@@ -750,6 +751,7 @@ export function NotaCardTrigger({
   side: SideResultArt
   bloco: 1 | 2
   cell: CellResultArt
+  inp: CmvArt12Input
   row: ScheduleRowArt
   exercicio: ExercicioKey
   repasse: RepasseMode
@@ -762,6 +764,7 @@ export function NotaCardTrigger({
     <>
       <BotaoNotaCard onClick={() => setOpen(true)} />
       <NotaExplicativaCardDialog
+        inp={inp}
         side={side}
         bloco={bloco}
         cell={cell}
