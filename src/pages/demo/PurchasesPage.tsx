@@ -356,8 +356,8 @@ export default function PurchasesPage() {
                     <tr className="border-b border-slate-800 bg-slate-900/80 text-[11px] font-mono uppercase tracking-wider text-slate-400">
                       <th className="py-3 px-4 font-semibold w-12 text-center">#</th>
                       <th className="py-3 px-4 font-semibold">Nome do Item</th>
-                      <th className="py-3 px-4 font-semibold text-right">Qtd em Estoque</th>
-                      <th className="py-3 px-4 font-semibold text-right">Preço Médio / un.</th>
+                      <th className="py-3 px-4 font-semibold text-right">Qtd Comprada</th>
+                      <th className="py-3 px-4 font-semibold text-right">Preço da Compra / un.</th>
                       <th className="py-3 px-4 font-semibold text-right">Preço Total</th>
                       <th className="py-3 px-4 font-semibold text-right">Compras Líquidas</th>
                       <th className="py-3 px-4 font-semibold text-center w-36">Camada</th>
@@ -365,27 +365,9 @@ export default function PurchasesPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
                     {purchasesItems.map((item, idx) => {
-                      // Procura produto correspondente no subsistema de estoque
-                      const matchedStockProd = (productStockState.products || []).find(
-                        (p) =>
-                          p.name &&
-                          item.name &&
-                          p.name.trim().toLowerCase() === item.name.trim().toLowerCase(),
-                      )
-                      const stockPos = matchedStockProd
-                        ? calculatedProductStock.positions.find(
-                            (pos) => pos.id === matchedStockProd.id,
-                          )
-                        : null
-
-                      // Quantidade em estoque: se houver movimentações no subsistema de estoque, usa currentStockQty; senão a quantidade comprada do item
-                      const stockQty =
-                        stockPos !== null && stockPos !== undefined
-                          ? stockPos.currentStockQty
-                          : item.quantity
-
-                      // Preço médio por produto: se o produto tiver movimentações no subsistema de estoque e currentAverageCost > 0, usa CMP;
-                      // caso contrário, o custo unitário apropriado do item para o regime ativo (ou unitPrice/merchandiseValue)
+                      // COMPRA ORIGINAL (entrada/estoque inicial do produto): a tabela lista
+                      // compras — a quantidade exibida é a comprada, não o saldo pós-vendas
+                      // (saldo e CMP pertencem ao Kardex). Correção auditada com a CEO (25/09).
                       const itemNetForUnit = calculatePurchaseItemNetPurchases(
                         { ...item, freightPisCofinsMethod: realFreightPisCofinsMethod },
                         regime,
@@ -395,7 +377,7 @@ export default function PurchasesPage() {
                           ? Math.round((itemNetForUnit / item.quantity) * 100) / 100
                           : 0
 
-                      const fallbackUnitCost =
+                      const precoCompra =
                         derivedUnitCost > 0
                           ? derivedUnitCost
                           : item.unitPrice > 0
@@ -403,11 +385,6 @@ export default function PurchasesPage() {
                             : item.quantity > 0
                               ? item.merchandiseValue / item.quantity
                               : 0
-
-                      const avgPrice =
-                        stockPos && stockPos.currentAverageCost > 0
-                          ? stockPos.currentAverageCost
-                          : fallbackUnitCost
 
                       // Preço total: valor bruto da compra daquele item
                       const itemGrossTotal = calculatePurchaseItemGrossTotal(item)
@@ -448,7 +425,7 @@ export default function PurchasesPage() {
 
                             {/* Preço Unitário */}
                             <td className="py-2.5 px-4 text-right text-slate-400 text-[11px]">
-                              {formatBRL(item.unitPrice > 0 ? item.unitPrice : avgPrice)}
+                              {formatBRL(item.unitPrice > 0 ? item.unitPrice : precoCompra)}
                             </td>
 
                             {/* Valor Total */}
@@ -531,17 +508,17 @@ export default function PurchasesPage() {
                               )}
                             </div>
                           </td>
-                          {/* 2. Quantidade em Estoque */}
+                          {/* 2. Quantidade Comprada (entrada original — estoque inicial do produto) */}
                           <td className="py-3 px-4 text-right">
                             <span className="font-bold text-slate-200">
-                              {stockQty}{' '}
+                              {item.quantity}{' '}
                               <span className="text-slate-500 font-normal text-[11px]">un.</span>
                             </span>
                           </td>
-                          {/* 3. Preço Médio por Produto */}
+                          {/* 3. Preço da Compra por unidade (custo unitário apropriado da compra) */}
                           <td className="py-3 px-4 text-right">
                             <span className="text-emerald-400 font-semibold">
-                              {formatBRL(avgPrice)}
+                              {formatBRL(precoCompra)}
                             </span>
                           </td>
                           {/* 4. Preço Total */}
