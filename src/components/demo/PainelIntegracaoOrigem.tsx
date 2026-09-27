@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ShoppingBasket, Download, X, BarChart3, Layers } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,7 @@ export function PainelIntegracaoOrigem({
   onRemover: (id: string) => void
 }) {
   const { purchasesItems } = useTaxContext()
+  const navigate = useNavigate()
 
   const itens = useMemo(() => montarItensIntegracao(purchasesItems || []), [purchasesItems])
   const itensComValor = itens.filter((i) => i.valorNota > 0)
@@ -69,9 +71,14 @@ export function PainelIntegracaoOrigem({
 
       {/* Três portas de origem */}
       <div className="flex flex-wrap gap-1.5">
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-mono font-bold bg-sky-500 text-slate-950 border border-sky-400 cursor-pointer">
+        <button
+          type="button"
+          onClick={() => navigate('/demo/compras')}
+          title="Abrir a Calculadora de Compras para lançar os itens"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-mono font-bold bg-sky-500 text-slate-950 border border-sky-400 cursor-pointer hover:bg-sky-400 transition-colors"
+        >
           <ShoppingBasket className="w-3 h-3" /> Calculadora de Compras
-        </span>
+        </button>
         <span
           title="Importação na próxima fase"
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-mono font-bold bg-slate-950 text-slate-500 border border-slate-800 cursor-not-allowed opacity-60"
