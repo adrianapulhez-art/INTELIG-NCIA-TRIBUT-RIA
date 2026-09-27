@@ -290,8 +290,12 @@ export function NotaExplicativaCelula({
           linhas={[
             { label: 'PRÉ-REFORMA: bruto da nota', valor: formatBRL(cell.hoje.bruto) },
             {
-              label: '(−) ICMS',
-              valor: `${formatBRL(icmsHoje)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
+              label: '(−) ICMS sobre mercadorias',
+              valor: `${formatBRL(icmsMerc)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
+            },
+            {
+              label: '(−) ICMS sobre fretes',
+              valor: `${formatBRL(icmsFrete)} (${formatNumberBR(CASO_CANONICO_ART12.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
             },
             {
               label: '(−) PIS/COFINS',
@@ -312,8 +316,12 @@ export function NotaExplicativaCelula({
             },
             { label: 'PÓS-REFORMA: bruto da nota', valor: formatBRL(brutoEx) },
             {
-              label: '(−) ICMS',
-              valor: `${formatBRL(icmsNota)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(brutoEx)})`,
+              label: '(−) ICMS sobre mercadorias',
+              valor: `${formatBRL(icmsMerc)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
+            },
+            {
+              label: '(−) ICMS sobre fretes',
+              valor: `${formatBRL(icmsFrete)} (${formatNumberBR(CASO_CANONICO_ART12.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
             },
             {
               label: '(−) CBS',
@@ -575,8 +583,12 @@ export function NotaExplicativaBloco({
               linhas={[
                 { label: 'PRÉ-REFORMA: bruto da nota', valor: formatBRL(cell.hoje.bruto) },
                 {
-                  label: '(−) ICMS',
-                  valor: `${formatBRL(icmsHoje)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(cell.hoje.bruto)})`,
+                  label: '(−) ICMS sobre mercadorias',
+                  valor: `${formatBRL(icmsMerc)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
+                },
+                {
+                  label: '(−) ICMS sobre fretes',
+                  valor: `${formatBRL(icmsFrete)} (${formatNumberBR(CASO_CANONICO_ART12.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
                 },
                 {
                   label: '(−) PIS/COFINS',
@@ -597,8 +609,12 @@ export function NotaExplicativaBloco({
                 },
                 { label: 'PÓS-REFORMA: bruto da nota', valor: formatBRL(brutoNota) },
                 {
-                  label: '(−) ICMS',
-                  valor: `${formatBRL(credIcms)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(brutoNota)})`,
+                  label: '(−) ICMS sobre mercadorias',
+                  valor: `${formatBRL(icmsMerc)} (${formatNumberBR(CASO_CANONICO_ART12.icmsRate)}% × ${formatBRL(mercReal)})`,
+                },
+                {
+                  label: '(−) ICMS sobre fretes',
+                  valor: `${formatBRL(icmsFrete)} (${formatNumberBR(CASO_CANONICO_ART12.icmsFreightRate)}% × ${formatBRL(freteReal)})`,
                 },
                 {
                   label: '(−) CBS',
