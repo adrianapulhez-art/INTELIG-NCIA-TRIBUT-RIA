@@ -1040,83 +1040,35 @@ export function CmvArt12Module() {
         </label>
       </div>
 
-      {/* ================= Memória HOJE × Exercício ================= */}
-      <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-            Memória de cálculo — HOJE × Exercício {exercicio}
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              setMemoryCell({ label: `Exercício ${exercicio}`, cell: activeCell, row })
-            }
-            className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
-          >
-            <Calculator className="w-3.5 h-3.5 mr-1" /> Ampliar memória
-          </Button>
-        </div>
-        <div className="flex flex-col lg:flex-row gap-3">
-          <SideColumnArt
-            title="HOJE"
-            side={activeCell.hoje}
-            inp={input}
-            cell={activeCell}
-            row={row}
-            exercicio={exercicio}
-            repasse={config.repasse}
-            repassePct={config.repassePct}
-            regimeFornecedor={REGIME_LABEL[config.fornecedorRegime]}
-            regimeComprador={REGIME_LABEL[config.compradorRegime]}
-            onOpenLine={(line) => setLineMemory({ line, label: `${line.label} — HOJE` })}
-            onOpenBloco={(side, bloco) =>
-              setBlocoMemory({
-                side,
-                bloco,
-                label: `${BLOCO_TITULOS[bloco] || `BLOCO ${bloco}`} — HOJE`,
-              })
-            }
-          />
-          <SideColumnArt
-            title={`EXERCÍCIO ${exercicio}`}
-            side={activeCell.exercicio}
-            inp={input}
-            cell={activeCell}
-            row={row}
-            exercicio={exercicio}
-            repasse={config.repasse}
-            repassePct={config.repassePct}
-            regimeFornecedor={REGIME_LABEL[config.fornecedorRegime]}
-            regimeComprador={REGIME_LABEL[config.compradorRegime]}
-            onOpenLine={(line) => setLineMemory({ line, label: `${line.label} — ${exercicio}` })}
-            onOpenBloco={(side, bloco) =>
-              setBlocoMemory({
-                side,
-                bloco,
-                label: `${BLOCO_TITULOS[bloco] || `BLOCO ${bloco}`} — Exercício ${exercicio}`,
-              })
-            }
-          />
-        </div>
-        {/* Delta + semáforo + porquê */}
-        <div className={`flex items-start gap-3 rounded-xl border p-3 ${semaforoStyle.bg}`}>
-          {semaforoStyle.icon}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-black font-mono text-white">
-                Δ {activeCell.deltaPct > 0 ? '+' : ''}
-                {formatNumberBR(activeCell.deltaPct)}%
-              </span>
-              <span className="text-[11px] font-mono text-slate-300">
-                ({formatBRL(activeCell.hoje.unitario)} → {formatBRL(activeCell.exercicio.unitario)}
-                /un)
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-300 leading-relaxed">{activeCell.porque}</p>
+      {/* ================= Leitura da célula ativa (sem memória isolada — a memória vive na camada do cenário: espelho, matriz e notas) ================= */}
+      <div className={`flex items-start gap-3 rounded-xl border p-3 ${semaforoStyle.bg}`}>
+        {semaforoStyle.icon}
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-black font-mono text-white">
+              Δ {activeCell.deltaPct > 0 ? '+' : ''}
+              {formatNumberBR(activeCell.deltaPct)}%
+            </span>
+            <span className="text-[11px] font-mono text-slate-300">
+              ({formatBRL(activeCell.hoje.unitario)} → {formatBRL(activeCell.exercicio.unitario)}
+              /un)
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                setMemoryCell({ label: `Exercício ${exercicio}`, cell: activeCell, row })
+              }
+              className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer h-6 text-[10px]"
+            >
+              <Calculator className="w-3 h-3 mr-1" /> Memória da célula ativa
+            </Button>
           </div>
+          <p className="text-[11px] text-slate-300 leading-relaxed">{activeCell.porque}</p>
         </div>
       </div>
+
+      {/* (bloco antigo removido — memória vive na camada do cenário) */}
 
       {/* ================= Escada (régua Nenhum) ================= */}
       <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-2">
