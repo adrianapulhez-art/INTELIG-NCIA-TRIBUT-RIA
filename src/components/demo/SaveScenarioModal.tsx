@@ -32,6 +32,7 @@ import {
   Check,
   X,
   Undo2,
+  Copy,
 } from 'lucide-react'
 import { useTaxContext } from '@/contexts/TaxContext'
 import {
@@ -306,6 +307,36 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
       showFeedback('error', `Falha ao gravar cenário: ${msg}`)
     } finally {
       setIsSavingScenario(false)
+    }
+  }
+
+  // Copiar dados (JSON) do cenário — fonte completa p/ auditoria (colar no chat do James)
+  const handleCopiarJson = async (item: ClientSavedScenarioRecord) => {
+    const payload = {
+      _fonte: 'IT — Inteligência Tributária · cenário salvo',
+      id: item.id,
+      cliente: item.clientName || item.client,
+      nome: item.name,
+      escopo: item.scope,
+      criado: item.created,
+      atualizado: item.updated,
+      snapshot: item.snapshot,
+    }
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2))
+      showFeedback('success', 'Dados (JSON) copiados — cole no chat para auditoria da fonte.')
+    } catch {
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = JSON.stringify(payload, null, 2)
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+        showFeedback('success', 'Dados (JSON) copiados — cole no chat para auditoria da fonte.')
+      } catch {
+        showFeedback('error', 'Não foi possível copiar — verifique as permissões do navegador.')
+      }
     }
   }
 
@@ -1288,6 +1319,17 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                                       >
                                         <RotateCcw className="w-3 h-3 mr-1" />
                                         Restaurar
+                                      </Button>
+
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleCopiarJson(sc)}
+                                        className="h-7 w-7 p-0 text-slate-400 hover:text-sky-300 hover:bg-sky-500/10 cursor-pointer"
+                                        title="Copiar dados (JSON) — fonte completa para auditoria"
+                                      >
+                                        <Copy className="w-3.5 h-3.5" />
                                       </Button>
 
                                       <Button
