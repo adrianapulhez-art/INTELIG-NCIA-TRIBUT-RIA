@@ -1,3 +1,5 @@
+import type { ItemIntegracaoArt12 } from './integracaoComprasArt12'
+
 /**
  * ============================================================================
  * MOTOR ART. 12 — CMV POR EXERCÍCIO CONFORME A LC 214/2025 (v2)
@@ -1314,4 +1316,41 @@ export function escadaArt12(input: CmvArt12Input, config: CellConfigArt) {
     const cell = computeCellArt12(input, cfg, row)
     return { exercicio: row.exercicio, unitario: cell.exercicio.unitario, deltaPct: cell.deltaPct }
   })
+}
+
+/**
+ * ============================================================================
+ * CÁLCULO POR ITEM (pedido da CEO, 27/09) — MÁXIMA DA CASA: NUNCA média entre
+ * produtos diferentes. Cada item da Calculadora de Compras tem sua própria
+ * memória Art. 12 completa (blocos ① e ②) e seu próprio custo unitário.
+ * ============================================================================
+ */
+
+/** Memória completa de UM item: HOJE × exercício, no mesmo formato da célula. */
+export function computeCellArt12Item(
+  item: ItemIntegracaoArt12,
+  config: CellConfigArt,
+  row: ScheduleRowArt,
+): CellResultArt {
+  const input: CmvArt12Input = {
+    quantity: item.quantity || 0,
+    unitPrice: item.quantity > 0 ? r2((item.merchandiseValue || 0) / item.quantity) : 0,
+    freightValue: r2(item.freightValue || 0),
+    icmsRate: item.icmsRate || 0,
+    icmsFreightRate: item.icmsFreightRate || 0,
+    ipiRate: item.ipiRate || 0,
+  }
+  return computeCellArt12(input, config, row)
+}
+
+/** Células por item para TODOS os itens com valor (ordem de valor desc — classe A primeiro). */
+export function computeCellsPorItem(
+  itens: ItemIntegracaoArt12[],
+  config: CellConfigArt,
+  row: ScheduleRowArt,
+): { item: ItemIntegracaoArt12; cell: CellResultArt }[] {
+  return [...itens]
+    .filter((i) => i.valorNota > 0)
+    .sort((a, b) => b.valorNota - a.valorNota)
+    .map((item) => ({ item, cell: computeCellArt12Item(item, config, row) }))
 }

@@ -25,6 +25,7 @@ import {
   CRONOGRAMA_ART12,
   CONFIG_PADRAO_ART12,
   computeCellArt12,
+  computeCellsPorItem,
   reguasArt12,
   matrizArt12,
   escadaArt12,
@@ -729,6 +730,12 @@ export function CmvArt12Module() {
 
   const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
 
+  // CÁLCULO POR ITEM (CEO, 27/09): memória Art. 12 completa para CADA item com valor.
+  const celulasPorItem = useMemo(
+    () => computeCellsPorItem(itensOrigem, config, row),
+    [itensOrigem, config, row],
+  )
+
   // VÍNCULO AUTOMÁTICO + MÁXIMA DA CASA: a célula calcula sobre UM item da Compras
   // (aquisição unitária real, sem média). Origem zerada → célula zerada (zero=zero).
   const input = casoUnitario.input ?? {
@@ -1092,6 +1099,144 @@ export function CmvArt12Module() {
       </div>
 
       {/* (bloco antigo removido — memória vive na camada do cenário) */}
+
+      {/* ================= CÁLCULO POR ITEM (CEO, 27/09) — memória Art. 12 de cada item ================= */}
+      {celulasPorItem.length > 0 && (
+        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/[0.04] p-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Layers className="w-5 h-5 text-emerald-400" />
+            <span className="text-xs font-mono font-black uppercase tracking-wider text-emerald-300">
+              Memória por item — formação do preço do fornecedor × custo do comprador
+            </span>
+            <Badge className="text-[9px] bg-emerald-500/15 text-emerald-300 border-emerald-500/40 font-mono">
+              {celulasPorItem.length} item{celulasPorItem.length === 1 ? '' : 's'} · cálculo POR
+              ITEM (sem média — máxima da casa)
+            </Badge>
+          </div>
+          <div className="space-y-2.5">
+            {celulasPorItem.map(({ item, cell }, idx) => (
+              <div
+                key={item.id}
+                className="rounded-xl border border-slate-700/60 bg-slate-950/40 p-3 space-y-2"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-mono font-black text-white">
+                    ITEM {String(idx + 1).padStart(2, '0')} · {item.name || '—'}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono text-slate-400">
+                      {formatNumberBR(item.quantity, 0)} un. · {formatBRL(item.merchandiseValue)} +
+                      frete {formatBRL(item.freightValue)}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setMemoryCell({
+                          label: `Item ${idx + 1} · ${item.name || '—'}`,
+                          cell,
+                          row,
+                        })
+                      }
+                      className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer h-6 text-[10px]"
+                    >
+                      <Calculator className="w-3 h-3 mr-1" /> Memória do item
+                    </Button>
+                  </div>
+                </div>
+                {/* Blocos ① e ② do item — formação do preço × custo do comprador */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                  {(['hoje', 'exercicio'] as const).map((lado) => {
+                    const side = cell[lado]
+                    const bloco1 = side.lines.filter(
+                      (l) => l.bloco === 1 && l.label !== 'MEMORIA_BLOCO1',
+                    )
+                    const bloco2 = side.lines.filter((l) => l.bloco === 2)
+                    const tituloLado =
+                      lado === 'hoje'
+                        ? `① FORMAÇÃO DO PREÇO — HOJE (${REGIME_LABEL[config.fornecedorRegime]})`
+                        : `①→② EXERCÍCIO ${exercicio} (${REGIME_LABEL[config.fornecedorRegime]} × ${REGIME_LABEL[config.compradorRegime]} · repasse ${config.repasse === 'integral' ? 'integral' : config.repasse === 'parcial' ? `${formatNumberBR(config.repassePct)}%` : 'nenhum'})`
+                    return (
+                      <div
+                        key={lado}
+                        className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5 space-y-1"
+                      >
+                        <div className="text-[9px] font-mono font-bold uppercase text-slate-400">
+                          {tituloLado}
+                        </div>
+                        {bloco1.map((l) => (
+                          <div
+                            key={l.key}
+                            className="flex items-start justify-between gap-2 text-[10px] font-mono"
+                          >
+                            <div className="min-w-0">
+                              <span className="text-slate-200">{l.label}</span>
+                              {l.formula && (
+                                <span className="text-slate-500 block break-words text-[9px]">
+                                  {l.formula}
+                                </span>
+                              )}
+                            </div>
+                            <span
+                              className={`shrink-0 font-bold ${l.value < 0 ? 'text-emerald-300' : 'text-slate-100'}`}
+                            >
+                              {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
+                            </span>
+                          </div>
+                        ))}
+                        {bloco2.map((l) => (
+                          <div
+                            key={l.key}
+                            className="flex items-start justify-between gap-2 text-[10px] font-mono"
+                          >
+                            <div className="min-w-0">
+                              <span className="text-orange-300">{l.label}</span>
+                              {l.formula && (
+                                <span className="text-slate-500 block break-words text-[9px]">
+                                  {l.formula}
+                                </span>
+                              )}
+                            </div>
+                            <span
+                              className={`shrink-0 font-bold ${l.value < 0 ? 'text-emerald-300' : 'text-slate-100'}`}
+                            >
+                              {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="flex items-center justify-between rounded-md bg-orange-500/10 border border-orange-500/40 px-2 py-1">
+                          <span className="text-[9px] font-mono font-bold uppercase text-orange-400">
+                            {lado === 'hoje'
+                              ? 'Custo unitário HOJE'
+                              : `Custo unitário ${exercicio}`}
+                          </span>
+                          <div className="text-right">
+                            <span className="text-[11px] font-black text-orange-300 font-mono block">
+                              {formatBRL(side.unitario)}/un
+                            </span>
+                            <span
+                              className={`text-[9px] font-mono ${cell.deltaPct > 0 ? 'text-rose-300' : cell.deltaPct < 0 ? 'text-emerald-300' : 'text-slate-400'}`}
+                            >
+                              {cell.deltaPct > 0 ? '+' : ''}
+                              {formatNumberBR(cell.deltaPct)}% vs HOJE
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] font-mono text-slate-500">
+            Cada item tem sua própria base limpa, seus tributos fragmentados e seu custo unitário —
+            nunca média entre produtos (máxima da casa). O bloco ② recalcula os créditos do
+            comprador sobre a nota do exercício; a memória completa com base legal abre no botão
+            "Memória do item".
+          </p>
+        </div>
+      )}
 
       {/* ================= Escada (régua Nenhum) ================= */}
       <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-2">
