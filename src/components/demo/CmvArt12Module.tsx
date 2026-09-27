@@ -67,139 +67,350 @@ const REGIME_LABEL_FULL: Record<RegimeId, string> = {
 
 const SEMAFORO_STYLE: Record<Semaforo, { bg: string; icon: React.ReactNode }> = {
   verde: {
-    bg: 'bg-emerald-500/10 border border-emerald-500/40',
-    icon: <CheckCircle2 className="w-5 h-5 text-emerald-400" />,
+    bg: 'border-emerald-500/50 bg-emerald-500/[0.07]',
+    icon: <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />,
   },
   ambar: {
-    bg: 'bg-amber-500/10 border border-amber-500/40',
-    icon: <AlertTriangle className="w-5 h-5 text-amber-400" />,
+    bg: 'border-amber-500/50 bg-amber-500/[0.07]',
+    icon: <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />,
   },
   vermelho: {
-    bg: 'bg-rose-500/10 border border-rose-500/40',
-    icon: <XCircle className="w-5 h-5 text-rose-400" />,
+    bg: 'border-rose-500/50 bg-rose-500/[0.07]',
+    icon: <XCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />,
   },
 }
 
-const VALIDADE_STYLE: Record<string, { label: string; cls: string }> = {
-  integral: {
-    label: 'expresso na lei',
-    cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',
-  },
-  condicionada: {
-    label: 'condicionado',
-    cls: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
-  },
-  nao_aplicavel: { label: '—', cls: 'bg-slate-800 text-slate-400 border-slate-700' },
-  pendente: {
-    label: 'pendente de definição',
-    cls: 'bg-rose-500/15 text-rose-300 border-rose-500/40',
-  },
+const BLOCO_TITULOS: Record<number, string> = {
+  1: 'BLOCO ① — FORMAÇÃO DO PREÇO DO FORNECEDOR',
+  2: 'BLOCO ② — CUSTO DA AQUISIÇÃO PARA O COMPRADOR',
 }
 
-function MatrizResumoDialog({
-  matriz,
-  menorCusto,
+/** Badge de dispositivo legal. */
+function ArtBadge({ dispositivo }: { dispositivo: string }) {
+  return (
+    <span className="inline-flex items-center rounded border border-sky-500/40 bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-mono font-bold text-sky-300">
+      {dispositivo}
+    </span>
+  )
+}
+
+/** Badge de validade da exclusão/base. */
+function ValidadeBadge({ fundamento }: { fundamento?: Fundamento }) {
+  if (!fundamento) return null
+  const map: Record<Fundamento['validade'], { label: string; cls: string }> = {
+    integral: {
+      label: 'vigência integral',
+      cls: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
+    },
+    condicionada: {
+      label: 'validade condicionada',
+      cls: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
+    },
+    pendente: {
+      label: 'pendente de definição',
+      cls: 'border-rose-500/40 bg-rose-500/10 text-rose-300',
+    },
+    nao_aplicavel: { label: 'não aplicável', cls: 'border-slate-700 bg-slate-800 text-slate-400' },
+  }
+  const v = map[fundamento.validade]
+  return (
+    <span
+      className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-mono font-bold ${v.cls}`}
+    >
+      {v.label}
+    </span>
+  )
+}
+
+/** Coluna de um lado (HOJE / Exercício): linhas agrupadas em blocos com botões de memória. */
+function SideColumnArt({
+  title,
+  side,
+  inp,
+  onOpenLine,
+  onOpenBloco,
+  cell,
+  row,
   exercicio,
+  repasse,
+  repassePct,
+  regimeFornecedor,
+  regimeComprador,
+}: {
+  title: string
+  side: SideResultArt
+  /** Input real da célula (vínculo automático) — notas derivam dele, nunca do canônico. */
+  inp?: CmvArt12Input
+  /** Quando fornecido, cada linha (com passos de derivação) ganha botão "Abrir". */
+  onOpenLine?: (line: MemoryLineArt) => void
+  /** Abre a memória completa do bloco (todas as linhas com derivação + base legal). */
+  onOpenBloco?: (side: SideResultArt, bloco: number) => void
+  /** Contexto para a nota explicativa atrelada ao card. */
+  cell?: CellResultArt
+  row?: ScheduleRowArt
+  exercicio?: ExercicioKey
+  repasse?: RepasseMode
+  repassePct?: number
+  regimeFornecedor?: string
+  regimeComprador?: string
+}) {
+  const blocos = [...new Set(side.lines.map((l) => l.bloco))].sort((a, b) => a - b)
+  return (
+    <div className="flex-1 min-w-[320px] space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-300">
+          {title}
+        </span>
+        <span className="flex-1 h-px bg-slate-700/60" />
+      </div>
+      {blocos.map((bloco) => {
+        const forn = bloco === 1
+        return (
+          <div
+            key={bloco}
+            className={`rounded-xl border p-3 space-y-1.5 ${forn ? 'border-emerald-500/40 bg-emerald-500/[0.05]' : 'border-orange-500/45 bg-orange-500/[0.06]'}`}
+          >
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`text-[10px] font-mono font-black uppercase tracking-wider ${forn ? 'text-emerald-300' : 'text-orange-300'}`}
+              >
+                {BLOCO_TITULOS[bloco] || `BLOCO ${bloco}`}
+              </span>
+              <span className={`flex-1 h-px ${forn ? 'bg-emerald-500/25' : 'bg-orange-500/25'}`} />
+              <Badge className="text-[9px] bg-slate-800 text-slate-300 border-slate-700 font-mono">
+                {side.lines.filter((l) => l.bloco === bloco).length} linhas
+              </Badge>
+            </div>
+            {side.lines
+              .filter((l) => l.bloco === bloco)
+              .map((line) =>
+                line.label === 'MEMORIA_BLOCO1' ? (
+                  onOpenLine ? (
+                    <div key={line.key} className="space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => onOpenBloco(side, bloco)}
+                        className={`w-full inline-flex items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[10px] font-mono font-bold cursor-pointer ${forn ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20' : 'border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20'}`}
+                      >
+                        <Calculator className="w-3 h-3" /> Memória + base legal
+                      </button>
+                      {cell && row && exercicio && repasse && inp && (
+                        <NotaCardTrigger
+                          inp={inp}
+                          side={side}
+                          bloco={bloco}
+                          cell={cell}
+                          row={row}
+                          exercicio={exercicio}
+                          repasse={repasse}
+                          repassePct={repassePct}
+                          titulo={`${BLOCO_TITULOS[bloco] || `BLOCO ${bloco}`} — ${title} · ${regimeFornecedor || ''} × ${regimeComprador || ''}`}
+                          forn={forn}
+                        />
+                      )}
+                    </div>
+                  ) : null
+                ) : (
+                  <div
+                    key={line.key}
+                    className={`rounded-lg px-2.5 py-1.5 space-y-1 ${line.subtotal ? (forn ? 'bg-emerald-500/10 border border-emerald-500/40' : 'bg-orange-500/10 border border-orange-500/40') : 'bg-slate-950/50 border border-slate-800/60'}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span
+                          className={`text-[11px] font-mono font-semibold block ${line.kind === 'bruto' ? 'text-slate-100' : line.kind === 'credito' ? 'text-emerald-300' : line.kind === 'debito' ? 'text-amber-300' : 'text-slate-200'}`}
+                        >
+                          {line.label}
+                        </span>
+                        {line.formula && (
+                          <span className="text-[9px] font-mono text-slate-500 block break-words">
+                            {line.formula}
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className={`text-[11px] font-mono font-bold shrink-0 ${line.value < 0 ? 'text-emerald-300' : line.subtotal ? 'text-white' : 'text-slate-100'}`}
+                      >
+                        {line.kind === 'nota' && line.value === 0 ? '—' : formatBRL(line.value)}
+                      </span>
+                    </div>
+                    {onOpenLine && line.passos && line.passos.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenLine(line)}
+                        className="text-[9px] font-mono text-sky-400 hover:text-sky-300 underline underline-offset-2 cursor-pointer"
+                      >
+                        Abrir derivação
+                      </button>
+                    )}
+                  </div>
+                ),
+              )}
+          </div>
+        )
+      })}
+      <div className="flex items-center justify-between rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-1.5">
+        <span className="text-[10px] font-mono font-bold uppercase text-orange-300">
+          {title.includes('HOJE') ? 'Custo unitário HOJE' : 'Custo unitário no exercício'}
+        </span>
+        <span className="text-sm font-black font-mono text-orange-300">
+          {formatBRL(side.unitario)}/un
+        </span>
+      </div>
+    </div>
+  )
+}
+
+/** Modal da memória completa da célula (HOJE × Exercício lado a lado). */
+function CellMemoryDialogArt({
+  cell,
+  cellLabel,
+  row,
   open,
   onOpenChange,
-  onAbrirCelula,
 }: {
-  matriz: ReturnType<typeof matrizArt12>
-  menorCusto: number
-  exercicio: ExercicioKey
+  cell: CellResultArt
+  cellLabel: string
+  row: ScheduleRowArt
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAbrirCelula: (comprador: RegimeId, fornecedor: RegimeId, cell: CellResultArt) => void
 }) {
-  const regimes: RegimeId[] = ['presumido', 'real', 'simples', 'simples_hibrido']
+  const [lineMemory, setLineMemory] = useState<{ line: MemoryLineArt; label: string } | null>(null)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
         <DialogHeader>
           <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
             <Calculator className="w-5 h-5 text-emerald-400" />
-            <span>Resultado: COMPRADOR × FORNECEDOR — Exercício {exercicio}</span>
+            <span>Memória Art. 12 — {cellLabel}</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-400">
-            Custo unitário do CMV (e Δ vs o HOJE do próprio cruzamento) em cada célula. Clique na
-            célula para abrir a memória de cálculo completa.
+            Exercício {row.exercicio} · CBS {formatNumberBR(row.cbsRate)}% · IBS{' '}
+            {formatNumberBR(row.ibsRate)}% · ICMS {formatNumberBR(row.icmsPct)}% da alíquota · Base
+            limpa = Bruto − ICMS − IPI − PIS/COFINS (art. 12, caput + §2º, I, II e V) · CBS/IBS por
+            fora · Igualdade ao centavo entre matriz e memória.
           </DialogDescription>
         </DialogHeader>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[11px] font-mono border-collapse">
-            <thead>
-              <tr className="text-slate-400">
-                <th className="text-left py-2 pr-3 border-b border-slate-700">
-                  COMPRADOR ↓ / FORNECEDOR →
-                </th>
-                {regimes.map((f) => (
-                  <th key={f} className="text-left py-2 px-2 border-b border-slate-700">
-                    {REGIME_LABEL[f]}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {matriz.map((linha) => (
-                <tr key={linha.comprador}>
-                  <td className="py-2 pr-3 font-black text-slate-200 border-b border-slate-800/60">
-                    {REGIME_LABEL[linha.comprador]}
-                  </td>
-                  {linha.cells.map(({ fornecedor, cell }) => {
-                    const isMenor = cell.exercicio.unitario === menorCusto
-                    return (
-                      <td key={fornecedor} className="py-1 px-1 border-b border-slate-800/60">
-                        <button
-                          type="button"
-                          onClick={() => onAbrirCelula(linha.comprador, fornecedor, cell)}
-                          className={`w-full text-left rounded-lg border p-2 cursor-pointer hover:brightness-125 ${
-                            isMenor
-                              ? 'border-emerald-400/70 bg-emerald-500/10 ring-1 ring-emerald-400/60'
-                              : 'border-slate-700/60 bg-slate-900/40'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="font-black text-white text-[11px]">
-                              {formatBRL(cell.exercicio.unitario)}/un
-                            </span>
-                            {isMenor && (
-                              <span className="text-[8px] font-mono font-bold text-emerald-300 border border-emerald-500/50 rounded px-1">
-                                MENOR
-                              </span>
-                            )}
-                          </div>
-                          <div
-                            className={
-                              cell.deltaPct > 0
-                                ? 'text-rose-300'
-                                : cell.deltaPct < 0
-                                  ? 'text-emerald-300'
-                                  : 'text-slate-400'
-                            }
-                          >
-                            {cell.deltaPct > 0 ? '+' : ''}
-                            {formatNumberBR(cell.deltaPct)}%
-                          </div>
-                        </button>
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex flex-col lg:flex-row gap-3">
+          <SideColumnArt
+            title="HOJE"
+            side={cell.hoje}
+            onOpenLine={(line) => setLineMemory({ line, label: `${line.label} — HOJE` })}
+          />
+          <SideColumnArt
+            title={`EXERCÍCIO ${row.exercicio}`}
+            side={cell.exercicio}
+            onOpenLine={(line) =>
+              setLineMemory({ line, label: `${line.label} — ${row.exercicio}` })
+            }
+          />
         </div>
-        <p className="text-[10px] font-mono text-slate-500">
-          LP = Lucro Presumido · LR = Lucro Real · SN = Simples Nacional (padrão) · SNH = SN híbrido
-          (regime regular IBS/CBS — LC 214/2025, art. 41). Fornecedor SN/SNH: nota congelada.
-          Premissa IT: base do IBS/CBS do fornecedor SNH sem ICMS. Célula em destaque = menor custo
-          da matriz.
-        </p>
+        <div className="text-[10px] font-mono text-slate-500 border-t border-slate-800 pt-2">
+          Nota legal (cabeçalho do módulo): LC 214/2025, art. 12, caput (valor da operação), §1º, IV
+          (frete na base) e §2º, I, II e V (IBS/CBS, IPI, ICMS/ISS e PIS/COFINS fora da base —
+          vigência 2026–2032). Crédito do adquirente: art. 47, §2º.
+        </div>
+        {lineMemory && (
+          <LineMemoryDialog
+            line={lineMemory.line}
+            lineLabel={lineMemory.label}
+            open={!!lineMemory}
+            onOpenChange={(o) => !o && setLineMemory(null)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
 }
 
+function LineMemoryDialog({
+  line,
+  lineLabel,
+  open,
+  onOpenChange,
+  contexto,
+}: {
+  line: MemoryLineArt
+  lineLabel: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  contexto?: string
+}) {
+  const passos = line.passos || []
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+            <Calculator className="w-5 h-5 text-emerald-400" />
+            <span>{lineLabel}</span>
+          </DialogTitle>
+          <DialogDescription className="text-xs text-slate-400">{contexto}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-mono font-bold text-slate-200">{line.label}</span>
+              <span className="text-[11px] font-mono font-bold text-emerald-300">
+                {formatBRL(line.value)}
+              </span>
+            </div>
+            {line.formula && (
+              <div className="text-[10px] font-mono text-slate-400 mt-1">{line.formula}</div>
+            )}
+          </div>
+          {passos.map((p) => (
+            <div
+              key={p.ordem}
+              className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5 space-y-1"
+            >
+              <div className="flex items-start gap-2">
+                <span className="text-[10px] font-mono font-black text-emerald-400 shrink-0">
+                  {p.ordem}.
+                </span>
+                <div className="min-w-0 space-y-0.5">
+                  <div className="text-[11px] font-mono font-semibold text-slate-200">
+                    {p.descricao}
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-400 break-words">
+                    {p.expressao}
+                  </div>
+                  <div className="text-[11px] font-mono font-bold text-emerald-300 break-words">
+                    = {p.resultado}
+                  </div>
+                  {p.fundamento && (
+                    <div className="text-[9px] font-mono text-slate-500 break-words">
+                      {p.fundamento}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+          <div className="rounded-lg border border-sky-500/40 bg-sky-500/[0.06] p-2.5 space-y-1">
+            <div className="text-[10px] font-mono font-bold uppercase text-sky-300">Base legal</div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <ArtBadge dispositivo={line.fundamento?.dispositivo || '—'} />
+              <ValidadeBadge fundamento={line.fundamento} />
+            </div>
+            {line.fundamento?.efeito && (
+              <div className="text-[10px] font-mono text-slate-300 break-words">
+                {line.fundamento.efeito}
+              </div>
+            )}
+            {line.fundamento?.nota && (
+              <div className="text-[9px] font-mono text-slate-500 break-words">
+                {line.fundamento.nota}
+              </div>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Modal do bloco completo (memória + base legal). */
 function BlocoMemoryDialog({
   side,
   bloco,
@@ -292,384 +503,103 @@ function BlocoMemoryDialog({
   )
 }
 
-function LineMemoryDialog({
-  line,
-  lineLabel,
-  open,
-  onOpenChange,
-  contexto,
-}: {
-  line: MemoryLineArt
-  lineLabel: string
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  contexto?: string
-}) {
-  const passos = line.passos || []
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
-        <DialogHeader>
-          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-emerald-400" />
-            <span>Memória da linha — {lineLabel}</span>
-          </DialogTitle>
-          <DialogDescription className="text-xs text-slate-400">{contexto}</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-2">
-          <div className="rounded-lg border border-slate-700/60 bg-slate-900/60 p-3 space-y-1">
-            <div className="text-[10px] font-mono uppercase text-slate-500">Linha</div>
-            <div className="text-xs font-mono font-bold text-slate-200">{line.label}</div>
-            <div className="text-[10px] font-mono text-slate-400 break-words">{line.formula}</div>
-            <div className="text-sm font-black font-mono text-emerald-300">
-              {line.kind === 'nota' ? '—' : formatBRL(line.value)}
-            </div>
-          </div>
-          {passos.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-mono uppercase text-slate-500">
-                Derivação passo a passo (precisão de 6 casas — sem arredondamento intermediário)
-              </div>
-              {passos.map((p) => (
-                <div
-                  key={p.ordem}
-                  className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5 space-y-1"
-                >
-                  <div className="flex items-start gap-2">
-                    <span className="text-[10px] font-mono font-black text-emerald-400 shrink-0">
-                      {p.ordem}.
-                    </span>
-                    <div className="min-w-0 space-y-0.5">
-                      <div className="text-[11px] font-mono font-semibold text-slate-200">
-                        {p.descricao}
-                      </div>
-                      <div className="text-[10px] font-mono text-slate-400 break-words">
-                        {p.expressao}
-                      </div>
-                      <div className="text-[11px] font-mono font-bold text-emerald-300 break-words">
-                        = {p.resultado}
-                      </div>
-                      {p.fundamento && (
-                        <div className="text-[9px] font-mono text-slate-500 break-words">
-                          {p.fundamento}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="rounded-lg border border-sky-500/40 bg-sky-500/[0.06] p-2.5 space-y-1">
-            <div className="text-[10px] font-mono font-bold uppercase text-sky-300">Base legal</div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <ArtBadge dispositivo={line.fundamento?.dispositivo || '—'} />
-              <ValidadeBadge fundamento={line.fundamento} />
-            </div>
-            {line.fundamento?.efeito && (
-              <div className="text-[10px] font-mono text-slate-300 break-words">
-                {line.fundamento.efeito}
-              </div>
-            )}
-            {line.fundamento?.nota && (
-              <div className="text-[9px] font-mono text-slate-500 break-words">
-                {line.fundamento.nota}
-              </div>
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function ValidadeBadge({ fundamento }: { fundamento: Fundamento }) {
-  const s = VALIDADE_STYLE[fundamento.validade]
-  return (
-    <span
-      className={`text-[8px] font-mono font-bold uppercase rounded px-1 py-0.5 border ${s.cls}`}
-    >
-      {s.label}
-    </span>
-  )
-}
-
-function ArtBadge({ dispositivo }: { dispositivo: string }) {
-  return (
-    <span className="text-[8px] font-mono font-bold uppercase rounded px-1 py-0.5 border bg-sky-500/15 text-sky-300 border-sky-500/40">
-      {dispositivo}
-    </span>
-  )
-}
-
-const BLOCO_TITULOS: Record<number, string> = {
-  1: '① FORMAÇÃO DO PREÇO DO FORNECEDOR',
-  2: '② CUSTO DA AQUISIÇÃO PARA O COMPRADOR',
-}
-
-function SideColumnArt({
-  title,
-  side,
-  inp,
-  onOpenLine,
-  onOpenBloco,
-  cell,
-  row,
+/** Modal da matriz 4×4 completa (camada interna — pedido da CEO, 23/09). */
+function MatrizResumoDialog({
+  matriz,
+  menorCusto,
   exercicio,
-  repasse,
-  repassePct,
-  regimeFornecedor,
-  regimeComprador,
-}: {
-  title: string
-  side: SideResultArt
-  /** Input real da célula (vínculo automático) — notas derivam dele, nunca do canônico. */
-  inp: CmvArt12Input
-  /** Quando fornecido, cada linha (com passos de derivação) ganha botão "Abrir". */
-  onOpenLine?: (line: MemoryLineArt) => void
-  /** Abre a memória completa do bloco (todas as linhas com derivação + base legal). */
-  onOpenBloco?: (side: SideResultArt, bloco: number) => void
-  /** Contexto para a nota explicativa atrelada ao card. */
-  cell?: CellResultArt
-  row?: ScheduleRowArt
-  exercicio?: ExercicioKey
-  repasse?: RepasseMode
-  repassePct?: number
-  regimeFornecedor?: string
-  regimeComprador?: string
-}) {
-  const blocos = [...new Set(side.lines.map((l) => l.bloco))].sort((a, b) => a - b)
-  return (
-    <div className="flex-1 min-w-[320px] space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-300">
-          {title}
-        </span>
-        <span className="flex-1 h-px bg-slate-700/60" />
-      </div>
-      {blocos.map((bloco) => {
-        const forn = bloco === 1
-        return (
-          <div
-            key={bloco}
-            className={`rounded-xl border p-3 space-y-1.5 ${forn ? 'border-emerald-500/40 bg-emerald-500/[0.05]' : 'border-orange-500/45 bg-orange-500/[0.06]'}`}
-          >
-            <div className="flex items-center gap-1.5">
-              <span
-                className={`text-[10px] font-mono font-black uppercase tracking-wider ${forn ? 'text-emerald-300' : 'text-orange-300'}`}
-              >
-                {BLOCO_TITULOS[bloco] || `BLOCO ${bloco}`}
-              </span>
-              <span className={`flex-1 h-px ${forn ? 'bg-emerald-500/25' : 'bg-orange-500/25'}`} />
-              <Badge className="text-[9px] bg-slate-800 text-slate-300 border-slate-700 font-mono">
-                {side.lines.filter((l) => l.bloco === bloco).length} linhas
-              </Badge>
-            </div>
-            {side.lines
-              .filter((l) => l.bloco === bloco)
-              .map((line) =>
-                line.label === 'MEMORIA_BLOCO1' ? (
-                  onOpenLine ? (
-                    <div key={line.key} className="space-y-1">
-                      <button
-                        type="button"
-                        onClick={() => onOpenBloco(side, bloco)}
-                        className={`w-full inline-flex items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[10px] font-mono font-bold cursor-pointer ${forn ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20' : 'border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20'}`}
-                      >
-                        <Calculator className="w-3 h-3" /> Memória + base legal
-                      </button>
-                      {cell && row && exercicio && repasse && (
-                        <NotaCardTrigger
-                          inp={inp}
-                          side={side}
-                          bloco={bloco}
-                          cell={cell}
-                          row={row}
-                          exercicio={exercicio}
-                          repasse={repasse}
-                          repassePct={repassePct}
-                          titulo={`${BLOCO_TITULOS[bloco] || `BLOCO ${bloco}`} — ${title} · ${regimeFornecedor || ''} × ${regimeComprador || ''}`}
-                          forn={forn}
-                        />
-                      )}
-                    </div>
-                  ) : null
-                ) : (
-                  <div
-                    key={line.key}
-                    className={`rounded-lg px-2.5 py-1.5 space-y-1 ${line.subtotal ? (forn ? 'bg-emerald-500/10 border border-emerald-500/40' : 'bg-orange-500/10 border border-orange-500/40') : 'bg-slate-950/50 border border-slate-800/60'}`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <span
-                          className={`text-[11px] font-mono font-semibold block ${
-                            line.kind === 'bruto'
-                              ? 'text-slate-200'
-                              : line.kind === 'debito'
-                                ? 'text-amber-300'
-                                : line.kind === 'nota'
-                                  ? 'text-sky-300'
-                                  : 'text-emerald-300'
-                          }`}
-                        >
-                          {line.label}
-                        </span>
-                        {line.formula && (
-                          <span className="text-[10px] font-mono text-slate-400 leading-tight block break-words">
-                            {line.formula}
-                          </span>
-                        )}
-                      </div>
-                      <span
-                        className={`text-[11px] font-mono font-bold shrink-0 ${
-                          line.kind === 'nota'
-                            ? [
-                                'baselimpa',
-                                'preconota',
-                                'comprasliquidas',
-                                'custounitario',
-                              ].includes(line.key)
-                              ? 'text-emerald-300'
-                              : 'text-sky-300'
-                            : line.value > 0
-                              ? line.kind === 'debito'
-                                ? 'text-amber-300'
-                                : 'text-slate-100'
-                              : line.value < 0
-                                ? 'text-emerald-300'
-                                : 'text-slate-500'
-                        }`}
-                      >
-                        {line.kind === 'nota'
-                          ? ['baselimpa', 'preconota', 'comprasliquidas', 'custounitario'].includes(
-                              line.key,
-                            )
-                            ? formatBRL(line.value)
-                            : '—'
-                          : formatBRL(line.value)}
-                      </span>
-                    </div>
-                  </div>
-                ),
-              )}
-            {side.lines.some((l) => l.bloco === bloco && l.subtotal) && (
-              <div className="flex items-center gap-1.5 pb-0.5">
-                <span
-                  className={`text-[9px] font-mono font-bold ${forn ? 'text-emerald-400/90' : 'text-orange-400/90'}`}
-                >
-                  {bloco === 1
-                    ? '▸ Subtotal: preço da nota do fornecedor'
-                    : '▸ Subtotal: custo unitário'}
-                </span>
-                <span
-                  className={`flex-1 h-px ${forn ? 'bg-emerald-500/20' : 'bg-orange-500/20'}`}
-                />
-              </div>
-            )}
-            {bloco === 1 && (
-              <div className="text-[8px] font-mono text-slate-600 pt-0.5">
-                Base legal: LC 214/2025, art. 12 — detalhe por linha dentro da memória.
-              </div>
-            )}
-          </div>
-        )
-      })}
-      <div className="pt-1 space-y-1">
-        <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-          <span>Bruto (valor da operação)</span>
-          <span className="text-slate-200">{formatBRL(side.bruto)}</span>
-        </div>
-        <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-          <span>(−) Créditos</span>
-          <span className="text-emerald-300">−{formatBRL(side.creditos)}</span>
-        </div>
-        {side.debitos > 0 && (
-          <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-            <span>(+) CBS/IBS sem crédito</span>
-            <span className="text-amber-300">+{formatBRL(side.debitos)}</span>
-          </div>
-        )}
-        {side.baseLimpa !== null && (
-          <div className="flex items-center justify-between text-[11px] font-mono text-sky-300/90">
-            <span>Base limpa (§2º I, II, V)</span>
-            <span>{formatBRL(side.baseLimpa)}</span>
-          </div>
-        )}
-        <div className="flex items-center justify-between p-2 rounded-lg bg-orange-500/10 border border-orange-500/40">
-          <span className="text-[11px] font-mono font-bold uppercase text-orange-400">
-            Custo líquido
-          </span>
-          <div className="text-right">
-            <span className="text-sm font-black text-orange-300 font-mono block">
-              {formatBRL(side.liquido)}
-            </span>
-            <span className="text-[10px] font-mono text-orange-200/80">
-              {formatBRL(side.unitario)}/un
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function CellMemoryDialogArt({
-  cell,
-  cellLabel,
-  row,
   open,
   onOpenChange,
+  onAbrirCelula,
 }: {
-  cell: CellResultArt
-  cellLabel: string
-  row: ScheduleRowArt
+  matriz: { comprador: RegimeId; cells: { fornecedor: RegimeId; cell: CellResultArt }[] }[]
+  menorCusto: number
+  exercicio: ExercicioKey
   open: boolean
   onOpenChange: (open: boolean) => void
+  onAbrirCelula: (comprador: RegimeId, fornecedor: RegimeId, cell: CellResultArt) => void
 }) {
-  const [lineMemory, setLineMemory] = useState<{ line: MemoryLineArt; label: string } | null>(null)
+  const ordem: RegimeId[] = ['presumido', 'real', 'simples', 'simples_hibrido']
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
         <DialogHeader>
           <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
             <Calculator className="w-5 h-5 text-emerald-400" />
-            <span>Memória Art. 12 — {cellLabel}</span>
+            <span>Matriz completa — Exercício {exercicio}</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-400">
-            Exercício {row.exercicio} · CBS {formatNumberBR(row.cbsRate)}% · IBS{' '}
-            {formatNumberBR(row.ibsRate)}% · ICMS {formatNumberBR(row.icmsPct)}% da alíquota · Base
-            limpa = Bruto − ICMS − IPI − PIS/COFINS (art. 12, caput + §2º, I, II e V) · CBS/IBS por
-            fora · Igualdade ao centavo entre matriz e memória.
+            16 combinações comprador × fornecedor. Clique numa célula para abrir a memória completa.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col lg:flex-row gap-3">
-          <SideColumnArt
-            title="HOJE"
-            side={cell.hoje}
-            onOpenLine={(line) => setLineMemory({ line, label: `${line.label} — HOJE` })}
-          />
-          <SideColumnArt
-            title={`EXERCÍCIO ${row.exercicio}`}
-            side={cell.exercicio}
-            onOpenLine={(line) =>
-              setLineMemory({ line, label: `${line.label} — ${row.exercicio}` })
-            }
-          />
+        <div className="overflow-x-auto">
+          <table className="w-full text-[10px] font-mono">
+            <thead>
+              <tr className="text-slate-400">
+                <th className="text-left px-2 py-1.5">COMPRADOR ↓ · FORNECEDOR →</th>
+                {ordem.map((f) => (
+                  <th key={f} className="text-right px-2 py-1.5">
+                    {REGIME_LABEL[f]}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {matriz.map((linha) => (
+                <tr key={linha.comprador} className="border-t border-slate-800/70">
+                  <td className="px-2 py-1.5 font-bold text-slate-300">
+                    {REGIME_LABEL[linha.comprador]}
+                  </td>
+                  {linha.cells.map(({ fornecedor, cell }) => {
+                    const isMenor = cell.exercicio.unitario === menorCusto
+                    return (
+                      <td key={fornecedor} className="px-1 py-1">
+                        <button
+                          type="button"
+                          onClick={() => onAbrirCelula(linha.comprador, fornecedor, cell)}
+                          className={`w-full text-left rounded-lg border p-2 cursor-pointer hover:brightness-125 ${
+                            isMenor
+                              ? 'border-emerald-400/70 bg-emerald-500/10 ring-1 ring-emerald-400/60'
+                              : 'border-slate-700/60 bg-slate-900/40'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-black text-white text-[11px]">
+                              {formatBRL(cell.exercicio.unitario)}/un
+                            </span>
+                            {isMenor && (
+                              <span className="text-[8px] font-mono font-bold text-emerald-300 border border-emerald-500/50 rounded px-1">
+                                MENOR
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            className={
+                              cell.deltaPct > 0
+                                ? 'text-rose-300'
+                                : cell.deltaPct < 0
+                                  ? 'text-emerald-300'
+                                  : 'text-slate-400'
+                            }
+                          >
+                            {cell.deltaPct > 0 ? '+' : ''}
+                            {formatNumberBR(cell.deltaPct)}%
+                          </div>
+                        </button>
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div className="text-[10px] font-mono text-slate-500 border-t border-slate-800 pt-2">
-          Nota legal (cabeçalho do módulo): LC 214/2025, art. 12, caput (valor da operação), §1º, IV
-          (frete na base) e §2º, I, II e V (IBS/CBS, IPI, ICMS/ISS e PIS/COFINS fora da base —
-          vigência expressa do §2º, V: 01/01/2026 a 31/12/2032).
-        </div>
-        {lineMemory && (
-          <LineMemoryDialog
-            line={lineMemory.line}
-            lineLabel={lineMemory.label}
-            open={!!lineMemory}
-            onOpenChange={(o) => !o && setLineMemory(null)}
-            contexto={`Exercício ${row.exercicio} · memória expandida da célula`}
-          />
-        )}
+        <p className="text-[10px] font-mono text-slate-500">
+          LP = Lucro Presumido · LR = Lucro Real · SN = Simples Nacional (padrão) · SNH = SN híbrido
+          (regime regular IBS/CBS — LC 214/2025, art. 41). Fornecedor SN/SNH: nota congelada.
+          Premissa IT: base do IBS/CBS do fornecedor SNH sem ICMS. Célula em destaque = menor custo
+          da matriz.
+        </p>
       </DialogContent>
     </Dialog>
   )
@@ -804,59 +734,58 @@ export function CmvArt12Module() {
         {/* Seletor de exercícios */}
         <div className="flex flex-wrap gap-1.5">
           {EXERCICIOS.map((ex) => {
-            const r = CRONOGRAMA_ART12.find((s) => s.exercicio === ex)!
+            const r = CRONOGRAMA_ART12.find((rr) => rr.exercicio === ex)!
             return (
               <button
                 key={ex}
                 type="button"
                 onClick={() => setExercicio(ex)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-colors cursor-pointer border ${
+                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
                   exercicio === ex
                     ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                    : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'
-                } ${!r.habilitado ? 'opacity-60' : ''}`}
+                    : r.pendente
+                      ? 'bg-slate-950 text-rose-300 border-rose-500/40 hover:bg-rose-500/10'
+                      : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+                }`}
               >
                 {ex}
-                {!r.habilitado && <span className="ml-1 text-[9px]">pendente</span>}
+                {r.pendente ? ' *' : ''}
               </button>
             )
           })}
         </div>
-        {/* Seletor de tese — base do ICMS na transição (pendente de definição na lei) */}
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/[0.06] p-2.5">
-          <ShieldAlert className="w-4 h-4 shrink-0 text-amber-400" />
-          <span className="text-[10px] font-mono font-bold uppercase text-amber-300">
-            Base do ICMS na transição (2026–2032) — pendente de definição:
+        {/* Seletor de tese (base do ICMS na transição) */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-mono text-slate-500 uppercase">
+            Base do ICMS na transição:
           </span>
           <div className="flex gap-1">
             {(
               [
-                { id: 'fisco', label: 'Tese do Fisco', desc: 'CBS/IBS integram a base do ICMS' },
-                {
-                  id: 'contribuinte',
-                  label: 'Tese do Contribuinte',
-                  desc: 'CBS/IBS por fora (PLP 16/25)',
-                },
+                { v: 'fisco', label: 'Tese do Fisco' },
+                { v: 'contribuinte', label: 'Tese do Contribuinte (PLP 16/25)' },
               ] as const
             ).map((t) => (
               <button
-                key={t.id}
+                key={t.v}
                 type="button"
-                title={t.desc}
-                onClick={() => setConfig((c) => ({ ...c, baseIcmsTransicao: t.id }))}
-                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border transition-colors ${
-                  config.baseIcmsTransicao === t.id
-                    ? 'bg-amber-400 text-slate-950 border-amber-300'
-                    : 'bg-slate-950 text-slate-300 border-slate-700 hover:bg-slate-800'
+                onClick={() => setConfig((c) => ({ ...c, baseIcmsTransicao: t.v }))}
+                className={`px-2 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
+                  config.baseIcmsTransicao === t.v
+                    ? 'bg-sky-500 text-slate-950 border-sky-400'
+                    : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
                 }`}
               >
                 {t.label}
               </button>
             ))}
           </div>
-          <span className="text-[9px] font-mono text-slate-400">
+        </div>
+        <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+          <ShieldCheck className="w-4 h-4 shrink-0 text-sky-400" />
+          <span>
             {config.baseIcmsTransicao === 'fisco'
-              ? 'ICMS por dentro sobre operação + CBS + IBS — nota maior, crédito maior. Cadeia plena fecha igual; muda o custo do comprador SN.'
+              ? 'ICMS por dentro sobre operação + CBS + IBS (lacuna normativa) — nota maior. Cadeia plena fecha igual; muda o custo do comprador SN.'
               : 'ICMS sobre a operação sem CBS/IBS (PLP 16/25) — nota menor. Cadeia plena fecha igual; muda o custo do comprador SN.'}
           </span>
         </div>
@@ -873,28 +802,6 @@ export function CmvArt12Module() {
               Célula ZERADA — nenhum item com valor na Calculadora de Compras (regra: zero na
               origem, zero na célula). Lance itens na Compras ou use "Carregar caso exemplo" no
               painel acima — ele escreve os itens lá e os dois lados ficam iguais de verdade.
-            </span>
-          </div>
-        )}
-        {origemIntegrada && (
-          <div className="flex items-center gap-2 text-[10px] font-mono text-sky-300 bg-sky-500/10 border border-sky-500/40 rounded-lg p-2.5">
-            <Layers className="w-4 h-4 shrink-0 text-sky-400" />
-            <span>
-              Origem integrada ativa: a célula calcula sobre {itensComValor.length} item
-              {itensComValor.length === 1 ? '' : 's'} da Calculadora de Compras — todos os
-              resultados (memórias, matriz, réguas, espelho, notas) derivam desta aquisição. Zero na
-              origem, zero aqui.
-            </span>
-          </div>
-        )}
-        {pendentesPorItem.length > 0 && (
-          <div className="flex items-start gap-2 text-[10px] font-mono text-amber-300 bg-amber-500/[0.06] border border-amber-500/40 rounded-lg p-2.5">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
-            <span>
-              MÁXIMA DA CASA: a IT não faz média entre produtos diferentes. A célula calcula sobre o
-              item de maior valor ("{itensComValor[0]?.name || '—'}"); {pendentesPorItem.length}{' '}
-              item{pendentesPorItem.length === 1 ? '' : 's'} aguarda o cálculo POR ITEM — próxima
-              etapa.
             </span>
           </div>
         )}
@@ -1098,142 +1005,163 @@ export function CmvArt12Module() {
         </div>
       </div>
 
-      {/* (bloco antigo removido — memória vive na camada do cenário) */}
-
-      {/* ================= CÁLCULO POR ITEM (CEO, 27/09) — memória Art. 12 de cada item ================= */}
+      {/* ================= CÁLCULO POR ITEM (CEO, 27/09) — cards por item, títulos em destaque ================= */}
       {celulasPorItem.length > 0 && (
-        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/[0.04] p-4 space-y-3">
+        <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <Layers className="w-5 h-5 text-emerald-400" />
             <span className="text-xs font-mono font-black uppercase tracking-wider text-emerald-300">
-              Memória por item — formação do preço do fornecedor × custo do comprador
+              Memória por item — cálculo POR ITEM (sem média — máxima da casa)
             </span>
             <Badge className="text-[9px] bg-emerald-500/15 text-emerald-300 border-emerald-500/40 font-mono">
-              {celulasPorItem.length} item{celulasPorItem.length === 1 ? '' : 's'} · cálculo POR
-              ITEM (sem média — máxima da casa)
+              {celulasPorItem.length} item{celulasPorItem.length === 1 ? '' : 's'} · Exercício{' '}
+              {exercicio} · repasse{' '}
+              {config.repasse === 'integral'
+                ? 'INTEGRAL'
+                : config.repasse === 'parcial'
+                  ? `PARCIAL ${formatNumberBR(config.repassePct)}%`
+                  : 'NENHUM'}
             </Badge>
           </div>
-          <div className="space-y-2.5">
-            {celulasPorItem.map(({ item, cell }, idx) => (
-              <div
-                key={item.id}
-                className="rounded-xl border border-slate-700/60 bg-slate-950/40 p-3 space-y-2"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[11px] font-mono font-black text-white">
-                    ITEM {String(idx + 1).padStart(2, '0')} · {item.name || '—'}
+          {celulasPorItem.map(({ item, cell }, idx) => (
+            <div
+              key={item.id}
+              className="rounded-xl border border-emerald-500/30 bg-slate-900/40 p-4 space-y-3"
+            >
+              {/* Cabeçalho do item */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                <span className="text-sm font-black font-mono text-white uppercase tracking-wide">
+                  Item {String(idx + 1).padStart(2, '0')} · {item.name || '—'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {formatNumberBR(item.quantity, 0)} un. · {formatBRL(item.merchandiseValue)} +
+                    frete {formatBRL(item.freightValue)}
                   </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-slate-400">
-                      {formatNumberBR(item.quantity, 0)} un. · {formatBRL(item.merchandiseValue)} +
-                      frete {formatBRL(item.freightValue)}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setMemoryCell({
-                          label: `Item ${idx + 1} · ${item.name || '—'}`,
-                          cell,
-                          row,
-                        })
-                      }
-                      className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer h-6 text-[10px]"
-                    >
-                      <Calculator className="w-3 h-3 mr-1" /> Memória do item
-                    </Button>
-                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setMemoryCell({
+                        label: `Item ${idx + 1} · ${item.name || '—'}`,
+                        cell,
+                        row,
+                      })
+                    }
+                    className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer h-6 text-[10px]"
+                  >
+                    <Calculator className="w-3 h-3 mr-1" /> Memória do item
+                  </Button>
                 </div>
-                {/* Blocos ① e ② do item — formação do preço × custo do comprador */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                  {(['hoje', 'exercicio'] as const).map((lado) => {
-                    const side = cell[lado]
-                    const bloco1 = side.lines.filter(
-                      (l) => l.bloco === 1 && l.label !== 'MEMORIA_BLOCO1',
-                    )
-                    const bloco2 = side.lines.filter((l) => l.bloco === 2)
-                    const tituloLado =
-                      lado === 'hoje'
-                        ? `① FORMAÇÃO DO PREÇO — HOJE (${REGIME_LABEL[config.fornecedorRegime]})`
-                        : `①→② EXERCÍCIO ${exercicio} (${REGIME_LABEL[config.fornecedorRegime]} × ${REGIME_LABEL[config.compradorRegime]} · repasse ${config.repasse === 'integral' ? 'integral' : config.repasse === 'parcial' ? `${formatNumberBR(config.repassePct)}%` : 'nenhum'})`
-                    return (
-                      <div
-                        key={lado}
-                        className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5 space-y-1"
-                      >
-                        <div className="text-[9px] font-mono font-bold uppercase text-slate-400">
-                          {tituloLado}
+              </div>
+              {/* DOIS CARDS: formação do preço (fornecedor) × composição do custo (adquirente) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {(
+                  [
+                    {
+                      card: 1 as const,
+                      lado: 'hoje' as const,
+                      titulo: `FORMAÇÃO DO PREÇO PELO FORNECEDOR - ${REGIME_LABEL_FULL[config.fornecedorRegime]}`,
+                      cor: 'border-emerald-500/45 bg-emerald-500/[0.05]',
+                      tituloCor: 'text-emerald-300',
+                    },
+                    {
+                      card: 2 as const,
+                      lado: 'exercicio' as const,
+                      titulo: `COMPOSIÇÃO DO CUSTO PELO ADQUIRENTE - ${REGIME_LABEL_FULL[config.compradorRegime]}`,
+                      cor: 'border-orange-500/45 bg-orange-500/[0.05]',
+                      tituloCor: 'text-orange-300',
+                    },
+                  ] as const
+                ).map(({ card, lado, titulo, cor, tituloCor }) => {
+                  const side = cell[lado]
+                  const linhas = side.lines.filter(
+                    (l) =>
+                      l.bloco === card &&
+                      l.label !== 'MEMORIA_BLOCO1' &&
+                      !(card === 1 && l.subtotal === 'preco_nota'),
+                  )
+                  const repasseTxt =
+                    config.repasse === 'integral'
+                      ? 'REPASSE INTEGRAL'
+                      : config.repasse === 'parcial'
+                        ? `REPASSE PARCIAL ${formatNumberBR(config.repassePct)}%`
+                        : 'REPASSE NENHUM'
+                  return (
+                    <div
+                      key={`${lado}-${card}`}
+                      className={`rounded-xl border p-3 space-y-1.5 ${cor}`}
+                    >
+                      <div className="space-y-0.5">
+                        <div
+                          className={`text-[11px] font-black font-mono uppercase tracking-wide ${tituloCor} leading-tight`}
+                        >
+                          {titulo}
                         </div>
-                        {bloco1.map((l) => (
-                          <div
-                            key={l.key}
-                            className="flex items-start justify-between gap-2 text-[10px] font-mono"
-                          >
-                            <div className="min-w-0">
-                              <span className="text-slate-200">{l.label}</span>
-                              {l.formula && (
-                                <span className="text-slate-500 block break-words text-[9px]">
-                                  {l.formula}
-                                </span>
-                              )}
-                            </div>
-                            <span
-                              className={`shrink-0 font-bold ${l.value < 0 ? 'text-emerald-300' : 'text-slate-100'}`}
-                            >
-                              {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
-                            </span>
+                        <div className="text-[9px] font-mono text-slate-400 uppercase">
+                          {lado === 'hoje'
+                            ? 'Sistema pré-reforma · HOJE'
+                            : `Exercício ${exercicio} · ${repasseTxt}${card === 2 ? ` · tese do ${config.baseIcmsTransicao === 'fisco' ? 'FISCO' : 'CONTRIBUINTE'}` : ''}`}
+                        </div>
+                      </div>
+                      {linhas.map((l) => (
+                        <div
+                          key={l.key}
+                          className="flex items-start justify-between gap-2 text-[10px] font-mono"
+                        >
+                          <div className="min-w-0">
+                            <span className="text-slate-200">{l.label}</span>
+                            {l.formula && (
+                              <span className="text-slate-500 block break-words text-[9px]">
+                                {l.formula}
+                              </span>
+                            )}
                           </div>
-                        ))}
-                        {bloco2.map((l) => (
-                          <div
-                            key={l.key}
-                            className="flex items-start justify-between gap-2 text-[10px] font-mono"
+                          <span
+                            className={`shrink-0 font-bold ${l.value < 0 ? 'text-emerald-300' : 'text-slate-100'}`}
                           >
-                            <div className="min-w-0">
-                              <span className="text-orange-300">{l.label}</span>
-                              {l.formula && (
-                                <span className="text-slate-500 block break-words text-[9px]">
-                                  {l.formula}
-                                </span>
-                              )}
-                            </div>
-                            <span
-                              className={`shrink-0 font-bold ${l.value < 0 ? 'text-emerald-300' : 'text-slate-100'}`}
-                            >
-                              {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
-                            </span>
-                          </div>
-                        ))}
-                        <div className="flex items-center justify-between rounded-md bg-orange-500/10 border border-orange-500/40 px-2 py-1">
-                          <span className="text-[9px] font-mono font-bold uppercase text-orange-400">
-                            {lado === 'hoje'
-                              ? 'Custo unitário HOJE'
-                              : `Custo unitário ${exercicio}`}
+                            {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
                           </span>
-                          <div className="text-right">
-                            <span className="text-[11px] font-black text-orange-300 font-mono block">
-                              {formatBRL(side.unitario)}/un
-                            </span>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between rounded-md bg-orange-500/10 border border-orange-500/40 px-2 py-1">
+                        <span className="text-[9px] font-mono font-bold uppercase text-orange-400">
+                          {card === 1
+                            ? lado === 'hoje'
+                              ? 'Base limpa de referência'
+                              : `Base limpa ${exercicio}`
+                            : lado === 'hoje'
+                              ? 'Custo unitário HOJE'
+                              : `CUSTO UNITÁRIO ${exercicio}`}
+                        </span>
+                        <div className="text-right">
+                          <span className="text-[11px] font-black text-orange-300 font-mono block">
+                            {card === 1
+                              ? side.baseLimpa !== null
+                                ? formatBRL(side.baseLimpa)
+                                : formatBRL(side.liquido)
+                              : formatBRL(side.unitario) + '/un'}
+                          </span>
+                          {card === 2 && (
                             <span
                               className={`text-[9px] font-mono ${cell.deltaPct > 0 ? 'text-rose-300' : cell.deltaPct < 0 ? 'text-emerald-300' : 'text-slate-400'}`}
                             >
                               {cell.deltaPct > 0 ? '+' : ''}
-                              {formatNumberBR(cell.deltaPct)}% vs HOJE
+                              {formatNumberBR(cell.deltaPct)}% VS HOJE
                             </span>
-                          </div>
+                          )}
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
           <p className="text-[10px] font-mono text-slate-500">
-            Cada item tem sua própria base limpa, seus tributos fragmentados e seu custo unitário —
-            nunca média entre produtos (máxima da casa). O bloco ② recalcula os créditos do
-            comprador sobre a nota do exercício; a memória completa com base legal abre no botão
-            "Memória do item".
+            Cada item tem sua própria memória Art. 12 completa — nunca média entre produtos (máxima
+            da casa). Os DOIS cards de cada item usam o MESMO cenário de repasse selecionado nas
+            réguas (sincronizados): ao mudar o cenário, todos os itens recalculam juntos.
           </p>
         </div>
       )}
@@ -1305,7 +1233,7 @@ export function CmvArt12Module() {
           lineLabel={lineMemory.label}
           open={!!lineMemory}
           onOpenChange={(o) => !o && setLineMemory(null)}
-          contexto={`Exercício ${exercicio} · ${REGIME_LABEL_FULL[config.fornecedorRegime]} (fornecedor) × ${REGIME_LABEL_FULL[config.compradorRegime]} (comprador) · repasse ${config.repasse === 'integral' ? 'integral' : config.repasse === 'parcial' ? `parcial ${formatNumberBR(config.repassePct)}%` : 'nenhum'} · tese: ${config.baseIcmsTransicao === 'fisco' ? 'do Fisco' : 'do Contribuinte'}`}
+          contexto={`Exercício ${exercicio} · ${REGIME_LABEL_FULL[config.fornecedorRegime]} (fornecedor) × ${REGIME_LABEL_FULL[config.compradorRegime]} (comprador) · repasse ${config.repasse === 'integral' ? 'integral' : config.repasse === 'parcial' ? `parcial ${formatNumberBR(config.repassePct)}%` : 'nenhum'} · tese: ${config.baseIcmsTransicao === 'fisco' ? 'Fisco' : 'Contribuinte'}`}
         />
       )}
       {blocoMemory && (
@@ -1315,7 +1243,7 @@ export function CmvArt12Module() {
           blocoLabel={blocoMemory.label}
           open={!!blocoMemory}
           onOpenChange={(o) => !o && setBlocoMemory(null)}
-          contexto={`Exercício ${exercicio} · ${REGIME_LABEL_FULL[config.fornecedorRegime]} (fornecedor) × ${REGIME_LABEL_FULL[config.compradorRegime]} (comprador) · derivação de 6 casas por linha · base legal por linha`}
+          contexto={`Exercício ${exercicio} · ${REGIME_LABEL_FULL[config.fornecedorRegime]} (fornecedor) × ${REGIME_LABEL_FULL[config.compradorRegime]} (comprador)`}
         />
       )}
       <MatrizResumoDialog
