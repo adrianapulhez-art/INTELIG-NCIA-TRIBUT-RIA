@@ -3937,7 +3937,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCenarioAtivoState({ id: info.id, cliente: info.cliente, nome: info.nome })
       loadSnapshot(info.snapshot)
     },
-    [loadSnapshot],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   )
 
   /** Desativa: limpa o registro e zera as telas. */
@@ -3949,7 +3950,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     setCenarioAtivoState(null)
     resetAll()
-  }, [resetAll])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const resetAll = () => {
     setRegime('presumido')
