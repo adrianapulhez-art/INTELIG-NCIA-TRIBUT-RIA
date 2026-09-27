@@ -36,7 +36,7 @@ import {
   r2,
 } from './art12Calculations'
 import {
-  derivarCasoDeItens,
+  derivarCasoUnitario,
   montarItensIntegracao,
   type ItemIntegracaoArt12,
 } from './integracaoComprasArt12'
@@ -545,7 +545,7 @@ describe('CMV Art. 12 — INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA (Fase 1)
     expect(fmt(cell.deltaPct)).toBe('-3.65')
   })
 
-  it('dois itens com alíquotas diferentes: médias ponderadas pela base + soma de qtd/merc/frete', () => {
+  it('MÁXIMA DA CASA (CEO, 27/09): NUNCA média entre itens — 2 itens não agregam; 1 item = unitário real', () => {
     const a: ItemIntegracaoArt12 = {
       id: 'a',
       name: 'A',
@@ -576,14 +576,13 @@ describe('CMV Art. 12 — INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA (Fase 1)
       abcPct: 20,
       classe: 'B',
     }
-    const input = derivarCasoDeItens([a, b])
-    expect(input.quantity).toBe(40)
-    expect(fmt(input.freightValue)).toBe('400.00')
-    // ICMS médio: (42000×18 + 10000×12) / 52000 = 16.6153...% → 16.62
-    expect(input.icmsRate).toBe(16.62)
-    // IPI médio: (42000×10 + 0) / 52000 = 8.0769...% → 8.08
-    expect(input.ipiRate).toBe(8.08)
-    expect(input.unitPrice).toBe(1000)
+    // Sem média/soma: a célula calcula sobre o item de maior valor; B fica pendente (por item)
+    const { input, item, pendentesPorItem } = derivarCasoUnitario([a, b])
+    expect(item?.id).toBe('a')
+    expect(input!.quantity).toBe(30)
+    expect(input!.unitPrice).toBe(1400)
+    expect(input!.icmsRate).toBe(18)
+    expect(pendentesPorItem.map((p) => p.id)).toEqual(['b'])
   })
 
   it('ABC: classe A até 80% acumulado, B até 95%, C no resto; item sem valor = —', () => {

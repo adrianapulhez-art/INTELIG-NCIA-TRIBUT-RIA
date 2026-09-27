@@ -46,7 +46,7 @@ import { useTaxContext } from '@/contexts/TaxContext'
 import { EspelhoRepasseDialog } from './EspelhoRepasseDialog'
 import { NotaCardTrigger } from './NotasExplicativas'
 import { PainelIntegracaoOrigem } from './PainelIntegracaoOrigem'
-import { derivarCasoDeItens, montarItensIntegracao } from '@/lib/integracaoComprasArt12'
+import { derivarCasoUnitario, montarItensIntegracao } from '@/lib/integracaoComprasArt12'
 
 const EXERCICIOS: ExercicioKey[] = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033]
 
@@ -701,6 +701,11 @@ export function CmvArt12Module() {
   const itensOrigem = useMemo(() => montarItensIntegracao(purchasesItems || []), [purchasesItems])
   const itensComValor = useMemo(() => itensOrigem.filter((i) => i.valorNota > 0), [itensOrigem])
   const temOrigem = itensComValor.length > 0
+  // MÁXIMA DA CASA (CEO, 27/09): NUNCA média entre produtos diferentes — a célula
+  // calcula sobre UM item (aquisição unitária real); itens extras ficam pendentes
+  // para o cálculo por item (próxima etapa).
+  const casoUnitario = useMemo(() => derivarCasoUnitario(itensOrigem), [itensOrigem])
+  const pendentesPorItem = casoUnitario.pendentesPorItem
   /** Caso exemplo: ESCREVE os itens canônicos NA Compras — os dois lados ficam iguais. */
   const carregarCasoExemplo = () => {
     const idA = addPurchaseItem('Celular Samsung (exemplo)')
@@ -724,9 +729,16 @@ export function CmvArt12Module() {
 
   const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
 
-  // VÍNCULO AUTOMÁTICO: a célula calcula sobre a aquisição derivada da Compras.
-  // Origem zerada → input zerado → célula zerada (zero=zero, sem fallback canônico).
-  const input = useMemo(() => derivarCasoDeItens(itensComValor), [itensComValor])
+  // VÍNCULO AUTOMÁTICO + MÁXIMA DA CASA: a célula calcula sobre UM item da Compras
+  // (aquisição unitária real, sem média). Origem zerada → célula zerada (zero=zero).
+  const input = casoUnitario.input ?? {
+    quantity: 0,
+    unitPrice: 0,
+    freightValue: 0,
+    icmsRate: 0,
+    icmsFreightRate: 0,
+    ipiRate: 0,
+  }
   const origemIntegrada = temOrigem
 
   const activeCell = useMemo(() => computeCellArt12(input, config, row), [input, config, row])
@@ -865,6 +877,17 @@ export function CmvArt12Module() {
               {itensComValor.length === 1 ? '' : 's'} da Calculadora de Compras — todos os
               resultados (memórias, matriz, réguas, espelho, notas) derivam desta aquisição. Zero na
               origem, zero aqui.
+            </span>
+          </div>
+        )}
+        {pendentesPorItem.length > 0 && (
+          <div className="flex items-start gap-2 text-[10px] font-mono text-amber-300 bg-amber-500/[0.06] border border-amber-500/40 rounded-lg p-2.5">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+            <span>
+              MÁXIMA DA CASA: a IT não faz média entre produtos diferentes. A célula calcula sobre o
+              item de maior valor ("{itensComValor[0]?.name || '—'}"); {pendentesPorItem.length}{' '}
+              item{pendentesPorItem.length === 1 ? '' : 's'} aguarda o cálculo POR ITEM — próxima
+              etapa.
             </span>
           </div>
         )}

@@ -1,11 +1,20 @@
 /**
- * INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA — Fase 1
- * Derivador: itens importados da Calculadora de Compras → aquisição equivalente
- * do módulo CMV Art. 12 (CmvArt12Input). A célula FORNECEDOR × COMPRADOR × REPASSE
- * calcula sobre este input; sem importação, o caso canônico segue intacto.
- *
- * Regra de consistência: importar o item canônico (30 un × R$ 1.400 + frete R$ 400,
- * ICMS 18%, IPI 10%) TEM de reproduzir os ouros chancelados ao centavo.
+ * ============================================================================
+ * MÁXIMA DA CASA — INEGOCIÁVEL (comando da CEO Adriana Pulhez, 27/09/2026):
+ * A IT NUNCA FAZ MÉDIA DE VALORES ENTRE PRODUTOS DIFERENTES. Nunca gera média
+ * entre itens importados da Calculadora de Compras. Informação unitária é POR
+ * ITEM — cada produto tem sua própria célula de cálculo (por item: próxima etapa).
+ * Qualquer alteração futura que reintroduza média entre itens viola esta máxima.
+ * ============================================================================
+ * INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA — vínculo automático (25/09).
+ * A célula FORNECEDOR × COMPRADOR × REPASSE calcula sobre UM item de compra
+ * (aquisição unitária real). Regras:
+ *  - 1 item com valor → a célula calcula sobre ele (unitário real, sem média).
+ *  - 0 itens → célula zerada (zero na origem, zero na célula).
+ *  - 2+ itens com valor → SEM CÁLCULO AGREGADO (nada de média): os itens extras
+ *    ficam pendentes para o cálculo por item (próxima etapa) — nunca agregados.
+ * Regra de consistência: o item canônico (30 un × R$ 1.400 + frete R$ 400,
+ * ICMS 18%, IPI 10%) reproduz os ouros chancelados ao centavo.
  */
 import { type CmvArt12Input } from './art12Calculations'
 
@@ -43,32 +52,33 @@ export interface ItemIntegracaoArt12 {
 
 const r2 = (v: number) => Math.round(v * 100) / 100
 
-/** Agrega itens (já com classe ABC calculada) na aquisição equivalente do Art. 12. */
-export function derivarCasoDeItens(items: ItemIntegracaoArt12[]): CmvArt12Input {
-  const merc = items.reduce((a, i) => a + (i.merchandiseValue || 0), 0)
-  const fret = items.reduce((a, i) => a + (i.freightValue || 0), 0)
-  const qtd = items.reduce((a, i) => a + (i.quantity || 0), 0)
-  // Alíquotas médias ponderadas pela base de cada tributo
-  const icmsRate =
-    merc > 0
-      ? items.reduce((a, i) => a + (i.merchandiseValue || 0) * (i.icmsRate || 0), 0) / merc
-      : 0
-  const ipiRate =
-    merc > 0
-      ? items.reduce((a, i) => a + (i.merchandiseValue || 0) * (i.ipiRate || 0), 0) / merc
-      : 0
-  const icmsFreightRate =
-    fret > 0
-      ? items.reduce((a, i) => a + (i.freightValue || 0) * (i.icmsFreightRate || 0), 0) / fret
-      : 0
-  return {
-    quantity: qtd,
-    unitPrice: qtd > 0 ? r2(merc / qtd) : 0,
-    freightValue: r2(fret),
-    icmsRate: Math.round(icmsRate * 100) / 100,
-    icmsFreightRate: Math.round(icmsFreightRate * 100) / 100,
-    ipiRate: Math.round(ipiRate * 100) / 100,
+/** Resultado do derivador unitário: 1 item OU zero (nunca agregação/média). */
+export interface CasoUnitario {
+  input: CmvArt12Input | null
+  /** Item que originou o cálculo (quando input ≠ null). */
+  item: ItemIntegracaoArt12 | null
+  /** Itens com valor além do primeiro — aguardam cálculo por item (próxima etapa). */
+  pendentesPorItem: ItemIntegracaoArt12[]
+}
+
+/**
+ * DERIVADOR UNITÁRIO (máxima da casa — sem média entre produtos diferentes):
+ * extrai a aquisição do PRIMEIRO item com valor. Se houver mais itens com valor,
+ * eles ficam pendentes para o cálculo por item (próxima etapa) — nunca agregados.
+ */
+export function derivarCasoUnitario(items: ItemIntegracaoArt12[]): CasoUnitario {
+  const comValor = items.filter((i) => i.valorNota > 0)
+  if (comValor.length === 0) return { input: null, item: null, pendentesPorItem: [] }
+  const primeiro = comValor[0]
+  const input: CmvArt12Input = {
+    quantity: primeiro.quantity || 0,
+    unitPrice: primeiro.quantity > 0 ? r2((primeiro.merchandiseValue || 0) / primeiro.quantity) : 0,
+    freightValue: r2(primeiro.freightValue || 0),
+    icmsRate: primeiro.icmsRate || 0,
+    icmsFreightRate: primeiro.icmsFreightRate || 0,
+    ipiRate: primeiro.ipiRate || 0,
   }
+  return { input, item: primeiro, pendentesPorItem: comValor.slice(1) }
 }
 
 /** Calcula valor de nota, % e classe ABC de cada item (sobre o total com valor > 0). */
