@@ -311,7 +311,7 @@ export function NotaExplicativaCelula({
             { label: '(=) Compras líquidas', valor: formatBRL(liqHoje), destaque: true },
             {
               label: 'Custo líquido unitário',
-              valor: `${formatBRL(hojeU)}/un (${formatBRL(liqHoje)} ÷ ${formatNumberBR(CASO_CANONICO_ART12.quantity)})`,
+              valor: `${formatBRL(hojeU)}/un (${formatBRL(liqHoje)} ÷ ${formatNumberBR(CASO_CANONICO_ART12.quantity, 0)})`,
               destaque: true,
             },
             { label: 'PÓS-REFORMA: bruto da nota', valor: formatBRL(brutoEx) },
@@ -340,7 +340,7 @@ export function NotaExplicativaCelula({
             { label: '(=) Compras líquidas', valor: formatBRL(liqEx), destaque: true },
             {
               label: 'Custo líquido unitário',
-              valor: `${formatBRL(novoU)}/un (${formatBRL(liqEx)} ÷ ${formatNumberBR(CASO_CANONICO_ART12.quantity)})`,
+              valor: `${formatBRL(novoU)}/un (${formatBRL(liqEx)} ÷ ${formatNumberBR(CASO_CANONICO_ART12.quantity, 0)})`,
               destaque: true,
             },
           ]}
@@ -604,7 +604,7 @@ export function NotaExplicativaBloco({
                 },
                 {
                   label: 'Custo líquido unitário',
-                  valor: `${formatBRL(hojeU)}/un (${formatBRL(cell.hoje.liquido)} ÷ ${formatNumberBR(CASO_CANONICO_ART12.quantity)})`,
+                  valor: `${formatBRL(hojeU)}/un (${formatBRL(cell.hoje.liquido)} ÷ ${formatNumberBR(CASO_CANONICO_ART12.quantity, 0)})`,
                   destaque: true,
                 },
                 { label: 'PÓS-REFORMA: bruto da nota', valor: formatBRL(brutoNota) },

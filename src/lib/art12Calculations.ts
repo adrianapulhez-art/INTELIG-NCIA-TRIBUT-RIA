@@ -178,6 +178,12 @@ export const r2 = (x: number): number => Math.floor(x * 100 + 0.5) / 100
 const fmt = (v: number): string =>
   v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+/** Quantidade SEMPRE inteira na exibição (regra da CEO, 25/09): "60 unid.", nunca "60,00 unid.". */
+const fmtQtd = (v: number): string => {
+  const n = Math.round(Number.isFinite(v) ? v : 0)
+  return n.toLocaleString('pt-BR')
+}
+
 /** Exibição de grandeza não-monetária com EXATAMENTE 6 casas (auditabilidade — nunca truncar). */
 const fmt6 = (v: number): string =>
   v.toLocaleString('pt-BR', { minimumFractionDigits: 6, maximumFractionDigits: 6 })
@@ -255,7 +261,7 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
     {
       key: 'mercadoria',
       label: 'Mercadoria',
-      formula: `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)}`,
+      formula: `${fmtQtd(input.quantity)} un. × ${fmt(input.unitPrice)}`,
       value: merc,
       kind: 'bruto',
       bloco: 1,
@@ -400,7 +406,7 @@ export function computeExercicioArt12(
   lines.push({
     key: 'mercadoria',
     label: '(+) Mercadorias',
-    formula: `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)}`,
+    formula: `${fmtQtd(input.quantity)} un. × ${fmt(input.unitPrice)}`,
     value: mercReal,
     kind: 'bruto',
     bloco: 1,
@@ -408,7 +414,7 @@ export function computeExercicioArt12(
       {
         ordem: 1,
         descricao: 'Quantidade × preço unitário (elemento da operação — sem fator)',
-        expressao: `${fmt(input.quantity)} un. × ${fmt(input.unitPrice)}`,
+        expressao: `${fmtQtd(input.quantity)} un. × ${fmt(input.unitPrice)}`,
         resultado: fmt(mercReal),
         fundamento: 'LC 214/2025, art. 12, caput: valor da operação.',
       },
@@ -1205,7 +1211,7 @@ export function computeExercicioArt12(
   lines.push({
     key: 'custounitario',
     label: '(÷) Custo unitário',
-    formula: `${fmt(comprasLiquidas)} ÷ ${fmt(input.quantity)} un.`,
+    formula: `${fmt(comprasLiquidas)} ÷ ${fmtQtd(input.quantity)} un.`,
     value: unitario,
     kind: 'nota',
     bloco: 2,
@@ -1214,7 +1220,7 @@ export function computeExercicioArt12(
       {
         ordem: 1,
         descricao: 'Compras líquidas ÷ quantidade',
-        expressao: `${fmt(comprasLiquidas)} ÷ ${fmt(input.quantity)}`,
+        expressao: `${fmt(comprasLiquidas)} ÷ ${fmtQtd(input.quantity)}`,
         resultado: fmt(unitario),
         fundamento: 'Custo unitário da aquisição no exercício.',
       },
