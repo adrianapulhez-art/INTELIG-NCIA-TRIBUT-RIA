@@ -52,18 +52,25 @@ export function CardMemoriaPorItem({
   exercicio,
   mode,
   onAbrirMemoriaItem,
+  configOverride,
+  ocultarRodape,
 }: {
   celulasPorItem: { item: ItemIntegracaoArt12; cell: CellResultArt }[]
   config: CellConfigArt
   exercicio: ExercicioKey
   mode: RepasseMode
   onAbrirMemoriaItem?: (item: ItemIntegracaoArt12, cell: CellResultArt) => void
+  /** Config da combinação (regimes fornecedor × comprador) — modelo canônico replicado. */
+  configOverride?: CellConfigArt
+  /** Oculta a nota de rodapé (redundante quando replicado em várias combinações). */
+  ocultarRodape?: boolean
 }) {
   if (celulasPorItem.length === 0) return null
   const repasseTxt =
     mode === 'parcial'
       ? `${REPASSE_TITULO[mode]} ${formatNumberBR(config.repassePct)}%`
       : REPASSE_TITULO[mode]
+  const cfg = configOverride ?? config
   const nomeRegime = (r: string) =>
     r === 'presumido'
       ? 'Lucro Presumido'
@@ -114,7 +121,7 @@ export function CardMemoriaPorItem({
                   <Wallet className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                   <span className="text-[11px] font-black font-mono uppercase tracking-wide text-sky-300 leading-tight">
                     1º Custo de Aquisição para o ADQUIRENTE (COMPRADOR) -{' '}
-                    {nomeRegime(config.compradorRegime)}
+                    {nomeRegime(cfg.compradorRegime)}
                   </span>
                 </div>
                 <div className="text-[9px] font-mono text-slate-400 uppercase">
@@ -143,7 +150,7 @@ export function CardMemoriaPorItem({
                 <div className="flex items-center gap-1.5">
                   <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span className="text-[11px] font-black font-mono uppercase tracking-wide text-emerald-300 leading-tight">
-                    2º Formação do Preço pelo FORNECEDOR - {nomeRegime(config.fornecedorRegime)}
+                    2º Formação do Preço pelo FORNECEDOR - {nomeRegime(cfg.fornecedorRegime)}
                   </span>
                 </div>
                 <div className="text-[9px] font-mono text-slate-400 uppercase">
@@ -179,7 +186,7 @@ export function CardMemoriaPorItem({
                   <ShoppingCart className="w-3.5 h-3.5 text-orange-400 shrink-0" />
                   <span className="text-[11px] font-black font-mono uppercase tracking-wide text-orange-300 leading-tight">
                     3º Formação do CUSTO pelo ADQUIRENTE (COMPRADOR) -{' '}
-                    {nomeRegime(config.compradorRegime)}
+                    {nomeRegime(cfg.compradorRegime)}
                   </span>
                 </div>
                 <div className="text-[9px] font-mono text-slate-400 uppercase">
@@ -211,11 +218,13 @@ export function CardMemoriaPorItem({
           </div>
         </div>
       ))}
-      <p className="text-[10px] font-mono text-slate-500">
-        Cada item tem sua própria memória Art. 12 completa — nunca média entre produtos (máxima da
-        casa). Os 3 blocos usam o MESMO cenário de repasse selecionado — ao mudar o cenário, todos
-        os itens recalculam juntos.
-      </p>
+      {ocultarRodape === true ? null : (
+        <p className="text-[10px] font-mono text-slate-500">
+          Cada item tem sua própria memória Art. 12 completa — nunca média entre produtos (máxima da
+          casa). Os 3 blocos usam o MESMO cenário de repasse selecionado — ao mudar o cenário, todos
+          os itens recalculam juntos.
+        </p>
+      )}
     </div>
   )
 }

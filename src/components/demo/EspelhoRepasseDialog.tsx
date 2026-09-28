@@ -9,8 +9,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { useState } from 'react'
 import { NotaCelulaTrigger } from './NotasExplicativas'
 import { CardMemoriaPorItem } from './CardMemoriaPorItem'
+import { type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
 import {
   computeCellArt12,
   type CellConfigArt,
@@ -204,15 +206,14 @@ export function EspelhoRepasseDialog({
   onOpenChange: (open: boolean) => void
   onAbrirCelula: (comprador: RegimeId, fornecedor: RegimeId, cell: CellResultArt) => void
   /** MEMÓRIA POR ITEM dentro do card de repasse (pedido da CEO, 27/09). */
-  celulasPorItem?: {
-    item: import('@/lib/integracaoComprasArt12').ItemIntegracaoArt12
-    cell: CellResultArt
-  }[]
-  onAbrirMemoriaItem?: (
-    item: import('@/lib/integracaoComprasArt12').ItemIntegracaoArt12,
-    cell: CellResultArt,
-  ) => void
+  celulasPorItem?: { item: ItemIntegracaoArt12; cell: CellResultArt }[]
+  onAbrirMemoriaItem?: (item: ItemIntegracaoArt12, cell: CellResultArt) => void
 }) {
+  // MODELO CANÔNICO REPLICADO (CEO, 27/09): cada combinação do espelho mostra os 3 cards
+  // completos (1º custo de aquisição HOJE · 2º formação do preço do fornecedor · 3º custo
+  // do adquirente), com os regimes da PRÓPRIA combinação. Abas por comprador organizam
+  // as 16 combinações — nada escondido, só organizado.
+  const [abaComprador, setAbaComprador] = useState<RegimeId>(baseConfig.compradorRegime)
   const regimes: RegimeId[] = ['presumido', 'real', 'simples', 'simples_hibrido']
   const cfg: CellConfigArt = { ...baseConfig, repasse: mode }
   const celulas = regimes.map((comprador) => ({
@@ -246,36 +247,104 @@ export function EspelhoRepasseDialog({
             para abrir a memória completa.
           </DialogDescription>
         </DialogHeader>
-        {/* MEMÓRIA POR ITEM — os 3 blocos da CEO dentro do card de repasse (27/09) */}
-        {celulasPorItem && celulasPorItem.length > 0 && (
-          <div className="rounded-xl border border-emerald-500/25 bg-slate-900/40 p-3">
-            <CardMemoriaPorItem
-              celulasPorItem={celulasPorItem}
-              config={cfg}
-              exercicio={exercicio}
-              mode={mode}
-              onAbrirMemoriaItem={onAbrirMemoriaItem}
-            />
-          </div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5">
-          {celulas.map((linha) =>
-            linha.cells.map(({ fornecedor, cell }) => (
-              <CelulaComprador
-                key={`${linha.comprador}-${fornecedor}`}
-                inp={input}
-                cell={cell}
-                comprador={linha.comprador}
-                fornecedor={fornecedor}
-                isMenor={cell.exercicio.unitario === menor}
-                onAbrir={() => onAbrirCelula(linha.comprador, fornecedor, cell)}
-                row={row}
-                exercicio={exercicio}
-                repasse={mode}
-                repassePct={baseConfig.repassePct}
-              />
-            )),
-          )}
+        {/* ABAS POR COMPRADOR — modelo canônico replicado em cada combinação (CEO, 27/09) */}
+        <div className="flex flex-wrap gap-1.5">
+          {regimes.map((rg) => (
+            <button
+              key={rg}
+              type="button"
+              onClick={() => setAbaComprador(rg)}
+              className={`px-3 py-1.5 rounded text-[11px] font-mono font-bold cursor-pointer border ${
+                abaComprador === rg
+                  ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                  : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+              }`}
+            >
+              Comprador {REGIME_LABEL[rg]}
+            </button>
+          ))}
+        </div>
+        {/* Para CADA fornecedor da aba: os 3 cards completos com os regimes da combinação */}
+        <div className="space-y-4">
+          {celulas
+            .find((l) => l.comprador === abaComprador)!
+            .cells.map(({ fornecedor, cell }) => (
+              <div key={fornecedor} className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-mono font-black uppercase tracking-wider text-white">
+                    Combinação {REGIME_LABEL[abaComprador]} × {REGIME_LABEL[fornecedor]} ·{' '}
+                    {formatBRL(cell.exercicio.unitario)}/un ·{' '}
+                    <span
+                      className={
+                        cell.deltaPct > 0
+                          ? 'text-rose-300'
+                          : cell.deltaPct < 0
+                            ? 'text-emerald-300'
+                            : 'text-slate-400'
+                      }
+                    >
+                      {cell.deltaPct > 0 ? '+' : ''}
+                      {formatNumberBR(cell.deltaPct)}%
+                    </span>{' '}
+                    {cell.exercicio.unitario === menor && (
+                      <span className="text-[9px] font-mono font-bold text-emerald-300 border border-emerald-500/50 rounded px-1 ml-1">
+                        MENOR CUSTO DO CENÁRIO
+                      </span>
+                    )}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onAbrirCelula(abaComprador, fornecedor, cell)}
+                      className="inline-flex items-center gap-1 rounded-md border border-orange-500/40 bg-orange-500/10 px-2 py-1 text-[9px] font-mono font-bold text-orange-300 hover:bg-orange-500/20 cursor-pointer"
+                    >
+                      <Calculator className="w-3 h-3" /> Memória + base legal
+                    </button>
+                    {row && (
+                      <NotaCelulaTrigger
+                        inp={input}
+                        cell={cell}
+                        row={row}
+                        exercicio={exercicio}
+                        comprador={abaComprador}
+                        fornecedor={fornecedor}
+                        repasse={mode}
+                        repassePct={baseConfig.repassePct}
+                      />
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-700/60 bg-slate-900/30 p-3">
+                  <CardMemoriaPorItem
+                    celulasPorItem={
+                      celulasPorItem && celulasPorItem.length > 0
+                        ? celulasPorItem.map(({ item }) => ({
+                            item,
+                            cell: computeCellArt12(
+                              input,
+                              {
+                                ...cfg,
+                                compradorRegime: abaComprador,
+                                fornecedorRegime: fornecedor,
+                              },
+                              row,
+                            ),
+                          }))
+                        : []
+                    }
+                    config={cfg}
+                    configOverride={{
+                      ...cfg,
+                      compradorRegime: abaComprador,
+                      fornecedorRegime: fornecedor,
+                    }}
+                    exercicio={exercicio}
+                    mode={mode}
+                    ocultarRodape={true}
+                  />
+                </div>
+              </div>
+            ))}
         </div>
         <p className="text-[10px] font-mono text-slate-500">
           LP = Lucro Presumido · LR = Lucro Real · SN = Simples Nacional (padrão) · SNH = SN híbrido
