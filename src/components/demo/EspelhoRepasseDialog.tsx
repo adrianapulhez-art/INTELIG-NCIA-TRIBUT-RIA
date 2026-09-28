@@ -53,22 +53,28 @@ const REPASSE_TITULO: Record<RepasseMode, string> = {
   nenhum: 'REPASSE NENHUM',
 }
 
-/** CAMADA 1 — card principal compacto do cenário (reflete exatamente o que abre). */
+/** CAMADA 1 — card principal compacto do cenário (reflete exatamente o que abre).
+ *  Unitários POR ITEM (máxima da casa — nunca média): até 3 maiores por valor (ABC),
+ *  cada um com o próprio Δ; demais indicados com aviso honesto. */
+const MAX_ITENS_CARD = 3
+
 function CardPrincipalCenario({
-  cell,
+  celulasItens,
   comprador,
   fornecedor,
   isMenor,
   repasseTxt,
   onAbrir,
 }: {
-  cell: CellResultArt
+  celulasItens: { item: ItemIntegracaoArt12; cell: CellResultArt }[]
   comprador: RegimeId
   fornecedor: RegimeId
   isMenor: boolean
   repasseTxt: string
   onAbrir: () => void
 }) {
+  const exibidos = celulasItens.slice(0, MAX_ITENS_CARD)
+  const restantes = celulasItens.length - exibidos.length
   return (
     <button
       type="button"
@@ -100,27 +106,46 @@ function CardPrincipalCenario({
           FORNECEDOR: {REGIME_NOME[fornecedor]}
         </div>
       </div>
-      <div className="flex items-center justify-between rounded-md bg-orange-500/10 border border-orange-500/40 px-2 py-1">
-        <span className="text-[9px] font-mono font-bold uppercase text-orange-400">
-          Custo líquido
-        </span>
-        <div className="text-right">
-          <span className="text-[11px] font-black text-orange-300 font-mono block leading-tight">
-            {formatBRL(cell.exercicio.unitario)}/un
-          </span>
-          <span
-            className={`text-[9px] font-mono ${
-              cell.deltaPct > 0
-                ? 'text-rose-300'
-                : cell.deltaPct < 0
-                  ? 'text-emerald-300'
-                  : 'text-slate-400'
-            }`}
+      {/* CUSTO LÍQUIDO POR ITEM — cada produto com o unitário dele na combinação */}
+      <div className="space-y-1">
+        {exibidos.map(({ item, cell: ci }) => (
+          <div
+            key={item.id}
+            className="flex items-center justify-between rounded-md bg-orange-500/10 border border-orange-500/40 px-2 py-1"
           >
-            {cell.deltaPct > 0 ? '+' : ''}
-            {formatNumberBR(cell.deltaPct)}%
-          </span>
-        </div>
+            <span className="text-[9px] font-mono font-bold uppercase text-orange-400 truncate max-w-[45%]">
+              {item.name || 'Item'}
+            </span>
+            <div className="text-right shrink-0">
+              <span className="text-[10px] font-black text-orange-300 font-mono block leading-tight">
+                {formatBRL(ci.exercicio.unitario)}/un
+              </span>
+              <span
+                className={`text-[9px] font-mono ${
+                  ci.deltaPct > 0
+                    ? 'text-rose-300'
+                    : ci.deltaPct < 0
+                      ? 'text-emerald-300'
+                      : 'text-slate-400'
+                }`}
+              >
+                {ci.deltaPct > 0 ? '+' : ''}
+                {formatNumberBR(ci.deltaPct)}%
+              </span>
+            </div>
+          </div>
+        ))}
+        {restantes > 0 && (
+          <div className="text-[9px] font-mono text-slate-500">
+            +{restantes} item{restantes === 1 ? '' : 's'} dentro — cálculo por item na camada
+            interna
+          </div>
+        )}
+        {celulasItens.length === 0 && (
+          <div className="text-[9px] font-mono text-slate-500">
+            Nenhum item com valor na Calculadora de Compras
+          </div>
+        )}
       </div>
       <div className="text-[9px] font-mono text-slate-500 text-center">
         Clique para abrir os 6 cards do cenário
@@ -280,28 +305,41 @@ export function EspelhoRepasseDialog({
             />
           </div>
         ) : (
-          /* CAMADA 1 — grid dos 16 cards principais do cenário */
+          /* CAMADA 1 — grid dos 16 cards principais do cenário, com unitários POR ITEM */
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
             {celulas.map((linha) =>
-              linha.cells.map(({ fornecedor, cell }) => (
-                <CardPrincipalCenario
-                  key={`${linha.comprador}-${fornecedor}`}
-                  cell={cell}
-                  comprador={linha.comprador}
-                  fornecedor={fornecedor}
-                  isMenor={cell.exercicio.unitario === menor}
-                  repasseTxt={repasseTxt}
-                  onAbrir={() => setCenarioAberto({ comprador: linha.comprador, fornecedor })}
-                />
-              )),
+              linha.cells.map(({ fornecedor }) => {
+                const cfgComb = {
+                  ...cfg,
+                  compradorRegime: linha.comprador,
+                  fornecedorRegime: fornecedor,
+                }
+                const celulasItens = (celulasPorItem || []).map(({ item }) => ({
+                  item,
+                  cell: computeCellArt12Item(item, cfgComb, row),
+                }))
+                const cellComando = celulasItens[0]?.cell
+                return (
+                  <CardPrincipalCenario
+                    key={`${linha.comprador}-${fornecedor}`}
+                    celulasItens={celulasItens}
+                    comprador={linha.comprador}
+                    fornecedor={fornecedor}
+                    isMenor={cellComando?.exercicio.unitario === menor}
+                    repasseTxt={repasseTxt}
+                    onAbrir={() => setCenarioAberto({ comprador: linha.comprador, fornecedor })}
+                  />
+                )
+              }),
             )}
           </div>
         )}
         <p className="text-[10px] font-mono text-slate-500">
           LP = Lucro Presumido · LR = Lucro Real · SN = Simples Nacional (padrão) · SNH = SN híbrido
           (regime regular IBS/CBS — LC 214/2025, art. 41). Fornecedor SN/SNH: nota congelada.
-          Premissa IT: base do IBS/CBS do fornecedor SNH sem ICMS. Card em destaque = menor custo do
-          cenário.
+          Premissa IT: base do IBS/CBS do fornecedor SNH sem ICMS. Custo líquido POR ITEM (nunca
+          média — máxima da casa); até 3 maiores por valor no card, demais na camada interna. Card
+          em destaque = menor custo no item de maior valor (o que comanda a célula).
         </p>
       </DialogContent>
     </Dialog>
