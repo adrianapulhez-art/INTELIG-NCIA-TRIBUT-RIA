@@ -183,7 +183,10 @@ export function CardMemoriaPorItem({
                 <div className="flex items-center gap-1.5">
                   <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span className="text-[11px] font-black font-mono uppercase tracking-wide text-emerald-300 leading-tight">
-                    2º Formação do Preço pelo FORNECEDOR - {nomeRegime(cfg.fornecedorRegime)}
+                    2º Formação do Preço pelo FORNECEDOR -{' '}
+                    {cfg.fornecedorRegime === 'simples_hibrido'
+                      ? 'SN híbrido (regime regular IBS/CBS)'
+                      : nomeRegime(cfg.fornecedorRegime)}
                   </span>
                 </div>
                 <div className="text-[9px] font-mono text-slate-400 uppercase">
@@ -219,9 +222,7 @@ export function CardMemoriaPorItem({
                       (l) =>
                         l.bloco === 1 &&
                         l.label !== 'MEMORIA_BLOCO1' &&
-                        l.subtotal !== 'preco_nota' &&
-                        l.key !== 'snhib_icms_das' &&
-                        l.key !== 'snhib_base_it',
+                        l.subtotal !== 'preco_nota',
                     )
                     .map((l) => (
                       <LinhaCard key={l.key} line={l} />
