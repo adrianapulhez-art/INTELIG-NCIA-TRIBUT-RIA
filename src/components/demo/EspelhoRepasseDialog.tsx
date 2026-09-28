@@ -28,10 +28,15 @@ import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
  * ESPELHO DOS CÁLCULOS POR CENÁRIO DE REPASSE — EM CAMADAS (pedido da CEO, 27/09).
  * CAMADA 1: 16 cards principais compactos, um por combinação COMPRADOR × FORNECEDOR,
  * cada um com: REPASSE (o selecionado na régua) · ADQUIRENTE: regime · FORNECEDOR: regime
- * · custo líquido/un · Δ vs HOJE. Card reflete EXATAMENTE o cenário que abre.
- * CAMADA 2 (clique no card): os 6 cards do cenário — 3 por item da Calculadora de Compras
- * (modelo canônico aprovado), com os regimes da PRÓPRIA combinação nos títulos.
+ * · custo líquido POR ITEM (até 3, ABC) · Δ vs HOJE. Card reflete EXATAMENTE o cenário.
+ * CAMADA 2 (clique no card): linha de IDENTIFICAÇÃO DA OPERAÇÃO (adquirente × fornecedor ×
+ * repasse) + os 6 cards do cenário — 3 por item (modelo canônico), regimes da combinação.
+ * CHECAGEM CIRÚRGICA DA CEO (28/09): nomenclatura da camada interna DEVE corresponder ao
+ * card externo — identificação por ÍNDICE numérico (imune a valor de regime perdido) e
+ * fallback '—'. NENHUM cálculo alterado — só identificação.
  */
+
+const REGIMES: RegimeId[] = ['presumido', 'real', 'simples', 'simples_hibrido']
 
 const REGIME_LABEL: Record<RegimeId, string> = {
   presumido: 'LP',
@@ -46,6 +51,8 @@ const REGIME_NOME: Record<RegimeId, string> = {
   simples: 'Simples Nacional',
   simples_hibrido: 'SN híbrido',
 }
+
+const nomeRegime = (r: RegimeId | undefined) => (r && REGIME_NOME[r] ? REGIME_NOME[r] : '—')
 
 const REPASSE_TITULO: Record<RepasseMode, string> = {
   integral: 'REPASSE INTEGRAL',
@@ -179,16 +186,17 @@ export function EspelhoRepasseDialog({
   onAbrirMemoriaItem?: (item: ItemIntegracaoArt12, cell: CellResultArt) => void
 }) {
   // CAMADA 1 = grid de 16 cards principais; CAMADA 2 = cenário aberto (6 cards por item).
-  const [cenarioAberto, setCenarioAberto] = useState<{
-    comprador: RegimeId
-    fornecedor: RegimeId
-  } | null>(null)
-  const regimes: RegimeId[] = ['presumido', 'real', 'simples', 'simples_hibrido']
+  // IDENTIFICAÇÃO POR ÍNDICE (checagem da CEO, 28/09): o cenário aberto é guardado como
+  // par de índices (0–3) — a nomenclatura da camada interna sai SEMPRE dos mesmos índices
+  // que o card externo exibiu, sem depender de matching por string.
+  const [cenarioAberto, setCenarioAberto] = useState<{ ci: number; fi: number } | null>(null)
   const cfg: CellConfigArt = { ...baseConfig, repasse: mode }
-  const celulas = regimes.map((comprador) => ({
+  const celulas = REGIMES.map((comprador, ci) => ({
     comprador,
-    cells: regimes.map((fornecedor) => ({
+    ci,
+    cells: REGIMES.map((fornecedor, fi) => ({
       fornecedor,
+      fi,
       cell: computeCellArt12(
         input,
         { ...cfg, compradorRegime: comprador, fornecedorRegime: fornecedor },
@@ -204,9 +212,11 @@ export function EspelhoRepasseDialog({
       : REPASSE_TITULO[mode]
 
   const aberto = cenarioAberto
-    ? celulas
-        .find((l) => l.comprador === cenarioAberto.comprador)!
-        .cells.find((c) => c.fornecedor === cenarioAberto.fornecedor)!
+    ? {
+        comprador: REGIMES[cenarioAberto.ci],
+        fornecedor: REGIMES[cenarioAberto.fi],
+        cell: celulas[cenarioAberto.ci].cells[cenarioAberto.fi].cell,
+      }
     : null
 
   return (
@@ -260,11 +270,15 @@ export function EspelhoRepasseDialog({
                 )}
               </div>
             </div>
-            {/* Identidade do cenário aberto — exatamente o que os cards de baixo mostram */}
+            {/* IDENTIFICAÇÃO DA OPERAÇÃO (checagem da CEO, 28/09) — antes dos itens,
+                exatamente a combinação do card externo clicado */}
             <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/[0.05] p-3 space-y-1">
-              <div className="text-[11px] font-mono font-black uppercase text-emerald-300">
-                {repasseTxt} · ADQUIRENTE: {REGIME_NOME[aberto.comprador]} · FORNECEDOR:{' '}
-                {REGIME_NOME[aberto.fornecedor]}
+              <div className="text-[12px] font-mono font-black uppercase text-white">
+                OPERAÇÃO ANALISADA: ADQUIRENTE: {nomeRegime(aberto.comprador)} / FORNECEDOR:{' '}
+                {nomeRegime(aberto.fornecedor)}
+              </div>
+              <div className="text-[10px] font-mono text-emerald-300 uppercase">
+                {repasseTxt} · Exercício {exercicio}
               </div>
               <div className="text-[10px] font-mono text-slate-300">
                 Custo líquido {formatBRL(aberto.cell.exercicio.unitario)}/un ·{' '}
@@ -301,6 +315,7 @@ export function EspelhoRepasseDialog({
               }}
               exercicio={exercicio}
               mode={mode}
+              mostrarIdentidade={true}
               onAbrirMemoriaItem={onAbrirMemoriaItem}
             />
           </div>
@@ -308,7 +323,7 @@ export function EspelhoRepasseDialog({
           /* CAMADA 1 — grid dos 16 cards principais do cenário, com unitários POR ITEM */
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
             {celulas.map((linha) =>
-              linha.cells.map(({ fornecedor }) => {
+              linha.cells.map(({ fornecedor, fi }) => {
                 const cfgComb = {
                   ...cfg,
                   compradorRegime: linha.comprador,
@@ -327,7 +342,7 @@ export function EspelhoRepasseDialog({
                     fornecedor={fornecedor}
                     isMenor={cellComando?.exercicio.unitario === menor}
                     repasseTxt={repasseTxt}
-                    onAbrir={() => setCenarioAberto({ comprador: linha.comprador, fornecedor })}
+                    onAbrir={() => setCenarioAberto({ ci: linha.ci, fi })}
                   />
                 )
               }),

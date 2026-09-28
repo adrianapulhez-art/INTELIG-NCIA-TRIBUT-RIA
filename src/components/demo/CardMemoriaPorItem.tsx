@@ -54,6 +54,7 @@ export function CardMemoriaPorItem({
   onAbrirMemoriaItem,
   configOverride,
   ocultarRodape,
+  mostrarIdentidade,
 }: {
   celulasPorItem: { item: ItemIntegracaoArt12; cell: CellResultArt }[]
   config: CellConfigArt
@@ -64,6 +65,8 @@ export function CardMemoriaPorItem({
   configOverride?: CellConfigArt
   /** Oculta a nota de rodapé (redundante quando replicado em várias combinações). */
   ocultarRodape?: boolean
+  /** Mostra a linha de identificação da operação antes dos itens (pedido da CEO, 28/09). */
+  mostrarIdentidade?: boolean
 }) {
   if (celulasPorItem.length === 0) return null
   const repasseTxt =
@@ -87,6 +90,16 @@ export function CardMemoriaPorItem({
           Memória por item — {repasseTxt} · Exercício {exercicio}
         </span>
       </div>
+      {/* IDENTIFICAÇÃO DA OPERAÇÃO (checagem da CEO, 28/09) — antes dos itens, a
+          combinação exata que está sendo analisada: adquirente × fornecedor × repasse */}
+      {mostrarIdentidade === true && (
+        <div className="rounded-lg border border-sky-500/40 bg-sky-500/[0.06] px-3 py-2">
+          <span className="text-[11px] font-mono font-black uppercase text-sky-300">
+            OPERAÇÃO ANALISADA: ADQUIRENTE: {nomeRegime(cfg.compradorRegime)} / FORNECEDOR:{' '}
+            {nomeRegime(cfg.fornecedorRegime)} · {repasseTxt}
+          </span>
+        </div>
+      )}
       {celulasPorItem.map(({ item, cell }, idx) => (
         <div
           key={item.id}
