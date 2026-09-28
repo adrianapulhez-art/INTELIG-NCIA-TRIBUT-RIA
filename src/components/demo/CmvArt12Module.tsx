@@ -8,7 +8,6 @@ import {
   XCircle,
   ShieldAlert,
   ShieldCheck,
-  Layers,
 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -661,6 +660,7 @@ export function CmvArt12Module() {
   const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
 
   // CÁLCULO POR ITEM (CEO, 27/09): memória Art. 12 completa para CADA item com valor.
+  // A memória vive DENTRO dos cards de repasse (espelho) — não mais na página geral.
   const celulasPorItem = useMemo(
     () => computeCellsPorItem(itensOrigem, config, row),
     [itensOrigem, config, row],
@@ -900,7 +900,7 @@ export function CmvArt12Module() {
             </div>
           </div>
         </div>
-        {/* Réguas de repasse */}
+        {/* Réguas de repasse — ao clicar, abrem o espelho com a MEMÓRIA POR ITEM do cenário */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {reguas.map(({ mode, cell }) => (
             <button
@@ -977,7 +977,7 @@ export function CmvArt12Module() {
         </label>
       </div>
 
-      {/* ================= Leitura da célula ativa (sem memória isolada — a memória vive na camada do cenário: espelho, matriz e notas) ================= */}
+      {/* ================= Leitura da célula ativa (memória por item vive nos cards de repasse) ================= */}
       <div className={`flex items-start gap-3 rounded-xl border p-3 ${semaforoStyle.bg}`}>
         {semaforoStyle.icon}
         <div className="space-y-1">
@@ -1004,167 +1004,6 @@ export function CmvArt12Module() {
           <p className="text-[11px] text-slate-300 leading-relaxed">{activeCell.porque}</p>
         </div>
       </div>
-
-      {/* ================= CÁLCULO POR ITEM (CEO, 27/09) — cards por item, títulos em destaque ================= */}
-      {celulasPorItem.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Layers className="w-5 h-5 text-emerald-400" />
-            <span className="text-xs font-mono font-black uppercase tracking-wider text-emerald-300">
-              Memória por item — cálculo POR ITEM (sem média — máxima da casa)
-            </span>
-            <Badge className="text-[9px] bg-emerald-500/15 text-emerald-300 border-emerald-500/40 font-mono">
-              {celulasPorItem.length} item{celulasPorItem.length === 1 ? '' : 's'} · Exercício{' '}
-              {exercicio} · repasse{' '}
-              {config.repasse === 'integral'
-                ? 'INTEGRAL'
-                : config.repasse === 'parcial'
-                  ? `PARCIAL ${formatNumberBR(config.repassePct)}%`
-                  : 'NENHUM'}
-            </Badge>
-          </div>
-          {celulasPorItem.map(({ item, cell }, idx) => (
-            <div
-              key={item.id}
-              className="rounded-xl border border-emerald-500/30 bg-slate-900/40 p-4 space-y-3"
-            >
-              {/* Cabeçalho do item */}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
-                <span className="text-sm font-black font-mono text-white uppercase tracking-wide">
-                  Item {String(idx + 1).padStart(2, '0')} · {item.name || '—'}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono text-slate-400">
-                    {formatNumberBR(item.quantity, 0)} un. · {formatBRL(item.merchandiseValue)} +
-                    frete {formatBRL(item.freightValue)}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      setMemoryCell({
-                        label: `Item ${idx + 1} · ${item.name || '—'}`,
-                        cell,
-                        row,
-                      })
-                    }
-                    className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer h-6 text-[10px]"
-                  >
-                    <Calculator className="w-3 h-3 mr-1" /> Memória do item
-                  </Button>
-                </div>
-              </div>
-              {/* DOIS CARDS: formação do preço (fornecedor) × composição do custo (adquirente) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {(
-                  [
-                    {
-                      card: 1 as const,
-                      lado: 'hoje' as const,
-                      titulo: `FORMAÇÃO DO PREÇO PELO FORNECEDOR - ${REGIME_LABEL_FULL[config.fornecedorRegime]}`,
-                      cor: 'border-emerald-500/45 bg-emerald-500/[0.05]',
-                      tituloCor: 'text-emerald-300',
-                    },
-                    {
-                      card: 2 as const,
-                      lado: 'exercicio' as const,
-                      titulo: `COMPOSIÇÃO DO CUSTO PELO ADQUIRENTE - ${REGIME_LABEL_FULL[config.compradorRegime]}`,
-                      cor: 'border-orange-500/45 bg-orange-500/[0.05]',
-                      tituloCor: 'text-orange-300',
-                    },
-                  ] as const
-                ).map(({ card, lado, titulo, cor, tituloCor }) => {
-                  const side = cell[lado]
-                  const linhas = side.lines.filter(
-                    (l) =>
-                      l.bloco === card &&
-                      l.label !== 'MEMORIA_BLOCO1' &&
-                      !(card === 1 && l.subtotal === 'preco_nota'),
-                  )
-                  const repasseTxt =
-                    config.repasse === 'integral'
-                      ? 'REPASSE INTEGRAL'
-                      : config.repasse === 'parcial'
-                        ? `REPASSE PARCIAL ${formatNumberBR(config.repassePct)}%`
-                        : 'REPASSE NENHUM'
-                  return (
-                    <div
-                      key={`${lado}-${card}`}
-                      className={`rounded-xl border p-3 space-y-1.5 ${cor}`}
-                    >
-                      <div className="space-y-0.5">
-                        <div
-                          className={`text-[11px] font-black font-mono uppercase tracking-wide ${tituloCor} leading-tight`}
-                        >
-                          {titulo}
-                        </div>
-                        <div className="text-[9px] font-mono text-slate-400 uppercase">
-                          {lado === 'hoje'
-                            ? 'Sistema pré-reforma · HOJE'
-                            : `Exercício ${exercicio} · ${repasseTxt}${card === 2 ? ` · tese do ${config.baseIcmsTransicao === 'fisco' ? 'FISCO' : 'CONTRIBUINTE'}` : ''}`}
-                        </div>
-                      </div>
-                      {linhas.map((l) => (
-                        <div
-                          key={l.key}
-                          className="flex items-start justify-between gap-2 text-[10px] font-mono"
-                        >
-                          <div className="min-w-0">
-                            <span className="text-slate-200">{l.label}</span>
-                            {l.formula && (
-                              <span className="text-slate-500 block break-words text-[9px]">
-                                {l.formula}
-                              </span>
-                            )}
-                          </div>
-                          <span
-                            className={`shrink-0 font-bold ${l.value < 0 ? 'text-emerald-300' : 'text-slate-100'}`}
-                          >
-                            {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
-                          </span>
-                        </div>
-                      ))}
-                      <div className="flex items-center justify-between rounded-md bg-orange-500/10 border border-orange-500/40 px-2 py-1">
-                        <span className="text-[9px] font-mono font-bold uppercase text-orange-400">
-                          {card === 1
-                            ? lado === 'hoje'
-                              ? 'Base limpa de referência'
-                              : `Base limpa ${exercicio}`
-                            : lado === 'hoje'
-                              ? 'Custo unitário HOJE'
-                              : `CUSTO UNITÁRIO ${exercicio}`}
-                        </span>
-                        <div className="text-right">
-                          <span className="text-[11px] font-black text-orange-300 font-mono block">
-                            {card === 1
-                              ? side.baseLimpa !== null
-                                ? formatBRL(side.baseLimpa)
-                                : formatBRL(side.liquido)
-                              : formatBRL(side.unitario) + '/un'}
-                          </span>
-                          {card === 2 && (
-                            <span
-                              className={`text-[9px] font-mono ${cell.deltaPct > 0 ? 'text-rose-300' : cell.deltaPct < 0 ? 'text-emerald-300' : 'text-slate-400'}`}
-                            >
-                              {cell.deltaPct > 0 ? '+' : ''}
-                              {formatNumberBR(cell.deltaPct)}% VS HOJE
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-          <p className="text-[10px] font-mono text-slate-500">
-            Cada item tem sua própria memória Art. 12 completa — nunca média entre produtos (máxima
-            da casa). Os DOIS cards de cada item usam o MESMO cenário de repasse selecionado nas
-            réguas (sincronizados): ao mudar o cenário, todos os itens recalculam juntos.
-          </p>
-        </div>
-      )}
 
       {/* ================= Escada (régua Nenhum) ================= */}
       <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-2">
@@ -1270,6 +1109,11 @@ export function CmvArt12Module() {
           mode={espelhoModal.mode}
           open={espelhoModal.open}
           onOpenChange={(o) => !o && setEspelhoModal(null)}
+          celulasPorItem={celulasPorItem}
+          onAbrirMemoriaItem={(item, cell) => {
+            setEspelhoModal(null)
+            setMemoryCell({ label: `Item · ${item.name || '—'}`, cell, row })
+          }}
           onAbrirCelula={(comprador, fornecedor, cell) => {
             setEspelhoModal(null)
             setMemoryCell({

@@ -10,6 +10,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { NotaCelulaTrigger } from './NotasExplicativas'
+import { CardMemoriaPorItem } from './CardMemoriaPorItem'
 import {
   computeCellArt12,
   type CellConfigArt,
@@ -191,6 +192,8 @@ export function EspelhoRepasseDialog({
   open,
   onOpenChange,
   onAbrirCelula,
+  celulasPorItem,
+  onAbrirMemoriaItem,
 }: {
   input: CmvArt12Input
   baseConfig: CellConfigArt
@@ -200,6 +203,15 @@ export function EspelhoRepasseDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
   onAbrirCelula: (comprador: RegimeId, fornecedor: RegimeId, cell: CellResultArt) => void
+  /** MEMÓRIA POR ITEM dentro do card de repasse (pedido da CEO, 27/09). */
+  celulasPorItem?: {
+    item: import('@/lib/integracaoComprasArt12').ItemIntegracaoArt12
+    cell: CellResultArt
+  }[]
+  onAbrirMemoriaItem?: (
+    item: import('@/lib/integracaoComprasArt12').ItemIntegracaoArt12,
+    cell: CellResultArt,
+  ) => void
 }) {
   const regimes: RegimeId[] = ['presumido', 'real', 'simples', 'simples_hibrido']
   const cfg: CellConfigArt = { ...baseConfig, repasse: mode }
@@ -234,6 +246,18 @@ export function EspelhoRepasseDialog({
             para abrir a memória completa.
           </DialogDescription>
         </DialogHeader>
+        {/* MEMÓRIA POR ITEM — os 3 blocos da CEO dentro do card de repasse (27/09) */}
+        {celulasPorItem && celulasPorItem.length > 0 && (
+          <div className="rounded-xl border border-emerald-500/25 bg-slate-900/40 p-3">
+            <CardMemoriaPorItem
+              celulasPorItem={celulasPorItem}
+              config={cfg}
+              exercicio={exercicio}
+              mode={mode}
+              onAbrirMemoriaItem={onAbrirMemoriaItem}
+            />
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5">
           {celulas.map((linha) =>
             linha.cells.map(({ fornecedor, cell }) => (
