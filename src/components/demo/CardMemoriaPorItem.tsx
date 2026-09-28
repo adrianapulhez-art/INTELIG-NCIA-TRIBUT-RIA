@@ -100,6 +100,26 @@ export function CardMemoriaPorItem({
           </span>
         </div>
       )}
+      {/* PENDÊNCIA FISCAL DECLARADA (pacto da honestidade) — crédito proporcional do
+          adquirente na compra de optante do SN puro: motor hoje zera; correção é rodada
+          separada com re-chancela (decisão da CEO). */}
+      {cfg.fornecedorRegime === 'simples' &&
+        cfg.compradorRegime !== 'simples' &&
+        cfg.compradorRegime !== 'simples_hibrido' && (
+          <div className="rounded-lg border border-amber-500/45 bg-amber-500/[0.07] px-3 py-2">
+            <span className="text-[10px] font-mono font-bold uppercase text-amber-300 block">
+              Pendência fiscal — crédito proporcional do adquirente (art. 23 da LC 123/2006)
+            </span>
+            <span className="text-[9px] font-mono text-slate-300 block mt-0.5 leading-relaxed">
+              LC 123/2006, art. 23, §1º (redação LC 214/2025): adquirente no regime regular tem
+              crédito "em montante equivalente ao cobrado por meio desse regime único" — §2º: a
+              alíquota (percentuais de ICMS/IBS/CBS dos Anexos I a V da faixa do fornecedor) será
+              informada no documento fiscal. O motor hoje NÃO computa esse crédito (custo chancelado
+              1.413,33 com crédito zero). Correção do motor = rodada separada com re-chancela dos
+              ouros afetados — decisão da CEO.
+            </span>
+          </div>
+        )}
       {celulasPorItem.map(({ item, cell }, idx) => (
         <div
           key={item.id}
@@ -167,30 +187,62 @@ export function CardMemoriaPorItem({
                   </span>
                 </div>
                 <div className="text-[9px] font-mono text-slate-400 uppercase">
-                  Exercício {exercicio} · {repasseTxt} · regime do cenário simulado
+                  {cfg.fornecedorRegime === 'simples'
+                    ? `Exercício ${exercicio} · lógica do SN: DAS por dentro, sem destaque · repasse não se aplica (nota congelada)`
+                    : `Exercício ${exercicio} · ${repasseTxt} · regime do cenário simulado`}
                 </div>
               </div>
-              {cell.exercicio.lines
-                .filter(
-                  (l) =>
-                    l.bloco === 1 && l.label !== 'MEMORIA_BLOCO1' && l.subtotal !== 'preco_nota',
-                )
-                .map((l) => (
-                  <LinhaCard key={l.key} line={l} />
-                ))}
-              <div className="flex items-center justify-between rounded-md bg-emerald-500/10 border border-emerald-500/40 px-2 py-1">
-                <span className="text-[9px] font-mono font-bold uppercase text-emerald-400">
-                  Base limpa {exercicio}
-                </span>
-                <span className="text-[11px] font-black text-emerald-300 font-mono">
-                  {cell.exercicio.baseLimpa !== null ? formatBRL(cell.exercicio.baseLimpa) : '—'}
-                </span>
-              </div>
-              {cell.exercicio.lines
-                .filter((l) => l.subtotal === 'preco_nota')
-                .map((l) => (
-                  <LinhaCard key={l.key} line={l} />
-                ))}
+              {/* Fornecedor SN puro: a memória segue a ORDEM NATURAL do motor —
+                  receita bruta → alíquota efetiva → partilha → DAS por dentro → preço da nota */}
+              {cfg.fornecedorRegime === 'simples' ? (
+                <>
+                  {cell.exercicio.lines
+                    .filter(
+                      (l) => l.bloco === 1 && l.label !== 'MEMORIA_BLOCO1' && l.key !== 'cbsibs',
+                    )
+                    .map((l) => (
+                      <LinhaCard key={l.key} line={l} />
+                    ))}
+                  <div className="flex items-center justify-between rounded-md bg-emerald-500/10 border border-emerald-500/40 px-2 py-1">
+                    <span className="text-[9px] font-mono font-bold uppercase text-emerald-400">
+                      Preço da nota (congelado)
+                    </span>
+                    <span className="text-[11px] font-black text-emerald-300 font-mono">
+                      {formatBRL(cell.exercicio.bruto)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {cell.exercicio.lines
+                    .filter(
+                      (l) =>
+                        l.bloco === 1 &&
+                        l.label !== 'MEMORIA_BLOCO1' &&
+                        l.subtotal !== 'preco_nota' &&
+                        l.key !== 'snhib_icms_das' &&
+                        l.key !== 'snhib_base_it',
+                    )
+                    .map((l) => (
+                      <LinhaCard key={l.key} line={l} />
+                    ))}
+                  <div className="flex items-center justify-between rounded-md bg-emerald-500/10 border border-emerald-500/40 px-2 py-1">
+                    <span className="text-[9px] font-mono font-bold uppercase text-emerald-400">
+                      Base limpa {exercicio}
+                    </span>
+                    <span className="text-[11px] font-black text-emerald-300 font-mono">
+                      {cell.exercicio.baseLimpa !== null
+                        ? formatBRL(cell.exercicio.baseLimpa)
+                        : '—'}
+                    </span>
+                  </div>
+                  {cell.exercicio.lines
+                    .filter((l) => l.subtotal === 'preco_nota')
+                    .map((l) => (
+                      <LinhaCard key={l.key} line={l} />
+                    ))}
+                </>
+              )}
             </div>
             {/* 3º — Formação do CUSTO pelo ADQUIRENTE (comprador) — exercício */}
             <div className="rounded-xl border border-orange-500/45 bg-orange-500/[0.05] p-3 space-y-1.5">

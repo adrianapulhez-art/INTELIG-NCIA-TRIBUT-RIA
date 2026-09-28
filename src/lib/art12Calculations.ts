@@ -118,6 +118,21 @@ export interface CellConfigArt {
   repassePct: number // % quando repasse = 'parcial'
   /** Tese sobre a base do ICMS na transição (2026–2032): 'fisco' (padrão) ou 'contribuinte' (PLP 16/25). */
   baseIcmsTransicao: BaseIcmsTransicao
+  /** PERFIL DO FORNECEDOR SN (apresentação da memória — NÃO altera custos): anexo, faixa,
+   *  alíquota efetiva do RBT12 e partilha interna do DAS (LC 123/2006, art. 3º, §12º +
+   *  Anexo XX, redação LC 214/2025). Padrão: Anexo I (comércio), 1ª faixa, 4,00%. */
+  perfilFornecedorSN?: {
+    anexo: string
+    faixa: string
+    efetivaPct: number
+    icmsFracPct: number // fração da alíquota efetiva destinada ao ICMS no anexo
+  }
+}
+export const PERFIL_SN_PADRAO = {
+  anexo: 'Anexo I (comércio)',
+  faixa: '1ª faixa (RBT12 até R$ 120.000,00)',
+  efetivaPct: 4.0,
+  icmsFracPct: 32.5,
 }
 
 export const CONFIG_PADRAO_ART12: CellConfigArt = {
@@ -773,13 +788,92 @@ export function computeExercicioArt12(
     // base do IBS/CBS = valor da operação SEM ICMS embutido (baseSemIcmsRef).
     const cbsSNHib = fornecedorSNHib ? r2(baseSemIcmsRef * (row.cbsRate / 100)) : 0
     const ibsSNHib = fornecedorSNHib ? r2(baseSemIcmsRef * (row.ibsRate / 100)) : 0
+    if (fornecedorSN) {
+      // ---- LÓGICA DO SN PURO (apresentação da memória — NÃO altera custos) ----
+      // A nota do optante é preço de tabela com tributos POR DENTRO (DAS sobre a receita
+      // bruta — LC 123/2006, art. 3º, §12º + Anexo XX na redação da LC 214/2025).
+      const pSN = config.perfilFornecedorSN ?? PERFIL_SN_PADRAO
+      const cbsFracPct = r2(100 - pSN.icmsFracPct)
+      const dasEfetivo = r2(bruto * (pSN.efetivaPct / 100))
+      const dasIcms = r2(dasEfetivo * (pSN.icmsFracPct / 100))
+      const dasCbs = r2(dasEfetivo * (cbsFracPct / 100))
+      lines.push({
+        key: 'sn_receitabruta',
+        label: '(=) Receita bruta da operação',
+        formula: `${fmt(mercReal)} + ${fmt(freteReal)} — base do DAS (LC 123/2006, art. 3º, §12º)`,
+        value: bruto,
+        kind: 'nota',
+        bloco: 1,
+        fundamento: {
+          dispositivo: 'LC 123/2006, art. 3º, §12º',
+          efeito: 'alíquota efetiva incide sobre a receita bruta (tributos por dentro)',
+          validade: 'integral',
+        },
+      })
+      lines.push({
+        key: 'sn_efetiva',
+        label: `(i) Alíquota efetiva do RBT12 — ${pSN.anexo}, ${pSN.faixa}`,
+        formula: `nominal − dedução = ${fmt(pSN.efetivaPct)}% (parâmetro do perfil do fornecedor)`,
+        value: pSN.efetivaPct,
+        kind: 'nota',
+        bloco: 1,
+        fundamento: {
+          dispositivo: 'LC 123/2006, art. 3º, §12º',
+          efeito: 'RBT12 × percentual da faixa — informada no documento fiscal (art. 23, §2º)',
+          validade: 'integral',
+        },
+      })
+      lines.push({
+        key: 'sn_partilha',
+        label: `(i) Partilha interna do DAS 2027–2028 — ICMS ${fmt(pSN.icmsFracPct)}% · CBS ${fmt(cbsFracPct)}%`,
+        formula: `Anexo XX da LC 123 (redação LC 214/2025, art. 139): PIS/COFINS extintos em 2027, CBS entra no lugar — carga inalterada`,
+        value: 0,
+        kind: 'nota',
+        bloco: 1,
+        fundamento: {
+          dispositivo: 'LC 123/2006, Anexo XX + LC 214/2025, art. 139',
+          efeito: 'fração da alíquota efetiva destinada a cada tributo (destino do dinheiro)',
+          validade: 'condicionada',
+          nota: 'Percentuais de PARTILHA da faixa — a alíquota efetiva do contribuinte não muda.',
+        },
+      })
+      lines.push({
+        key: 'sn_das',
+        label: '(−) DAS efetivo — por dentro, NÃO destacado na nota',
+        formula: `${fmt(pSN.efetivaPct)}% × ${fmt(bruto)} = ${fmt(dasEfetivo)} → ICMS ${fmt(dasIcms)} + CBS ${fmt(dasCbs)}`,
+        value: -dasEfetivo,
+        kind: 'debito',
+        bloco: 1,
+        fundamento: {
+          dispositivo: 'LC 123/2006, art. 3º, §12º + Anexo XX',
+          efeito: 'recolhimento unificado sobre a receita bruta — sem destaque na nota',
+          validade: 'integral',
+        },
+      })
+      lines.push({
+        key: 'sn_preconota',
+        label: '(=) PREÇO DA NOTA DO FORNECEDOR SN',
+        formula: `sem destaque de ICMS/CBS/IBS — tributos por dentro do preço`,
+        value: bruto,
+        kind: 'nota',
+        bloco: 1,
+        subtotal: 'preco_nota_sn',
+        fundamento: {
+          dispositivo: 'LC 123/2006 (regime próprio do SN)',
+          efeito:
+            'nota congelada na transição — repasse não se aplica (fornecedor não reprecifica por destaque)',
+          validade: 'condicionada',
+          nota: 'Hipótese da cadeia SN — validar na prática de mercado.',
+        },
+      })
+    }
     lines.push({
       key: 'cbsibs',
       label: fornecedorSNHib
         ? '(+) CBS/IBS destacados por fora (fornecedor SN híbrido)'
         : 'CBS/IBS — sem destaque (fornecedor SN)',
       formula: fornecedorSNHib
-        ? `${fmt(row.cbsRate)}% × ${fmt(baseSemIcmsRef)} = ${fmt(cbsSNHib)} + ${fmt(row.ibsRate)}% × ${fmt(baseSemIcmsRef)} = ${fmt(ibsSNHib)} — base sem ICMS (premissa IT)`
+        ? `${fmt(row.cbsRate)}% × ${fmt(baseSemIcmsRef)} = ${fmt(cbsSNHib)} + ${fmt(row.ibsRate)}% × ${fmt(baseSemIcmsRef)} = ${fmt(ibsSNHib)} — base sem ICMS`
         : 'nota do Simples Nacional não destaca CBS/IBS',
       value: r2(cbsSNHib + ibsSNHib),
       kind: fornecedorSNHib ? 'debito' : 'nota',
@@ -793,10 +887,40 @@ export function computeExercicioArt12(
           : 'sem destaque → sem crédito e sem acréscimo ao custo',
         validade: fornecedorSNHib ? 'condicionada' : 'condicionada',
         nota: fornecedorSNHib
-          ? 'Premissa IT (chancelada pela CEO): base do IBS/CBS sem ICMS embutido — pendente de regulamentação detalhada. Demais tributos seguem no DAS.'
+          ? 'CRITÉRIO IT (chancelado pela CEO em 23/09): base do IBS/CBS sem ICMS embutido — pendente de regulamentação detalhada. Demais tributos seguem no DAS.'
           : 'Congelamento da nota: hipótese da cadeia SN — validar na prática de mercado.',
       },
     })
+    if (fornecedorSNHib) {
+      lines.push({
+        key: 'snhib_icms_das',
+        label: '(−) ICMS embutido no preço (segue no DAS — não é destacado)',
+        formula: `${fmt(mercReal)} × ${fmt(input.icmsRate)}% + ${fmt(freteReal)} × ${fmt(input.icmsFreightRate)}% = ${fmt(r2(icmsMercRef + icmsFreteRef))}`,
+        value: -r2(icmsMercRef + icmsFreteRef),
+        kind: 'debito',
+        bloco: 1,
+        fundamento: {
+          dispositivo: 'LC 214/2025, art. 41 + LC 123/2006',
+          efeito:
+            'no SN híbrido só IBS/CBS saem do DAS — ICMS (e demais tributos) seguem no regime único, por dentro do preço',
+          validade: 'condicionada',
+          nota: 'Por não haver destaque de ICMS na nota, o adquirente pleno NÃO credita ICMS nessa operação.',
+        },
+      })
+      lines.push({
+        key: 'snhib_base_it',
+        label: '(=) Base do IBS/CBS — sem ICMS embutido',
+        formula: `${fmt(bruto)} − ICMS ${fmt(r2(icmsMercRef + icmsFreteRef))} = ${fmt(baseSemIcmsRef)} — CRITÉRIO IT (chancelado pela CEO, 23/09), pendente de regulamentação`,
+        value: baseSemIcmsRef,
+        kind: 'nota',
+        bloco: 1,
+        fundamento: {
+          dispositivo: 'LC 214/2025, art. 12, §2º, V (ICMS fora da base do IBS/CBS) + critério IT',
+          efeito: 'base do destaque por fora do fornecedor SN híbrido',
+          validade: 'condicionada',
+        },
+      })
+    }
     if (fornecedorSNHib) {
       lines.push({
         key: 'preconota_snhib',
@@ -810,7 +934,7 @@ export function computeExercicioArt12(
           dispositivo: 'LC 214/2025, art. 41 + LC 123/2006',
           efeito: 'nota congelada + IBS/CBS por fora (regime regular no Simples)',
           validade: 'condicionada',
-          nota: 'Premissa IT: base do IBS/CBS sem ICMS embutido.',
+          nota: 'CRITÉRIO IT: base do IBS/CBS sem ICMS embutido.',
         },
       })
     }
