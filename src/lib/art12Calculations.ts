@@ -301,16 +301,29 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
     config.compradorRegime !== 'simples' &&
     config.compradorRegime !== 'simples_hibrido' &&
     fornecedorEmite
+  // ICMS FRAGMENTADO (padrão Markup — pedido da CEO, 27/09): mercadorias e fretes em
+  // linhas separadas, cada uma com a própria conta — nunca consolidado.
   const creditoIcms = pleno ? r2(icmsMerc + icmsFrete) : 0
   lines.push({
     key: 'icms',
-    label: '(−) ICMS destacado',
+    label: '(−) ICMS sobre mercadorias',
     formula: pleno
-      ? `${fmt(merc)} × ${fmt(input.icmsRate)}% + ${fmt(frete)} × ${fmt(input.icmsFreightRate)}%`
+      ? `${fmt(input.icmsRate)}% × ${fmt(merc)} = ${fmt(icmsMerc)}`
       : config.compradorRegime === 'simples'
         ? 'Comprador SN — sem crédito'
         : 'NF de fornecedor SN — sem destaque',
-    value: -creditoIcms,
+    value: pleno ? -icmsMerc : 0,
+    kind: 'credito',
+    bloco: 2,
+    fundamento: semFund,
+  })
+  lines.push({
+    key: 'icms_frete',
+    label: '(−) ICMS sobre fretes',
+    formula: pleno
+      ? `${fmt(input.icmsFreightRate)}% × ${fmt(frete)} = ${fmt(icmsFrete)}`
+      : 'sem crédito (mesma regra do ICMS sobre mercadorias)',
+    value: pleno ? -icmsFrete : 0,
     kind: 'credito',
     bloco: 2,
     fundamento: semFund,
@@ -358,6 +371,29 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
 
   const creditos = r2(creditoIcms + creditoPis + (tomaIpi ? ipiValor : 0))
   const liquido = r2(bruto - creditos)
+  // COMPLETO COMO A MEMÓRIA DO MARKUP (pedido da CEO, 27/09): a aquisição de HOJE
+  // começa em Mercadorias/Frete (bloco 1) e fecha em Compras Líquidas + custo unitário.
+  lines.push({
+    key: 'comprasliquidas_hoje',
+    label: '(=) Compras Líquidas',
+    formula: `${fmt(bruto)} − ${fmt(creditos)} (créditos do adquirente)`,
+    value: liquido,
+    kind: 'nota',
+    bloco: 2,
+    subtotal: 'compras_liquidas_hoje',
+    fundamento: semFund,
+  })
+  const unitarioHoje = r2(liquido / Math.max(1, input.quantity))
+  lines.push({
+    key: 'custounitario_hoje',
+    label: '(÷) Custo Unitário Líquido',
+    formula: `${fmt(liquido)} ÷ ${fmtQtd(input.quantity)} un.`,
+    value: unitarioHoje,
+    kind: 'nota',
+    bloco: 2,
+    subtotal: 'custo_unitario_hoje',
+    fundamento: semFund,
+  })
   return {
     lines,
     bruto,
@@ -365,7 +401,7 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
     debitos: 0,
     baseLimpa: null,
     liquido,
-    unitario: r2(liquido / Math.max(1, input.quantity)),
+    unitario: unitarioHoje,
   }
 }
 

@@ -121,11 +121,13 @@ export function CardMemoriaPorItem({
                   Sistema pré-reforma · HOJE · base integrada à Calculadora de Compras
                 </div>
               </div>
-              {cell.hoje.lines
-                .filter((l) => l.bloco === 2)
-                .map((l) => (
-                  <LinhaCard key={l.key} line={l} />
-                ))}
+              {/* HISTÓRIA COMPLETA como a Memória de CMV do Markup (pedido da CEO, 27/09):
+                  Mercadorias → Frete → IPI → ICMS fragmentado → créditos → Compras Líquidas
+                  → Custo Unitário Líquido. Bloco 1 (elementos) + bloco 2 (exclusões e fecho)
+                  — TODAS as linhas do motor, sem esconder crédito nenhum. */}
+              {cell.hoje.lines.map((l) => (
+                <LinhaCard key={l.key} line={l} />
+              ))}
               <div className="flex items-center justify-between rounded-md bg-sky-500/10 border border-sky-500/40 px-2 py-1">
                 <span className="text-[9px] font-mono font-bold uppercase text-sky-400">
                   Custo unitário HOJE
