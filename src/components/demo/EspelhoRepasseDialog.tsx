@@ -13,6 +13,7 @@ import { CardMemoriaPorItem } from './CardMemoriaPorItem'
 import { type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
 import {
   computeCellArt12,
+  computeCellArt12Item,
   type CellConfigArt,
   type CellResultArt,
   type CmvArt12Input,
@@ -253,8 +254,10 @@ export function EspelhoRepasseDialog({
                 celulasPorItem && celulasPorItem.length > 0
                   ? celulasPorItem.map(({ item }) => ({
                       item,
-                      cell: computeCellArt12(
-                        input,
+                      // CÁLCULO POR ITEM (máxima da casa): cada item com a SUA célula
+                      // na combinação aberta — nunca o input consolidado de outro item.
+                      cell: computeCellArt12Item(
+                        item,
                         {
                           ...cfg,
                           compradorRegime: aberto.comprador,
