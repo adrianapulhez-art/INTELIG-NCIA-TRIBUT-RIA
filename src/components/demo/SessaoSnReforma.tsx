@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { Percent, Calculator, AlertTriangle, ArrowLeft, ArrowDown } from 'lucide-react'
+import { CardEstoqueReajustado, type LinhaEstoqueSN } from './CardEstoqueReajustado'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -284,7 +285,13 @@ export function SessaoSnSection({
           { ...cfgBase, compradorRegime: adquirente, fornecedorRegime: 'simples_hibrido' },
           row,
         )
-        return { item, cell, unitario: cell.exercicio.unitario, deltaPct: cell.deltaPct }
+        return {
+          item,
+          cell,
+          unitario: cell.exercicio.unitario,
+          deltaPct: cell.deltaPct,
+          cellHojeUnitario: cell.hoje.unitario,
+        }
       })
     }
     // SN PURO — motor da sessão: nota congelada + crédito proporcional do art. 23.
@@ -309,7 +316,15 @@ export function SessaoSnSection({
         cellHoje.hoje.unitario > 0
           ? ((unitario - cellHoje.hoje.unitario) / cellHoje.hoje.unitario) * 100
           : 0
-      return { item, cell: null, unitario, deltaPct, r, creditoEfetivo }
+      return {
+        item,
+        cell: null,
+        unitario,
+        deltaPct,
+        r,
+        creditoEfetivo,
+        cellHojeUnitario: cellHoje.hoje.unitario,
+      }
     })
   }, [itens, fornecedorSN, adquirente, cfgBase, row, perfil])
 
@@ -763,6 +778,28 @@ export function SessaoSnSection({
               ) : null}
             </div>
           )}
+
+          {/* 4 — CARD 3 do desenho da CEO: nova composição do custo do estoque (IBS/CBS) */}
+          <CardEstoqueReajustado
+            exercicio={exercicio}
+            fornecedorTxt={
+              fornecedorSN === 'puro'
+                ? 'fornecedor SN puro (nota congelada + crédito proporcional do art. 23)'
+                : 'fornecedor SN híbrido (regime regular — crédito integral, motor Art. 12 chancelado)'
+            }
+            linhas={resultados.map<LinhaEstoqueSN>((res) => ({
+              id: res.item.id,
+              nome: res.item.name || 'Item',
+              qtd: res.item.quantity,
+              // HOJE = custo de aquisição pré-reforma do PRÓPRIO adquirente (baseline da sessão)
+              custoHoje:
+                fornecedorSN === 'hibrido' && res.cell
+                  ? res.cell.hoje.unitario
+                  : (res.cellHojeUnitario ?? 0),
+              custoNovo: res.unitario,
+              deltaPct: res.deltaPct,
+            }))}
+          />
 
           {/* Nota de honestidade */}
           <div className="flex items-start gap-2 text-[9px] font-mono text-slate-500">
