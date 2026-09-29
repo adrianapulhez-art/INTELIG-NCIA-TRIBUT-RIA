@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react'
 import { Percent, Calculator, AlertTriangle, ArrowLeft, ArrowDown } from 'lucide-react'
-import { CardEstoqueReajustado, type LinhaEstoqueSN } from './CardEstoqueReajustado'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +19,7 @@ import {
   type ScheduleRowArt,
 } from '@/lib/art12Calculations'
 import { type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
+import { CardEstoqueReajustado, type LinhaEstoqueSN } from './CardEstoqueReajustado'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 
 /**
@@ -36,6 +36,8 @@ import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
  *   · Fornecedor híbrido          → motor Art. 12 chancelado (crédito integral)
  * Alíquota efetiva INFORMADA pelo contador (nota ou anexo+faixa+RBT12) alimenta
  * os dois fluxos — crédito proporcional e base limpa do híbrido.
+ * COMPARAÇÃO SEMPRE VISÍVEL (siga 29/09): cada card mostra o custo do fornecedor
+ * selecionado E o do outro — puro × híbrido lado a lado na camada 1.
  * Ouros do Art. 12 intactos — camada própria, motor art12SnCalculations.
  * ============================================================================
  */
@@ -274,31 +276,13 @@ export function SessaoSnSection({
     [config, repasse, repassePct],
   )
 
-  // RESULTADO POR ITEM — motor por fornecedor escolhido
+  // RESULTADO POR ITEM — OS DOIS FORNECEDORES SEMPRE (comparação lado a lado, siga 29/09)
   const resultados = useMemo(() => {
     if (itens.length === 0) return []
-    if (fornecedorSN === 'hibrido') {
-      // Motor Art. 12 CHANCELADO — crédito integral, premissa IT na base sem ICMS.
-      return itens.map((item) => {
-        const cell = computeCellArt12Item(
-          item,
-          { ...cfgBase, compradorRegime: adquirente, fornecedorRegime: 'simples_hibrido' },
-          row,
-        )
-        return {
-          item,
-          cell,
-          unitario: cell.exercicio.unitario,
-          deltaPct: cell.deltaPct,
-          cellHojeUnitario: cell.hoje.unitario,
-        }
-      })
-    }
-    // SN PURO — motor da sessão: nota congelada + crédito proporcional do art. 23.
     return itens.map((item) => {
+      // --- SN PURO: nota congelada + crédito proporcional do art. 23 (motor da sessão)
       const r = calcularSessaoSN(item, perfil)
-      // Baseline HOJE do adquirente (custo de aquisição pré-reforma do próprio regime).
-      const cellHoje = computeCellArt12Item(
+      const cellHojePuro = computeCellArt12Item(
         item,
         { ...cfgBase, compradorRegime: adquirente, fornecedorRegime: adquirente },
         row,
@@ -310,25 +294,39 @@ export function SessaoSnSection({
           : adquirente === 'simples_hibrido'
             ? r.cbsDAS + r.ibsDAS // regime regular IBS/CBS: credita CBS+IBS; ICMS segue no DAS
             : r.creditoTotal // LP/LR: credita ICMS + CBS + IBS
-      const custoLiquido = r.receitaBruta - creditoEfetivo
-      const unitario = custoLiquido / Math.max(1, item.quantity)
-      const deltaPct =
-        cellHoje.hoje.unitario > 0
-          ? ((unitario - cellHoje.hoje.unitario) / cellHoje.hoje.unitario) * 100
+      const custoLiquidoPuro = r.receitaBruta - creditoEfetivo
+      const unitarioPuro = custoLiquidoPuro / Math.max(1, item.quantity)
+      const deltaPctPuro =
+        cellHojePuro.hoje.unitario > 0
+          ? ((unitarioPuro - cellHojePuro.hoje.unitario) / cellHojePuro.hoje.unitario) * 100
           : 0
+      // --- SN HÍBRIDO: motor Art. 12 CHANCELADO (crédito integral, premissa IT)
+      const cellHib = computeCellArt12Item(
+        item,
+        { ...cfgBase, compradorRegime: adquirente, fornecedorRegime: 'simples_hibrido' },
+        row,
+      )
       return {
         item,
-        cell: null,
-        unitario,
-        deltaPct,
-        r,
-        creditoEfetivo,
-        cellHojeUnitario: cellHoje.hoje.unitario,
+        puro: {
+          unitario: unitarioPuro,
+          deltaPct: deltaPctPuro,
+          r,
+          creditoEfetivo,
+          cellHojeUnitario: cellHojePuro.hoje.unitario,
+        },
+        hibrido: {
+          unitario: cellHib.exercicio.unitario,
+          deltaPct: cellHib.deltaPct,
+          cell: cellHib,
+          cellHojeUnitario: cellHib.hoje.unitario,
+        },
       }
     })
-  }, [itens, fornecedorSN, adquirente, cfgBase, row, perfil])
+  }, [itens, adquirente, cfgBase, row, perfil])
 
   const itemAtivo = resultados[Math.min(idxItem, Math.max(0, resultados.length - 1))]
+  const ativo = itemAtivo ? (fornecedorSN === 'puro' ? itemAtivo.puro : itemAtivo.hibrido) : null
   const exibidos = resultados.slice(0, 3)
   const restantes = resultados.length - exibidos.length
 
@@ -622,12 +620,12 @@ export function SessaoSnSection({
             </div>
           </div>
 
-          {/* 3 — Camada 1: resumo por item (ABC, nunca média) */}
+          {/* 3 — Camada 1: resumo por item (ABC, nunca média) COM os dois fornecedores */}
           <div className="rounded-xl border border-orange-500/45 bg-orange-500/[0.06] p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-mono font-black uppercase text-orange-300">
-                3 · Custo líquido do adquirente — {nomeAdquirente(adquirente)} comprando de{' '}
-                {fornecedorSN === 'puro' ? 'SN puro' : 'SN híbrido'} · Exercício {exercicio}
+                3 · Custo líquido do adquirente — {nomeAdquirente(adquirente)} · Exercício{' '}
+                {exercicio}
               </span>
               <Button
                 size="sm"
@@ -646,42 +644,64 @@ export function SessaoSnSection({
                 )}
               </Button>
             </div>
-            {/* CARDS COMPACTOS LADO A LADO (feedback da CEO, 29/09) — não empilhar em largura total */}
+            {/* CARDS COMPACTOS LADO A LADO (preferência da CEO) — custo selecionado + o OUTRO fornecedor */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-              {exibidos.map((res, i) => (
-                <button
-                  key={res.item.id}
-                  type="button"
-                  onClick={() => {
-                    setIdxItem(i)
-                    setDetalheAberto(true)
-                  }}
-                  className={`rounded-lg border px-2 py-1.5 text-left cursor-pointer ${
-                    i === idxItem && detalheAberto
-                      ? 'bg-orange-500/10 border-orange-500/40'
-                      : 'bg-slate-950/50 border-slate-800/60 hover:bg-slate-900'
-                  }`}
-                >
-                  <span className="text-[9px] font-mono font-bold uppercase text-orange-300 truncate block max-w-full">
-                    {res.item.name || 'Item'}
-                  </span>
-                  <span className="text-[11px] font-black text-orange-200 font-mono block leading-tight mt-0.5">
-                    {formatBRL(res.unitario)}/un
-                  </span>
-                  <span
-                    className={`text-[9px] font-mono ${
-                      res.deltaPct > 0
-                        ? 'text-rose-300'
-                        : res.deltaPct < 0
-                          ? 'text-emerald-300'
-                          : 'text-slate-400'
+              {exibidos.map((res, i) => {
+                const sel = fornecedorSN === 'puro' ? res.puro : res.hibrido
+                const outro = fornecedorSN === 'puro' ? res.hibrido : res.puro
+                const outroLabel = fornecedorSN === 'puro' ? 'SN híbrido' : 'SN puro'
+                const diff = sel.unitario - outro.unitario
+                return (
+                  <button
+                    key={res.item.id}
+                    type="button"
+                    onClick={() => {
+                      setIdxItem(i)
+                      setDetalheAberto(true)
+                    }}
+                    className={`rounded-lg border px-2 py-1.5 text-left cursor-pointer ${
+                      i === idxItem && detalheAberto
+                        ? 'bg-orange-500/10 border-orange-500/40'
+                        : 'bg-slate-950/50 border-slate-800/60 hover:bg-slate-900'
                     }`}
                   >
-                    {res.deltaPct > 0 ? '+' : ''}
-                    {formatNumberBR(res.deltaPct)}% vs HOJE
-                  </span>
-                </button>
-              ))}
+                    <span className="text-[9px] font-mono font-bold uppercase text-orange-300 truncate block max-w-full">
+                      {res.item.name || 'Item'}
+                    </span>
+                    <span className="text-[11px] font-black text-orange-200 font-mono block leading-tight mt-0.5">
+                      {formatBRL(sel.unitario)}/un
+                    </span>
+                    <span
+                      className={`text-[9px] font-mono ${
+                        sel.deltaPct > 0
+                          ? 'text-rose-300'
+                          : sel.deltaPct < 0
+                            ? 'text-emerald-300'
+                            : 'text-slate-400'
+                      }`}
+                    >
+                      {sel.deltaPct > 0 ? '+' : ''}
+                      {formatNumberBR(sel.deltaPct)}% vs HOJE
+                    </span>
+                    {/* COMPARAÇÃO — o outro fornecedor, sempre visível */}
+                    <span className="text-[9px] font-mono text-slate-400 block mt-1 border-t border-slate-800/60 pt-1">
+                      {outroLabel}: {formatBRL(outro.unitario)}/un
+                      <span
+                        className={`ml-1 font-bold ${
+                          diff > 0.005
+                            ? 'text-rose-300'
+                            : diff < -0.005
+                              ? 'text-emerald-300'
+                              : 'text-slate-500'
+                        }`}
+                      >
+                        ({diff > 0 ? '+' : ''}
+                        {formatBRL(diff)})
+                      </span>
+                    </span>
+                  </button>
+                )
+              })}
             </div>
             {restantes > 0 && (
               <div className="text-[9px] font-mono text-slate-500">
@@ -690,21 +710,21 @@ export function SessaoSnSection({
               </div>
             )}
             {/* Gap de negociação — item de maior valor */}
-            {itemAtivo && (
+            {itemAtivo && ativo && (
               <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/40">
                 <span className="text-[10px] font-mono font-bold text-violet-300">
                   Gap de negociação vs célula plena de referência ({formatBRL(custoPlenoUnitario)}
                   /un) — {itemAtivo.item.name || 'item'}
                 </span>
                 <span className="text-[11px] font-black font-mono text-violet-300">
-                  {formatBRL(itemAtivo.unitario - custoPlenoUnitario)}/un
+                  {formatBRL(ativo.unitario - custoPlenoUnitario)}/un
                 </span>
               </div>
             )}
           </div>
 
           {/* 4 — Camada 2: detalhe por item */}
-          {detalheAberto && itemAtivo && (
+          {detalheAberto && itemAtivo && ativo && (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
@@ -714,14 +734,14 @@ export function SessaoSnSection({
                   × {nomeAdquirente(adquirente)}
                 </span>
               </div>
-              {fornecedorSN === 'puro' && itemAtivo.r ? (
+              {fornecedorSN === 'puro' ? (
                 <DetalheItemSNPuro
                   item={itemAtivo.item}
                   perfil={perfil}
-                  resultado={itemAtivo.r}
+                  resultado={itemAtivo.puro.r}
                   custoPlenoUnitario={custoPlenoUnitario}
                 />
-              ) : itemAtivo.cell ? (
+              ) : (
                 <div className="space-y-2">
                   {/* Híbrido: memória do motor chancelado, por item */}
                   {(['hoje', 'exercicio'] as const).map((lado) => (
@@ -732,10 +752,9 @@ export function SessaoSnSection({
                       <span className="text-[10px] font-mono font-black uppercase text-slate-300 block">
                         {lado === 'hoje' ? 'HOJE (pré-reforma)' : `EXERCÍCIO ${exercicio}`}
                       </span>
-                      {itemAtivo.cell!.lines ? null : null}
                       {(lado === 'hoje'
-                        ? itemAtivo.cell!.hoje.lines
-                        : itemAtivo.cell!.exercicio.lines
+                        ? itemAtivo.hibrido.cell.hoje.lines
+                        : itemAtivo.hibrido.cell.exercicio.lines
                       ).map((l) => (
                         <div
                           key={l.key}
@@ -768,18 +787,18 @@ export function SessaoSnSection({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => onAbrirMemoriaItem(itemAtivo.item, itemAtivo.cell!)}
+                      onClick={() => onAbrirMemoriaItem(itemAtivo.item, itemAtivo.hibrido.cell)}
                       className="border-orange-500/40 text-orange-300 hover:bg-orange-500/10 cursor-pointer h-7 text-[10px]"
                     >
                       <Calculator className="w-3 h-3 mr-1" /> Memória + base legal deste item
                     </Button>
                   )}
                 </div>
-              ) : null}
+              )}
             </div>
           )}
 
-          {/* 4 — CARD 3 do desenho da CEO: nova composição do custo do estoque (IBS/CBS) */}
+          {/* 5 — CARD 3 do desenho da CEO: nova composição do custo do estoque (IBS/CBS) */}
           <CardEstoqueReajustado
             exercicio={exercicio}
             fornecedorTxt={
@@ -787,18 +806,18 @@ export function SessaoSnSection({
                 ? 'fornecedor SN puro (nota congelada + crédito proporcional do art. 23)'
                 : 'fornecedor SN híbrido (regime regular — crédito integral, motor Art. 12 chancelado)'
             }
-            linhas={resultados.map<LinhaEstoqueSN>((res) => ({
-              id: res.item.id,
-              nome: res.item.name || 'Item',
-              qtd: res.item.quantity,
-              // HOJE = custo de aquisição pré-reforma do PRÓPRIO adquirente (baseline da sessão)
-              custoHoje:
-                fornecedorSN === 'hibrido' && res.cell
-                  ? res.cell.hoje.unitario
-                  : (res.cellHojeUnitario ?? 0),
-              custoNovo: res.unitario,
-              deltaPct: res.deltaPct,
-            }))}
+            linhas={resultados.map<LinhaEstoqueSN>((res) => {
+              const sel = fornecedorSN === 'puro' ? res.puro : res.hibrido
+              return {
+                id: res.item.id,
+                nome: res.item.name || 'Item',
+                qtd: res.item.quantity,
+                // HOJE = custo de aquisição pré-reforma do PRÓPRIO adquirente (baseline da sessão)
+                custoHoje: sel.cellHojeUnitario,
+                custoNovo: sel.unitario,
+                deltaPct: sel.deltaPct,
+              }
+            })}
           />
 
           {/* Nota de honestidade */}
