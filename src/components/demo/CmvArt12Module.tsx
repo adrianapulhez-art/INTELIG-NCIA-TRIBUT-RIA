@@ -44,6 +44,7 @@ import {
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 import { useTaxContext } from '@/contexts/TaxContext'
 import { EspelhoRepasseDialog } from './EspelhoRepasseDialog'
+import { SessaoSnReforma } from './SessaoSnReforma'
 import { NotaCardTrigger } from './NotasExplicativas'
 import { PainelIntegracaoOrigem } from './PainelIntegracaoOrigem'
 import { derivarCasoUnitario, montarItensIntegracao } from '@/lib/integracaoComprasArt12'
@@ -976,6 +977,14 @@ export function CmvArt12Module() {
           Fornecedor industrial na Zona Franca de Manaus (mantém IPI — ADCT, art. 92-B)
         </label>
       </div>
+
+      {/* ================= SESSÃO SN NA REFORMA (posição determinada pela CEO: abaixo da célula) ================= */}
+      <SessaoSnReforma
+        itensOrigem={itensOrigem}
+        custoPlenoUnitario={
+          computeCellArt12(input, { ...config, repasse: 'integral' }, row).exercicio.unitario
+        }
+      />
 
       {/* ================= Leitura da célula ativa (memória por item vive nos cards de repasse) ================= */}
       <div className={`flex items-start gap-3 rounded-xl border p-3 ${semaforoStyle.bg}`}>
