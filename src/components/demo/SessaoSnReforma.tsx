@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   calcularSessaoSN,
+  creditoEfetivoArt23,
   PERFIL_SN_NOTA_PADRAO,
   type ModoPreenchimentoSN,
   type PerfilSN,
@@ -287,13 +288,8 @@ export function SessaoSnSection({
         { ...cfgBase, compradorRegime: adquirente, fornecedorRegime: adquirente },
         row,
       )
-      // REGRA DE CRÉDITO (art. 23 + art. 47): quem apropria o quê.
-      const creditoEfetivo =
-        adquirente === 'simples'
-          ? 0 // optante não apropria crédito
-          : adquirente === 'simples_hibrido'
-            ? r.cbsDAS + r.ibsDAS // regime regular IBS/CBS: credita CBS+IBS; ICMS segue no DAS
-            : r.creditoTotal // LP/LR: credita ICMS + CBS + IBS
+      // REGRA DE CRÉDITO (art. 23 + art. 47): quem apropria o quê — função pura blindada.
+      const creditoEfetivo = creditoEfetivoArt23(adquirente, r)
       const custoLiquidoPuro = r.receitaBruta - creditoEfetivo
       const unitarioPuro = custoLiquidoPuro / Math.max(1, item.quantity)
       const deltaPctPuro =

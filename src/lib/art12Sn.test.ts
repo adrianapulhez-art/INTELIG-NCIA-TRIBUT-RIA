@@ -4,7 +4,7 @@
  * 0,17% IBS — 1ª faixa comércio, art. 23, §2º) · exercício 2027.
  * A sessão NÃO altera os ouros do Art. 12 — é camada própria.
  */
-import { calcularSessaoSN, PERFIL_SN_NOTA_PADRAO } from './art12SnCalculations'
+import { calcularSessaoSN, creditoEfetivoArt23, PERFIL_SN_NOTA_PADRAO } from './art12SnCalculations'
 import { montarItensIntegracao } from './integracaoComprasArt12'
 import { describe, expect, it } from 'vitest'
 
@@ -63,6 +63,26 @@ describe('Sessão SN na Reforma — crédito proporcional do art. 23', () => {
     expect(r.creditoTotal).toBe(1696)
     // Custo líquido = 42.400 − 1.696 = 40.704 → 1.356,80/un
     expect(r.custoUnitarioLiquido).toBe(1356.8)
+  })
+
+  it('REGRA DE CRÉDITO por adquirente (art. 23 + art. 47) — travada', () => {
+    const r = calcularSessaoSN(itemCanônico, PERFIL_SN_NOTA_PADRAO)
+    // LP/LR (não optantes): crédito proporcional INTEGRAL — ICMS + CBS + IBS = 1.768,08
+    expect(creditoEfetivoArt23('presumido', r)).toBe(1768.08)
+    expect(creditoEfetivoArt23('real', r)).toBe(1768.08)
+    // SN híbrido (regime regular): só CBS + IBS — ICMS do fornecedor segue no DAS
+    expect(creditoEfetivoArt23('simples_hibrido', r)).toBe(1216.88)
+    // SN puro (optante): SEM crédito — optante não apropria (art. 47)
+    expect(creditoEfetivoArt23('simples', r)).toBe(0)
+    // Custo líquido resultante por adquirente (nota 42.400 − crédito)
+    const unit = (adq: Parameters<typeof creditoEfetivoArt23>[0]) =>
+      (42400 - creditoEfetivoArt23(adq, r)) / 30
+    // LP/LR: 40.631,92 ÷ 30 = 1.354,40
+    expect(unit('presumido')).toBe(1354.4)
+    // SN híbrido: 42.400 − 1.216,88 = 41.183,12 ÷ 30 = 1.372,77
+    expect(unit('simples_hibrido')).toBe(1372.77)
+    // SN: nota cheia 42.400 ÷ 30 = 1.413,33 (ouro intacto)
+    expect(unit('simples')).toBe(1413.33)
   })
 
   it('a sessão NUNCA altera os ouros do Art. 12 (camada própria)', () => {

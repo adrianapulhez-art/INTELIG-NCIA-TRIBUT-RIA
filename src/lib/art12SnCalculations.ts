@@ -268,3 +268,21 @@ export function calcularSessaoSN(item: ItemIntegracaoArt12, perfil: PerfilSN): R
 export function fmtSN(v: number, casas = 2): string {
   return v.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })
 }
+
+/**
+ * REGRA DE CRÉDITO DO ADQUIRENTE (art. 23 LC 123/2006 + art. 47 LC 214/2025) —
+ * função pura, blindada no pipeline. Quem apropria o quê numa nota de fornecedor
+ * SN puro (nota congelada, tributos por dentro do DAS):
+ *   · LP/LR (não optantes)        → crédito PROPORCIONAL integral: ICMS + CBS + IBS
+ *   · SN híbrido (regime regular) → crédito PROPORCIONAL de CBS + IBS apenas —
+ *     o ICMS do fornecedor segue no DAS e o híbrido NÃO o apropria (art. 41)
+ *   · SN puro (optante)           → SEM crédito — optante não apropria (art. 47)
+ */
+export function creditoEfetivoArt23(
+  adquirente: 'presumido' | 'real' | 'simples' | 'simples_hibrido',
+  r: Pick<ResultadoSessaoSN, 'creditoTotal' | 'cbsDAS' | 'ibsDAS'>,
+): number {
+  if (adquirente === 'simples') return 0
+  if (adquirente === 'simples_hibrido') return r2(r.cbsDAS + r.ibsDAS)
+  return r.creditoTotal
+}
