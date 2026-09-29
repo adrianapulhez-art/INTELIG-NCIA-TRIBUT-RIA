@@ -677,8 +677,8 @@ export function SessaoSnSection({
             {itemAtivo && (
               <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/40">
                 <span className="text-[10px] font-mono font-bold text-violet-300">
-                  Gap de negociação vs fornecedor LP ({formatBRL(custoPlenoUnitario)}/un) —{' '}
-                  {itemAtivo.item.name || 'item'}
+                  Gap de negociação vs célula plena de referência ({formatBRL(custoPlenoUnitario)}
+                  /un) — {itemAtivo.item.name || 'item'}
                 </span>
                 <span className="text-[11px] font-black font-mono text-violet-300">
                   {formatBRL(itemAtivo.unitario - custoPlenoUnitario)}/un
