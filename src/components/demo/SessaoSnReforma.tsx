@@ -15,6 +15,7 @@ import {
   type CellConfigArt,
   type CellResultArt,
   type ExercicioKey,
+  type MemoryLineArt,
   type RegimeId,
   type RepasseMode,
   type ScheduleRowArt,
@@ -217,6 +218,73 @@ function DetalheItemSNPuro({
 }
 
 /* ------------------------------------------------------------------ */
+/* MODELO CANÔNICO DA CEO (29/09): 3 CARDS LADO A LADO NO DETALHE      */
+/* Card 1º — memória da aquisição em 2026 (HOJE, pré-reforma)          */
+/* Card 2º — formação do preço do fornecedor (SN puro: POR DENTRO,    */
+/*           nota congelada; híbrido: base limpa + CBS/IBS por fora)  */
+/* Card 3º — custo do adquirente com ajuste pós-reforma               */
+/* ------------------------------------------------------------------ */
+function CardMemoriaCanonical({
+  titulo,
+  cor,
+  linhas,
+}: {
+  titulo: string
+  cor: 'emerald' | 'violet' | 'orange'
+  linhas: { label: string; formula?: string; value: number; destaque?: boolean; kind?: string }[]
+}) {
+  const corCls = {
+    emerald: 'border-emerald-500/45 bg-emerald-500/[0.05]',
+    violet: 'border-violet-500/45 bg-violet-500/[0.05]',
+    orange: 'border-orange-500/45 bg-orange-500/[0.06]',
+  }[cor]
+  const tituloCls = {
+    emerald: 'text-emerald-300',
+    violet: 'text-violet-300',
+    orange: 'text-orange-300',
+  }[cor]
+  return (
+    <div className={`flex-1 min-w-[240px] rounded-xl border p-3 space-y-1 ${corCls}`}>
+      <span
+        className={`text-[10px] font-mono font-black uppercase leading-tight block ${tituloCls}`}
+      >
+        {titulo}
+      </span>
+      {linhas.map((l, i) => (
+        <div
+          key={`${l.label}-${i}`}
+          className={`flex items-start justify-between gap-2 px-2 py-1 rounded-lg border ${
+            l.destaque
+              ? cor === 'emerald'
+                ? 'bg-emerald-500/10 border-emerald-500/40'
+                : cor === 'violet'
+                  ? 'bg-violet-500/10 border-violet-500/40'
+                  : 'bg-orange-500/10 border-orange-500/40'
+              : 'bg-slate-950/50 border-slate-800/60'
+          }`}
+        >
+          <div className="min-w-0">
+            <span className="text-[10px] font-mono text-slate-200 block leading-tight">
+              {l.label}
+            </span>
+            {l.formula && (
+              <span className="text-[9px] font-mono text-slate-500 block break-words leading-tight">
+                {l.formula}
+              </span>
+            )}
+          </div>
+          <span
+            className={`text-[10px] font-mono font-bold shrink-0 ${l.value < 0 ? 'text-emerald-300' : l.destaque ? 'text-white' : 'text-slate-100'}`}
+          >
+            {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
 /* SEÇÃO ORQUESTRADORA — 12 combinações SN × adquirentes               */
 /* ------------------------------------------------------------------ */
 export function SessaoSnSection({
@@ -310,12 +378,16 @@ export function SessaoSnSection({
           r,
           creditoEfetivo,
           cellHojeUnitario: cellHojePuro.hoje.unitario,
+          // Linhas HOJE para o CARD 1º do detalhe (modelo canônico da CEO)
+          cellHojeLinhas: cellHojePuro.hoje.lines,
         },
         hibrido: {
           unitario: cellHib.exercicio.unitario,
           deltaPct: cellHib.deltaPct,
           cell: cellHib,
           cellHojeUnitario: cellHib.hoje.unitario,
+          // Linhas HOJE para o CARD 1º do detalhe (modelo canônico da CEO)
+          cellHojeLinhas: cellHib.hoje.lines,
         },
       }
     })
@@ -720,9 +792,12 @@ export function SessaoSnSection({
             )}
           </div>
 
-          {/* 4 — Camada 2: detalhe por item — blocos lado a lado em telas médias+ */}
+          {/* 4 — Camada 2: detalhe por item — MODELO CANÔNICO DA CEO (29/09):
+              3 CARDS DE MEMÓRIA LADO A LADO — 1º aquisição 2026 · 2º formação do preço
+              do fornecedor · 3º custo do adquirente ajustado. Botões por produto e demais
+              estruturas da sessão ficam INTACTOS. */}
           {detalheAberto && itemAtivo && ativo && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 items-start">
+            <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
                 <span className="text-[10px] font-mono font-bold uppercase text-slate-300">
@@ -731,66 +806,111 @@ export function SessaoSnSection({
                   × {nomeAdquirente(adquirente)}
                 </span>
               </div>
-              {fornecedorSN === 'puro' ? (
-                <DetalheItemSNPuro
-                  item={itemAtivo.item}
-                  perfil={perfil}
-                  resultado={itemAtivo.puro.r}
-                  custoPlenoUnitario={custoPlenoUnitario}
+              {/* OS 3 CARDS LADO A LADO */}
+              <div className="flex flex-col lg:flex-row gap-2 items-stretch">
+                {/* CARD 1º — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 */}
+                <CardMemoriaCanonical
+                  titulo={`CARD 1º — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 · ${itemAtivo.item.name || 'item'}`}
+                  cor="emerald"
+                  linhas={itemAtivo[
+                    fornecedorSN === 'puro' ? 'puro' : 'hibrido'
+                  ].cellHojeLinhas.map((l: MemoryLineArt) => ({
+                    label: l.label,
+                    formula: l.formula,
+                    value: l.value,
+                    destaque: !!l.subtotal,
+                    kind: l.kind,
+                  }))}
                 />
-              ) : (
-                <div className="space-y-2">
-                  {/* Híbrido: memória do motor chancelado, por item */}
-                  {(['hoje', 'exercicio'] as const).map((lado) => (
-                    <div
-                      key={lado}
-                      className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-3 space-y-1"
-                    >
-                      <span className="text-[10px] font-mono font-black uppercase text-slate-300 block">
-                        {lado === 'hoje' ? 'HOJE (pré-reforma)' : `EXERCÍCIO ${exercicio}`}
-                      </span>
-                      {(lado === 'hoje'
-                        ? itemAtivo.hibrido.cell.hoje.lines
-                        : itemAtivo.hibrido.cell.exercicio.lines
-                      ).map((l) => (
-                        <div
-                          key={l.key}
-                          className={`flex items-start justify-between gap-2 px-2 py-1 rounded-lg border ${
-                            l.subtotal
-                              ? 'bg-orange-500/10 border-orange-500/40'
-                              : 'bg-slate-950/50 border-slate-800/60'
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <span className="text-[10px] font-mono text-slate-200 block">
-                              {l.label}
-                            </span>
-                            {l.formula && (
-                              <span className="text-[9px] font-mono text-slate-500 block break-words">
-                                {l.formula}
-                              </span>
-                            )}
-                          </div>
-                          <span
-                            className={`text-[10px] font-mono font-bold shrink-0 ${l.value < 0 ? 'text-emerald-300' : 'text-slate-100'}`}
-                          >
-                            {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                  {onAbrirMemoriaItem && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onAbrirMemoriaItem(itemAtivo.item, itemAtivo.hibrido.cell)}
-                      className="border-orange-500/40 text-orange-300 hover:bg-orange-500/10 cursor-pointer h-7 text-[10px]"
-                    >
-                      <Calculator className="w-3 h-3 mr-1" /> Memória + base legal deste item
-                    </Button>
-                  )}
-                </div>
+                {/* CARD 2º — MEMÓRIA DE CÁLCULO DA FORMAÇÃO DE PREÇO DO FORNECEDOR */}
+                {fornecedorSN === 'puro' ? (
+                  <CardMemoriaCanonical
+                    titulo={`CARD 2º — FORMAÇÃO DE PREÇO DO FORNECEDOR SN PURO (POR DENTRO) · ${itemAtivo.item.name || 'item'}`}
+                    cor="violet"
+                    linhas={itemAtivo.puro.r.memoria
+                      .filter((l) =>
+                        [
+                          'receitabruta',
+                          'efetiva',
+                          'das',
+                          'icmsnota',
+                          'cbsdas',
+                          'ibsdas',
+                          'preconota',
+                        ].includes(l.key),
+                      )
+                      .map((l) => ({
+                        label: l.label,
+                        formula: l.formula,
+                        value: l.value,
+                        destaque: l.destaque || l.key === 'preconota',
+                      }))}
+                  />
+                ) : (
+                  <CardMemoriaCanonical
+                    titulo={`CARD 2º — FORMAÇÃO DE PREÇO DO FORNECEDOR SN HÍBRIDO (BASE LIMPA + CBS/IBS POR FORA) · ${itemAtivo.item.name || 'item'}`}
+                    cor="violet"
+                    linhas={itemAtivo.hibrido.cell.exercicio.lines
+                      .filter((l) => l.bloco === 1)
+                      .map((l: MemoryLineArt) => ({
+                        label: l.label,
+                        formula: l.formula,
+                        value: l.value,
+                        destaque: !!l.subtotal,
+                        kind: l.kind,
+                      }))}
+                  />
+                )}
+                {/* CARD 3º — MEMÓRIA DE CÁLCULO DO ADQUIRENTE COM AJUSTE PÓS-REFORMA */}
+                {fornecedorSN === 'puro' ? (
+                  <CardMemoriaCanonical
+                    titulo={`CARD 3º — CUSTO DO ADQUIRENTE COM AJUSTE PÓS-REFORMA (ART. 23) · ${itemAtivo.item.name || 'item'}`}
+                    cor="orange"
+                    linhas={itemAtivo.puro.r.memoria
+                      .filter((l) =>
+                        [
+                          'credito_base',
+                          'credito_icms',
+                          'credito_cbs',
+                          'credito_ibs',
+                          'credito_total',
+                          'credito_unidade',
+                          'custoliquido',
+                          'custounitario',
+                        ].includes(l.key),
+                      )
+                      .map((l) => ({
+                        label: l.label,
+                        formula: l.formula,
+                        value: l.value,
+                        destaque: l.destaque,
+                      }))}
+                  />
+                ) : (
+                  <CardMemoriaCanonical
+                    titulo={`CARD 3º — CUSTO DO ADQUIRENTE COM AJUSTE PÓS-REFORMA · ${itemAtivo.item.name || 'item'}`}
+                    cor="orange"
+                    linhas={itemAtivo.hibrido.cell.exercicio.lines
+                      .filter((l) => l.bloco === 2)
+                      .map((l: MemoryLineArt) => ({
+                        label: l.label,
+                        formula: l.formula,
+                        value: l.value,
+                        destaque: !!l.subtotal,
+                        kind: l.kind,
+                      }))}
+                  />
+                )}
+              </div>
+              {fornecedorSN === 'hibrido' && onAbrirMemoriaItem && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onAbrirMemoriaItem(itemAtivo.item, itemAtivo.hibrido.cell)}
+                  className="border-orange-500/40 text-orange-300 hover:bg-orange-500/10 cursor-pointer h-7 text-[10px] self-start"
+                >
+                  <Calculator className="w-3 h-3 mr-1" /> Memória + base legal deste item
+                </Button>
               )}
             </div>
           )}
