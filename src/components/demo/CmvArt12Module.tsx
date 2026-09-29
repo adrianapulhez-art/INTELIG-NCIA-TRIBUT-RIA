@@ -44,7 +44,7 @@ import {
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 import { useTaxContext } from '@/contexts/TaxContext'
 import { EspelhoRepasseDialog } from './EspelhoRepasseDialog'
-import { SessaoSnReforma } from './SessaoSnReforma'
+import { SessaoSnSection } from './SessaoSnReforma'
 import { NotaCardTrigger } from './NotasExplicativas'
 import { PainelIntegracaoOrigem } from './PainelIntegracaoOrigem'
 import { derivarCasoUnitario, montarItensIntegracao } from '@/lib/integracaoComprasArt12'
@@ -526,10 +526,12 @@ function MatrizResumoDialog({
         <DialogHeader>
           <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
             <Calculator className="w-5 h-5 text-emerald-400" />
-            <span>Matriz completa — Exercício {exercicio}</span>
+            <span>Matriz plena — Exercício {exercicio}</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-400">
-            16 combinações comprador × fornecedor. Clique numa célula para abrir a memória completa.
+            4 combinações plenas LP/LR × LP/LR. As operações com Simples Nacional (SN puro e SN
+            híbrido) vivem na SESSÃO SN da página — com as regras próprias delas (art. 23 da LC
+            123/2006). Clique numa célula para abrir a memória completa.
           </DialogDescription>
         </DialogHeader>
         <div className="overflow-x-auto">
@@ -537,68 +539,72 @@ function MatrizResumoDialog({
             <thead>
               <tr className="text-slate-400">
                 <th className="text-left px-2 py-1.5">COMPRADOR ↓ · FORNECEDOR →</th>
-                {ordem.map((f) => (
-                  <th key={f} className="text-right px-2 py-1.5">
-                    {REGIME_LABEL[f]}
-                  </th>
-                ))}
+                {ordem
+                  .filter((f) => f === 'presumido' || f === 'real')
+                  .map((f) => (
+                    <th key={f} className="text-right px-2 py-1.5">
+                      {REGIME_LABEL[f]}
+                    </th>
+                  ))}
               </tr>
             </thead>
             <tbody>
-              {matriz.map((linha) => (
-                <tr key={linha.comprador} className="border-t border-slate-800/70">
-                  <td className="px-2 py-1.5 font-bold text-slate-300">
-                    {REGIME_LABEL[linha.comprador]}
-                  </td>
-                  {linha.cells.map(({ fornecedor, cell }) => {
-                    const isMenor = cell.exercicio.unitario === menorCusto
-                    return (
-                      <td key={fornecedor} className="px-1 py-1">
-                        <button
-                          type="button"
-                          onClick={() => onAbrirCelula(linha.comprador, fornecedor, cell)}
-                          className={`w-full text-left rounded-lg border p-2 cursor-pointer hover:brightness-125 ${
-                            isMenor
-                              ? 'border-emerald-400/70 bg-emerald-500/10 ring-1 ring-emerald-400/60'
-                              : 'border-slate-700/60 bg-slate-900/40'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="font-black text-white text-[11px]">
-                              {formatBRL(cell.exercicio.unitario)}/un
-                            </span>
-                            {isMenor && (
-                              <span className="text-[8px] font-mono font-bold text-emerald-300 border border-emerald-500/50 rounded px-1">
-                                MENOR
-                              </span>
-                            )}
-                          </div>
-                          <div
-                            className={
-                              cell.deltaPct > 0
-                                ? 'text-rose-300'
-                                : cell.deltaPct < 0
-                                  ? 'text-emerald-300'
-                                  : 'text-slate-400'
-                            }
+              {matriz
+                .filter((linha) => linha.comprador === 'presumido' || linha.comprador === 'real')
+                .map((linha) => (
+                  <tr key={linha.comprador} className="border-t border-slate-800/70">
+                    <td className="px-2 py-1.5 font-bold text-slate-300">
+                      {REGIME_LABEL[linha.comprador]}
+                    </td>
+                    {linha.cells.map(({ fornecedor, cell }) => {
+                      const isMenor = cell.exercicio.unitario === menorCusto
+                      return (
+                        <td key={fornecedor} className="px-1 py-1">
+                          <button
+                            type="button"
+                            onClick={() => onAbrirCelula(linha.comprador, fornecedor, cell)}
+                            className={`w-full text-left rounded-lg border p-2 cursor-pointer hover:brightness-125 ${
+                              isMenor
+                                ? 'border-emerald-400/70 bg-emerald-500/10 ring-1 ring-emerald-400/60'
+                                : 'border-slate-700/60 bg-slate-900/40'
+                            }`}
                           >
-                            {cell.deltaPct > 0 ? '+' : ''}
-                            {formatNumberBR(cell.deltaPct)}%
-                          </div>
-                        </button>
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-black text-white text-[11px]">
+                                {formatBRL(cell.exercicio.unitario)}/un
+                              </span>
+                              {isMenor && (
+                                <span className="text-[8px] font-mono font-bold text-emerald-300 border border-emerald-500/50 rounded px-1">
+                                  MENOR
+                                </span>
+                              )}
+                            </div>
+                            <div
+                              className={
+                                cell.deltaPct > 0
+                                  ? 'text-rose-300'
+                                  : cell.deltaPct < 0
+                                    ? 'text-emerald-300'
+                                    : 'text-slate-400'
+                              }
+                            >
+                              {cell.deltaPct > 0 ? '+' : ''}
+                              {formatNumberBR(cell.deltaPct)}%
+                            </div>
+                          </button>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
         <p className="text-[10px] font-mono text-slate-500">
-          LP = Lucro Presumido · LR = Lucro Real · SN = Simples Nacional (padrão) · SNH = SN híbrido
-          (regime regular IBS/CBS — LC 214/2025, art. 41). Fornecedor SN/SNH: nota congelada.
-          Premissa IT: base do IBS/CBS do fornecedor SNH sem ICMS. Célula em destaque = menor custo
-          da matriz.
+          LP = Lucro Presumido · LR = Lucro Real. Matriz plena: só os regimes que destacam tributo
+          na nota. As operações com Simples Nacional (SN puro e SN híbrido) vivem na SESSÃO SN da
+          página — réguas de repasse e crédito próprios (art. 23 da LC 123/2006). Célula em destaque
+          = menor custo da matriz plena.
         </p>
       </DialogContent>
     </Dialog>
@@ -901,7 +907,9 @@ export function CmvArt12Module() {
             </div>
           </div>
         </div>
-        {/* Réguas de repasse — ao clicar, abrem o espelho com a MEMÓRIA POR ITEM do cenário */}
+        {/* Réguas de repasse — ao clicar, abrem o espelho com a MEMÓRIA POR ITEM do cenário.
+            REARRANJO DA CEO (29/09): o espelho cobre só LP/LR × LP/LR — as operações com SN
+            (SN puro e SN híbrido) vivem na SESSÃO SN abaixo, com as regras próprias delas. */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {reguas.map(({ mode, cell }) => (
             <button
@@ -978,11 +986,19 @@ export function CmvArt12Module() {
         </label>
       </div>
 
-      {/* ================= SESSÃO SN NA REFORMA (posição determinada pela CEO: abaixo da célula) ================= */}
-      <SessaoSnReforma
+      {/* ================= SESSÃO SN NA REFORMA (rearranjo da CEO, 29/09): TODAS as operações
+          com Simples Nacional vivem AQUI — 12 combinações (SN puro × SN híbrido) × adquirentes.
+          O espelho do Art. 12 abaixo encolhe para LP/LR × LP/LR. ================= */}
+      <SessaoSnSection
         itensOrigem={itensOrigem}
+        config={config}
+        row={row}
+        exercicio={exercicio}
         custoPlenoUnitario={
           computeCellArt12(input, { ...config, repasse: 'integral' }, row).exercicio.unitario
+        }
+        onAbrirMemoriaItem={(item, cell) =>
+          setMemoryCell({ label: `Item · ${item.name || '—'}`, cell, row })
         }
       />
 
@@ -1059,9 +1075,9 @@ export function CmvArt12Module() {
           </Button>
         </div>
         <p className="text-[10px] font-mono text-slate-500">
-          Os 16 cruzamentos comprador × fornecedor, com custo unitário e Δ — na camada interna.
-          Fornecedor SN: nota congelada (LC 123/2006). Fornecedor SN híbrido: IBS/CBS por fora (art.
-          41) — premissa IT: base sem ICMS.
+          Os 4 cruzamentos plenos (LP/LR × LP/LR), com custo unitário e Δ — na camada interna. As
+          operações com Simples Nacional (SN puro e SN híbrido, 12 combinações) vivem na SESSÃO SN
+          abaixo, com as regras próprias delas (art. 23 da LC 123/2006).
         </p>
       </div>
 
