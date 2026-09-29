@@ -640,8 +640,9 @@ export function SessaoSnSection({
                 )}
               </Button>
             </div>
-            {/* CARDS COMPACTOS LADO A LADO (preferência da CEO) — custo selecionado + o OUTRO fornecedor */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            {/* CARDS COMPACTOS LADO A LADO (preferência da CEO) — custo selecionado + o OUTRO fornecedor.
+                4 colunas já a partir de telas médias — caixas pequenas, nunca largura total. */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {exibidos.map((res, i) => {
                 const sel = fornecedorSN === 'puro' ? res.puro : res.hibrido
                 const outro = fornecedorSN === 'puro' ? res.hibrido : res.puro
@@ -719,9 +720,9 @@ export function SessaoSnSection({
             )}
           </div>
 
-          {/* 4 — Camada 2: detalhe por item */}
+          {/* 4 — Camada 2: detalhe por item — blocos lado a lado em telas médias+ */}
           {detalheAberto && itemAtivo && ativo && (
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 items-start">
               <div className="flex items-center gap-2">
                 <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
                 <span className="text-[10px] font-mono font-bold uppercase text-slate-300">

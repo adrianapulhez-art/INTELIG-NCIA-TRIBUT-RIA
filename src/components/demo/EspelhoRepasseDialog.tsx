@@ -36,7 +36,7 @@ import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
  * fallback '—'. NENHUM cálculo alterado — só identificação.
  */
 
-const REGIMES: RegimeId[] = ['presumido', 'real', 'simples', 'simples_hibrido']
+const REGIMES: RegimeId[] = ['presumido', 'real']
 
 const REGIME_LABEL: Record<RegimeId, string> = {
   presumido: 'LP',
@@ -233,7 +233,7 @@ export function EspelhoRepasseDialog({
           <DialogDescription className="text-xs text-slate-400">
             {aberto
               ? 'Camada interna: os 6 cards do cenário selecionado — 3 por item da Calculadora de Compras.'
-              : '16 cenários COMPRADOR × FORNECEDOR. Cada card reflete exatamente o repasse selecionado e os regimes da combinação — clique para abrir os 6 cards do cenário.'}
+              : 'Cenários PLENOS COMPRADOR × FORNECEDOR (LP/LR). Cada card reflete exatamente o repasse selecionado — clique para abrir os 6 cards do cenário. As operações com Simples Nacional (SN puro e SN híbrido) vivem na SESSÃO SN da página, com as regras próprias delas.'}
           </DialogDescription>
         </DialogHeader>
         {aberto ? (
@@ -350,11 +350,11 @@ export function EspelhoRepasseDialog({
           </div>
         )}
         <p className="text-[10px] font-mono text-slate-500">
-          LP = Lucro Presumido · LR = Lucro Real · SN = Simples Nacional (padrão) · SNH = SN híbrido
-          (regime regular IBS/CBS — LC 214/2025, art. 41). Fornecedor SN/SNH: nota congelada.
-          Premissa IT: base do IBS/CBS do fornecedor SNH sem ICMS. Custo líquido POR ITEM (nunca
-          média — máxima da casa); até 3 maiores por valor no card, demais na camada interna. Card
-          em destaque = menor custo no item de maior valor (o que comanda a célula).
+          LP = Lucro Presumido · LR = Lucro Real. Espelho pleno: só os regimes que destacam tributo
+          na nota — as operações com Simples Nacional (SN puro e SN híbrido, 12 combinações) vivem
+          na SESSÃO SN da página, com réguas e crédito próprios (art. 23 da LC 123/2006). Custo
+          líquido POR ITEM (nunca média — máxima da casa); até 3 maiores por valor no card, demais
+          na camada interna. Card em destaque = menor custo no item de maior valor.
         </p>
       </DialogContent>
     </Dialog>
