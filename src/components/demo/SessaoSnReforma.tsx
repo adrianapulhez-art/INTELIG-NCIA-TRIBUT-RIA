@@ -631,25 +631,26 @@ export function SessaoSnSection({
                 )}
               </Button>
             </div>
-            {exibidos.map((res, i) => (
-              <button
-                key={res.item.id}
-                type="button"
-                onClick={() => {
-                  setIdxItem(i)
-                  setDetalheAberto(true)
-                }}
-                className={`w-full flex items-center justify-between rounded-lg border px-2 py-1.5 cursor-pointer ${
-                  i === idxItem && detalheAberto
-                    ? 'bg-orange-500/10 border-orange-500/40'
-                    : 'bg-slate-950/50 border-slate-800/60 hover:bg-slate-900'
-                }`}
-              >
-                <span className="text-[10px] font-mono font-bold uppercase text-orange-300 truncate max-w-[45%]">
-                  {res.item.name || 'Item'}
-                </span>
-                <div className="text-right shrink-0">
-                  <span className="text-[11px] font-black text-orange-200 font-mono block leading-tight">
+            {/* CARDS COMPACTOS LADO A LADO (feedback da CEO, 29/09) — não empilhar em largura total */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+              {exibidos.map((res, i) => (
+                <button
+                  key={res.item.id}
+                  type="button"
+                  onClick={() => {
+                    setIdxItem(i)
+                    setDetalheAberto(true)
+                  }}
+                  className={`rounded-lg border px-2 py-1.5 text-left cursor-pointer ${
+                    i === idxItem && detalheAberto
+                      ? 'bg-orange-500/10 border-orange-500/40'
+                      : 'bg-slate-950/50 border-slate-800/60 hover:bg-slate-900'
+                  }`}
+                >
+                  <span className="text-[9px] font-mono font-bold uppercase text-orange-300 truncate block max-w-full">
+                    {res.item.name || 'Item'}
+                  </span>
+                  <span className="text-[11px] font-black text-orange-200 font-mono block leading-tight mt-0.5">
                     {formatBRL(res.unitario)}/un
                   </span>
                   <span
@@ -664,9 +665,9 @@ export function SessaoSnSection({
                     {res.deltaPct > 0 ? '+' : ''}
                     {formatNumberBR(res.deltaPct)}% vs HOJE
                   </span>
-                </div>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
             {restantes > 0 && (
               <div className="text-[9px] font-mono text-slate-500">
                 +{restantes} item{restantes === 1 ? '' : 's'} — cálculo por item, cada um com a
