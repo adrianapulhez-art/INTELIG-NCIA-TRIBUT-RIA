@@ -718,6 +718,9 @@ export function SessaoSnSection({
               {exibidos.map((res, i) => {
                 const sel = fornecedorSN === 'puro' ? res.puro : res.hibrido
                 const outro = fornecedorSN === 'puro' ? res.hibrido : res.puro
+                // RÓTULO DO REGIME SELECIONADO no card (fix CEO 30/09): o card se identifica
+                // pelo regime ESCOLHIDO; a comparação vira "vs" o outro fornecedor.
+                const selLabel = fornecedorSN === 'puro' ? 'SN puro' : 'SN híbrido'
                 const outroLabel = fornecedorSN === 'puro' ? 'SN híbrido' : 'SN puro'
                 const diff = sel.unitario - outro.unitario
                 return (
@@ -737,6 +740,9 @@ export function SessaoSnSection({
                     <span className="text-[9px] font-mono font-bold uppercase text-orange-300 truncate block max-w-full">
                       {res.item.name || 'Item'}
                     </span>
+                    <span className="text-[9px] font-mono font-bold uppercase text-violet-300 block leading-tight">
+                      {selLabel}
+                    </span>
                     <span className="text-[11px] font-black text-orange-200 font-mono block leading-tight mt-0.5">
                       {formatBRL(sel.unitario)}/un
                     </span>
@@ -752,9 +758,9 @@ export function SessaoSnSection({
                       {sel.deltaPct > 0 ? '+' : ''}
                       {formatNumberBR(sel.deltaPct)}% vs HOJE
                     </span>
-                    {/* COMPARAÇÃO — o outro fornecedor, sempre visível */}
+                    {/* COMPARAÇÃO — "vs" o outro fornecedor, sempre visível */}
                     <span className="text-[9px] font-mono text-slate-400 block mt-1 border-t border-slate-800/60 pt-1">
-                      {outroLabel}: {formatBRL(outro.unitario)}/un
+                      vs {outroLabel}: {formatBRL(outro.unitario)}/un
                       <span
                         className={`ml-1 font-bold ${
                           diff > 0.005
