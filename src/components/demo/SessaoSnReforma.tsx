@@ -22,6 +22,8 @@ import {
 } from '@/lib/art12Calculations'
 import { type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
 import { CardEstoqueReajustado, type LinhaEstoqueSN } from './CardEstoqueReajustado'
+import { ComparadorFornecedoresDialog } from './ComparadorFornecedoresDialog'
+import { ArrowLeftRight } from 'lucide-react'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 
 /**
@@ -313,6 +315,7 @@ export function SessaoSnSection({
   const [repassePct, setRepassePct] = useState(50)
   const [idxItem, setIdxItem] = useState(0)
   const [detalheAberto, setDetalheAberto] = useState(false)
+  const [comparadorAberto, setComparadorAberto] = useState(false)
 
   // Estado da alíquota efetiva INFORMADA (um campo, dois fluxos)
   const [modo, setModo] = useState<ModoPreenchimentoSN>('nota')
@@ -686,6 +689,15 @@ export function SessaoSnSection({
                 </span>
               )}
             </div>
+            {/* GATILHO DO COMPARADOR (aprovado pela CEO na prévia, 30/09) */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setComparadorAberto(true)}
+              className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer h-7 text-[10px] self-start"
+            >
+              <ArrowLeftRight className="w-3 h-3 mr-1" /> Comparar fornecedores SN puro × híbrido
+            </Button>
           </div>
 
           {/* 3 — Camada 1: resumo por item (ABC, nunca média) COM os dois fornecedores */}
@@ -936,6 +948,19 @@ export function SessaoSnSection({
               estimadas.
             </span>
           </div>
+
+          {/* COMPARADOR DE FORNECEDORES SN (aprovado pela CEO na prévia, 30/09) */}
+          <ComparadorFornecedoresDialog
+            open={comparadorAberto}
+            onOpenChange={setComparadorAberto}
+            itens={itens}
+            perfil={perfil}
+            adquirente={adquirente}
+            cfgBase={cfgBase}
+            row={row}
+            exercicio={exercicio}
+            custoPlenoUnitario={custoPlenoUnitario}
+          />
         </>
       )}
     </div>
