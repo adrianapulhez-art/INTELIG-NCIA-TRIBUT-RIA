@@ -717,12 +717,11 @@ export function SessaoSnSection({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {exibidos.map((res, i) => {
                 const sel = fornecedorSN === 'puro' ? res.puro : res.hibrido
-                const outro = fornecedorSN === 'puro' ? res.hibrido : res.puro
                 // RÓTULO DO REGIME SELECIONADO no card (fix CEO 30/09): o card se identifica
-                // pelo regime ESCOLHIDO; a comparação vira "vs" o outro fornecedor.
+                // pelo regime ESCOLHIDO. Comparação puro × híbrido REMOVIDA dos cards (CEO,
+                // 30/09): para o contador, a linha "vs" podia parecer resultado de outro
+                // regime — a comparação segue disponível no detalhe e no estoque.
                 const selLabel = fornecedorSN === 'puro' ? 'SN puro' : 'SN híbrido'
-                const outroLabel = fornecedorSN === 'puro' ? 'SN híbrido' : 'SN puro'
-                const diff = sel.unitario - outro.unitario
                 return (
                   <button
                     key={res.item.id}
@@ -757,22 +756,6 @@ export function SessaoSnSection({
                     >
                       {sel.deltaPct > 0 ? '+' : ''}
                       {formatNumberBR(sel.deltaPct)}% vs HOJE
-                    </span>
-                    {/* COMPARAÇÃO — "vs" o outro fornecedor, sempre visível */}
-                    <span className="text-[9px] font-mono text-slate-400 block mt-1 border-t border-slate-800/60 pt-1">
-                      vs {outroLabel}: {formatBRL(outro.unitario)}/un
-                      <span
-                        className={`ml-1 font-bold ${
-                          diff > 0.005
-                            ? 'text-rose-300'
-                            : diff < -0.005
-                              ? 'text-emerald-300'
-                              : 'text-slate-500'
-                        }`}
-                      >
-                        ({diff > 0 ? '+' : ''}
-                        {formatBRL(diff)})
-                      </span>
                     </span>
                   </button>
                 )
