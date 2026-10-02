@@ -217,41 +217,6 @@ export default function ClientsPage() {
   const [deleteScenarioConfirm, setDeleteScenarioConfirm] = useState<{
     id: string
     name: string
-    clientName: string
-  } | null>(null)
-  const [isDeletingClientScenario, setIsDeletingClientScenario] = useState<boolean>(false)
-
-  const handleDeleteClientScenario = async () => {
-    if (!deleteScenarioConfirm) return
-    const { id, name, clientName } = deleteScenarioConfirm
-    setIsDeletingClientScenario(true)
-    try {
-      await deleteClientScenario(id)
-      setClientScenarios((prev) => prev.filter((s) => s.id !== id))
-      showFeedback('success', `Cenário "${name}" do cliente ${clientName} apagado com sucesso.`)
-      setDeleteScenarioConfirm(null)
-    } catch (err: unknown) {
-      console.error('Erro ao apagar cenário do depósito:', err)
-      showFeedback('error', 'Falha ao apagar o cenário.')
-    } finally {
-      setIsDeletingClientScenario(false)
-    }
-  }
-
-  const toggleClientFolder = (clientId: string) => {
-    setExpandedClientFolders((prev) => {
-      const next = new Set(prev)
-      if (next.has(clientId)) next.delete(clientId)
-      else next.add(clientId)
-      return next
-    })
-  }
-
-  // CEO 02/10: APAGAR CENÁRIO no depósito — confirmação própria (exclusão é
-  // irreversível) + remoção na nuvem e local via deleteClientScenario.
-  const [deleteScenarioConfirm, setDeleteScenarioConfirm] = useState<{
-    id: string
-    name: string
   } | null>(null)
   const [isDeletingScenario, setIsDeletingScenario] = useState<boolean>(false)
 
@@ -264,12 +229,21 @@ export default function ClientsPage() {
       setClientScenarios((prev) => prev.filter((s) => s.id !== id))
       showFeedback('success', `Cenário "${name}" apagado com sucesso.`)
       setDeleteScenarioConfirm(null)
-    } catch (err) {
-      console.error('Erro ao apagar cenário:', err)
-      showFeedback('error', 'Não foi possível apagar o cenário.')
+    } catch (err: unknown) {
+      console.error('Erro ao apagar cenário do depósito:', err)
+      showFeedback('error', 'Falha ao apagar o cenário.')
     } finally {
       setIsDeletingScenario(false)
     }
+  }
+
+  const toggleClientFolder = (clientId: string) => {
+    setExpandedClientFolders((prev) => {
+      const next = new Set(prev)
+      if (next.has(clientId)) next.delete(clientId)
+      else next.add(clientId)
+      return next
+    })
   }
 
   const fetchClientScenarios = useCallback(async () => {
