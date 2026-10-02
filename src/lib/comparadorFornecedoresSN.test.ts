@@ -1,8 +1,9 @@
 /**
- * BLINDAGEM DO COMPARADOR DE FORNECEDORES SN (30/09) — caso canônico travado.
- * Nenhum número novo: os dois lados saem dos motores chancelados.
- * Puro: nota 42.400,00 − crédito 1.768,08 = 1.354,40/un (sessão SN)
- * Híbrido: motor Art. 12 chancelado = 1.413,33/un (ouro)
+ * BLINDAGEM DO COMPARADOR DE FORNECEDORES SN — caso canônico travado.
+ * CRITÉRIO IT v2 (chancela CEO, 01/10): base do IBS/CBS do fornecedor híbrido sem o
+ * ICMS INCIDENTE na operação (fração do DAS — art. 12, §2º, V + art. 23, §2º) e
+ * crédito de ICMS proporcional ao adquirente pleno (art. 23, §1º, redação LC 214/25).
+ * Ouros v2: LP/LR×SNH 1.394,96 · SN×SNH 1.537,48 · SNH×SNH 1.413,33 · puro 1.354,40.
  */
 import { compararFornecedoresSN } from './comparadorFornecedoresSN'
 import { PERFIL_SN_NOTA_PADRAO } from './art12SnCalculations'
@@ -28,32 +29,47 @@ const row = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
 const cfg = { ...CONFIG_PADRAO_ART12, repasse: 'integral' as const }
 const custoPleno = 1116.63 // ouro LP×LP chancelado
 
-describe('Comparador de fornecedores SN — os dois lados dos motores chancelados', () => {
-  it('LP comprando: puro 1.354,40 × híbrido 1.413,33 — puro vence por 58,93', () => {
+describe('Comparador de fornecedores SN — os dois lados dos motores chancelados (v2)', () => {
+  it('LP comprando: puro 1.354,40 × híbrido 1.394,96 — puro vence por 40,56', () => {
     const c = compararFornecedoresSN(item, PERFIL_SN_NOTA_PADRAO, 'presumido', cfg, row, custoPleno)
-    // PURO — motor da sessão
+    // PURO — motor da sessão (intocado pelo v2)
     expect(c.puro.precoNota).toBe(42400)
     expect(c.puro.credito).toBe(1768.08)
     expect(c.puro.unitario).toBe(1354.4)
     expect(c.puro.estoque).toBe(40631.92)
     expect(c.puro.gap).toBe(237.77)
-    // HÍBRIDO — motor Art. 12 chancelado (ouro)
-    expect(c.hibrido.unitario).toBe(1413.33)
-    expect(c.hibrido.estoque).toBe(42399.9)
-    expect(c.hibrido.gap).toBe(296.7)
+    // HÍBRIDO — critério IT v2: ICMS do DAS 551,20 fora da base; nota 46.124,54;
+    // créditos 3.682,69 + 41,85 + 551,20 = 4.275,74 → líquido 41.848,80
+    expect(c.hibrido.unitario).toBe(1394.96)
+    expect(c.hibrido.estoque).toBe(41848.8)
+    expect(c.hibrido.gap).toBe(278.33)
     // Diferenças
-    expect(c.diffUnitario).toBe(-58.93)
-    expect(c.diffEstoque).toBe(-1767.98)
+    expect(c.diffUnitario).toBe(-40.56)
+    expect(c.diffEstoque).toBe(-1216.88)
   })
 
-  it('SN comprando: sem crédito dos dois lados — puro = híbrido = 1.413,33 (ouro)', () => {
+  it('SN comprando: sem crédito dos dois lados — puro 1.413,33 (ouro) × híbrido 1.537,48 (v2)', () => {
     const c = compararFornecedoresSN(item, PERFIL_SN_NOTA_PADRAO, 'simples', cfg, row, custoPleno)
-    // Optante não apropria crédito de nota SN puro (art. 47)
+    // Optante não apropria crédito de nota SN puro (art. 47, §9º, I)
     expect(c.puro.credito).toBe(0)
     expect(c.puro.unitario).toBe(1413.33)
-    // E o híbrido também fecha em 1.413,33 (ouro chancelado)
+    // Híbrido: nota cheia 46.124,54 sem crédito → 1.537,48 (leitura (b) de 28/09)
+    expect(c.hibrido.unitario).toBe(1537.48)
+    expect(c.diffUnitario).toBe(124.15)
+  })
+
+  it('SN híbrido comprando: credita CBS+IBS integral — híbrido fecha 1.413,33 (ouro intacto)', () => {
+    const c = compararFornecedoresSN(
+      item,
+      PERFIL_SN_NOTA_PADRAO,
+      'simples_hibrido',
+      cfg,
+      row,
+      custoPleno,
+    )
     expect(c.hibrido.unitario).toBe(1413.33)
-    expect(c.diffUnitario).toBe(0)
+    // ICMS segue no DAS do adquirente híbrido — sem crédito de ICMS (art. 41)
+    expect(c.hibrido.credito).toBe(3724.54)
   })
 
   it('gap de negociação dos dois lados é coerente com a célula plena', () => {
