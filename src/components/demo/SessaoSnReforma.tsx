@@ -261,18 +261,22 @@ function CardMemoriaCanonical({
   linhas,
 }: {
   titulo: string
-  cor: 'emerald' | 'violet' | 'orange'
+  cor: 'emerald' | 'violet' | 'orange' | 'sky'
   linhas: { label: string; formula?: string; value: number; destaque?: boolean; kind?: string }[]
 }) {
+  // 'sky' = card de DESTAQUE (CEO, 02/10): fundo mais preenchido para o 1º-B —
+  // ao bater o olho o contador enxerga os dois pontos de comparação.
   const corCls = {
     emerald: 'border-emerald-500/45 bg-emerald-500/[0.05]',
     violet: 'border-violet-500/45 bg-violet-500/[0.05]',
     orange: 'border-orange-500/45 bg-orange-500/[0.06]',
+    sky: 'border-sky-400/70 bg-sky-500/[0.16]',
   }[cor]
   const tituloCls = {
     emerald: 'text-emerald-300',
     violet: 'text-violet-300',
     orange: 'text-orange-300',
+    sky: 'text-sky-200',
   }[cor]
   return (
     <div className={`flex-1 min-w-[240px] rounded-xl border p-3 space-y-1 ${corCls}`}>
@@ -290,7 +294,9 @@ function CardMemoriaCanonical({
                 ? 'bg-emerald-500/10 border-emerald-500/40'
                 : cor === 'violet'
                   ? 'bg-violet-500/10 border-violet-500/40'
-                  : 'bg-orange-500/10 border-orange-500/40'
+                  : cor === 'sky'
+                    ? 'bg-sky-500/25 border-sky-400/60'
+                    : 'bg-orange-500/10 border-orange-500/40'
               : 'bg-slate-950/50 border-slate-800/60'
           }`}
         >
@@ -841,14 +847,15 @@ export function SessaoSnSection({
                   × {nomeAdquirente(adquirente)}
                 </span>
               </div>
-              {/* OS 3 CARDS LADO A LADO */}
+              {/* CARDS DO DETALHE — modelo CEO (02/10): 1º-A fornecedor pleno (baseline) +
+                  1º-B fornecedor SN em 2026 (DESTAQUE sky) + 2º fornecedor + 3º adquirente.
+                  O 1º-B existe só no fluxo SN puro: em 2026 não há fornecedor híbrido
+                  (a opção da janela set/2026 produz efeitos em 01/01/2027). */}
               <div className="flex flex-col lg:flex-row gap-2 items-stretch">
-                {/* CARD 1º — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026
-                    RÓTULO DE CONTEXTO (CEO, 02/10): o card é calculado na perspectiva do
-                    comprador como se a compra fosse de FORNECEDOR PLENO — baseline de
-                    referência. O HOJE da compra de SN a sessão calcula (linha 📌). */}
+                {/* CARD 1º-A — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 · FORNECEDOR PLENO
+                    (baseline de referência — fica como está) */}
                 <CardMemoriaCanonical
-                  titulo={`CARD 1º — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 · COMPRA DE FORNECEDOR PLENO (baseline de referência) · ${itemAtivo.item.name || 'item'}`}
+                  titulo={`CARD 1º-A — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 · COMPRA DE FORNECEDOR PLENO (baseline de referência) · ${itemAtivo.item.name || 'item'}`}
                   cor="emerald"
                   linhas={itemAtivo[
                     fornecedorSN === 'puro' ? 'puro' : 'hibrido'
@@ -860,6 +867,40 @@ export function SessaoSnSection({
                     kind: l.kind,
                   }))}
                 />
+                {/* CARD 1º-B — HOJE (2026) COMPRANDO DE FORNECEDOR SN — DESTAQUE (CEO, 02/10):
+                    memória detalhada no padrão canônico. Crédito de 2026 = SÓ ICMS (redação
+                    original do art. 23; a redação LC 214/25 com CBS+IBS produz efeitos em
+                    01/01/2027 — LegJur). Nota congelada nos dois lados. */}
+                {fornecedorSN === 'puro' && (
+                  <CardMemoriaCanonical
+                    titulo={`CARD 1º-B — HOJE (2026) COMPRANDO DE FORNECEDOR SN · ${itemAtivo.item.name || 'item'}`}
+                    cor="sky"
+                    linhas={[
+                      {
+                        label: '(+) Valor da operação — nota congelada (sem destaque)',
+                        formula: `${itemAtivo.item.quantity} un. × ${formatBRL(itemAtivo.item.merchandiseValue / Math.max(1, itemAtivo.item.quantity))} — da Calculadora de Compras`,
+                        value: itemAtivo.puro.r.receitaBruta,
+                      },
+                      {
+                        label: '(−) Crédito proporcional do adquirente — SÓ ICMS em 2026',
+                        formula: `${itemAtivo.puro.r.icmsPct}% × ${itemAtivo.puro.r.receitaBruta} = ${itemAtivo.puro.r.icmsNota}`,
+                        value: -itemAtivo.puro.r.creditoHojeSN,
+                        destaque: true,
+                      },
+                      {
+                        label: '(=) Custo líquido da aquisição em 2026',
+                        formula: `${itemAtivo.puro.r.receitaBruta} − ${itemAtivo.puro.r.creditoHojeSN} = ${itemAtivo.puro.r.custoHojeSN}`,
+                        value: itemAtivo.puro.r.custoHojeSN,
+                      },
+                      {
+                        label: '(÷) CUSTO UNITÁRIO — HOJE-SN',
+                        formula: `${itemAtivo.puro.r.custoHojeSN} ÷ ${itemAtivo.item.quantity} un.`,
+                        value: itemAtivo.puro.r.custoUnitarioHojeSN,
+                        destaque: true,
+                      },
+                    ]}
+                  />
+                )}
                 {/* CARD 2º — MEMÓRIA DE CÁLCULO DA FORMAÇÃO DE PREÇO DO FORNECEDOR */}
                 {fornecedorSN === 'puro' ? (
                   <CardMemoriaCanonical
@@ -904,35 +945,25 @@ export function SessaoSnSection({
                   <CardMemoriaCanonical
                     titulo={`CARD 3º — CUSTO DO ADQUIRENTE COM AJUSTE PÓS-REFORMA (ART. 23) · ${itemAtivo.item.name || 'item'}`}
                     cor="orange"
-                    linhas={[
-                      // HOJE DA COMBINAÇÃO (CEO, 02/10): crédito de 2026 = SÓ ICMS
-                      {
-                        label:
-                          '📌 HOJE (2026) comprando de fornecedor SN — crédito proporcional só de ICMS (redação original do art. 23)',
-                        formula: `${itemAtivo.puro.r.receitaBruta} − ${itemAtivo.puro.r.creditoHojeSN} = ${itemAtivo.puro.r.custoHojeSN}`,
-                        value: itemAtivo.puro.r.custoUnitarioHojeSN,
-                        destaque: true,
-                      },
-                      ...itemAtivo.puro.r.memoria
-                        .filter((l) =>
-                          [
-                            'credito_base',
-                            'credito_icms',
-                            'credito_cbs',
-                            'credito_ibs',
-                            'credito_total',
-                            'credito_unidade',
-                            'custoliquido',
-                            'custounitario',
-                          ].includes(l.key),
-                        )
-                        .map((l) => ({
-                          label: l.label,
-                          formula: l.formula,
-                          value: l.value,
-                          destaque: l.destaque,
-                        })),
-                    ]}
+                    linhas={itemAtivo.puro.r.memoria
+                      .filter((l) =>
+                        [
+                          'credito_base',
+                          'credito_icms',
+                          'credito_cbs',
+                          'credito_ibs',
+                          'credito_total',
+                          'credito_unidade',
+                          'custoliquido',
+                          'custounitario',
+                        ].includes(l.key),
+                      )
+                      .map((l) => ({
+                        label: l.label,
+                        formula: l.formula,
+                        value: l.value,
+                        destaque: l.destaque,
+                      }))}
                   />
                 ) : (
                   <CardMemoriaCanonical
