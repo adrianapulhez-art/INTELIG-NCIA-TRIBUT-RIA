@@ -33,6 +33,7 @@ import {
   X,
   Undo2,
   Copy,
+  History,
 } from 'lucide-react'
 import { useTaxContext } from '@/contexts/TaxContext'
 import {
@@ -42,9 +43,11 @@ import {
   listClientScenarios,
   createClientScenario,
   updateClientScenario,
+  updateClientScenarioWithVersion,
   deleteClientScenario,
   AccountingClientRecord,
   ClientSavedScenarioRecord,
+  type ScenarioVersion,
 } from '@/services/clientScenariosService'
 import { formatBRL } from '@/lib/taxCalculations'
 
@@ -96,6 +99,14 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   const [scenarioName, setScenarioName] = useState<string>('')
   const [scenarioNotes, setScenarioNotes] = useState<string>('')
   const [isSavingScenario, setIsSavingScenario] = useState<boolean>(false)
+
+  // F2 — ATUALIZAR SIMULAÇÃO EXISTENTE (CEO, 02/10): destino do salvamento +
+  // simulação-alvo + nota da versão
+  const [saveDest, setSaveDest] = useState<'nova' | 'atualizar'>('nova')
+  const [targetScenarioId, setTargetScenarioId] = useState<string>('')
+  const [versionNote, setVersionNote] = useState<string>('')
+  // Histórico: subpasta de versões expandida por cenário
+  const [expandedVersions, setExpandedVersions] = useState<Set<string>>(new Set())
 
   // Listagem de cenários
   const [scenarios, setScenarios] = useState<ClientSavedScenarioRecord[]>([])
@@ -273,6 +284,41 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     setIsSavingScenario(true)
     try {
       const snapshot = getSnapshot()
+
+      // F2 — ATUALIZAR simulação existente: empilha versão nova (nada é sobrescrito)
+      if (saveDest === 'atualizar' && targetScenarioId) {
+        const target = scenarios.find((s) => s.id === targetScenarioId)
+        const result = await updateClientScenarioWithVersion({
+          id: targetScenarioId,
+          snapshot,
+          versionNote: versionNote.trim(),
+          scope,
+          notes: scenarioNotes.trim() || undefined,
+        })
+
+        setScenarios((prev) =>
+          prev.map((s) => (s.id === result.record.id ? result.record : s)),
+        )
+
+        const nextN = result.version.n
+        if (result.synced) {
+          showFeedback(
+            'success',
+            `"${target?.name || name}" atualizada para a versão v${nextN} (nuvem) — v${nextN - 1} preservada no histórico!`,
+          )
+        } else {
+          showFeedback(
+            'warning',
+            `Atualizado localmente para v${nextN} — sincroniza quando houver conexão.`,
+          )
+        }
+        setVersionNote('')
+        setTimeout(() => {
+          setActiveTab('historico')
+        }, 900)
+        return
+      }
+
       const result = await createClientScenario({
         clientId: selectedClientId,
         clientName,
@@ -307,6 +353,30 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
       showFeedback('error', `Falha ao gravar cenário: ${msg}`)
     } finally {
       setIsSavingScenario(false)
+    }
+  }
+
+  // F2 — Restaurar uma VERSÃO do histórico: hidrata o snapshot da versão escolhida
+  const handleRestoreVersion = (
+    sc: ClientSavedScenarioRecord,
+    v: ScenarioVersion,
+  ) => {
+    try {
+      ativarCenario({
+        id: sc.id,
+        cliente: sc.clientName || 'Cliente',
+        nome: `${sc.name} — v${v.n}`,
+        snapshot: v.snapshot,
+      })
+      setRestoredId(sc.id)
+      showFeedback(
+        'success',
+        `Versão v${v.n} de "${sc.name}" restaurada no formulário e DREs!`,
+      )
+      setTimeout(() => setRestoredId(null), 3000)
+    } catch (err) {
+      console.error('Erro ao restaurar versão:', err)
+      showFeedback('error', 'Não foi possível restaurar esta versão.')
     }
   }
 
@@ -763,6 +833,88 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                   )}
                 </div>
               )}
+              {/* F2 — DESTINO DO SALVAMENTO: nova simulação × atualizar existente */}
+              {activeClientScenariosCount > 0 && (
+                <div className="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/25 space-y-3">
+                  <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200 block">
+                    Destino do Salvamento
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSaveDest('nova')}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        saveDest === 'nova'
+                          ? 'border-emerald-500/60 bg-emerald-500/10'
+                          : 'border-slate-800 bg-slate-950/60 hover:border-emerald-500/30'
+                      }`}
+                    >
+                      <span
+                        className={`text-xs font-bold block ${saveDest === 'nova' ? 'text-emerald-300' : 'text-slate-300'}`}
+                      >
+                        Nova simulação
+                      </span>
+                      <span className="text-[10px] text-slate-500 block mt-0.5">
+                        Cria um cenário novo na pasta do cliente
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSaveDest('atualizar')}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        saveDest === 'atualizar'
+                          ? 'border-emerald-500/60 bg-emerald-500/10'
+                          : 'border-slate-800 bg-slate-950/60 hover:border-emerald-500/30'
+                      }`}
+                    >
+                      <span
+                        className={`text-xs font-bold block ${saveDest === 'atualizar' ? 'text-emerald-300' : 'text-slate-300'}`}
+                      >
+                        Atualizar simulação existente
+                      </span>
+                      <span className="text-[10px] text-slate-500 block mt-0.5">
+                        Empilha uma versão nova — a anterior fica preservada
+                      </span>
+                    </button>
+                  </div>
+
+                  {saveDest === 'atualizar' && (
+                    <div className="space-y-2 pt-1">
+                      <label className="text-[10px] font-mono text-slate-400 block">
+                        Simulação a atualizar *
+                      </label>
+                      <select
+                        value={targetScenarioId}
+                        onChange={(e) => setTargetScenarioId(e.target.value)}
+                        className="w-full h-9 text-xs bg-slate-900 border border-slate-700 rounded-lg px-3 text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans cursor-pointer"
+                      >
+                        <option value="">Escolher simulação...</option>
+                        {scenarios
+                          .filter((s) => s.client === selectedClientId)
+                          .map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name} — v{(s.versions?.length || 0) + 1} em diante ·{' '}
+                              {s.updated ? new Date(s.updated).toLocaleDateString('pt-BR') : ''}
+                            </option>
+                          ))}
+                      </select>
+                      <label className="text-[10px] font-mono text-slate-400 block">
+                        Nota da versão — o que mudou nesta atualização *
+                      </label>
+                      <textarea
+                        value={versionNote}
+                        onChange={(e) => setVersionNote(e.target.value)}
+                        rows={2}
+                        placeholder="Ex.: + Teclado Redragon Sion no estoque (item 03) — crédito PIS/COFINS LR"
+                        className="w-full text-xs bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans resize-none"
+                      />
+                      <p className="text-[10px] text-emerald-300/80 font-mono">
+                        A versão anterior fica preservada e restaurável — nada é sobrescrito.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Bloco 2: Identificação do Cenário */}
@@ -935,13 +1087,24 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
               <Button
                 type="submit"
                 size="sm"
-                disabled={isSavingScenario || !scenarioName.trim() || !selectedClientId}
+                disabled={
+                  isSavingScenario ||
+                  !selectedClientId ||
+                  (saveDest === 'atualizar'
+                    ? !targetScenarioId || !versionNote.trim()
+                    : !scenarioName.trim())
+                }
                 className="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
               >
                 {isSavingScenario ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>Gravando...</span>
+                  </>
+                ) : saveDest === 'atualizar' ? (
+                  <>
+                    <History className="w-3.5 h-3.5" />
+                    <span>Atualizar para nova versão</span>
                   </>
                 ) : (
                   <>
@@ -1278,6 +1441,83 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                                         <p className="text-[11px] text-slate-400 line-clamp-1">
                                           {sc.notes}
                                         </p>
+                                      )}
+
+                                      {/* F2 — HISTÓRICO DE VERSÕES (CEO, 02/10): empilhadas
+                                          na subpasta, com nota do que mudou e restauração
+                                          por versão. Nada é sobrescrito. */}
+                                      {sc.versions && sc.versions.length > 0 && (
+                                        <div className="mt-1.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const next = new Set(expandedVersions)
+                                              if (next.has(sc.id)) next.delete(sc.id)
+                                              else next.add(sc.id)
+                                              setExpandedVersions(next)
+                                            }}
+                                            className="text-[10px] font-mono font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                                          >
+                                            {expandedVersions.has(sc.id) ? (
+                                              <ChevronDown className="w-3 h-3" />
+                                            ) : (
+                                              <ChevronRight className="w-3 h-3" />
+                                            )}
+                                            <History className="w-3 h-3" />
+                                            {sc.versions.length} versão
+                                            {sc.versions.length > 1 ? 'es' : ''} no histórico
+                                          </button>
+                                          {expandedVersions.has(sc.id) && (
+                                            <div className="mt-1.5 space-y-1">
+                                              {[...sc.versions]
+                                                .sort((a, b) => b.n - a.n)
+                                                .map((v) => {
+                                                  const isLatest =
+                                                    v.n ===
+                                                    Math.max(...sc.versions!.map((x) => x.n))
+                                                  return (
+                                                    <div
+                                                      key={v.n}
+                                                      className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg border ${
+                                                        isLatest
+                                                          ? 'bg-emerald-500/10 border-emerald-500/40'
+                                                          : 'bg-slate-950/70 border-slate-800/60'
+                                                      }`}
+                                                    >
+                                                      <span
+                                                        className={`text-[10px] font-mono font-black shrink-0 ${isLatest ? 'text-emerald-300' : 'text-slate-500'}`}
+                                                      >
+                                                        v{v.n}
+                                                      </span>
+                                                      <span className="text-[10px] text-slate-300 flex-1 min-w-0 truncate">
+                                                        {v.note}
+                                                      </span>
+                                                      <span className="text-[9px] font-mono text-slate-500 shrink-0">
+                                                        {v.at
+                                                          ? new Date(v.at).toLocaleDateString(
+                                                              'pt-BR',
+                                                              {
+                                                                day: '2-digit',
+                                                                month: '2-digit',
+                                                              },
+                                                            )}
+                                                      </span>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                          handleRestoreVersion(sc, v)
+                                                        }
+                                                        className="text-[9px] font-mono text-emerald-400 hover:text-emerald-300 border border-emerald-500/40 rounded px-1.5 py-0.5 cursor-pointer shrink-0"
+                                                        title="Restaurar esta versão"
+                                                      >
+                                                        Restaurar
+                                                      </button>
+                                                    </div>
+                                                  )
+                                                })}
+                                            </div>
+                                          )}
+                                        </div>
                                       )}
 
                                       {/* Metadados específicos do escopo do cenário salvo */}

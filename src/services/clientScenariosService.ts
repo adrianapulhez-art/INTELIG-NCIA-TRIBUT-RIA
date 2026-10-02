@@ -30,6 +30,25 @@ export interface ClientSavedScenarioRecord {
   updated: string
   source?: 'cloud' | 'local'
   pendingSync?: boolean
+  /** HISTÓRICO DE VERSÕES (CEO, 02/10): cada atualização empilha uma versão nova
+   *  com data e nota do que mudou — nada é sobrescrito; a anterior fica restaurável. */
+  versions?: ScenarioVersion[]
+}
+
+/** Uma versão do histórico do cenário — snapshot congelado + nota da mudança. */
+export interface ScenarioVersion {
+  /** Número sequencial a partir de 1 (v1 = criação original). */
+  n: number
+  /** ISO — momento em que a versão foi gravada. */
+  at: string
+  /** Nota escrita pelo usuário: o que mudou nesta versão. */
+  note: string
+  /** Snapshot completo desta versão (mesma forma do snapshot ativo). */
+  snapshot: TaxStateSnapshot
+  /** Escopo no momento da gravação da versão. */
+  scope?: string
+  /** Observações do cenário no momento da gravação. */
+  notes?: string
 }
 
 const LOCAL_STORAGE_CLIENTS_KEY = 'it_accounting_clients_v1'
@@ -99,6 +118,7 @@ function formatClientRecord(rec: RecordModel): AccountingClientRecord {
     created: rec.created,
     updated: rec.updated,
     source: 'cloud',
+    versions: vers,
   }
 }
 
@@ -108,6 +128,18 @@ function formatScenarioRecord(rec: RecordModel): ClientSavedScenarioRecord {
     snap = typeof rec.snapshot === 'string' ? JSON.parse(rec.snapshot) : rec.snapshot
   } catch {
     snap = {} as TaxStateSnapshot
+  }
+
+  // Histórico de versões (pode vir como string do PocketBase JSON field)
+  let vers: ScenarioVersion[] | undefined
+  try {
+    const rawV = rec.versions
+    if (rawV) {
+      const parsedV = typeof rawV === 'string' ? JSON.parse(rawV) : rawV
+      if (Array.isArray(parsedV) && parsedV.length > 0) vers = parsedV
+    }
+  } catch {
+    vers = undefined
   }
 
   // Tenta extrair o nome do cliente expandido se veio via ?expand=client
@@ -404,6 +436,137 @@ export async function updateClientScenario(
 
   if (updatedRecord) return updatedRecord
   throw new Error('Não foi possível atualizar o cenário especificado.')
+}
+
+/**
+ * F2 — ATUALIZAR SIMULAÇÃO EXISTENTE COM VERSÃO NOVA (CEO, 02/10).
+ * Empilha uma versão nova no histórico do registro (campo `versions`), gravando
+ * o snapshot ATUAL como a versão seguinte. A versão anterior NÃO é tocada —
+ * nada é sobrescrito. Também atualiza o snapshot ativo do registro.
+ */
+export async function updateClientScenarioWithVersion(params: {
+  id: string
+  snapshot: TaxStateSnapshot
+  versionNote: string
+  scope?: string
+  notes?: string
+}): Promise<{ record: ClientSavedScenarioRecord; version: ScenarioVersion; synced: boolean }> {
+  const now = new Date().toISOString()
+  const cleanSnapshot = sanitizeSnapshotForPersistence(params.snapshot)
+  const note = params.versionNote.trim()
+  let result: {
+    record: ClientSavedScenarioRecord
+    version: ScenarioVersion
+    synced: boolean
+  } | null = null
+
+  const pushVersion = (base: ClientSavedScenarioRecord): ScenarioVersion => {
+    const existing = base.versions || []
+    const nextN = existing.length > 0 ? Math.max(...existing.map((v) => v.n)) + 1 : 2
+    // v1 implícita: se não há histórico, a versão 1 é o estado ANTERIOR da atualização
+    const seed: ScenarioVersion[] =
+      existing.length === 0
+        ? [
+            {
+              n: 1,
+              at: base.created || now,
+              note: 'Versão original',
+              snapshot: base.snapshot,
+              scope: base.scope,
+              notes: base.notes,
+            },
+          ]
+        : existing
+    const version: ScenarioVersion = {
+      n: nextN,
+      at: now,
+      note: note || `Atualização de ${new Date(now).toLocaleDateString('pt-BR')}`,
+      snapshot: cleanSnapshot,
+      scope: params.scope,
+      notes: params.notes,
+    }
+    base.versions = [...seed, version]
+    return version
+  }
+
+  if (!params.id.startsWith('scen-client-local-') && pb.authStore.isValid) {
+    try {
+      const current = await pb.collection('saved_scenarios').getOne(params.id)
+      let currentVersions: ScenarioVersion[] = []
+      try {
+        const rawV = current.versions
+        if (rawV) {
+          const parsedV = typeof rawV === 'string' ? JSON.parse(rawV) : rawV
+          if (Array.isArray(parsedV)) currentVersions = parsedV
+        }
+      } catch {
+        currentVersions = []
+      }
+      const nextN =
+        currentVersions.length > 0 ? Math.max(...currentVersions.map((v) => v.n)) + 1 : 2
+      const seed: ScenarioVersion[] =
+        currentVersions.length === 0
+          ? [
+              {
+                n: 1,
+                at: current.created || now,
+                note: 'Versão original',
+                snapshot: sanitizeSnapshotForPersistence(
+                  typeof current.snapshot === 'string'
+                    ? JSON.parse(current.snapshot)
+                    : current.snapshot,
+                ),
+                scope: current.scope,
+                notes: current.notes,
+              },
+            ]
+          : currentVersions
+      const version: ScenarioVersion = {
+        n: nextN,
+        at: now,
+        note: note || `Atualização de ${new Date(now).toLocaleDateString('pt-BR')}`,
+        snapshot: cleanSnapshot,
+        scope: params.scope,
+        notes: params.notes,
+      }
+      const payload: Record<string, unknown> = {
+        snapshot: cleanSnapshot,
+        versions: [...seed, version],
+      }
+      if (params.scope !== undefined) payload.scope = params.scope
+      if (params.notes !== undefined) payload.notes = params.notes.trim()
+      const record = await pb.collection('saved_scenarios').update(params.id, payload, {
+        expand: 'client',
+      })
+      const formatted = formatScenarioRecord(record)
+      result = { record: formatted, version, synced: true }
+    } catch (err) {
+      console.warn('Erro ao empilhar versão no PocketBase, tentando localmente:', err)
+    }
+  }
+
+  // Fallback local / espelho no localStorage
+  const localList = getLocalClientScenarios()
+  const foundIndex = localList.findIndex((s) => s.id === params.id)
+  if (foundIndex >= 0) {
+    const base = result?.record || localList[foundIndex]
+    const version = result?.version || pushVersion({ ...base })
+    const localUpdated: ClientSavedScenarioRecord = {
+      ...base,
+      snapshot: cleanSnapshot,
+      versions: base.versions || localList[foundIndex].versions,
+      updated: now,
+    }
+    localList[foundIndex] = localUpdated
+    saveLocalClientScenarios(localList)
+    if (!result) {
+      result = { record: localUpdated, version, synced: false }
+    }
+  } else if (!result) {
+    throw new Error('Não foi possível atualizar o cenário especificado.')
+  }
+
+  return result!
 }
 
 export async function deleteClientScenario(id: string): Promise<boolean> {
