@@ -967,19 +967,8 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                 className="h-9 text-xs bg-slate-900 border-slate-700 text-white placeholder:text-slate-600 focus:border-emerald-500 font-sans"
               />
 
-              <div>
-                <label className="text-[11px] font-mono text-slate-400 block mb-1">
-                  Observações / Premissas (opcional)
-                </label>
-                <textarea
-                  value={scenarioNotes}
-                  onChange={(e) => setScenarioNotes(e.target.value)}
-                  placeholder="Ex.: Inclui reajuste de aluguel e 2 novos colaboradores para o próximo trimestre..."
-                  rows={2}
-                  className="w-full text-xs bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 placeholder:text-slate-600 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans resize-none"
-                />
-              </div>
-
+              {/* CEO 02/10: campo "Observações / Premissas" removido do formulário —
+                  cenário se identifica pelo nome; todo o restante intacto */}
               {/* Resumo dos Valores que Serão Gravados conforme o Scope */}
               {scope === 'markup' && (
                 <div className="pt-2 border-t border-slate-800/80 space-y-2">
