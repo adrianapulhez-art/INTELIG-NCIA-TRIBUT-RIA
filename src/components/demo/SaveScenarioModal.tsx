@@ -139,11 +139,15 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     message: string
   } | null>(null)
 
+  // CEO 02/10: SUCESSO fica visível ATÉ o usuário fechar (sem timeout) — o usuário
+  // precisa da certeza de que gravou. Erro/aviso continuam com auto-dismiss.
   const showFeedback = (type: 'success' | 'warning' | 'error', message: string) => {
     setFeedback({ type, message })
-    setTimeout(() => {
-      setFeedback(null)
-    }, 4500)
+    if (type !== 'success') {
+      setTimeout(() => {
+        setFeedback(null)
+      }, 4500)
+    }
   }
 
   // Gerador de nome padrão do cenário com base no escopo e data
@@ -318,18 +322,16 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         if (result.synced) {
           showFeedback(
             'success',
-            `"${target?.name || name}" atualizada para a versão v${nextN} (nuvem) — v${nextN - 1} preservada no histórico!`,
+            `✅ CENÁRIO ATUALIZADO E SALVO: "${target?.name || name}" agora está na versão v${nextN} — a versão anterior (v${nextN - 1}) continua preservada no histórico da subpasta.`,
           )
         } else {
           showFeedback(
             'warning',
-            `Atualizado localmente para v${nextN} — sincroniza quando houver conexão.`,
+            `✅ CENÁRIO ATUALIZADO E SALVO localmente: "${target?.name || name}" está na versão v${nextN} — sincroniza com a nuvem quando houver conexão.`,
           )
         }
         setVersionNote('')
-        setTimeout(() => {
-          setActiveTab('compras')
-        }, 900)
+        // CEO 02/10: NÃO alterna de aba — o usuário fica vendo a confirmação
         return
       }
 
@@ -348,19 +350,16 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
       if (result.synced) {
         showFeedback(
           'success',
-          `Cenário "${result.record.name}" gravado na nuvem para o cliente ${clientName}!`,
+          `✅ CENÁRIO GRAVADO E SALVO: "${result.record.name}" entrou na pasta do cliente ${clientName}!`,
         )
       } else {
         showFeedback(
-          'warning',
-          'Salvo localmente — sincroniza quando houver conexão com o servidor.',
+          'success',
+          '✅ CENÁRIO GRAVADO E SALVO localmente — sincroniza quando houver conexão com o servidor.',
         )
       }
 
-      // Alterna suavemente para o histórico para mostrar o item gravado
-      setTimeout(() => {
-        setActiveTab('compras')
-      }, 900)
+      // CEO 02/10: NÃO alterna de aba — o usuário fica vendo a confirmação
     } catch (err) {
       console.error('Erro ao gravar cenário:', err)
       const msg = err instanceof Error ? err.message : 'Erro ao gravar cenário.'
