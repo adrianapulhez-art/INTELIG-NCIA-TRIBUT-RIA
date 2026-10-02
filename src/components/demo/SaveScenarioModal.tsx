@@ -266,8 +266,10 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   // Gravar cenário
   const handleSaveScenario = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
+    // CEO 02/10: no fluxo de atualizar, o NOME vem da simulação escolhida (campo oculto
+    // no formulário) — a exigência de nome só vale para cenário novo.
     const name = scenarioName.trim()
-    if (!name) {
+    if (!name && saveDest !== 'atualizar') {
       showFeedback('error', 'Defina um nome identificador para o cenário.')
       return
     }
@@ -316,12 +318,12 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         if (result.synced) {
           showFeedback(
             'success',
-            `✅ CENÁRIO ATUALIZADO E SALVO: "${target?.name || name}" agora está na versão v${nextN} — a versão anterior (v${nextN - 1}) continua preservada na listagem.`,
+            `✅ SALVO COM SUCESSO: "${target?.name || name}" agora está na versão v${nextN} — a versão anterior (v${nextN - 1}) continua preservada na listagem.`,
           )
         } else {
           showFeedback(
             'warning',
-            `✅ CENÁRIO ATUALIZADO E SALVO localmente: "${target?.name || name}" está na versão v${nextN} — sincroniza com a nuvem quando houver conexão.`,
+            `✅ SALVO COM SUCESSO (local): "${target?.name || name}" está na versão v${nextN} — sincroniza com a nuvem quando houver conexão.`,
           )
         }
         setVersionNote('')
@@ -1127,12 +1129,13 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                 Cancelar
               </Button>
 
-              {/* CEO 02/10 (ajuste 4): botão ATUALIZAR sempre ATIVO — a validação de
-                  campos faltantes vira feedback na tela, não botão desabilitado */}
+              {/* CEO 02/10 (ajuste 4 + pedido "SALVAR ATUALIZAÇÃO"): botão sempre ATIVO
+                  (só trava enquanto grava) — cliente/simulação faltantes viram feedback
+                  na tela, nunca botão morto silencioso */}
               <Button
                 type="submit"
                 size="sm"
-                disabled={isSavingScenario || !selectedClientId}
+                disabled={isSavingScenario}
                 className="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
               >
                 {isSavingScenario ? (
@@ -1143,7 +1146,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                 ) : saveDest === 'atualizar' ? (
                   <>
                     <History className="w-3.5 h-3.5" />
-                    <span>Atualizar</span>
+                    <span>Salvar Atualização</span>
                   </>
                 ) : (
                   <>
