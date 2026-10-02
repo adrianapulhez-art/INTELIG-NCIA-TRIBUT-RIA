@@ -39,9 +39,12 @@ import {
   createClientScenario,
   updateClientScenario,
   updateClientScenarioWithVersion,
+  updateScenarioVersionNote,
+  deleteScenarioVersion,
   deleteClientScenario,
   AccountingClientRecord,
   ClientSavedScenarioRecord,
+  type ScenarioVersion,
 } from '@/services/clientScenariosService'
 import { formatBRL } from '@/lib/taxCalculations'
 
@@ -370,6 +373,85 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     }
   }
 
+  // CEO 02/10 (ajuste 5): GESTÃO POR SALVAMENTO (data) — cada versão vira linha com
+  // RESTAURAR · EDITAR · DELETAR. Editar = nota da versão; Deletar = remove a versão.
+  const [editingVersion, setEditingVersion] = useState<{ id: string; n: number } | null>(null)
+  const [editingVersionNote, setEditingVersionNote] = useState<string>('')
+  const [isSavingVersionNote, setIsSavingVersionNote] = useState<boolean>(false)
+  const [confirmDeleteVersion, setConfirmDeleteVersion] = useState<{
+    id: string
+    name: string
+    n: number
+  } | null>(null)
+  const [isDeletingVersion, setIsDeletingVersion] = useState<boolean>(false)
+
+  const handleStartEditVersionNote = (id: string, n: number, currentNote: string) => {
+    setEditingVersion({ id, n })
+    setEditingVersionNote(currentNote)
+  }
+
+  const handleCancelEditVersionNote = () => {
+    setEditingVersion(null)
+    setEditingVersionNote('')
+  }
+
+  const handleSaveVersionNote = async () => {
+    if (!editingVersion) return
+    const { id, n } = editingVersion
+    if (!editingVersionNote.trim()) {
+      showFeedback('error', 'A nota da versão não pode ficar em branco.')
+      return
+    }
+    setIsSavingVersionNote(true)
+    try {
+      const updated = await updateScenarioVersionNote(id, n, editingVersionNote)
+      setScenarios((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+      setEditingVersion(null)
+      setEditingVersionNote('')
+      showFeedback('success', `Nota da versão v${n} atualizada e salva!`)
+    } catch (err) {
+      console.error('Erro ao editar nota da versão:', err)
+      showFeedback('error', 'Não foi possível editar a nota da versão.')
+    } finally {
+      setIsSavingVersionNote(false)
+    }
+  }
+
+  const handleConfirmDeleteVersion = async () => {
+    if (!confirmDeleteVersion) return
+    const { id, n, name } = confirmDeleteVersion
+    setIsDeletingVersion(true)
+    try {
+      const updated = await deleteScenarioVersion(id, n)
+      setScenarios((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+      showFeedback('success', `Versão v${n} de "${name}" excluída do histórico.`)
+      setConfirmDeleteVersion(null)
+    } catch (err) {
+      console.error('Erro ao excluir versão:', err)
+      showFeedback('error', 'Não foi possível excluir a versão.')
+    } finally {
+      setIsDeletingVersion(false)
+    }
+  }
+
+  // Restaurar uma VERSÃO (data) do histórico: hidrata o snapshot daquela data
+  const handleRestoreVersion = (sc: ClientSavedScenarioRecord, v: ScenarioVersion) => {
+    try {
+      ativarCenario({
+        id: sc.id,
+        cliente: sc.clientName || 'Cliente',
+        nome: `${sc.name} — v${v.n}`,
+        snapshot: v.snapshot,
+      })
+      setRestoredId(`${sc.id}-v${v.n}`)
+      showFeedback('success', `Salvamento v${v.n} de "${sc.name}" restaurado no formulário e DREs!`)
+      setTimeout(() => setRestoredId(null), 3000)
+    } catch (err) {
+      console.error('Erro ao restaurar versão:', err)
+      showFeedback('error', 'Não foi possível restaurar este salvamento.')
+    }
+  }
+
   // Iniciar renomeação inline de cenário
   const handleStartRename = (sc: ClientSavedScenarioRecord) => {
     setEditingScenarioId(sc.id)
@@ -467,10 +549,19 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   }, [scenarios, searchQuery, activeTab])
 
   // Contagem de cenários por cliente ativo
+  // CEO 02/10: contagem por ESCOPO da página + fallback por nome do cliente.
+  // Corrige o bug E2E 02/10: cenário gravado com sucesso mas contador ficava em 0,
+  // e o bloco "Destino do Salvamento" (portão do ATUALIZAR) nunca aparecia.
   const activeClientScenariosCount = useMemo(() => {
     if (!selectedClientId) return 0
-    return scenarios.filter((s) => s.client === selectedClientId).length
-  }, [scenarios, selectedClientId])
+    const currentClient = clients.find((c) => c.id === selectedClientId)
+    return scenarios.filter(
+      (s) =>
+        (s.client === selectedClientId ||
+          (!!currentClient && !!s.clientName && s.clientName === currentClient.name)) &&
+        (s.scope || 'despesas-operacionais') === scope,
+    ).length
+  }, [scenarios, selectedClientId, clients, scope])
 
   const formatDate = (isoString?: string) => {
     if (!isoString) return '—'
@@ -825,11 +916,15 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                       >
                         <option value="">Escolher simulação...</option>
                         {scenarios
-                          .filter(
-                            (s) =>
-                              s.client === selectedClientId &&
-                              (s.scope || 'despesas-operacionais') === scope,
-                          )
+                          .filter((s) => {
+                            const currentClient = clients.find((c) => c.id === selectedClientId)
+                            const mesmoCliente =
+                              s.client === selectedClientId ||
+                              (!!currentClient &&
+                                !!s.clientName &&
+                                s.clientName === currentClient.name)
+                            return mesmoCliente && (s.scope || 'despesas-operacionais') === scope
+                          })
                           .map((s) => (
                             <option key={s.id} value={s.id}>
                               {s.name} — v{(s.versions?.length || 0) + 1} em diante ·{' '}
@@ -1162,6 +1257,62 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         </Dialog>
 
         {/* ============================================================ */}
+        {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE VERSÃO (CEO, 02/10) */}
+        {/* ============================================================ */}
+        <Dialog
+          open={Boolean(confirmDeleteVersion)}
+          onOpenChange={(open) => !open && setConfirmDeleteVersion(null)}
+        >
+          <DialogContent className="max-w-md bg-[#07130f] border border-rose-500/40 text-slate-100 shadow-2xl p-5">
+            <DialogHeader className="space-y-2">
+              <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-300 shrink-0">
+                  <History className="w-4 h-4" />
+                </div>
+                <span>Excluir Salvamento v{confirmDeleteVersion?.n}?</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-300 leading-relaxed">
+                O salvamento <strong className="text-white">v{confirmDeleteVersion?.n}</strong> de{' '}
+                <strong className="text-white">"{confirmDeleteVersion?.name}"</strong> será
+                removido. As demais linhas e o estado atual não são afetados. Esta ação não poderá
+                ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-800">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmDeleteVersion(null)}
+                className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={isDeletingVersion}
+                onClick={handleConfirmDeleteVersion}
+                className="text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold cursor-pointer"
+              >
+                {isDeletingVersion ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    <span>Excluindo...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    <span>Confirmar Exclusão</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ============================================================ */}
         {/* LISTAGEM POR LINHA — mostrada em TODAS as matrizes de escopo */}
         {/* ============================================================ */}
         {activeTab !== 'gravar' && (
@@ -1216,167 +1367,178 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                 {/* CEO 02/10 (ajuste 5): LISTAGEM POR LINHA — cada linha = um salvamento
                     (data + o que mudou), com botões RESTAURAR · EDITAR · DELETAR.
                     A matriz do escopo já isola os cenários desta página. */}
-                {filteredScenarios.map((sc) => {
-                  const isCurrentRestored = restoredId === sc.id
-                  const isDeleting = deletingId === sc.id
+                {filteredScenarios.flatMap((sc) => {
                   const isLocal = sc.source === 'local' || sc.pendingSync
-                  const latestVersion = sc.versions?.length
-                    ? sc.versions.reduce((a, b) => (b.n > a.n ? b : a))
-                    : null
                   const snapExpenses = sc.snapshot?.operatingExpenses || []
                   const totalExp = snapExpenses.reduce((acc, curr) => acc + (curr.value || 0), 0)
+                  // CEO 02/10 (ajuste 5): LINHAS = SALVAMENTOS (datas). Sem histórico →
+                  // 1 linha (criação); com histórico → cada versão é uma linha.
+                  const rows: { v: ScenarioVersion | null }[] =
+                    sc.versions && sc.versions.length > 0
+                      ? [...sc.versions].sort((a, b) => b.n - a.n).map((v) => ({ v }))
+                      : [{ v: null }]
+                  return rows.map(({ v }) => {
+                    const rowKey = v ? `${sc.id}-v${v.n}` : sc.id
+                    const isCurrentRestored = restoredId === rowKey
+                    const rowDate = v?.at || sc.updated || sc.created
+                    const rowNote = v?.note || sc.notes || 'Salvamento original'
+                    const snap = v?.snapshot || sc.snapshot
+                    const resumo =
+                      sc.scope === 'markup'
+                        ? `Receita: ${formatBRL(snap?.totalConsolidatedRevenue || 0)} (${snap?.markupProducts?.length || 0} produtos)`
+                        : sc.scope === 'compras'
+                          ? `Mercadorias: ${formatBRL(snap?.totalPurchasesMerchandise || 0)} (${snap?.purchasesItems?.length || 0} itens)`
+                          : `Despesas: ${formatBRL(totalExp)} (${snapExpenses.length} itens)`
 
-                  return (
-                    <div
-                      key={sc.id}
-                      className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                        isCurrentRestored
-                          ? 'bg-emerald-500/15 border-emerald-400 shadow-md shadow-emerald-500/10'
-                          : 'bg-slate-950/70 border-slate-800 hover:border-emerald-500/40'
-                      }`}
-                    >
-                      {editingScenarioId === sc.id ? (
-                        <div className="w-full space-y-2 py-1">
-                          <span className="text-[11px] font-mono text-emerald-400 font-bold">
-                            Editar nome do salvamento:
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="text"
-                              value={editingScenarioName}
-                              onChange={(e) => setEditingScenarioName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault()
-                                  handleSaveRename(sc.id)
-                                } else if (e.key === 'Escape') {
-                                  handleCancelRename()
+                    return (
+                      <div
+                        key={rowKey}
+                        className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                          isCurrentRestored
+                            ? 'bg-emerald-500/15 border-emerald-400 shadow-md shadow-emerald-500/10'
+                            : 'bg-slate-950/70 border-slate-800 hover:border-emerald-500/40'
+                        }`}
+                      >
+                        {editingVersion?.id === sc.id && editingVersion?.n === (v?.n || 0) ? (
+                          <div className="w-full space-y-2 py-1">
+                            <span className="text-[11px] font-mono text-emerald-400 font-bold">
+                              Editar nota do salvamento {v ? `v${v.n}` : ''}:
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="text"
+                                value={editingVersionNote}
+                                onChange={(e) => setEditingVersionNote(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    handleSaveVersionNote()
+                                  } else if (e.key === 'Escape') {
+                                    handleCancelEditVersionNote()
+                                  }
+                                }}
+                                autoFocus
+                                className="h-8 text-xs bg-slate-900 border-emerald-500/60 text-white font-mono flex-1"
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={isSavingVersionNote || !editingVersionNote.trim()}
+                                onClick={handleSaveVersionNote}
+                                className="h-8 px-2.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer"
+                              >
+                                {isSavingVersionNote ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="w-3.5 h-3.5 mr-1" />
+                                )}
+                                <span>Salvar</span>
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleCancelEditVersionNote}
+                                className="h-8 px-2 text-xs text-slate-400 hover:text-white cursor-pointer"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-xs sm:text-sm text-white truncate">
+                                  {sc.name}
+                                </span>
+                                {v && (
+                                  <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono">
+                                    v{v.n}
+                                  </Badge>
+                                )}
+                                {!v && sc.versions && sc.versions.length > 0 && (
+                                  <Badge className="bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[9px] font-mono">
+                                    estado atual
+                                  </Badge>
+                                )}
+                                {isLocal && (
+                                  <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
+                                    Offline / Local
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <p className="text-[11px] text-slate-300 line-clamp-1">{rowNote}</p>
+
+                              <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono flex-wrap">
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {formatDate(rowDate)}
+                                </span>
+                                <span>•</span>
+                                <span>{resumo}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() =>
+                                  v ? handleRestoreVersion(sc, v) : handleRestore(sc)
                                 }
-                              }}
-                              autoFocus
-                              placeholder="Nome do cenário..."
-                              className="h-8 text-xs bg-slate-900 border-emerald-500/60 text-white font-sans flex-1"
-                            />
-                            <Button
-                              type="button"
-                              size="sm"
-                              disabled={isSavingScenarioName || !editingScenarioName.trim()}
-                              onClick={() => handleSaveRename(sc.id)}
-                              className="h-8 px-2.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer"
-                            >
-                              {isSavingScenarioName ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5 mr-1" />
-                              )}
-                              <span>Salvar</span>
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              disabled={isSavingScenarioName}
-                              onClick={handleCancelRename}
-                              className="h-8 px-2 text-xs text-slate-400 hover:text-white cursor-pointer"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="space-y-1 min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-xs sm:text-sm text-white truncate">
-                                {sc.name}
-                              </span>
-                              {latestVersion && (
-                                <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono">
-                                  v{latestVersion.n}
-                                </Badge>
-                              )}
-                              {isLocal && (
-                                <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
-                                  Offline / Local
-                                </Badge>
-                              )}
+                                className="h-7 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer shadow-sm"
+                                title="Restaurar os dados deste salvamento no formulário"
+                              >
+                                <RotateCcw className="w-3 h-3 mr-1" />
+                                Restaurar
+                              </Button>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  v
+                                    ? handleStartEditVersionNote(sc.id, v.n, v.note)
+                                    : handleStartRename(sc)
+                                }
+                                className="h-7 w-7 p-0 text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+                                title={
+                                  v
+                                    ? 'Editar a nota deste salvamento'
+                                    : 'Editar o nome deste cenário'
+                                }
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                disabled={deletingId === sc.id}
+                                onClick={() =>
+                                  v
+                                    ? setConfirmDeleteVersion({ id: sc.id, name: sc.name, n: v.n })
+                                    : setConfirmDeleteScenario({ id: sc.id, name: sc.name })
+                                }
+                                className="h-7 w-7 p-0 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                                title="Deletar este salvamento"
+                              >
+                                {deletingId === sc.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                )}
+                              </Button>
                             </div>
-
-                            {latestVersion && (
-                              <p className="text-[11px] text-slate-300 line-clamp-1">
-                                {latestVersion.note}
-                              </p>
-                            )}
-
-                            <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono flex-wrap">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {formatDate(sc.updated || sc.created)}
-                              </span>
-                              <span>•</span>
-                              {sc.scope === 'markup' ? (
-                                <span className="text-emerald-400/90">
-                                  Receita Consolidada:{' '}
-                                  {formatBRL(sc.snapshot?.totalConsolidatedRevenue || 0)} (
-                                  {sc.snapshot?.markupProducts?.length || 0} produtos)
-                                </span>
-                              ) : sc.scope === 'compras' ? (
-                                <span className="text-amber-400/90">
-                                  Mercadorias:{' '}
-                                  {formatBRL(sc.snapshot?.totalPurchasesMerchandise || 0)} (
-                                  {sc.snapshot?.purchasesItems?.length || 0} itens)
-                                </span>
-                              ) : (
-                                <span className="text-rose-400/90">
-                                  Despesas: {formatBRL(totalExp)} ({snapExpenses.length} itens)
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => handleRestore(sc)}
-                              className="h-7 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer shadow-sm"
-                              title="Restaurar os dados deste salvamento no formulário"
-                            >
-                              <RotateCcw className="w-3 h-3 mr-1" />
-                              Restaurar
-                            </Button>
-
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleStartRename(sc)}
-                              className="h-7 w-7 p-0 text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
-                              title="Editar o nome deste salvamento"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              disabled={isDeleting}
-                              onClick={() => setConfirmDeleteScenario({ id: sc.id, name: sc.name })}
-                              className="h-7 w-7 p-0 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
-                              title="Deletar este salvamento"
-                            >
-                              {isDeleting ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-3.5 h-3.5" />
-                              )}
-                            </Button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )
+                          </>
+                        )}
+                      </div>
+                    )
+                  })
                 })}
               </div>
             )}
