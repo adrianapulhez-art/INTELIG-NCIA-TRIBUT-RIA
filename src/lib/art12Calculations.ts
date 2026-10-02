@@ -616,7 +616,7 @@ export function computeExercicioArt12(
   const baseSemIcmsRef = r2(mercReal + freteReal - icmsMercRef - icmsFreteRef)
   const pisRef = r2(baseSemIcmsRef * PIS_RATE[config.fornecedorRegime])
   const cofinsRef = r2(baseSemIcmsRef * COFINS_RATE[config.fornecedorRegime])
-  const mostraPisCofins = !fornecedorSN
+  const mostraPisCofins = !fornecedorSN && !fornecedorSNHib
   if (mostraPisCofins) {
     const rotuloExercicio =
       row.exercicio === 2026
@@ -772,20 +772,23 @@ export function computeExercicioArt12(
     })
   }
 
-  // Botão único "Memória + base legal" — renderizado APÓS a base limpa (marcador de posição)
-  lines.push({
-    key: 'memoria_bloco1',
-    label: 'MEMORIA_BLOCO1',
-    formula: '',
-    value: 0,
-    kind: 'nota',
-    bloco: 1,
-    fundamento: {
-      dispositivo: '—',
-      efeito: 'marcador de posição para botão de memória do bloco',
-      validade: 'nao_aplicavel',
-    },
-  })
+  // Botão único "Memória + base legal" — renderizado APÓS a base limpa (marcador de posição).
+  // CRITÉRIO IT v2: só no fluxo PLENO — o ramo SN tem memória própria (sem marcador).
+  if (!fornecedorSN && !fornecedorSNHib) {
+    lines.push({
+      key: 'memoria_bloco1',
+      label: 'MEMORIA_BLOCO1',
+      formula: '',
+      value: 0,
+      kind: 'nota',
+      bloco: 1,
+      fundamento: {
+        dispositivo: '—',
+        efeito: 'marcador de posição para botão de memória do bloco',
+        validade: 'nao_aplicavel',
+      },
+    })
+  }
 
   // 6) CBS e IBS — por fora (destacadas); sobre a base limpa
   const cbsV = r2(baseLimpa * (row.cbsRate / 100))
