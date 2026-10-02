@@ -81,6 +81,11 @@ export interface ResultadoSessaoSN {
   creditoUnidade: number
   custoLiquido: number
   custoUnitarioLiquido: number
+  /** HOJE (2026) da própria combinação — crédito proporcional SÓ de ICMS (redação
+   *  original do art. 23; a redação LC 214/25 com CBS+IBS produz efeitos em 2027). */
+  creditoHojeSN: number
+  custoHojeSN: number
+  custoUnitarioHojeSN: number
 }
 
 /**
@@ -110,6 +115,13 @@ export function calcularSessaoSN(item: ItemIntegracaoArt12, perfil: PerfilSN): R
   const creditoUnidade = r2(creditoTotal / Math.max(1, item.quantity))
   const custoLiquido = r2(receitaBruta - creditoTotal)
   const custoUnitarioLiquido = r2(custoLiquido / Math.max(1, item.quantity))
+
+  // HOJE DA COMBINAÇÃO (Δ honesto, CEO 02/10): em 2026 vale a redação ORIGINAL do
+  // art. 23 — crédito proporcional SÓ de ICMS (a redação LC 214/25, que inclui CBS+IBS,
+  // tem produção de efeitos em 01/01/2027 — LegJur). Nota congelada nos dois lados.
+  const creditoHojeSN = icmsNota
+  const custoHojeSN = r2(receitaBruta - creditoHojeSN)
+  const custoUnitarioHojeSN = r2(custoHojeSN / Math.max(1, item.quantity))
 
   const origemDado =
     perfil.modo === 'nota'
@@ -261,6 +273,9 @@ export function calcularSessaoSN(item: ItemIntegracaoArt12, perfil: PerfilSN): R
     creditoUnidade,
     custoLiquido,
     custoUnitarioLiquido,
+    creditoHojeSN,
+    custoHojeSN,
+    custoUnitarioHojeSN,
   }
 }
 

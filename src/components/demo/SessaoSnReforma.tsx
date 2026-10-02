@@ -198,6 +198,35 @@ function DetalheItemSNPuro({
             {formatBRL(resultado.custoUnitarioLiquido)}/un
           </span>
         </div>
+        {/* HOJE DA PRÓPRIA COMBINAÇÃO (CEO, 02/10): crédito de 2026 = SÓ ICMS (redação
+            original do art. 23; CBS+IBS entram com a LC 214/25 em 2027) */}
+        <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/40">
+          <span className="text-[10px] font-mono font-bold text-violet-300">
+            📌 HOJE (2026) comprando de fornecedor SN — crédito proporcional só de ICMS (redação
+            original do art. 23)
+          </span>
+          <span className="text-[11px] font-black font-mono text-violet-300">
+            {formatBRL(resultado.custoUnitarioHojeSN)}/un
+          </span>
+        </div>
+        <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-slate-950/50 border border-slate-800/60">
+          <span className="text-[10px] font-mono text-slate-200">
+            Δ vs HOJE-SN (mesma combinação — mede só a REFORMA)
+          </span>
+          <span
+            className={`text-[10px] font-mono font-bold ${
+              resultado.custoUnitarioLiquido > resultado.custoUnitarioHojeSN
+                ? 'text-rose-300'
+                : resultado.custoUnitarioLiquido < resultado.custoUnitarioHojeSN
+                  ? 'text-emerald-300'
+                  : 'text-slate-400'
+            }`}
+          >
+            {resultado.custoUnitarioHojeSN > 0
+              ? `${((resultado.custoUnitarioLiquido / resultado.custoUnitarioHojeSN - 1) * 100).toFixed(2).replace('.', ',')}%`
+              : '—'}
+          </span>
+        </div>
         <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-slate-950/50 border border-slate-800/60">
           <span className="text-[10px] font-mono text-slate-200">
             Comparativo: comprar de fornecedor LP (célula LP×LP chancelada)
@@ -363,9 +392,13 @@ export function SessaoSnSection({
       const creditoEfetivo = creditoEfetivoArt23(adquirente, r)
       const custoLiquidoPuro = r.receitaBruta - creditoEfetivo
       const unitarioPuro = custoLiquidoPuro / Math.max(1, item.quantity)
+      // Δ HONESTO (CEO, 02/10): compara 2027-SN × 2026-SN (MESMA combinação) — mede só a
+      // REFORMA. HOJE-SN = nota congelada − crédito de 2026 (só ICMS: redação original do
+      // art. 23; CBS+IBS entram com a LC 214/25 em 2027). O Δ vs baseline plena segue
+      // disponível como GAP DE NEGOCIAÇÃO (troca de fornecedor).
       const deltaPctPuro =
-        cellHojePuro.hoje.unitario > 0
-          ? ((unitarioPuro - cellHojePuro.hoje.unitario) / cellHojePuro.hoje.unitario) * 100
+        r.custoUnitarioHojeSN > 0
+          ? ((unitarioPuro - r.custoUnitarioHojeSN) / r.custoUnitarioHojeSN) * 100
           : 0
       // --- SN HÍBRIDO: motor Art. 12 CHANCELADO (crédito integral, premissa IT)
       const cellHib = computeCellArt12Item(
@@ -380,7 +413,8 @@ export function SessaoSnSection({
           deltaPct: deltaPctPuro,
           r,
           creditoEfetivo,
-          cellHojeUnitario: cellHojePuro.hoje.unitario,
+          // HOJE-SN (2026, crédito só de ICMS) — baseline da combinação (Δ honesto)
+          cellHojeUnitario: r.custoUnitarioHojeSN,
           // Linhas HOJE para o CARD 1º do detalhe (modelo canônico da CEO)
           cellHojeLinhas: cellHojePuro.hoje.lines,
         },
@@ -809,9 +843,12 @@ export function SessaoSnSection({
               </div>
               {/* OS 3 CARDS LADO A LADO */}
               <div className="flex flex-col lg:flex-row gap-2 items-stretch">
-                {/* CARD 1º — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 */}
+                {/* CARD 1º — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026
+                    RÓTULO DE CONTEXTO (CEO, 02/10): o card é calculado na perspectiva do
+                    comprador como se a compra fosse de FORNECEDOR PLENO — baseline de
+                    referência. O HOJE da compra de SN a sessão calcula (linha 📌). */}
                 <CardMemoriaCanonical
-                  titulo={`CARD 1º — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 · ${itemAtivo.item.name || 'item'}`}
+                  titulo={`CARD 1º — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 · COMPRA DE FORNECEDOR PLENO (baseline de referência) · ${itemAtivo.item.name || 'item'}`}
                   cor="emerald"
                   linhas={itemAtivo[
                     fornecedorSN === 'puro' ? 'puro' : 'hibrido'
