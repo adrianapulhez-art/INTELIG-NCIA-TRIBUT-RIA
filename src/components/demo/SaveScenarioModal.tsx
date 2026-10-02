@@ -168,6 +168,11 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   } | null>(null)
   const [isDeletingClient, setIsDeletingClient] = useState<boolean>(false)
 
+  // Edição inline de nota de versão de salvamento
+  const [editingVersion, setEditingVersion] = useState<{ id: string; n: number } | null>(null)
+  const [editingVersionNote, setEditingVersionNote] = useState<string>('')
+  const [isSavingVersionNote, setIsSavingVersionNote] = useState<boolean>(false)
+
   // Carregar lista de clientes
   const fetchClients = useCallback(async () => {
     setIsLoadingClients(true)
@@ -213,6 +218,8 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
       setEditingScenarioName('')
       setConfirmDeleteScenario(null)
       setConfirmDeleteClient(null)
+      setEditingVersion(null)
+      setEditingVersionNote('')
       setFeedback(null)
     }
   }, [isOpen, fetchClients, fetchScenarios, getDefaultScenarioName, initialTab])
@@ -379,8 +386,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   }
 
   // CEO 02/10 (ajuste 5): GESTÃO POR SALVAMENTO (data) — cada versão vira linha com
-  // RESTAURAR · ABRIR (memória) · DELETAR. Editar removido a pedido da CEO (02/10):
-  // volta só se ela pedir.
+  // RESTAURAR · ABRIR (memória) · DELETAR.
   const [confirmDeleteVersion, setConfirmDeleteVersion] = useState<{
     id: string
     name: string
@@ -426,6 +432,40 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
       console.error('Erro ao restaurar versão:', err)
       showFeedback('error', 'Não foi possível restaurar este salvamento.')
     }
+  }
+
+  // Salvar nota da versão (ou observações do cenário quando for versão inicial sem n)
+  const handleSaveVersionNote = async () => {
+    if (!editingVersion) return
+    const trimmed = editingVersionNote.trim()
+    if (!trimmed) {
+      showFeedback('error', 'A nota da versão não pode ficar em branco.')
+      return
+    }
+    setIsSavingVersionNote(true)
+    try {
+      if (editingVersion.n > 0) {
+        const updated = await updateScenarioVersionNote(editingVersion.id, editingVersion.n, trimmed)
+        setScenarios((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+      } else {
+        const updated = await updateClientScenario(editingVersion.id, { notes: trimmed })
+        setScenarios((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+      }
+      setEditingVersion(null)
+      setEditingVersionNote('')
+      showFeedback('success', 'Nota da versão atualizada com sucesso!')
+    } catch (err) {
+      console.error('Erro ao atualizar nota da versão:', err)
+      showFeedback('error', 'Não foi possível atualizar a nota da versão.')
+    } finally {
+      setIsSavingVersionNote(false)
+    }
+  }
+
+  // Cancelar edição de nota da versão
+  const handleCancelEditVersionNote = () => {
+    setEditingVersion(null)
+    setEditingVersionNote('')
   }
 
   // Iniciar renomeação inline de cenário
@@ -1575,55 +1615,8 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                             : 'bg-slate-950/70 border-slate-800 hover:border-emerald-500/40'
                         }`}
                       >
-                        {editingVersion?.id === sc.id && editingVersion?.n === (v?.n || 0) ? (
-                          <div className="w-full space-y-2 py-1">
-                            <span className="text-[11px] font-mono text-emerald-400 font-bold">
-                              Editar nota do salvamento {v ? `v${v.n}` : ''}:
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="text"
-                                value={editingVersionNote}
-                                onChange={(e) => setEditingVersionNote(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault()
-                                    handleSaveVersionNote()
-                                  } else if (e.key === 'Escape') {
-                                    handleCancelEditVersionNote()
-                                  }
-                                }}
-                                autoFocus
-                                className="h-8 text-xs bg-slate-900 border-emerald-500/60 text-white font-mono flex-1"
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                disabled={isSavingVersionNote || !editingVersionNote.trim()}
-                                onClick={handleSaveVersionNote}
-                                className="h-8 px-2.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer"
-                              >
-                                {isSavingVersionNote ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Check className="w-3.5 h-3.5 mr-1" />
-                                )}
-                                <span>Salvar</span>
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleCancelEditVersionNote}
-                                className="h-8 px-2 text-xs text-slate-400 hover:text-white cursor-pointer"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="space-y-1 min-w-0 flex-1">
+                        <div className="w-full">
+                          <div className="space-y-1 min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-bold text-xs sm:text-sm text-white truncate">
                                   {sc.name}
@@ -1677,6 +1670,20 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                                 type="button"
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => {
+                                  setEditingVersion({ id: sc.id, n: v?.n || 0 })
+                                  setEditingVersionNote(v?.note || sc.notes || '')
+                                }}
+                                className="h-7 px-2 text-[11px] font-mono font-bold text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700 cursor-pointer"
+                                title="Editar a nota deste salvamento"
+                              >
+                                Editar
+                              </Button>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => setMemoryRow({ sc, v })}
                                 className="h-7 px-2 text-[11px] font-mono font-bold text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 border border-sky-500/40 cursor-pointer"
                                 title="Abrir a memória de cálculo deste salvamento"
@@ -1705,8 +1712,8 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                                 )}
                               </Button>
                             </div>
-                          </>
-                        )}
+                          </div>
+                        </div>
                       </div>
                     )
                   })
