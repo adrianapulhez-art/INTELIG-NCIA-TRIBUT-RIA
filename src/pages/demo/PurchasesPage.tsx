@@ -19,7 +19,6 @@ import {
   Eye,
   EyeOff,
   Save,
-  FolderOpen,
 } from 'lucide-react'
 import {
   formatBRL,
@@ -95,9 +94,6 @@ export default function PurchasesPage() {
   const [selectedItemForModal, setSelectedItemForModal] = useState<PurchaseItem | null>(null)
   const [isPurchaseItemModalOpen, setIsPurchaseItemModalOpen] = useState(false)
   const [isSaveScenarioModalOpen, setIsSaveScenarioModalOpen] = useState<boolean>(false)
-  const [saveScenarioModalTab, setSaveScenarioModalTab] = useState<'gravar' | 'historico'>(
-    'historico',
-  )
 
   // Subsistema de estoque por produto: totais para o badge dinâmico
   const { productStockState, calculatedProductStock } = useTaxContext()
@@ -221,19 +217,6 @@ export default function PurchasesPage() {
               >
                 <RotateCcw className="w-3.5 h-3.5 mr-1" />
                 Zerar campos
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  setSaveScenarioModalTab('historico')
-                  setIsSaveScenarioModalOpen(true)
-                }}
-                className="h-8 text-xs bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 font-semibold shadow-sm hover:border-emerald-400 cursor-pointer gap-1.5 transition-all"
-                title="Visualizar e carregar cenários salvos por cliente do escritório"
-              >
-                <FolderOpen className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Cenários Salvos por Cliente</span>
               </Button>
             </div>
           </div>
@@ -1484,12 +1467,7 @@ export default function PurchasesPage() {
 
         {/* Barra de Gerenciamento de Cenários no fim da página (padrão Markup) */}
         <div className="pt-2">
-          <ScenarioManagerBar
-            onGravarCenario={() => {
-              setSaveScenarioModalTab('gravar')
-              setIsSaveScenarioModalOpen(true)
-            }}
-          />
+          <ScenarioManagerBar onGravarCenario={() => setIsSaveScenarioModalOpen(true)} />
         </div>
 
         {/* Botões de Navegação no Final da Página */}
@@ -1519,7 +1497,6 @@ export default function PurchasesPage() {
         isOpen={isSaveScenarioModalOpen}
         onClose={() => setIsSaveScenarioModalOpen(false)}
         scope="compras"
-        initialTab={saveScenarioModalTab}
       />
     </DemoLayout>
   )
