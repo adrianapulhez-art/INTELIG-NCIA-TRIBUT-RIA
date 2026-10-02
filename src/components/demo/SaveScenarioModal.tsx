@@ -1621,107 +1621,105 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                       >
                         <div className="w-full">
                           <div className="space-y-1 min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-bold text-xs sm:text-sm text-white truncate">
-                                  {sc.name}
-                                </span>
-                                {v && (
-                                  <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono">
-                                    v{v.n}
-                                  </Badge>
-                                )}
-                                {!v && sc.versions && sc.versions.length > 0 && (
-                                  <Badge className="bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[9px] font-mono">
-                                    estado atual
-                                  </Badge>
-                                )}
-                                {isLocal && (
-                                  <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
-                                    Offline / Local
-                                  </Badge>
-                                )}
-                              </div>
-
-                              <p className="text-[11px] text-slate-300 line-clamp-1">{rowNote}</p>
-
-                              <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono flex-wrap">
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {formatDate(rowDate)}
-                                </span>
-                                <span>•</span>
-                                <span>{resumo}</span>
-                              </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-xs sm:text-sm text-white truncate">
+                                {sc.name}
+                              </span>
+                              {v && (
+                                <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono">
+                                  v{v.n}
+                                </Badge>
+                              )}
+                              {!v && sc.versions && sc.versions.length > 0 && (
+                                <Badge className="bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[9px] font-mono">
+                                  estado atual
+                                </Badge>
+                              )}
+                              {isLocal && (
+                                <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono">
+                                  Offline / Local
+                                </Badge>
+                              )}
                             </div>
 
-                            <div className="flex items-center gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={() =>
-                                  v ? handleRestoreVersion(sc, v) : handleRestore(sc)
-                                }
-                                className="h-7 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer shadow-sm"
-                                title="Restaurar os dados deste salvamento no formulário"
-                              >
-                                <RotateCcw className="w-3 h-3 mr-1" />
-                                Restaurar
-                              </Button>
+                            <p className="text-[11px] text-slate-300 line-clamp-1">{rowNote}</p>
 
-                              {/* CEO 02/10: ABRIR = memória de cálculo do salvamento
+                            <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formatDate(rowDate)}
+                              </span>
+                              <span>•</span>
+                              <span>{resumo}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => (v ? handleRestoreVersion(sc, v) : handleRestore(sc))}
+                              className="h-7 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer shadow-sm"
+                              title="Restaurar os dados deste salvamento no formulário"
+                            >
+                              <RotateCcw className="w-3 h-3 mr-1" />
+                              Restaurar
+                            </Button>
+
+                            {/* CEO 02/10: ABRIR = memória de cálculo do salvamento
                                   (a partir do snapshot da linha, read-only) */}
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingVersion({ id: sc.id, n: v?.n || 0 })
-                                  setEditingVersionNote(v?.note || sc.notes || '')
-                                }}
-                                className="h-7 px-2 text-[11px] font-mono font-bold text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700 cursor-pointer"
-                                title="Editar a nota deste salvamento"
-                              >
-                                Editar
-                              </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingVersion({ id: sc.id, n: v?.n || 0 })
+                                setEditingVersionNote(v?.note || sc.notes || '')
+                              }}
+                              className="h-7 px-2 text-[11px] font-mono font-bold text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700 cursor-pointer"
+                              title="Editar a nota deste salvamento"
+                            >
+                              Editar
+                            </Button>
 
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setMemoryRow({ sc, v })}
-                                className="h-7 px-2 text-[11px] font-mono font-bold text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 border border-sky-500/40 cursor-pointer"
-                                title="Abrir a memória de cálculo deste salvamento"
-                              >
-                                <FileText className="w-3 h-3 mr-1" />
-                                Abrir
-                              </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setMemoryRow({ sc, v })}
+                              className="h-7 px-2 text-[11px] font-mono font-bold text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 border border-sky-500/40 cursor-pointer"
+                              title="Abrir a memória de cálculo deste salvamento"
+                            >
+                              <FileText className="w-3 h-3 mr-1" />
+                              Abrir
+                            </Button>
 
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                disabled={deletingId === sc.id}
-                                onClick={() =>
-                                  v
-                                    ? setConfirmDeleteVersion({ id: sc.id, name: sc.name, n: v.n })
-                                    : setConfirmDeleteScenario({ id: sc.id, name: sc.name })
-                                }
-                                className="h-7 w-7 p-0 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
-                                title="Deletar este salvamento"
-                              >
-                                {deletingId === sc.id ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                )}
-                             </Button>
-                           </div>
-                         </div>
-                       </div>
-                     </div>
-                   )
-                 })
-               })}              </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              disabled={deletingId === sc.id}
+                              onClick={() =>
+                                v
+                                  ? setConfirmDeleteVersion({ id: sc.id, name: sc.name, n: v.n })
+                                  : setConfirmDeleteScenario({ id: sc.id, name: sc.name })
+                              }
+                              className="h-7 w-7 p-0 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                              title="Deletar este salvamento"
+                            >
+                              {deletingId === sc.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3.5 h-3.5" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                })}{' '}
+              </div>
             )}
 
             <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs">
