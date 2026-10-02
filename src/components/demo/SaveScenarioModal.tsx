@@ -445,7 +445,11 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     setIsSavingVersionNote(true)
     try {
       if (editingVersion.n > 0) {
-        const updated = await updateScenarioVersionNote(editingVersion.id, editingVersion.n, trimmed)
+        const updated = await updateScenarioVersionNote(
+          editingVersion.id,
+          editingVersion.n,
+          trimmed,
+        )
         setScenarios((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
       } else {
         const updated = await updateClientScenario(editingVersion.id, { notes: trimmed })
@@ -1615,55 +1619,8 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                             : 'bg-slate-950/70 border-slate-800 hover:border-emerald-500/40'
                         }`}
                       >
-                        {editingVersion?.id === sc.id && editingVersion?.n === (v?.n || 0) ? (
-                          <div className="w-full space-y-2 py-1">
-                            <span className="text-[11px] font-mono text-emerald-400 font-bold">
-                              Editar nota do salvamento {v ? `v${v.n}` : ''}:
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="text"
-                                value={editingVersionNote}
-                                onChange={(e) => setEditingVersionNote(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault()
-                                    handleSaveVersionNote()
-                                  } else if (e.key === 'Escape') {
-                                    handleCancelEditVersionNote()
-                                  }
-                                }}
-                                autoFocus
-                                className="h-8 text-xs bg-slate-900 border-emerald-500/60 text-white font-mono flex-1"
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                disabled={isSavingVersionNote || !editingVersionNote.trim()}
-                                onClick={handleSaveVersionNote}
-                                className="h-8 px-2.5 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer"
-                              >
-                                {isSavingVersionNote ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Check className="w-3.5 h-3.5 mr-1" />
-                                )}
-                                <span>Salvar</span>
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleCancelEditVersionNote}
-                                className="h-8 px-2 text-xs text-slate-400 hover:text-white cursor-pointer"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="space-y-1 min-w-0 flex-1">
+                        <div className="w-full">
+                          <div className="space-y-1 min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-bold text-xs sm:text-sm text-white truncate">
                                   {sc.name}
@@ -1757,13 +1714,14 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                                 ) : (
                                   <Trash2 className="w-3.5 h-3.5" />
                                 )}
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                    )
-                  })
-                })}              </div>
+                             </Button>
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   )
+                 })
+               })}              </div>
             )}
 
             <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-xs">
