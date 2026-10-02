@@ -296,9 +296,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
           notes: scenarioNotes.trim() || undefined,
         })
 
-        setScenarios((prev) =>
-          prev.map((s) => (s.id === result.record.id ? result.record : s)),
-        )
+        setScenarios((prev) => prev.map((s) => (s.id === result.record.id ? result.record : s)))
 
         const nextN = result.version.n
         if (result.synced) {
@@ -357,10 +355,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   }
 
   // F2 — Restaurar uma VERSÃO do histórico: hidrata o snapshot da versão escolhida
-  const handleRestoreVersion = (
-    sc: ClientSavedScenarioRecord,
-    v: ScenarioVersion,
-  ) => {
+  const handleRestoreVersion = (sc: ClientSavedScenarioRecord, v: ScenarioVersion) => {
     try {
       ativarCenario({
         id: sc.id,
@@ -369,10 +364,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         snapshot: v.snapshot,
       })
       setRestoredId(sc.id)
-      showFeedback(
-        'success',
-        `Versão v${v.n} de "${sc.name}" restaurada no formulário e DREs!`,
-      )
+      showFeedback('success', `Versão v${v.n} de "${sc.name}" restaurada no formulário e DREs!`)
       setTimeout(() => setRestoredId(null), 3000)
     } catch (err) {
       console.error('Erro ao restaurar versão:', err)
@@ -1500,13 +1492,12 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                                                                 day: '2-digit',
                                                                 month: '2-digit',
                                                               },
-                                                            )}
+                                                            )
+                                                          : ''}
                                                       </span>
                                                       <button
                                                         type="button"
-                                                        onClick={() =>
-                                                          handleRestoreVersion(sc, v)
-                                                        }
+                                                        onClick={() => handleRestoreVersion(sc, v)}
                                                         className="text-[9px] font-mono text-emerald-400 hover:text-emerald-300 border border-emerald-500/40 rounded px-1.5 py-0.5 cursor-pointer shrink-0"
                                                         title="Restaurar esta versão"
                                                       >
