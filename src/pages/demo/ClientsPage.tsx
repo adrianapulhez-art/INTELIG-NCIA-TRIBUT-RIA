@@ -27,6 +27,7 @@ import {
   deleteClientScenario,
   ClientSavedScenarioRecord,
 } from '@/services/clientScenariosService'
+import { ScenarioMemoryDialog, ScenarioMemorySource } from '@/components/demo/ScenarioMemoryDialog'
 import {
   Users,
   Search,
@@ -42,6 +43,7 @@ import {
   X,
   Loader2,
   AlertCircle,
+  FileText,
   CheckCircle2,
   PlusCircle,
   FileSpreadsheet,
@@ -219,6 +221,8 @@ export default function ClientsPage() {
     name: string
   } | null>(null)
   const [isDeletingScenario, setIsDeletingScenario] = useState<boolean>(false)
+  // CEO 02/10: ABRIR = memória de cálculo do cenário do depósito (componente compartilhado)
+  const [memorySource, setMemorySource] = useState<ScenarioMemorySource | null>(null)
 
   const handleDeleteClientScenario = async () => {
     if (!deleteScenarioConfirm) return
@@ -632,6 +636,26 @@ export default function ClientsPage() {
                                 Restaurar
                               </Button>
 
+                              {/* CEO 02/10: ABRIR = memória de cálculo do cenário do depósito
+                                  (mesmo modal do salvamento no modal de cenários) */}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  setMemorySource({
+                                    name: sc.name,
+                                    scope: sc.scope,
+                                    snapshot: sc.snapshot,
+                                    savedAt: sc.updated || sc.created,
+                                  })
+                                }
+                                className="h-7 px-2 text-[11px] font-mono font-bold text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 border border-sky-500/40 cursor-pointer shrink-0"
+                                title="Abrir a memória de cálculo deste cenário"
+                              >
+                                <FileText className="w-3 h-3 mr-1" />
+                                Abrir
+                              </Button>
+
                               {/* CEO 02/10: APAGAR CENÁRIO ao lado do Restaurar */}
                               <Button
                                 size="sm"
@@ -968,6 +992,15 @@ export default function ClientsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* ============================================================ */}
+        {/* MODAL: MEMÓRIA DE CÁLCULO DO CENÁRIO DO DEPÓSITO (CEO, 02/10) */}
+        {/* ============================================================ */}
+        <ScenarioMemoryDialog
+          source={memorySource}
+          onClose={() => setMemorySource(null)}
+          fallbackScope="compras"
+        />
 
         {/* ============================================================ */}
         {/* DIÁLOGO: APAGAR CENÁRIO DO DEPÓSITO (CEO, 02/10) — saved_scenarios */}

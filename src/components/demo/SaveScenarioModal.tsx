@@ -46,13 +46,8 @@ import {
   ClientSavedScenarioRecord,
   type ScenarioVersion,
 } from '@/services/clientScenariosService'
-import { PurchaseItem } from '@/contexts/TaxContext'
-import {
-  formatBRL,
-  formatNumberBR,
-  calculatePurchaseItemGrossTotal,
-  calculatePurchaseItemNetPurchases,
-} from '@/lib/taxCalculations'
+import { formatBRL } from '@/lib/taxCalculations'
+import { ScenarioMemoryDialog } from '@/components/demo/ScenarioMemoryDialog'
 interface SaveScenarioModalProps {
   isOpen: boolean
   onClose: () => void
@@ -650,7 +645,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
 
         {/* BOTÕES MATRIZ (CEO, 02/10): um por escopo — Compras · Markup e Precificação ·
             Despesas/Receitas Operacionais. CADA matriz abre a LISTA do escopo em linhas
-            (com RESTAURAR · EDITAR · DELETAR). O formulário fica no botão "+ Gravar novo". */}
+            (com RESTAURAR · ABRIR · DELETAR). O formulário fica no botão "+ Gravar novo". */}
         <div className="flex items-center gap-2 pt-2 border-b border-slate-800/80 overflow-x-auto">
           {(
             [
@@ -1280,204 +1275,23 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         </Dialog>
 
         {/* ============================================================ */}
-        {/* MODAL DE MEMÓRIA DE CÁLCULO DO SALVAMENTO (CEO, 02/10)       */}
+        {/* MODAL DE MEMÓRIA DE CÁLCULO DO SALVAMENTO — componente       */}
+        {/* compartilhado (também no Depósito da página Clientes)        */}
         {/* ============================================================ */}
-        <Dialog open={Boolean(memoryRow)} onOpenChange={(open) => !open && setMemoryRow(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#07130f] border border-sky-500/40 text-slate-100 shadow-2xl p-5 sm:p-6">
-            <DialogHeader className="border-b border-sky-500/20 pb-3">
-              <div className="flex items-center justify-between gap-3 pr-6">
-                <DialogTitle className="text-base font-bold text-white flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-300 shrink-0">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <span>
-                    Memória de Cálculo — {memoryRow?.sc.name}
-                    {memoryRow?.v ? ` (v${memoryRow.v.n})` : ' (estado atual)'}
-                  </span>
-                </DialogTitle>
-                <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono shrink-0">
-                  {(memoryRow?.sc.scope === 'compras'
-                    ? 'Compras'
-                    : memoryRow?.sc.scope === 'markup'
-                      ? 'Markup'
-                      : 'Despesas'
-                  ).toUpperCase()}
-                </Badge>
-              </div>
-              <DialogDescription className="text-xs text-slate-400">
-                Foto fiscal do salvamento de{' '}
-                {memoryRow
-                  ? formatDate(memoryRow.v?.at || memoryRow.sc.updated || memoryRow.sc.created)
-                  : ''}{' '}
-                — calculada a partir do snapshot gravado, sem tocar no estado atual das telas.
-              </DialogDescription>
-            </DialogHeader>
-
-            {memoryRow &&
-              (() => {
-                const snap = memoryRow.v?.snapshot || memoryRow.sc.snapshot
-                const items: PurchaseItem[] = snap?.purchasesItems || []
-                const regimeMem = (snap?.regime || scope || 'presumido') as
-                  | 'presumido'
-                  | 'real'
-                  | 'simples'
-                const regimeLabel =
-                  regimeMem === 'presumido'
-                    ? 'Lucro Presumido'
-                    : regimeMem === 'real'
-                      ? 'Lucro Real'
-                      : 'Simples Nacional'
-
-                if (items.length === 0) {
-                  return (
-                    <div className="py-10 text-center space-y-2">
-                      <FileText className="w-8 h-8 text-slate-600 mx-auto" />
-                      <p className="text-xs text-slate-400 font-mono">
-                        Este salvamento não contém itens de compra no snapshot.
-                      </p>
-                    </div>
-                  )
+        <ScenarioMemoryDialog
+          source={
+            memoryRow
+              ? {
+                  name: `${memoryRow.sc.name}${memoryRow.v ? ` (v${memoryRow.v.n})` : ' (estado atual)'}`,
+                  scope: memoryRow.sc.scope,
+                  snapshot: memoryRow.v?.snapshot || memoryRow.sc.snapshot,
+                  savedAt: memoryRow.v?.at || memoryRow.sc.updated || memoryRow.sc.created,
                 }
-
-                return (
-                  <div className="space-y-3 pt-1">
-                    {items.map((it, idx) => {
-                      const gross = calculatePurchaseItemGrossTotal(it)
-                      const net = calculatePurchaseItemNetPurchases(it, regimeMem)
-                      const qty = Math.max(0, it.quantity || 0)
-                      const unit = qty > 0 ? gross / qty : 0
-                      const freight = Math.max(0, it.freightValue || 0)
-                      const icmsMerc = Math.max(0, it.calculatedIcms || 0)
-                      const icmsFreight = Math.max(0, it.icmsFreightValue || 0)
-                      const pis = Math.max(0, it.calculatedPis || 0)
-                      const cofins = Math.max(0, it.calculatedCofins || 0)
-                      const ipi = Math.max(0, it.calculatedIpi || 0)
-                      const st = it.hasSt ? Math.max(0, it.stValue || 0) : 0
-
-                      return (
-                        <div
-                          key={it.id || idx}
-                          className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-bold text-white flex items-center gap-2">
-                              <FileText className="w-3.5 h-3.5 text-sky-400" />
-                              {it.name || `Item ${idx + 1}`}
-                            </span>
-                            <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono">
-                              {regimeLabel}
-                            </Badge>
-                          </div>
-
-                          <div className="space-y-1.5 font-mono text-[11px]">
-                            <div className="flex items-center justify-between">
-                              <span className="text-emerald-400">
-                                (+) Mercadorias ({formatNumberBR(qty, 0)} un. × {formatBRL(unit)})
-                              </span>
-                              <span className="text-slate-100 font-semibold">
-                                {formatBRL(gross)}
-                              </span>
-                            </div>
-                            {freight > 0 && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-emerald-400">(+) Frete sobre compras</span>
-                                <span className="text-slate-100 font-semibold">
-                                  {formatBRL(freight)}
-                                </span>
-                              </div>
-                            )}
-                            {ipi > 0 && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-emerald-400">(+) IPI não recuperável</span>
-                                <span className="text-slate-100 font-semibold">
-                                  {formatBRL(ipi)}
-                                </span>
-                              </div>
-                            )}
-                            {st > 0 && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-emerald-400">(+) ICMS-ST na entrada</span>
-                                <span className="text-slate-100 font-semibold">
-                                  {formatBRL(st)}
-                                </span>
-                              </div>
-                            )}
-                            {regimeMem !== 'simples' && icmsMerc > 0 && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-rose-400">
-                                  (−) ICMS sobre mercadorias ({formatNumberBR(it.icmsRate || 0, 2)}%
-                                  × {formatBRL(gross)})
-                                </span>
-                                <span className="text-rose-400 font-semibold">
-                                  -{formatBRL(icmsMerc)}
-                                </span>
-                              </div>
-                            )}
-                            {regimeMem !== 'simples' && icmsFreight > 0 && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-rose-400">(−) ICMS sobre fretes</span>
-                                <span className="text-rose-400 font-semibold">
-                                  -{formatBRL(icmsFreight)}
-                                </span>
-                              </div>
-                            )}
-                            {regimeMem === 'real' && pis > 0 && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-rose-400">(−) PIS (1,65%)</span>
-                                <span className="text-rose-400 font-semibold">
-                                  -{formatBRL(pis)}
-                                </span>
-                              </div>
-                            )}
-                            {regimeMem === 'real' && cofins > 0 && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-rose-400">(−) COFINS (7,60%)</span>
-                                <span className="text-rose-400 font-semibold">
-                                  -{formatBRL(cofins)}
-                                </span>
-                              </div>
-                            )}
-
-                            <div className="pt-2 border-t border-slate-700/80 flex items-center justify-between text-xs">
-                              <span className="font-bold text-emerald-400">
-                                (=) Compras Líquidas / Custo Total:
-                              </span>
-                              <span className="font-bold text-emerald-400 text-sm">
-                                {formatBRL(net)}
-                              </span>
-                            </div>
-                            {qty > 0 && (
-                              <div className="flex items-center justify-between text-[11px] text-slate-400">
-                                <span>Custo Unitário Líquido ({formatNumberBR(qty, 0)} un.):</span>
-                                <span className="text-emerald-300 font-semibold">
-                                  {formatBRL(net / qty)} / un.
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              })()}
-
-            <div className="flex items-center justify-between pt-3 border-t border-slate-800">
-              <span className="text-[10px] text-slate-500 font-mono">
-                Memória read-only do snapshot gravado — para editar, restaure o salvamento.
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setMemoryRow(null)}
-                className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
-              >
-                Fechar
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+              : null
+          }
+          onClose={() => setMemoryRow(null)}
+          fallbackScope={scope}
+        />
 
         {/* ============================================================ */}
         {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE VERSÃO (CEO, 02/10) */}
@@ -1588,7 +1402,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
             ) : (
               <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
                 {/* CEO 02/10 (ajuste 5): LISTAGEM POR LINHA — cada linha = um salvamento
-                    (data + o que mudou), com botões RESTAURAR · EDITAR · DELETAR.
+                    (data + o que mudou), com botões RESTAURAR · ABRIR · DELETAR.
                     A matriz do escopo já isola os cenários desta página. */}
                 {filteredScenarios.flatMap((sc) => {
                   const isLocal = sc.source === 'local' || sc.pendingSync
@@ -1705,7 +1519,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                       </div>
                     )
                   })
-                })}{' '}
+                })}
               </div>
             )}
 
