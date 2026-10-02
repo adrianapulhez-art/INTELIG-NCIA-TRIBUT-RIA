@@ -878,23 +878,23 @@ export function SessaoSnSection({
                     linhas={[
                       {
                         label: '(+) Valor da operação — nota congelada (sem destaque)',
-                        formula: `${itemAtivo.item.quantity} un. × ${formatBRL(itemAtivo.item.merchandiseValue / Math.max(1, itemAtivo.item.quantity))} — da Calculadora de Compras`,
+                        formula: `${itemAtivo.item.quantity} un. × ${fmtSN(itemAtivo.item.merchandiseValue / Math.max(1, itemAtivo.item.quantity))} — da Calculadora de Compras`,
                         value: itemAtivo.puro.r.receitaBruta,
                       },
                       {
                         label: '(−) Crédito proporcional do adquirente — SÓ ICMS em 2026',
-                        formula: `${itemAtivo.puro.r.icmsPct}% × ${itemAtivo.puro.r.receitaBruta} = ${itemAtivo.puro.r.icmsNota}`,
+                        formula: `${fmtSN(itemAtivo.puro.r.icmsPct, 2)}% × ${fmtSN(itemAtivo.puro.r.receitaBruta)} = ${fmtSN(itemAtivo.puro.r.icmsNota)}`,
                         value: -itemAtivo.puro.r.creditoHojeSN,
                         destaque: true,
                       },
                       {
                         label: '(=) Custo líquido da aquisição em 2026',
-                        formula: `${itemAtivo.puro.r.receitaBruta} − ${itemAtivo.puro.r.creditoHojeSN} = ${itemAtivo.puro.r.custoHojeSN}`,
+                        formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} − ${fmtSN(itemAtivo.puro.r.creditoHojeSN)} = ${fmtSN(itemAtivo.puro.r.custoHojeSN)}`,
                         value: itemAtivo.puro.r.custoHojeSN,
                       },
                       {
                         label: '(÷) CUSTO UNITÁRIO — HOJE-SN',
-                        formula: `${itemAtivo.puro.r.custoHojeSN} ÷ ${itemAtivo.item.quantity} un.`,
+                        formula: `${fmtSN(itemAtivo.puro.r.custoHojeSN)} ÷ ${itemAtivo.item.quantity} un.`,
                         value: itemAtivo.puro.r.custoUnitarioHojeSN,
                         destaque: true,
                       },
