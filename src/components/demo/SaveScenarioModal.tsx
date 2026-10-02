@@ -44,6 +44,9 @@ import {
   createClientScenario,
   updateClientScenario,
   updateClientScenarioWithVersion,
+  updateScenarioVersionNote,
+  deleteScenarioVersion,
+  updateScenarioVersionSnapshot,
   deleteClientScenario,
   AccountingClientRecord,
   ClientSavedScenarioRecord,
@@ -109,8 +112,19 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   const [saveDest, setSaveDest] = useState<'nova' | 'atualizar'>('nova')
   const [targetScenarioId, setTargetScenarioId] = useState<string>('')
   const [versionNote, setVersionNote] = useState<string>('')
-  // Histórico: subpasta de versões expandida por cenário
+  // Histórico: subpasta de versões expanda por cenário
   const [expandedVersions, setExpandedVersions] = useState<Set<string>>(new Set())
+  // CEO 02/10: gestão de versões — editar nota inline / excluir / atualizar
+  const [editingVersion, setEditingVersion] = useState<{ id: string; n: number } | null>(null)
+  const [editingVersionNote, setEditingVersionNote] = useState<string>('')
+  const [isSavingVersionNote, setIsSavingVersionNote] = useState<boolean>(false)
+  const [confirmDeleteVersion, setConfirmDeleteVersion] = useState<{
+    id: string
+    name: string
+    n: number
+  } | null>(null)
+  const [isDeletingVersion, setIsDeletingVersion] = useState<boolean>(false)
+  const [updatingVersionN, setUpdatingVersionN] = useState<number | null>(null)
 
   // Listagem de cenários
   const [scenarios, setScenarios] = useState<ClientSavedScenarioRecord[]>([])
@@ -384,6 +398,77 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     } catch (err) {
       console.error('Erro ao restaurar versão:', err)
       showFeedback('error', 'Não foi possível restaurar esta versão.')
+    }
+  }
+
+  // CEO 02/10 — EDITAR nota da versão (inline)
+  const handleStartEditVersionNote = (id: string, n: number, currentNote: string) => {
+    setEditingVersion({ id, n })
+    setEditingVersionNote(currentNote)
+  }
+
+  const handleCancelEditVersionNote = () => {
+    setEditingVersion(null)
+    setEditingVersionNote('')
+  }
+
+  const handleSaveVersionNote = async () => {
+    if (!editingVersion) return
+    const { id, n } = editingVersion
+    if (!editingVersionNote.trim()) {
+      showFeedback('error', 'A nota da versão não pode ficar em branco.')
+      return
+    }
+    setIsSavingVersionNote(true)
+    try {
+      const updated = await updateScenarioVersionNote(id, n, editingVersionNote)
+      setScenarios((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+      setEditingVersion(null)
+      setEditingVersionNote('')
+      showFeedback('success', `Nota da versão v${n} atualizada!`)
+    } catch (err) {
+      console.error('Erro ao editar nota da versão:', err)
+      showFeedback('error', 'Não foi possível editar a nota da versão.')
+    } finally {
+      setIsSavingVersionNote(false)
+    }
+  }
+
+  // CEO 02/10 — EXCLUIR versão do histórico (com confirmação)
+  const handleConfirmDeleteVersion = async () => {
+    if (!confirmDeleteVersion) return
+    const { id, n, name } = confirmDeleteVersion
+    setIsDeletingVersion(true)
+    try {
+      const updated = await deleteScenarioVersion(id, n)
+      setScenarios((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+      showFeedback('success', `Versão v${n} de "${name}" excluída do histórico.`)
+      setConfirmDeleteVersion(null)
+    } catch (err) {
+      console.error('Erro ao excluir versão:', err)
+      showFeedback('error', 'Não foi possível excluir a versão.')
+    } finally {
+      setIsDeletingVersion(false)
+    }
+  }
+
+  // CEO 02/10 — ATUALIZAR versão: grava o ESTADO ATUAL das telas no snapshot DAQUELA
+  // versão do histórico (corrigir o conteúdo de v2 sem criar v3). O ativo não muda.
+  const handleUpdateVersion = async (sc: ClientSavedScenarioRecord, n: number) => {
+    setUpdatingVersionN(n)
+    try {
+      const snapshot = getSnapshot()
+      const updated = await updateScenarioVersionSnapshot({ id: sc.id, n, snapshot })
+      setScenarios((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+      showFeedback(
+        'success',
+        `✅ VERSÃO v${n} de "${sc.name}" ATUALIZADA E SALVA com o estado atual das telas!`,
+      )
+    } catch (err) {
+      console.error('Erro ao atualizar versão:', err)
+      showFeedback('error', 'Não foi possível atualizar a versão.')
+    } finally {
+      setUpdatingVersionN(null)
     }
   }
 
@@ -1235,6 +1320,62 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         </Dialog>
 
         {/* ============================================================ */}
+        {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE VERSÃO (CEO, 02/10) */}
+        {/* ============================================================ */}
+        <Dialog
+          open={Boolean(confirmDeleteVersion)}
+          onOpenChange={(open) => !open && setConfirmDeleteVersion(null)}
+        >
+          <DialogContent className="max-w-md bg-[#07130f] border border-rose-500/40 text-slate-100 shadow-2xl p-5">
+            <DialogHeader className="space-y-2">
+              <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-300 shrink-0">
+                  <History className="w-4 h-4" />
+                </div>
+                <span>Excluir Versão v{confirmDeleteVersion?.n}?</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-300 leading-relaxed">
+                A versão <strong className="text-white">v{confirmDeleteVersion?.n}</strong> de{' '}
+                <strong className="text-white">"{confirmDeleteVersion?.name}"</strong> será removida
+                do histórico. As demais versões e o cenário ativo não são afetados. Esta ação não
+                poderá ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-800">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmDeleteVersion(null)}
+                className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={isDeletingVersion}
+                onClick={handleConfirmDeleteVersion}
+                className="text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold cursor-pointer"
+              >
+                {isDeletingVersion ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    <span>Excluindo versão...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    <span>Confirmar Exclusão</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ============================================================ */}
         {/* ABA 2: LISTA DE CENÁRIOS SALVOS / RESTAURAÇÃO / EXCLUSÃO */}
         {/* ============================================================ */}
         {activeTab !== scope && (
@@ -1486,9 +1627,56 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                                                       >
                                                         v{v.n}
                                                       </span>
-                                                      <span className="text-[10px] text-slate-300 flex-1 min-w-0 truncate">
-                                                        {v.note}
-                                                      </span>
+                                                      {editingVersion?.id === sc.id &&
+                                                      editingVersion?.n === v.n ? (
+                                                        <span className="flex-1 flex items-center gap-1 min-w-0">
+                                                          <Input
+                                                            type="text"
+                                                            value={editingVersionNote}
+                                                            onChange={(e) =>
+                                                              setEditingVersionNote(e.target.value)
+                                                            }
+                                                            onKeyDown={(e) => {
+                                                              if (e.key === 'Enter') {
+                                                                e.preventDefault()
+                                                                handleSaveVersionNote()
+                                                              } else if (e.key === 'Escape') {
+                                                                handleCancelEditVersionNote()
+                                                              }
+                                                            }}
+                                                            autoFocus
+                                                            className="h-6 text-[10px] bg-slate-900 border-emerald-500/60 text-white font-mono flex-1 min-w-0"
+                                                          />
+                                                          <button
+                                                            type="button"
+                                                            onClick={handleSaveVersionNote}
+                                                            disabled={
+                                                              isSavingVersionNote ||
+                                                              !editingVersionNote.trim()
+                                                            }
+                                                            className="text-[9px] font-mono text-emerald-400 hover:text-emerald-300 cursor-pointer shrink-0 disabled:opacity-40"
+                                                            title="Salvar nota"
+                                                          >
+                                                            {isSavingVersionNote ? (
+                                                              <Loader2 className="w-3 h-3 animate-spin" />
+                                                            ) : (
+                                                              <Check className="w-3 h-3" />
+                                                            )}
+                                                          </button>
+                                                          <button
+                                                            type="button"
+                                                            onClick={handleCancelEditVersionNote}
+                                                            className="text-[9px] font-mono text-slate-400 hover:text-white cursor-pointer shrink-0"
+                                                            title="Cancelar"
+                                                          >
+                                                            <X className="w-3 h-3" />
+                                                          </button>
+                                                        </span>
+                                                      ) : (
+                                                        <span className="text-[10px] text-slate-300 flex-1 min-w-0 truncate">
+                                                          {v.note}
+                                                        </span>
+                                                      )}
                                                       <span className="text-[9px] font-mono text-slate-500 shrink-0">
                                                         {v.at
                                                           ? new Date(v.at).toLocaleDateString(
@@ -1507,6 +1695,49 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                                                         title="Restaurar esta versão"
                                                       >
                                                         Restaurar
+                                                      </button>
+                                                      {/* CEO 02/10: gestão da versão —
+                                                          Atualizar · Editar nota · Excluir */}
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => handleUpdateVersion(sc, v.n)}
+                                                        disabled={updatingVersionN !== null}
+                                                        className="text-[9px] font-mono text-sky-400 hover:text-sky-300 border border-sky-500/40 rounded px-1.5 py-0.5 cursor-pointer shrink-0 disabled:opacity-40"
+                                                        title="Sobrescrever esta versão com o estado ATUAL das telas (sem criar versão nova)"
+                                                      >
+                                                        {updatingVersionN === v.n
+                                                          ? 'Salvando...'
+                                                          : 'Atualizar'}
+                                                      </button>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                          handleStartEditVersionNote(
+                                                            sc.id,
+                                                            v.n,
+                                                            v.note,
+                                                          )
+                                                        }
+                                                        className="text-[9px] font-mono text-slate-400 hover:text-emerald-300 border border-slate-700 rounded px-1.5 py-0.5 cursor-pointer shrink-0"
+                                                        title="Editar a nota desta versão"
+                                                      >
+                                                        <Pencil className="w-2.5 h-2.5 inline" />{' '}
+                                                        Editar
+                                                      </button>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                          setConfirmDeleteVersion({
+                                                            id: sc.id,
+                                                            name: sc.name,
+                                                            n: v.n,
+                                                          })
+                                                        }
+                                                        className="text-[9px] font-mono text-rose-400 hover:text-rose-300 border border-rose-500/40 rounded px-1.5 py-0.5 cursor-pointer shrink-0"
+                                                        title="Excluir esta versão do histórico"
+                                                      >
+                                                        <Trash2 className="w-2.5 h-2.5 inline" />{' '}
+                                                        Excluir
                                                       </button>
                                                     </div>
                                                   )

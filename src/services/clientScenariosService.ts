@@ -569,6 +569,163 @@ export async function updateClientScenarioWithVersion(params: {
   return result!
 }
 
+// CEO 02/10: GESTÃO DE VERSÕES NA SUBPASTA — editar nota, deletar versão e
+// atualizar versão (sobrescreve o snapshot DAQUELA versão, nunca o ativo).
+// Todas operam no array versions[] do registro (nuvem + espelho local).
+
+/** Edita a nota de uma versão existente do histórico. */
+export async function updateScenarioVersionNote(
+  id: string,
+  n: number,
+  note: string,
+): Promise<ClientSavedScenarioRecord> {
+  const clean = note.trim()
+  const applyLocal = (list: ClientSavedScenarioRecord[]) =>
+    list.map((s) =>
+      s.id !== id
+        ? s
+        : {
+            ...s,
+            versions: (s.versions || []).map((v) => (v.n === n ? { ...v, note: clean } : v)),
+          },
+    )
+
+  if (!id.startsWith('scen-client-local-') && pb.authStore.isValid) {
+    try {
+      const current = await pb.collection('saved_scenarios').getOne(id)
+      let versions: ScenarioVersion[] = []
+      try {
+        const rawV = current.versions
+        if (rawV) {
+          const parsedV = typeof rawV === 'string' ? JSON.parse(rawV) : rawV
+          if (Array.isArray(parsedV)) versions = parsedV
+        }
+      } catch {
+        versions = []
+      }
+      const nextVersions = versions.map((v) => (v.n === n ? { ...v, note: clean } : v))
+      const record = await pb.collection('saved_scenarios').update(
+        id,
+        { versions: nextVersions },
+        {
+          expand: 'client',
+        },
+      )
+      return formatScenarioRecord(record)
+    } catch (err) {
+      console.warn('Erro ao editar nota da versão no PocketBase, tentando localmente:', err)
+    }
+  }
+
+  const localList = applyLocal(getLocalClientScenarios())
+  saveLocalClientScenarios(localList)
+  const updated = localList.find((s) => s.id === id)
+  if (!updated) throw new Error('Cenário não encontrado para editar a versão.')
+  return updated
+}
+
+/** Exclui uma versão do histórico (a v1 original pode ser excluída como qualquer outra). */
+export async function deleteScenarioVersion(
+  id: string,
+  n: number,
+): Promise<ClientSavedScenarioRecord> {
+  const applyLocal = (list: ClientSavedScenarioRecord[]) =>
+    list.map((s) =>
+      s.id !== id ? s : { ...s, versions: (s.versions || []).filter((v) => v.n !== n) },
+    )
+
+  if (!id.startsWith('scen-client-local-') && pb.authStore.isValid) {
+    try {
+      const current = await pb.collection('saved_scenarios').getOne(id)
+      let versions: ScenarioVersion[] = []
+      try {
+        const rawV = current.versions
+        if (rawV) {
+          const parsedV = typeof rawV === 'string' ? JSON.parse(rawV) : rawV
+          if (Array.isArray(parsedV)) versions = parsedV
+        }
+      } catch {
+        versions = []
+      }
+      const nextVersions = versions.filter((v) => v.n !== n)
+      const record = await pb.collection('saved_scenarios').update(
+        id,
+        { versions: nextVersions },
+        {
+          expand: 'client',
+        },
+      )
+      return formatScenarioRecord(record)
+    } catch (err) {
+      console.warn('Erro ao excluir versão no PocketBase, tentando localmente:', err)
+    }
+  }
+
+  const localList = applyLocal(getLocalClientScenarios())
+  saveLocalClientScenarios(localList)
+  const updated = localList.find((s) => s.id === id)
+  if (!updated) throw new Error('Cenário não encontrado para excluir a versão.')
+  return updated
+}
+
+/** Atualiza uma versão existente: sobrescreve o snapshot DAQUELA versão no histórico
+ *  (uso: corrigir o conteúdo de v2 sem criar v3). O snapshot ATIVO do cenário não muda. */
+export async function updateScenarioVersionSnapshot(params: {
+  id: string
+  n: number
+  snapshot: TaxStateSnapshot
+  note?: string
+}): Promise<ClientSavedScenarioRecord> {
+  const cleanSnapshot = sanitizeSnapshotForPersistence(params.snapshot)
+  const now = new Date().toISOString()
+  const applyLocal = (list: ClientSavedScenarioRecord[]) =>
+    list.map((s) =>
+      s.id !== id
+        ? s
+        : {
+            ...s,
+            versions: (s.versions || []).map((v) =>
+              v.n === params.n
+                ? { ...v, snapshot: cleanSnapshot, at: now, note: params.note?.trim() || v.note }
+                : v,
+            ),
+          },
+    )
+
+  if (!params.id.startsWith('scen-client-local-') && pb.authStore.isValid) {
+    try {
+      const current = await pb.collection('saved_scenarios').getOne(params.id)
+      let versions: ScenarioVersion[] = []
+      try {
+        const rawV = current.versions
+        if (rawV) {
+          const parsedV = typeof rawV === 'string' ? JSON.parse(rawV) : rawV
+          if (Array.isArray(parsedV)) versions = parsedV
+        }
+      } catch {
+        versions = []
+      }
+      const nextVersions = versions.map((v) =>
+        v.n === params.n
+          ? { ...v, snapshot: cleanSnapshot, at: now, note: params.note?.trim() || v.note }
+          : v,
+      )
+      const record = await pb
+        .collection('saved_scenarios')
+        .update(params.id, { versions: nextVersions }, { expand: 'client' })
+      return formatScenarioRecord(record)
+    } catch (err) {
+      console.warn('Erro ao atualizar versão no PocketBase, tentando localmente:', err)
+    }
+  }
+
+  const localList = applyLocal(getLocalClientScenarios())
+  saveLocalClientScenarios(localList)
+  const updated = localList.find((s) => s.id === params.id)
+  if (!updated) throw new Error('Cenário não encontrado para atualizar a versão.')
+  return updated
+}
+
 export async function deleteClientScenario(id: string): Promise<boolean> {
   const localList = getLocalClientScenarios()
   const filtered = localList.filter((s) => s.id !== id)
