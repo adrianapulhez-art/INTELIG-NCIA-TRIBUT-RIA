@@ -886,53 +886,9 @@ export function computeExercicioArt12(
       })
     }
     if (fornecedorSNHib) {
-      // CLAREZA NA APRESENTAÇÃO (CEO, 01/10): CBS e IBS em LINHAS SEPARADAS,
-      // cada uma com a própria conta — nunca unificadas.
-      lines.push({
-        key: 'cbs_snhib',
-        label: '(+) CBS destacada por fora (fornecedor SN híbrido)',
-        formula: `${fmt(row.cbsRate)}% × ${fmt(baseIbsCbsRef)} = ${fmt(cbsSNHib)} — base sem o ICMS incidente (DAS)`,
-        value: cbsSNHib,
-        kind: 'debito',
-        bloco: 1,
-        fundamento: {
-          dispositivo: 'LC 214/2025, art. 41, §3º + art. 12, §2º, V',
-          efeito:
-            'regime regular de IBS/CBS no Simples: CBS destacada por fora na nota (art. 41) — o crédito do adquirente depende do regime DELE (art. 47)',
-          validade: 'condicionada',
-          nota: 'CRITÉRIO IT v2 (chancelado pela CEO em 01/10): base sem o ICMS INCIDENTE na operação — fração do DAS informada no documento fiscal (art. 23, §2º).',
-        },
-      })
-      lines.push({
-        key: 'ibs_snhib',
-        label: '(+) IBS destacado por fora (fornecedor SN híbrido)',
-        formula: `${fmt(row.ibsRate)}% × ${fmt(baseIbsCbsRef)} = ${fmt(ibsSNHib)} — mesma base da CBS`,
-        value: ibsSNHib,
-        kind: 'debito',
-        bloco: 1,
-        fundamento: {
-          dispositivo: 'LC 214/2025, art. 41, §3º + art. 12, §2º, V',
-          efeito: 'IBS destacado por fora na nota — partilha estadual/municipal',
-          validade: 'condicionada',
-        },
-      })
-    } else {
-      lines.push({
-        key: 'cbsibs',
-        label: 'CBS/IBS — sem destaque (fornecedor SN)',
-        formula: 'nota do Simples Nacional não destaca CBS/IBS',
-        value: 0,
-        kind: 'nota',
-        bloco: 1,
-        fundamento: {
-          dispositivo: 'LC 123/2006 (regime próprio do SN)',
-          efeito: 'sem destaque → sem crédito e sem acréscimo ao custo',
-          validade: 'condicionada',
-          nota: 'Congelamento da nota: hipótese da cadeia SN — validar na prática de mercado.',
-        },
-      })
-    }
-    if (fornecedorSNHib) {
+      // ORDEM DA APURAÇÃO (CEO, 01/10): 1º retira o ICMS da base → 2º apresenta a base
+      // limpa → 3º calcula CBS → 4º calcula IBS → 5º preço da nota. CBS/IBS em linhas
+      // separadas (nunca unificadas) e DEPOIS da base.
       lines.push({
         key: 'snhib_icms_das',
         label: '(−) ICMS incidente na operação (fração do DAS — segue no regime único)',
@@ -959,6 +915,49 @@ export function computeExercicioArt12(
           dispositivo: 'LC 214/2025, art. 12, §2º, V (montante INCIDENTE na operação fora da base)',
           efeito: 'base do destaque por fora do fornecedor SN híbrido',
           validade: 'condicionada',
+        },
+      })
+      lines.push({
+        key: 'cbs_snhib',
+        label: '(+) CBS destacada por fora (fornecedor SN híbrido)',
+        formula: `${fmt(row.cbsRate)}% × ${fmt(baseIbsCbsRef)} = ${fmt(cbsSNHib)} — sobre a base limpa`,
+        value: cbsSNHib,
+        kind: 'debito',
+        bloco: 1,
+        fundamento: {
+          dispositivo: 'LC 214/2025, art. 41, §3º + art. 12, §2º, V',
+          efeito:
+            'regime regular de IBS/CBS no Simples: CBS destacada por fora na nota (art. 41) — o crédito do adquirente depende do regime DELE (art. 47)',
+          validade: 'condicionada',
+          nota: 'CRITÉRIO IT v2 (chancelado pela CEO em 01/10): base sem o ICMS INCIDENTE na operação — fração do DAS informada no documento fiscal (art. 23, §2º).',
+        },
+      })
+      lines.push({
+        key: 'ibs_snhib',
+        label: '(+) IBS destacado por fora (fornecedor SN híbrido)',
+        formula: `${fmt(row.ibsRate)}% × ${fmt(baseIbsCbsRef)} = ${fmt(ibsSNHib)} — sobre a base limpa`,
+        value: ibsSNHib,
+        kind: 'debito',
+        bloco: 1,
+        fundamento: {
+          dispositivo: 'LC 214/2025, art. 41, §3º + art. 12, §2º, V',
+          efeito: 'IBS destacado por fora na nota — partilha estadual/municipal',
+          validade: 'condicionada',
+        },
+      })
+    } else {
+      lines.push({
+        key: 'cbsibs',
+        label: 'CBS/IBS — sem destaque (fornecedor SN)',
+        formula: 'nota do Simples Nacional não destaca CBS/IBS',
+        value: 0,
+        kind: 'nota',
+        bloco: 1,
+        fundamento: {
+          dispositivo: 'LC 123/2006 (regime próprio do SN)',
+          efeito: 'sem destaque → sem crédito e sem acréscimo ao custo',
+          validade: 'condicionada',
+          nota: 'Congelamento da nota: hipótese da cadeia SN — validar na prática de mercado.',
         },
       })
     }
