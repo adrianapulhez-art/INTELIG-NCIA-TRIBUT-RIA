@@ -782,17 +782,23 @@ export function computeExercicioArt12(
   const cbsV = r2(baseLimpa * (row.cbsRate / 100))
   const ibsV = r2(baseLimpa * (row.ibsRate / 100))
   if (fornecedorSN || fornecedorSNHib) {
-    // ---- FORNECEDOR SN (padrão OU híbrido): nota congelada (LC 123/2006) ----
-    // Híbrido (LC 214/2025 art. 41 + Res. CGSN 186/2026): IBS/CBS saem do DAS e
-    // são destacados POR FORA na nota — premissa IT chancelada pela CEO (23/09):
-    // base do IBS/CBS = valor da operação SEM ICMS embutido (baseSemIcmsRef).
-    const cbsSNHib = fornecedorSNHib ? r2(baseSemIcmsRef * (row.cbsRate / 100)) : 0
-    const ibsSNHib = fornecedorSNHib ? r2(baseSemIcmsRef * (row.ibsRate / 100)) : 0
+    // ---- FORNECEDOR SN (padrão OU híbrido) — CRITÉRIO IT v2 (chancela CEO, 01/10) ----
+    // Base do IBS/CBS (LC 214/2025, art. 12, §2º, V): exclui o montante do ICMS
+    // INCIDENTE NA OPERAÇÃO — para o optante, a fração do DAS (alíquota efetiva ×
+    // fração do anexo; art. 23, §2º: percentual informado no documento fiscal), NÃO a
+    // alíquota cheia do regime regular. O ICMS do optante não deixa de existir no
+    // híbrido — só IBS/CBS saem do DAS (art. 41, §3º). Crédito do adquirente pleno
+    // (art. 23, §1º, redação LC 214/25 art. 517): montante equivalente ao cobrado no
+    // regime único = ICMS do DAS + destaque integral de CBS/IBS (art. 47, §2º).
+    const pSN = config.perfilFornecedorSN ?? PERFIL_SN_PADRAO
+    const icmsDasRef = r2(bruto * (pSN.efetivaPct / 100) * (pSN.icmsFracPct / 100))
+    const baseIbsCbsRef = r2(bruto - icmsDasRef)
+    const cbsSNHib = fornecedorSNHib ? r2(baseIbsCbsRef * (row.cbsRate / 100)) : 0
+    const ibsSNHib = fornecedorSNHib ? r2(baseIbsCbsRef * (row.ibsRate / 100)) : 0
     if (fornecedorSN) {
       // ---- LÓGICA DO SN PURO (apresentação da memória — NÃO altera custos) ----
       // A nota do optante é preço de tabela com tributos POR DENTRO (DAS sobre a receita
       // bruta — LC 123/2006, art. 3º, §12º + Anexo XX na redação da LC 214/2025).
-      const pSN = config.perfilFornecedorSN ?? PERFIL_SN_PADRAO
       const cbsFracPct = r2(100 - pSN.icmsFracPct)
       const dasEfetivo = r2(bruto * (pSN.efetivaPct / 100))
       const dasIcms = r2(dasEfetivo * (pSN.icmsFracPct / 100))
@@ -873,7 +879,7 @@ export function computeExercicioArt12(
         ? '(+) CBS/IBS destacados por fora (fornecedor SN híbrido)'
         : 'CBS/IBS — sem destaque (fornecedor SN)',
       formula: fornecedorSNHib
-        ? `${fmt(row.cbsRate)}% × ${fmt(baseSemIcmsRef)} = ${fmt(cbsSNHib)} + ${fmt(row.ibsRate)}% × ${fmt(baseSemIcmsRef)} = ${fmt(ibsSNHib)} — base sem ICMS`
+        ? `${fmt(row.cbsRate)}% × ${fmt(baseIbsCbsRef)} = ${fmt(cbsSNHib)} + ${fmt(row.ibsRate)}% × ${fmt(baseIbsCbsRef)} = ${fmt(ibsSNHib)} — base sem o ICMS incidente (DAS)`
         : 'nota do Simples Nacional não destaca CBS/IBS',
       value: r2(cbsSNHib + ibsSNHib),
       kind: fornecedorSNHib ? 'debito' : 'nota',
@@ -887,35 +893,35 @@ export function computeExercicioArt12(
           : 'sem destaque → sem crédito e sem acréscimo ao custo',
         validade: fornecedorSNHib ? 'condicionada' : 'condicionada',
         nota: fornecedorSNHib
-          ? 'CRITÉRIO IT (chancelado pela CEO em 23/09): base do IBS/CBS sem ICMS embutido — pendente de regulamentação detalhada. Demais tributos seguem no DAS.'
+          ? 'CRITÉRIO IT v2 (chancelado pela CEO em 01/10): base do IBS/CBS sem o ICMS INCIDENTE na operação — fração do DAS informada no documento fiscal (art. 23, §2º). Demais tributos seguem no DAS.'
           : 'Congelamento da nota: hipótese da cadeia SN — validar na prática de mercado.',
       },
     })
     if (fornecedorSNHib) {
       lines.push({
         key: 'snhib_icms_das',
-        label: '(−) ICMS embutido no preço (segue no DAS — não é destacado)',
-        formula: `${fmt(mercReal)} × ${fmt(input.icmsRate)}% + ${fmt(freteReal)} × ${fmt(input.icmsFreightRate)}% = ${fmt(r2(icmsMercRef + icmsFreteRef))}`,
-        value: -r2(icmsMercRef + icmsFreteRef),
+        label: '(−) ICMS incidente na operação (fração do DAS — segue no regime único)',
+        formula: `${fmt(bruto)} × ${fmt(pSN.efetivaPct)}% × ${fmt(pSN.icmsFracPct)}% = ${fmt(icmsDasRef)} — alíquota efetiva × fração do anexo (art. 23, §2º: informada no documento fiscal)`,
+        value: -icmsDasRef,
         kind: 'debito',
         bloco: 1,
         fundamento: {
-          dispositivo: 'LC 214/2025, art. 41 + LC 123/2006',
+          dispositivo: 'LC 214/2025, art. 12, §2º, V + LC 123/2006, art. 23, §2º',
           efeito:
-            'no SN híbrido só IBS/CBS saem do DAS — ICMS (e demais tributos) seguem no regime único, por dentro do preço',
+            'o ICMS incidente na operação do optante é a fração do DAS — o híbrido não usa a alíquota cheia do regime regular para o ICMS (art. 41, §3º: a opção alcança só IBS/CBS)',
           validade: 'condicionada',
-          nota: 'Por não haver destaque de ICMS na nota, o adquirente pleno NÃO credita ICMS nessa operação.',
+          nota: 'O ICMS do optante não deixa de existir no híbrido — segue no DAS, por dentro.',
         },
       })
       lines.push({
         key: 'snhib_base_it',
-        label: '(=) Base do IBS/CBS — sem ICMS embutido',
-        formula: `${fmt(bruto)} − ICMS ${fmt(r2(icmsMercRef + icmsFreteRef))} = ${fmt(baseSemIcmsRef)} — CRITÉRIO IT (chancelado pela CEO, 23/09), pendente de regulamentação`,
-        value: baseSemIcmsRef,
+        label: '(=) Base do IBS/CBS — sem o ICMS incidente',
+        formula: `${fmt(bruto)} − ICMS do DAS ${fmt(icmsDasRef)} = ${fmt(baseIbsCbsRef)} — CRITÉRIO IT v2 (chancelado pela CEO, 01/10)`,
+        value: baseIbsCbsRef,
         kind: 'nota',
         bloco: 1,
         fundamento: {
-          dispositivo: 'LC 214/2025, art. 12, §2º, V (ICMS fora da base do IBS/CBS) + critério IT',
+          dispositivo: 'LC 214/2025, art. 12, §2º, V (montante INCIDENTE na operação fora da base)',
           efeito: 'base do destaque por fora do fornecedor SN híbrido',
           validade: 'condicionada',
         },
@@ -938,14 +944,123 @@ export function computeExercicioArt12(
         },
       })
     }
-    // Fornecedor SN (padrão ou híbrido): nota congelada — bloco 2 = bruto direto (+ CBS/IBS se híbrido)
-    // Créditos do comprador: só IBS/CBS destacados (LC 214 art. 47) — e só quem apura no
-    // regime regular (pleno ou SN híbrido). SN padrão não credita.
-    const creditosSN = fornecedorSNHib && !compradorSN ? r2(cbsSNHib + ibsSNHib) : 0
-    const liquidoSN = r2(bruto + cbsSNHib + ibsSNHib - creditosSN)
+    // ==================== BLOCO 2 — CUSTO DA AQUISIÇÃO (CRITÉRIO IT v2) ====================
+    // Fornecedor SN: nota congelada (+ CBS/IBS por fora no híbrido). Créditos do
+    // adquirente: destaque integral de CBS/IBS (art. 47, §2º) para quem apura no regime
+    // regular (pleno ou SN híbrido) + ICMS PROPORCIONAL do art. 23, §1º (montante
+    // equivalente ao cobrado no regime único) para adquirente NÃO optante. SN puro não
+    // credita nada (art. 47, §9º, I + art. 23: benefício do não optante).
+    const notaSN = r2(bruto + cbsSNHib + ibsSNHib)
+    lines.push({
+      key: 'bruto_nota',
+      label: 'Valor bruto da nota',
+      formula: fornecedorSNHib
+        ? `${fmt(bruto)} (congelada) + CBS/IBS ${fmt(r2(cbsSNHib + ibsSNHib))} (por fora)`
+        : `${fmt(bruto)} — nota congelada, sem destaque`,
+      value: notaSN,
+      kind: 'bruto',
+      bloco: 2,
+      fundamento: {
+        dispositivo: 'LC 214/2025, art. 12, caput + art. 41',
+        efeito: 'valor da operação pago pelo comprador',
+        validade: 'integral',
+      },
+    })
+    let creditosSN = 0
+    if (fornecedorSNHib && !compradorSN) {
+      lines.push({
+        key: 'creditocbs',
+        label: '(−) Crédito CBS do adquirente',
+        formula: `${fmt(cbsSNHib)} (débito destacado na nota do fornecedor)`,
+        value: -cbsSNHib,
+        kind: 'credito',
+        bloco: 2,
+        fundamento: {
+          dispositivo: 'LC 214/2025, art. 47, §2º',
+          efeito: 'crédito do adquirente = débito destacado no documento fiscal',
+          validade: 'integral',
+        },
+      })
+      lines.push({
+        key: 'creditoibs',
+        label: '(−) Crédito IBS do adquirente',
+        formula: `${fmt(ibsSNHib)} (débito destacado na nota do fornecedor)`,
+        value: -ibsSNHib,
+        kind: 'credito',
+        bloco: 2,
+        fundamento: {
+          dispositivo: 'LC 214/2025, art. 47, §2º',
+          efeito: 'crédito do adquirente = débito destacado no documento fiscal',
+          validade: 'integral',
+        },
+      })
+      creditosSN = r2(cbsSNHib + ibsSNHib)
+    }
+    if (fornecedorSNHib && !compradorSN && !compradorSNHib) {
+      // Adquirente PLENO comprando do híbrido: art. 23, §1º — crédito proporcional do ICMS
+      lines.push({
+        key: 'creditoicms_snhib',
+        label: '(−) Crédito ICMS proporcional (art. 23 — montante cobrado no regime único)',
+        formula: `${fmt(bruto)} × ${fmt(pSN.efetivaPct)}% × ${fmt(pSN.icmsFracPct)}% = ${fmt(icmsDasRef)}`,
+        value: -icmsDasRef,
+        kind: 'credito',
+        bloco: 2,
+        fundamento: {
+          dispositivo: 'LC 123/2006, art. 23, §1º (redação LC 214/2025, art. 517)',
+          efeito: 'crédito em montante equivalente ao cobrado por meio do regime único',
+          validade: 'integral',
+        },
+      })
+      creditosSN = r2(creditosSN + icmsDasRef)
+    }
+    if (compradorSN) {
+      lines.push({
+        key: 'semcredito_sn',
+        label: 'Créditos — sem direito (comprador SN)',
+        formula:
+          'optante não apropria crédito (art. 47, §9º, I + art. 23: benefício do não optante)',
+        value: 0,
+        kind: 'nota',
+        bloco: 2,
+        fundamento: {
+          dispositivo: 'LC 214/2025, art. 47, §9º, I + LC 123/2006, art. 23',
+          efeito: 'absorve integralmente o valor da nota',
+          validade: 'integral',
+        },
+      })
+    }
+    const liquidoSN = r2(notaSN - creditosSN)
+    lines.push({
+      key: 'comprasliquidas',
+      label: '(=) Compras líquidas',
+      formula: `${fmt(notaSN)} − créditos ${fmt(creditosSN)}`,
+      value: liquidoSN,
+      kind: 'nota',
+      bloco: 2,
+      subtotal: 'custo_unitario',
+      fundamento: {
+        dispositivo: 'LC 214/2025, art. 47',
+        efeito: 'custo da aquisição = nota − créditos do adquirente',
+        validade: 'integral',
+      },
+    })
+    lines.push({
+      key: 'custounitario',
+      label: '(÷) Custo unitário',
+      formula: `${fmt(liquidoSN)} ÷ ${fmtQtd(input.quantity)} un.`,
+      value: r2(liquidoSN / Math.max(1, input.quantity)),
+      kind: 'nota',
+      bloco: 2,
+      subtotal: 'custo_unitario',
+      fundamento: {
+        dispositivo: '—',
+        efeito: 'custo unitário do CMV no exercício',
+        validade: 'nao_aplicavel',
+      },
+    })
     return {
       lines,
-      bruto: r2(bruto + cbsSNHib + ibsSNHib),
+      bruto: notaSN,
       creditos: creditosSN,
       debitos: 0,
       baseLimpa: null,
