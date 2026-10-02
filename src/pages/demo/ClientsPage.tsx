@@ -636,9 +636,13 @@ export default function ClientsPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                disabled={isDeletingScenario}
+                                disabled={isDeletingClientScenario}
                                 onClick={() =>
-                                  setDeleteScenarioConfirm({ id: sc.id, name: sc.name })
+                                  setDeleteScenarioConfirm({
+                                    id: sc.id,
+                                    name: sc.name,
+                                    clientName: sc.clientName || sc.client || 'Cliente',
+                                  })
                                 }
                                 className="h-7 px-2.5 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/30 cursor-pointer shrink-0"
                                 title="Apagar este cenário permanentemente"
@@ -996,11 +1000,11 @@ export default function ClientsPage() {
               <Button
                 variant="destructive"
                 size="sm"
-                disabled={isDeletingScenario}
+                disabled={isDeletingClientScenario}
                 onClick={handleDeleteClientScenario}
                 className="bg-rose-600 hover:bg-rose-500 text-white font-semibold"
               >
-                {isDeletingScenario ? (
+                {isDeletingClientScenario ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   'Confirmar Exclusão'
