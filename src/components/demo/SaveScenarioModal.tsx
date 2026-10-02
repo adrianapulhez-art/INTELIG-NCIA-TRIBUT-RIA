@@ -87,9 +87,9 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   // Abas do modal — BOTÕES MATRIZ (CEO, 02/10): cada aba é uma MATRIZ por escopo
   // (compras · markup · despesas-operacionais); dentro dela, as simulações do escopo
   // como subpastas (gravar novo + atualizar existente + editar/restaurar/excluir)
-  const [activeTab, setActiveTab] = useState<'compras' | 'markup' | 'despesas-operacionais'>(
-    (initialTab === 'historico' ? 'compras' : 'compras') as 'compras',
-  )
+  const [activeTab, setActiveTab] = useState<
+    'compras' | 'markup' | 'despesas-operacionais' | 'gravar'
+  >('gravar')
 
   // Clientes
   const [clients, setClients] = useState<AccountingClientRecord[]>([])
@@ -232,7 +232,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     if (isOpen) {
       fetchClients()
       fetchScenarios()
-      setActiveTab('compras')
+      setActiveTab('gravar')
       setScenarioName(getDefaultScenarioName())
       setScenarioNotes('')
       setIsCreatingClientInline(false)
@@ -604,11 +604,13 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   }
 
   // Cenários filtrados
-  // MATRIZ (CEO, 02/10): a listagem mostra SÓ o escopo da matriz selecionada
+  // MATRIZ (CEO, 02/10): cada aba-matriz mostra SÓ o escopo dela, em subpastas.
+  // A aba 'gravar' (formulário) é acessada por botão próprio.
   const filteredScenarios = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
     return scenarios.filter((s) => {
-      const matchScope = (s.scope || 'despesas-operacionais') === activeTab
+      const matchScope =
+        activeTab === 'gravar' || (s.scope || 'despesas-operacionais') === activeTab
       const matchSearch =
         !q ||
         s.name.toLowerCase().includes(q) ||
@@ -711,8 +713,8 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         </DialogHeader>
 
         {/* BOTÕES MATRIZ (CEO, 02/10): um por escopo — Compras · Markup e Precificação ·
-            Despesas/Receitas Operacionais. Cada matriz abre as simulações do escopo
-            (subpastas) com edição, exclusão e restauração. */}
+            Despesas/Receitas Operacionais. CADA matriz abre a LISTA do escopo em subpastas
+            (com as ações por versão). O formulário de gravação fica no botão "+ Gravar novo". */}
         <div className="flex items-center gap-2 pt-2 border-b border-slate-800/80 overflow-x-auto">
           {(
             [
@@ -743,6 +745,19 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
               </button>
             )
           })}
+          {/* Formulário de gravação: botão próprio, sempre à direita das matrizes */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('gravar')}
+            className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ml-auto cursor-pointer ${
+              activeTab === 'gravar'
+                ? 'border-emerald-400 text-emerald-300'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>+ Gravar novo</span>
+          </button>
         </div>
 
         {/* Feedback Banner Interno */}
@@ -776,9 +791,9 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         )}
 
         {/* ============================================================ */}
-        {/* ABA 1: FORMULÁRIO DE GRAVAÇÃO COM SELETOR DE CLIENTE DO ESCRITÓRIO */}
+        {/* FORMULÁRIO DE GRAVAÇÃO (aba "+ Gravar novo") */}
         {/* ============================================================ */}
-        {activeTab === scope && (
+        {activeTab === 'gravar' && (
           <form onSubmit={handleSaveScenario} className="space-y-5 pt-2">
             {/* Bloco 1: Seleção e Criação Inline de Cliente */}
             <div className="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/25 space-y-3">
@@ -1376,9 +1391,9 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         </Dialog>
 
         {/* ============================================================ */}
-        {/* ABA 2: LISTA DE CENÁRIOS SALVOS / RESTAURAÇÃO / EXCLUSÃO */}
+        {/* LISTA EM SUBPASTAS — mostrada em TODAS as matrizes de escopo */}
         {/* ============================================================ */}
-        {activeTab !== scope && (
+        {activeTab !== 'gravar' && (
           <div className="space-y-4 pt-2">
             {/* Campo de Busca Rápida */}
             <div className="relative">
@@ -1418,7 +1433,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => setActiveTab(scope)}
+                  onClick={() => setActiveTab('gravar')}
                   className="h-7 text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" />
