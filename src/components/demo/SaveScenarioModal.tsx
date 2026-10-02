@@ -1666,22 +1666,6 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                               Restaurar
                             </Button>
 
-                            {/* CEO 02/10: ABRIR = memória de cálculo do salvamento
-                                  (a partir do snapshot da linha, read-only) */}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditingVersion({ id: sc.id, n: v?.n || 0 })
-                                setEditingVersionNote(v?.note || sc.notes || '')
-                              }}
-                              className="h-7 px-2 text-[11px] font-mono font-bold text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700 cursor-pointer"
-                              title="Editar a nota deste salvamento"
-                            >
-                              Editar
-                            </Button>
-
                             <Button
                               type="button"
                               variant="ghost"
