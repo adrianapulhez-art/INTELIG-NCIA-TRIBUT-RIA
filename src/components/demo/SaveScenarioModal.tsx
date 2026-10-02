@@ -1105,7 +1105,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                 ) : saveDest === 'atualizar' ? (
                   <>
                     <History className="w-3.5 h-3.5" />
-                    <span>Atualizar para nova versão</span>
+                    <span>Atualizar</span>
                   </>
                 ) : (
                   <>
