@@ -22,7 +22,11 @@ import {
 } from '@/components/ui/dialog'
 import { formatBRL } from '@/lib/taxCalculations'
 import { PageHero } from '@/components/demo/PageHero'
-import { listClientScenarios, ClientSavedScenarioRecord } from '@/services/clientScenariosService'
+import {
+  listClientScenarios,
+  deleteClientScenario,
+  ClientSavedScenarioRecord,
+} from '@/services/clientScenariosService'
 import {
   Users,
   Search,
@@ -209,6 +213,30 @@ export default function ClientsPage() {
   const [clientScenarios, setClientScenarios] = useState<ClientSavedScenarioRecord[]>([])
   const [isLoadingClientScenarios, setIsLoadingClientScenarios] = useState<boolean>(true)
   const [expandedClientFolders, setExpandedClientFolders] = useState<Set<string>>(new Set())
+  // CEO 02/10: APAGAR CENÁRIO ao lado do RESTAURAR nos cards do depósito
+  const [deleteScenarioConfirm, setDeleteScenarioConfirm] = useState<{
+    id: string
+    name: string
+    clientName: string
+  } | null>(null)
+  const [isDeletingClientScenario, setIsDeletingClientScenario] = useState<boolean>(false)
+
+  const handleDeleteClientScenario = async () => {
+    if (!deleteScenarioConfirm) return
+    const { id, name, clientName } = deleteScenarioConfirm
+    setIsDeletingClientScenario(true)
+    try {
+      await deleteClientScenario(id)
+      setClientScenarios((prev) => prev.filter((s) => s.id !== id))
+      showFeedback('success', `Cenário "${name}" do cliente ${clientName} apagado com sucesso.`)
+      setDeleteScenarioConfirm(null)
+    } catch (err: unknown) {
+      console.error('Erro ao apagar cenário do depósito:', err)
+      showFeedback('error', 'Falha ao apagar o cenário.')
+    } finally {
+      setIsDeletingClientScenario(false)
+    }
+  }
 
   const toggleClientFolder = (clientId: string) => {
     setExpandedClientFolders((prev) => {
@@ -217,6 +245,31 @@ export default function ClientsPage() {
       else next.add(clientId)
       return next
     })
+  }
+
+  // CEO 02/10: APAGAR CENÁRIO no depósito — confirmação própria (exclusão é
+  // irreversível) + remoção na nuvem e local via deleteClientScenario.
+  const [deleteScenarioConfirm, setDeleteScenarioConfirm] = useState<{
+    id: string
+    name: string
+  } | null>(null)
+  const [isDeletingScenario, setIsDeletingScenario] = useState<boolean>(false)
+
+  const handleDeleteClientScenario = async () => {
+    if (!deleteScenarioConfirm) return
+    const { id, name } = deleteScenarioConfirm
+    setIsDeletingScenario(true)
+    try {
+      await deleteClientScenario(id)
+      setClientScenarios((prev) => prev.filter((s) => s.id !== id))
+      showFeedback('success', `Cenário "${name}" apagado com sucesso.`)
+      setDeleteScenarioConfirm(null)
+    } catch (err) {
+      console.error('Erro ao apagar cenário:', err)
+      showFeedback('error', 'Não foi possível apagar o cenário.')
+    } finally {
+      setIsDeletingScenario(false)
+    }
   }
 
   const fetchClientScenarios = useCallback(async () => {
@@ -604,6 +657,21 @@ export default function ClientsPage() {
                                 <RotateCcw className="w-3 h-3 mr-1" />
                                 Restaurar
                               </Button>
+
+                              {/* CEO 02/10: APAGAR CENÁRIO ao lado do Restaurar */}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={isDeletingScenario}
+                                onClick={() =>
+                                  setDeleteScenarioConfirm({ id: sc.id, name: sc.name })
+                                }
+                                className="h-7 px-2.5 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/30 cursor-pointer shrink-0"
+                                title="Apagar este cenário permanentemente"
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Apagar
+                              </Button>
                             </div>
                           )
                         })}
@@ -914,6 +982,51 @@ export default function ClientsPage() {
                 className="bg-rose-600 hover:bg-rose-500 text-white font-semibold"
               >
                 {isDeleting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  'Confirmar Exclusão'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ============================================================ */}
+        {/* DIÁLOGO: APAGAR CENÁRIO DO DEPÓSITO (CEO, 02/10) — saved_scenarios */}
+        {/* ============================================================ */}
+        <Dialog
+          open={Boolean(deleteScenarioConfirm)}
+          onOpenChange={(open) => !open && setDeleteScenarioConfirm(null)}
+        >
+          <DialogContent className="max-w-md bg-slate-950 border border-rose-500/40 text-slate-100 shadow-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-rose-400" />
+                Apagar Cenário do Depósito?
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-400">
+                Tem certeza de que deseja apagar permanentemente o cenário{' '}
+                <strong className="text-rose-300">"{deleteScenarioConfirm?.name}"</strong>? Esta
+                ação não poderá ser desfeita — todas as versões do histórico vão junto.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeleteScenarioConfirm(null)}
+                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={isDeletingScenario}
+                onClick={handleDeleteClientScenario}
+                className="bg-rose-600 hover:bg-rose-500 text-white font-semibold"
+              >
+                {isDeletingScenario ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   'Confirmar Exclusão'
