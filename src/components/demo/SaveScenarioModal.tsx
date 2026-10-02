@@ -289,8 +289,20 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     try {
       const snapshot = getSnapshot()
 
-      // F2 — ATUALIZAR simulação existente: empilha versão nova (nada é sobrescrito)
-      if (saveDest === 'atualizar' && targetScenarioId) {
+      // F2 — ATUALIZAR simulação existente: empilha versão nova (nada é sobrescrito).
+      // CEO 02/10 (ajuste 4): botão ATUALIZAR sempre ativo — campos faltantes viram
+      // feedback na tela, não botão desabilitado.
+      if (saveDest === 'atualizar') {
+        if (!targetScenarioId) {
+          setIsSavingScenario(false)
+          showFeedback('error', 'Escolha a simulação a atualizar antes de gravar.')
+          return
+        }
+        if (!versionNote.trim()) {
+          setIsSavingScenario(false)
+          showFeedback('error', 'Escreva a nota da versão — o que mudou nesta atualização.')
+          return
+        }
         const target = scenarios.find((s) => s.id === targetScenarioId)
         const result = await updateClientScenarioWithVersion({
           id: targetScenarioId,
@@ -1085,16 +1097,12 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                 Cancelar
               </Button>
 
+              {/* CEO 02/10 (ajuste 4): botão ATUALIZAR sempre ATIVO — a validação de
+                  campos faltantes vira feedback na tela, não botão desabilitado */}
               <Button
                 type="submit"
                 size="sm"
-                disabled={
-                  isSavingScenario ||
-                  !selectedClientId ||
-                  (saveDest === 'atualizar'
-                    ? !targetScenarioId || !versionNote.trim()
-                    : !scenarioName.trim())
-                }
+                disabled={isSavingScenario || !selectedClientId}
                 className="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
               >
                 {isSavingScenario ? (
