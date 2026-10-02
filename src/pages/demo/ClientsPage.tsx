@@ -636,7 +636,7 @@ export default function ClientsPage() {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                disabled={isDeletingClientScenario}
+                                disabled={isDeletingScenario}
                                 onClick={() =>
                                   setDeleteScenarioConfirm({
                                     id: sc.id,
@@ -1000,11 +1000,11 @@ export default function ClientsPage() {
               <Button
                 variant="destructive"
                 size="sm"
-                disabled={isDeletingClientScenario}
+                disabled={isDeletingScenario}
                 onClick={handleDeleteClientScenario}
                 className="bg-rose-600 hover:bg-rose-500 text-white font-semibold"
               >
-                {isDeletingClientScenario ? (
+                {isDeletingScenario ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   'Confirmar Exclusão'
