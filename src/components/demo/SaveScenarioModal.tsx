@@ -24,6 +24,7 @@ import {
   Search,
   ChevronRight,
   Sparkles,
+  FileText,
   Check,
   X,
   Undo2,
