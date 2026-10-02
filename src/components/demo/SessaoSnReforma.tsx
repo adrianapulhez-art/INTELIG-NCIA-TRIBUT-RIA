@@ -904,25 +904,35 @@ export function SessaoSnSection({
                   <CardMemoriaCanonical
                     titulo={`CARD 3º — CUSTO DO ADQUIRENTE COM AJUSTE PÓS-REFORMA (ART. 23) · ${itemAtivo.item.name || 'item'}`}
                     cor="orange"
-                    linhas={itemAtivo.puro.r.memoria
-                      .filter((l) =>
-                        [
-                          'credito_base',
-                          'credito_icms',
-                          'credito_cbs',
-                          'credito_ibs',
-                          'credito_total',
-                          'credito_unidade',
-                          'custoliquido',
-                          'custounitario',
-                        ].includes(l.key),
-                      )
-                      .map((l) => ({
-                        label: l.label,
-                        formula: l.formula,
-                        value: l.value,
-                        destaque: l.destaque,
-                      }))}
+                    linhas={[
+                      // HOJE DA COMBINAÇÃO (CEO, 02/10): crédito de 2026 = SÓ ICMS
+                      {
+                        label:
+                          '📌 HOJE (2026) comprando de fornecedor SN — crédito proporcional só de ICMS (redação original do art. 23)',
+                        formula: `${itemAtivo.puro.r.receitaBruta} − ${itemAtivo.puro.r.creditoHojeSN} = ${itemAtivo.puro.r.custoHojeSN}`,
+                        value: itemAtivo.puro.r.custoUnitarioHojeSN,
+                        destaque: true,
+                      },
+                      ...itemAtivo.puro.r.memoria
+                        .filter((l) =>
+                          [
+                            'credito_base',
+                            'credito_icms',
+                            'credito_cbs',
+                            'credito_ibs',
+                            'credito_total',
+                            'credito_unidade',
+                            'custoliquido',
+                            'custounitario',
+                          ].includes(l.key),
+                        )
+                        .map((l) => ({
+                          label: l.label,
+                          formula: l.formula,
+                          value: l.value,
+                          destaque: l.destaque,
+                        })),
+                    ]}
                   />
                 ) : (
                   <CardMemoriaCanonical
