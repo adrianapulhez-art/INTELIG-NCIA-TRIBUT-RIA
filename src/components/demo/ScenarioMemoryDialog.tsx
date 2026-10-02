@@ -16,6 +16,15 @@ import {
   calculatePurchaseItemGrossTotal,
   calculatePurchaseItemNetPurchases,
 } from '@/lib/taxCalculations'
+import { EXPENSE_CATEGORY_LABELS, REVENUE_CATEGORY_LABELS } from '@/data/operatingPresets'
+
+/** Item de despesa/receita operacional no snapshot (estrutura do TaxContext). */
+interface OperatingItemSnapshot {
+  id?: string
+  description?: string
+  value?: number
+  category?: string
+}
 
 /**
  * MODAL DE MEMÓRIA DE CÁLCULO DO SALVAMENTO (CEO, 02/10).
@@ -64,7 +73,12 @@ export const ScenarioMemoryDialog: React.FC<ScenarioMemoryDialogProps> = ({
   fallbackScope,
 }) => {
   const snap = (source?.snapshot || null) as
-    | (Record<string, unknown> & { purchasesItems?: PurchaseItem[]; regime?: string })
+    | (Record<string, unknown> & {
+        purchasesItems?: PurchaseItem[]
+        operatingExpenses?: OperatingItemSnapshot[]
+        operatingRevenues?: OperatingItemSnapshot[]
+        regime?: string
+      })
     | null
   const items: PurchaseItem[] = snap?.purchasesItems || []
   const regimeMem = (snap?.regime || fallbackScope || 'presumido') as
@@ -80,6 +94,21 @@ export const ScenarioMemoryDialog: React.FC<ScenarioMemoryDialogProps> = ({
   const scopeLabel = (
     source?.scope === 'compras' ? 'Compras' : source?.scope === 'markup' ? 'Markup' : 'Despesas'
   ).toUpperCase()
+
+  // CEO 02/10: ramo DESPESAS/RECEITAS — o snapshot grava o contexto inteiro, então o
+  // modal escolhe a memória pelo ESCOPO do cenário (nunca mostrar compras num cenário
+  // de despesas).
+  const isExpensesScope = source?.scope === 'despesas-operacionais'
+  const expenseItems: OperatingItemSnapshot[] = snap?.operatingExpenses || []
+  const revenueItems: OperatingItemSnapshot[] = snap?.operatingRevenues || []
+  const totalExpenses = expenseItems.reduce((acc, it) => acc + (it.value || 0), 0)
+  const totalRevenues = revenueItems.reduce((acc, it) => acc + (it.value || 0), 0)
+  const expCatLabel = (cat?: string) =>
+    EXPENSE_CATEGORY_LABELS[(cat as keyof typeof EXPENSE_CATEGORY_LABELS) || 'administrativas']
+      ?.label || 'Despesas Administrativas'
+  const revCatLabel = (cat?: string) =>
+    REVENUE_CATEGORY_LABELS[(cat as keyof typeof REVENUE_CATEGORY_LABELS) || 'outras']?.label ||
+    'Outras Receitas Operacionais'
 
   return (
     <Dialog open={Boolean(source)} onOpenChange={(open) => !open && onClose()}>
@@ -102,7 +131,107 @@ export const ScenarioMemoryDialog: React.FC<ScenarioMemoryDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        {items.length === 0 ? (
+        {isExpensesScope ? (
+          /* ============================================================ */
+          /* MEMÓRIA DE DESPESAS/RECEITAS OPERACIONAIS (CEO, 02/10)        */
+          /* ============================================================ */
+          expenseItems.length === 0 && revenueItems.length === 0 ? (
+            <div className="py-10 text-center space-y-2">
+              <FileText className="w-8 h-8 text-slate-600 mx-auto" />
+              <p className="text-xs text-slate-400 font-mono">
+                Este salvamento não contém despesas nem receitas no snapshot.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 pt-1">
+              {/* Despesas Operacionais */}
+              {expenseItems.length > 0 && (
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-white flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-rose-400" />
+                      Despesas Operacionais
+                    </span>
+                    <Badge className="bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-mono">
+                      {expenseItems.length} lançamento(s)
+                    </Badge>
+                  </div>
+                  <div className="space-y-1.5 font-mono text-[11px]">
+                    {expenseItems.map((it, idx) => (
+                      <div key={it.id || idx} className="flex items-center justify-between">
+                        <span className="text-rose-400">
+                          (−) {it.description || `Despesa ${idx + 1}`}{' '}
+                          <span className="text-slate-500 text-[10px]">
+                            ({expCatLabel(it.category)})
+                          </span>
+                        </span>
+                        <span className="text-rose-400 font-semibold">
+                          -{formatBRL(it.value || 0)}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t border-slate-700/80 flex items-center justify-between text-xs">
+                      <span className="font-bold text-rose-400">(=) Total de Despesas:</span>
+                      <span className="font-bold text-rose-400 text-sm">
+                        {formatBRL(totalExpenses)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Receitas Operacionais */}
+              {revenueItems.length > 0 && (
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-white flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                      Receitas Operacionais
+                    </span>
+                    <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono">
+                      {revenueItems.length} lançamento(s)
+                    </Badge>
+                  </div>
+                  <div className="space-y-1.5 font-mono text-[11px]">
+                    {revenueItems.map((it, idx) => (
+                      <div key={it.id || idx} className="flex items-center justify-between">
+                        <span className="text-emerald-400">
+                          (+) {it.description || `Receita ${idx + 1}`}{' '}
+                          <span className="text-slate-500 text-[10px]">
+                            ({revCatLabel(it.category)})
+                          </span>
+                        </span>
+                        <span className="text-emerald-400 font-semibold">
+                          +{formatBRL(it.value || 0)}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t border-slate-700/80 flex items-center justify-between text-xs">
+                      <span className="font-bold text-emerald-400">(=) Total de Receitas:</span>
+                      <span className="font-bold text-emerald-400 text-sm">
+                        {formatBRL(totalRevenues)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Resultado do período no snapshot */}
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-300 font-mono">
+                  Resultado (Receitas − Despesas):
+                </span>
+                <span
+                  className={`text-sm font-bold font-mono ${
+                    totalRevenues - totalExpenses >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                  }`}
+                >
+                  {formatBRL(totalRevenues - totalExpenses)}
+                </span>
+              </div>
+            </div>
+          )
+        ) : items.length === 0 ? (
           <div className="py-10 text-center space-y-2">
             <FileText className="w-8 h-8 text-slate-600 mx-auto" />
             <p className="text-xs text-slate-400 font-mono">
