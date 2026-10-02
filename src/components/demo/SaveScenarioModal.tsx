@@ -24,7 +24,6 @@ import {
   Search,
   ChevronRight,
   Sparkles,
-  Pencil,
   Check,
   X,
   Undo2,
@@ -46,8 +45,13 @@ import {
   ClientSavedScenarioRecord,
   type ScenarioVersion,
 } from '@/services/clientScenariosService'
-import { formatBRL } from '@/lib/taxCalculations'
-
+import { PurchaseItem } from '@/contexts/TaxContext'
+import {
+  formatBRL,
+  formatNumberBR,
+  calculatePurchaseItemGrossTotal,
+  calculatePurchaseItemNetPurchases,
+} from '@/lib/taxCalculations'
 interface SaveScenarioModalProps {
   isOpen: boolean
   onClose: () => void
@@ -374,48 +378,19 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   }
 
   // CEO 02/10 (ajuste 5): GESTÃO POR SALVAMENTO (data) — cada versão vira linha com
-  // RESTAURAR · EDITAR · DELETAR. Editar = nota da versão; Deletar = remove a versão.
-  const [editingVersion, setEditingVersion] = useState<{ id: string; n: number } | null>(null)
-  const [editingVersionNote, setEditingVersionNote] = useState<string>('')
-  const [isSavingVersionNote, setIsSavingVersionNote] = useState<boolean>(false)
+  // RESTAURAR · ABRIR (memória) · DELETAR. Editar removido a pedido da CEO (02/10):
+  // volta só se ela pedir.
   const [confirmDeleteVersion, setConfirmDeleteVersion] = useState<{
     id: string
     name: string
     n: number
   } | null>(null)
   const [isDeletingVersion, setIsDeletingVersion] = useState<boolean>(false)
-
-  const handleStartEditVersionNote = (id: string, n: number, currentNote: string) => {
-    setEditingVersion({ id, n })
-    setEditingVersionNote(currentNote)
-  }
-
-  const handleCancelEditVersionNote = () => {
-    setEditingVersion(null)
-    setEditingVersionNote('')
-  }
-
-  const handleSaveVersionNote = async () => {
-    if (!editingVersion) return
-    const { id, n } = editingVersion
-    if (!editingVersionNote.trim()) {
-      showFeedback('error', 'A nota da versão não pode ficar em branco.')
-      return
-    }
-    setIsSavingVersionNote(true)
-    try {
-      const updated = await updateScenarioVersionNote(id, n, editingVersionNote)
-      setScenarios((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
-      setEditingVersion(null)
-      setEditingVersionNote('')
-      showFeedback('success', `Nota da versão v${n} atualizada e salva!`)
-    } catch (err) {
-      console.error('Erro ao editar nota da versão:', err)
-      showFeedback('error', 'Não foi possível editar a nota da versão.')
-    } finally {
-      setIsSavingVersionNote(false)
-    }
-  }
+  // Memória de cálculo do salvamento: linha em inspeção (v = null → estado atual)
+  const [memoryRow, setMemoryRow] = useState<{
+    sc: ClientSavedScenarioRecord
+    v: ScenarioVersion | null
+  } | null>(null)
 
   const handleConfirmDeleteVersion = async () => {
     if (!confirmDeleteVersion) return
@@ -1257,6 +1232,206 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         </Dialog>
 
         {/* ============================================================ */}
+        {/* MODAL DE MEMÓRIA DE CÁLCULO DO SALVAMENTO (CEO, 02/10)       */}
+        {/* ============================================================ */}
+        <Dialog open={Boolean(memoryRow)} onOpenChange={(open) => !open && setMemoryRow(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#07130f] border border-sky-500/40 text-slate-100 shadow-2xl p-5 sm:p-6">
+            <DialogHeader className="border-b border-sky-500/20 pb-3">
+              <div className="flex items-center justify-between gap-3 pr-6">
+                <DialogTitle className="text-base font-bold text-white flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-300 shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <span>
+                    Memória de Cálculo — {memoryRow?.sc.name}
+                    {memoryRow?.v ? ` (v${memoryRow.v.n})` : ' (estado atual)'}
+                  </span>
+                </DialogTitle>
+                <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono shrink-0">
+                  {(memoryRow?.sc.scope === 'compras'
+                    ? 'Compras'
+                    : memoryRow?.sc.scope === 'markup'
+                      ? 'Markup'
+                      : 'Despesas'
+                  ).toUpperCase()}
+                </Badge>
+              </div>
+              <DialogDescription className="text-xs text-slate-400">
+                Foto fiscal do salvamento de{' '}
+                {memoryRow
+                  ? formatDate(memoryRow.v?.at || memoryRow.sc.updated || memoryRow.sc.created)
+                  : ''}{' '}
+                — calculada a partir do snapshot gravado, sem tocar no estado atual das telas.
+              </DialogDescription>
+            </DialogHeader>
+
+            {memoryRow &&
+              (() => {
+                const snap = memoryRow.v?.snapshot || memoryRow.sc.snapshot
+                const items: PurchaseItem[] = snap?.purchasesItems || []
+                const regimeMem = (snap?.regime || scope || 'presumido') as
+                  | 'presumido'
+                  | 'real'
+                  | 'simples'
+                const regimeLabel =
+                  regimeMem === 'presumido'
+                    ? 'Lucro Presumido'
+                    : regimeMem === 'real'
+                      ? 'Lucro Real'
+                      : 'Simples Nacional'
+
+                if (items.length === 0) {
+                  return (
+                    <div className="py-10 text-center space-y-2">
+                      <FileText className="w-8 h-8 text-slate-600 mx-auto" />
+                      <p className="text-xs text-slate-400 font-mono">
+                        Este salvamento não contém itens de compra no snapshot.
+                      </p>
+                    </div>
+                  )
+                }
+
+                return (
+                  <div className="space-y-3 pt-1">
+                    {items.map((it, idx) => {
+                      const gross = calculatePurchaseItemGrossTotal(it)
+                      const net = calculatePurchaseItemNetPurchases(it, regimeMem)
+                      const qty = Math.max(0, it.quantity || 0)
+                      const unit = qty > 0 ? gross / qty : 0
+                      const freight = Math.max(0, it.freightValue || 0)
+                      const icmsMerc = Math.max(0, it.calculatedIcms || 0)
+                      const icmsFreight = Math.max(0, it.icmsFreightValue || 0)
+                      const pis = Math.max(0, it.calculatedPis || 0)
+                      const cofins = Math.max(0, it.calculatedCofins || 0)
+                      const ipi = Math.max(0, it.calculatedIpi || 0)
+                      const st = it.hasSt ? Math.max(0, it.stValue || 0) : 0
+
+                      return (
+                        <div
+                          key={it.id || idx}
+                          className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-white flex items-center gap-2">
+                              <FileText className="w-3.5 h-3.5 text-sky-400" />
+                              {it.name || `Item ${idx + 1}`}
+                            </span>
+                            <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono">
+                              {regimeLabel}
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-1.5 font-mono text-[11px]">
+                            <div className="flex items-center justify-between">
+                              <span className="text-emerald-400">
+                                (+) Mercadorias ({formatNumberBR(qty, 0)} un. × {formatBRL(unit)})
+                              </span>
+                              <span className="text-slate-100 font-semibold">
+                                {formatBRL(gross)}
+                              </span>
+                            </div>
+                            {freight > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-emerald-400">(+) Frete sobre compras</span>
+                                <span className="text-slate-100 font-semibold">
+                                  {formatBRL(freight)}
+                                </span>
+                              </div>
+                            )}
+                            {ipi > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-emerald-400">(+) IPI não recuperável</span>
+                                <span className="text-slate-100 font-semibold">
+                                  {formatBRL(ipi)}
+                                </span>
+                              </div>
+                            )}
+                            {st > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-emerald-400">(+) ICMS-ST na entrada</span>
+                                <span className="text-slate-100 font-semibold">
+                                  {formatBRL(st)}
+                                </span>
+                              </div>
+                            )}
+                            {regimeMem !== 'simples' && icmsMerc > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-rose-400">
+                                  (−) ICMS sobre mercadorias ({formatNumberBR(it.icmsRate || 0, 2)}%
+                                  × {formatBRL(gross)})
+                                </span>
+                                <span className="text-rose-400 font-semibold">
+                                  -{formatBRL(icmsMerc)}
+                                </span>
+                              </div>
+                            )}
+                            {regimeMem !== 'simples' && icmsFreight > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-rose-400">(−) ICMS sobre fretes</span>
+                                <span className="text-rose-400 font-semibold">
+                                  -{formatBRL(icmsFreight)}
+                                </span>
+                              </div>
+                            )}
+                            {regimeMem === 'real' && pis > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-rose-400">(−) PIS (1,65%)</span>
+                                <span className="text-rose-400 font-semibold">
+                                  -{formatBRL(pis)}
+                                </span>
+                              </div>
+                            )}
+                            {regimeMem === 'real' && cofins > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-rose-400">(−) COFINS (7,60%)</span>
+                                <span className="text-rose-400 font-semibold">
+                                  -{formatBRL(cofins)}
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="pt-2 border-t border-slate-700/80 flex items-center justify-between text-xs">
+                              <span className="font-bold text-emerald-400">
+                                (=) Compras Líquidas / Custo Total:
+                              </span>
+                              <span className="font-bold text-emerald-400 text-sm">
+                                {formatBRL(net)}
+                              </span>
+                            </div>
+                            {qty > 0 && (
+                              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                                <span>Custo Unitário Líquido ({formatNumberBR(qty, 0)} un.):</span>
+                                <span className="text-emerald-300 font-semibold">
+                                  {formatBRL(net / qty)} / un.
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+              <span className="text-[10px] text-slate-500 font-mono">
+                Memória read-only do snapshot gravado — para editar, restaure o salvamento.
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setMemoryRow(null)}
+                className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
+              >
+                Fechar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ============================================================ */}
         {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE VERSÃO (CEO, 02/10) */}
         {/* ============================================================ */}
         <Dialog
@@ -1495,23 +1670,18 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                                 Restaurar
                               </Button>
 
+                              {/* CEO 02/10: ABRIR = memória de cálculo do salvamento
+                                  (a partir do snapshot da linha, read-only) */}
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() =>
-                                  v
-                                    ? handleStartEditVersionNote(sc.id, v.n, v.note)
-                                    : handleStartRename(sc)
-                                }
-                                className="h-7 w-7 p-0 text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
-                                title={
-                                  v
-                                    ? 'Editar a nota deste salvamento'
-                                    : 'Editar o nome deste cenário'
-                                }
+                                onClick={() => setMemoryRow({ sc, v })}
+                                className="h-7 px-2 text-[11px] font-mono font-bold text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 border border-sky-500/40 cursor-pointer"
+                                title="Abrir a memória de cálculo deste salvamento"
                               >
-                                <Pencil className="w-3.5 h-3.5" />
+                                <FileText className="w-3 h-3 mr-1" />
+                                Abrir
                               </Button>
 
                               <Button
