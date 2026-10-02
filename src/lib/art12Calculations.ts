@@ -560,40 +560,45 @@ export function computeExercicioArt12(
 
   // 4) ICMS sobre mercadorias / fretes — ALÍQUOTA CHEIA sobre o elemento real
   //    (estrutura de hoje — a fração do exercício entra no desembute e no crédito do bloco 2)
+  //    CRITÉRIO IT v2 (chancela CEO, 01/10): fornecedor SN (puro OU híbrido) NÃO exibe
+  //    ICMS à alíquota cheia — o ICMS incidente na operação dele é a FRAÇÃO DO DAS
+  //    (art. 12, §2º, V + art. 23, §2º), emitida dentro do ramo SN abaixo.
   const icmsMercRef = r2(mercReal * (input.icmsRate / 100))
   const icmsFreteRef = r2(freteReal * (input.icmsFreightRate / 100))
   // ICMS à fração do exercício (caminho EXATO do motor v2 chancelado — base reprecificada)
   const icmsDest = r2((merc + frete) * (input.icmsRate / 100) * (row.icmsPct / 100))
-  lines.push({
-    key: 'icms_merc',
-    label: '(−) ICMS sobre mercadorias',
-    formula: `${fmt(input.icmsRate)}% × ${fmt(mercReal)} = ${fmt(icmsMercRef)}`,
-    value: -icmsMercRef,
-    kind: 'nota',
-    bloco: 1,
-    fundamento: {
-      dispositivo: 'LC 214/2025, art. 12, §2º, V + ADCT, art. 128, I–IV',
-      efeito: 'ICMS fora da base do IBS/CBS — alíquota cheia da estrutura de hoje',
-      validade: 'integral',
-      nota:
-        row.icmsPct === 100
-          ? 'ICMS integral até 2028 — frações começam em 2029 (9/10): ver desembute e crédito.'
-          : `ICMS cede ${fmt(100 - row.icmsPct)}% da alíquota ao IBS neste exercício — fração no desembute (÷) e no crédito do bloco 2.`,
-    },
-  })
-  lines.push({
-    key: 'icms_frete',
-    label: '(−) ICMS sobre fretes',
-    formula: `${fmt(input.icmsFreightRate)}% × ${fmt(freteReal)} = ${fmt(icmsFreteRef)}`,
-    value: -icmsFreteRef,
-    kind: 'nota',
-    bloco: 1,
-    fundamento: {
-      dispositivo: 'LC 214/2025, art. 12, §2º, V + §1º, IV',
-      efeito: 'ICMS sobre o frete (que integra a base) — fora da base do IBS/CBS',
-      validade: 'integral',
-    },
-  })
+  if (!fornecedorSN && !fornecedorSNHib) {
+    lines.push({
+      key: 'icms_merc',
+      label: '(−) ICMS sobre mercadorias',
+      formula: `${fmt(input.icmsRate)}% × ${fmt(mercReal)} = ${fmt(icmsMercRef)}`,
+      value: -icmsMercRef,
+      kind: 'nota',
+      bloco: 1,
+      fundamento: {
+        dispositivo: 'LC 214/2025, art. 12, §2º, V + ADCT, art. 128, I–IV',
+        efeito: 'ICMS fora da base do IBS/CBS — alíquota cheia da estrutura de hoje',
+        validade: 'integral',
+        nota:
+          row.icmsPct === 100
+            ? 'ICMS integral até 2028 — frações começam em 2029 (9/10): ver desembute e crédito.'
+            : `ICMS cede ${fmt(100 - row.icmsPct)}% da alíquota ao IBS neste exercício — fração no desembute (÷) e no crédito do bloco 2.`,
+      },
+    })
+    lines.push({
+      key: 'icms_frete',
+      label: '(−) ICMS sobre fretes',
+      formula: `${fmt(input.icmsFreightRate)}% × ${fmt(freteReal)} = ${fmt(icmsFreteRef)}`,
+      value: -icmsFreteRef,
+      kind: 'nota',
+      bloco: 1,
+      fundamento: {
+        dispositivo: 'LC 214/2025, art. 12, §2º, V + §1º, IV',
+        efeito: 'ICMS sobre o frete (que integra a base) — fora da base do IBS/CBS',
+        validade: 'integral',
+      },
+    })
+  }
 
   // 5) PIS e COFINS embutidos no preço de hoje — separados, sobre BASE SEM ICMS (tese do século)
   const PIS_RATE: Record<RegimeId, number> = {
@@ -693,75 +698,79 @@ export function computeExercicioArt12(
   }
 
   // Base limpa do fornecedor (alvo do IBS/CBS) — soma dos elementos exibidos
-  lines.push({
-    key: 'baselimpa',
-    label:
-      ganhoNaoRepassado > 0
-        ? '(=) Base limpa do fornecedor no exercício'
-        : '(=) Base limpa de referência',
-    formula: `${fmt(mercReal)} + ${fmt(freteReal)} − ICMS ${fmt(r2(icmsMercRef + icmsFreteRef))}${mostraPisCofins ? ` − PIS/COFINS ${fmt(r2(pisRef + cofinsRef))}` : ''}${ganhoNaoRepassado > 0 ? ` + ganho ${fmt(ganhoNaoRepassado)}` : ''}`,
-    value: baseLimpa,
-    kind: 'nota',
-    bloco: 1,
-    passos: [
-      {
-        ordem: 1,
-        descricao: 'Elementos da operação (reais)',
-        expressao: `${fmt(mercReal)} + ${fmt(freteReal)}`,
-        resultado: fmt(r2(mercReal + freteReal)),
-        fundamento: 'LC 214/2025, art. 12, caput + §1º, IV.',
+  // CRITÉRIO IT v2: no ramo SN (puro/híbrido) esta linha NÃO é emitida — a base do
+  // IBS/CBS do optante é a baseIbsCbsRef (sem o ICMS do DAS), emitida no ramo SN.
+  if (!fornecedorSN && !fornecedorSNHib) {
+    lines.push({
+      key: 'baselimpa',
+      label:
+        ganhoNaoRepassado > 0
+          ? '(=) Base limpa do fornecedor no exercício'
+          : '(=) Base limpa de referência',
+      formula: `${fmt(mercReal)} + ${fmt(freteReal)} − ICMS ${fmt(r2(icmsMercRef + icmsFreteRef))}${mostraPisCofins ? ` − PIS/COFINS ${fmt(r2(pisRef + cofinsRef))}` : ''}${ganhoNaoRepassado > 0 ? ` + ganho ${fmt(ganhoNaoRepassado)}` : ''}`,
+      value: baseLimpa,
+      kind: 'nota',
+      bloco: 1,
+      passos: [
+        {
+          ordem: 1,
+          descricao: 'Elementos da operação (reais)',
+          expressao: `${fmt(mercReal)} + ${fmt(freteReal)}`,
+          resultado: fmt(r2(mercReal + freteReal)),
+          fundamento: 'LC 214/2025, art. 12, caput + §1º, IV.',
+        },
+        {
+          ordem: 2,
+          descricao: 'Exclusão: ICMS (alíquota cheia — estrutura de hoje)',
+          expressao: `${fmt(icmsMercRef)} + ${fmt(icmsFreteRef)}`,
+          resultado: fmtMoney6(r2(icmsMercRef + icmsFreteRef)),
+          fundamento:
+            'Art. 12, §2º, V. Fração do exercício: ADCT, art. 128 — entra no desembute (÷) e no crédito (bloco 2).',
+        },
+        ...(mostraPisCofins
+          ? [
+              {
+                ordem: 3,
+                descricao: 'Exclusão: PIS/COFINS embutidos — sobre base sem ICMS (tese do século)',
+                expressao: `${fmt(baseSemIcmsRef)} × ${fmt(EMBUTIDO[config.fornecedorRegime] * 100)}%`,
+                resultado: fmtMoney6(r2(pisRef + cofinsRef)),
+                fundamento: 'Art. 12, §2º, V + STJ RE 1.188.403. Vigência 2026–2032.',
+              },
+            ]
+          : []),
+        ...(ganhoNaoRepassado > 0
+          ? [
+              {
+                ordem: 4,
+                descricao:
+                  config.repasse === 'nenhum'
+                    ? 'Sem repasse: ganho do fornecedor (ICMS à fração + PIS/COFINS extintos) permanece no preço'
+                    : `Repasse parcial (${fmt(config.repassePct)}%): parte do ganho permanece no preço`,
+                expressao: `${fmt(baseLimpa)} − ${fmt(baseReferencia)}`,
+                resultado: fmtMoney6(ganhoNaoRepassado),
+                fundamento: 'Repasse é prática de mercado — sem obrigação na lei.',
+              },
+            ]
+          : []),
+        {
+          ordem: 9,
+          descricao: 'Base limpa (resultado final — arredondado a 2 casas, half-up)',
+          expressao: 'elementos − ICMS − PIS/COFINS + ganho (se houver)',
+          resultado: fmt(baseLimpa),
+          fundamento: 'Base do IBS/CBS: caput + §2º, I, II e V.',
+        },
+      ],
+      fundamento: {
+        dispositivo: 'LC 214/2025, art. 12, caput + §2º, I, II e V',
+        efeito: 'base = valor da operação SEM IBS/CBS, IPI, ICMS/ISS e PIS/COFINS',
+        validade: row.exercicio <= 2032 ? 'integral' : 'pendente',
+        nota:
+          row.exercicio <= 2032
+            ? '§2º, V com vigência expressa: 01/01/2026 a 31/12/2032.'
+            : '§2º, V expira em 31/12/2032 — base de 2033 sem definição.',
       },
-      {
-        ordem: 2,
-        descricao: 'Exclusão: ICMS (alíquota cheia — estrutura de hoje)',
-        expressao: `${fmt(icmsMercRef)} + ${fmt(icmsFreteRef)}`,
-        resultado: fmtMoney6(r2(icmsMercRef + icmsFreteRef)),
-        fundamento:
-          'Art. 12, §2º, V. Fração do exercício: ADCT, art. 128 — entra no desembute (÷) e no crédito (bloco 2).',
-      },
-      ...(mostraPisCofins
-        ? [
-            {
-              ordem: 3,
-              descricao: 'Exclusão: PIS/COFINS embutidos — sobre base sem ICMS (tese do século)',
-              expressao: `${fmt(baseSemIcmsRef)} × ${fmt(EMBUTIDO[config.fornecedorRegime] * 100)}%`,
-              resultado: fmtMoney6(r2(pisRef + cofinsRef)),
-              fundamento: 'Art. 12, §2º, V + STJ RE 1.188.403. Vigência 2026–2032.',
-            },
-          ]
-        : []),
-      ...(ganhoNaoRepassado > 0
-        ? [
-            {
-              ordem: 4,
-              descricao:
-                config.repasse === 'nenhum'
-                  ? 'Sem repasse: ganho do fornecedor (ICMS à fração + PIS/COFINS extintos) permanece no preço'
-                  : `Repasse parcial (${fmt(config.repassePct)}%): parte do ganho permanece no preço`,
-              expressao: `${fmt(baseLimpa)} − ${fmt(baseReferencia)}`,
-              resultado: fmtMoney6(ganhoNaoRepassado),
-              fundamento: 'Repasse é prática de mercado — sem obrigação na lei.',
-            },
-          ]
-        : []),
-      {
-        ordem: 9,
-        descricao: 'Base limpa (resultado final — arredondado a 2 casas, half-up)',
-        expressao: 'elementos − ICMS − PIS/COFINS + ganho (se houver)',
-        resultado: fmt(baseLimpa),
-        fundamento: 'Base do IBS/CBS: caput + §2º, I, II e V.',
-      },
-    ],
-    fundamento: {
-      dispositivo: 'LC 214/2025, art. 12, caput + §2º, I, II e V',
-      efeito: 'base = valor da operação SEM IBS/CBS, IPI, ICMS/ISS e PIS/COFINS',
-      validade: row.exercicio <= 2032 ? 'integral' : 'pendente',
-      nota:
-        row.exercicio <= 2032
-          ? '§2º, V com vigência expressa: 01/01/2026 a 31/12/2032.'
-          : '§2º, V expira em 31/12/2032 — base de 2033 sem definição.',
-    },
-  })
+    })
+  }
 
   // Botão único "Memória + base legal" — renderizado APÓS a base limpa (marcador de posição)
   lines.push({
