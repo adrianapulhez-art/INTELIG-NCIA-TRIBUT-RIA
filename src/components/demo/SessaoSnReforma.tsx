@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import {
   calcularSessaoSN,
   creditoEfetivoArt23,
+  fmtSN,
   PERFIL_SN_NOTA_PADRAO,
   type ModoPreenchimentoSN,
   type PerfilSN,
