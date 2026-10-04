@@ -69,6 +69,24 @@ export interface ScheduleRowArt {
 /** Fração do IBS na transição = complementar à fração do ICMS (ADCT art. 128): 2029 → 1/10 de 17,7% etc. */
 export const IBS_PLENO = 17.7
 
+/** CBS editável (decisão da CEO, 04/10): o contador simula outra projeção ANTES da
+ *  publicação e digita a alíquota REAL depois que o Senado fixar (art. 349). Escopo
+ *  da rodada: SÓ 2027 e 2028 (mesma regra do art. 347 — referência − 0,1 p.p.).
+ *  Premissa IT registrada: o default 8,8% é a referência estimada já reduzida em
+ *  0,1 p.p. (chancela da CEO mantida — ouros intactos). 2026 é cravado em lei
+ *  (art. 342, 0,9%) e NÃO é editável. IBS 2027-28 = 0,1% cravado (art. 344). */
+export const CBS_EDITAVEL_EXERCICIOS: ExercicioKey[] = [2027, 2028]
+export const CBS_DEFAULT = 8.8
+
+/** Aplica o override de CBS do usuário (quando houver) na linha do cronograma.
+ *  Fora de 2027/2028 (ou sem override) devolve a linha ORIGINAL — nada muda. */
+export function aplicarOverrideCbsArt12(row: ScheduleRowArt, cbsOverride?: number): ScheduleRowArt {
+  if (cbsOverride === undefined || !CBS_EDITAVEL_EXERCICIOS.includes(row.exercicio)) return row
+  const v = r2(cbsOverride)
+  if (v <= 0) return row
+  return { ...row, cbsRate: v }
+}
+
 export const CRONOGRAMA_ART12: ScheduleRowArt[] = [
   { exercicio: 2026, cbsRate: 0.9, ibsRate: 0.1, icmsPct: 100, ipiZero: false, habilitado: true },
   { exercicio: 2027, cbsRate: 8.8, ibsRate: 0.1, icmsPct: 100, ipiZero: true, habilitado: true },
@@ -1619,10 +1637,10 @@ export function matrizArt12(input: CmvArt12Input, config: CellConfigArt, row: Sc
 }
 
 /** Escada do custo (régua Nenhum): quem absorve o impacto quando o fornecedor não repassa. */
-export function escadaArt12(input: CmvArt12Input, config: CellConfigArt) {
+export function escadaArt12(input: CmvArt12Input, config: CellConfigArt, cbsOverride?: number) {
   return CRONOGRAMA_ART12.filter((r) => r.exercicio >= 2026 && r.exercicio <= 2032).map((row) => {
     const cfg: CellConfigArt = { ...config, repasse: 'nenhum' }
-    const cell = computeCellArt12(input, cfg, row)
+    const cell = computeCellArt12(input, cfg, aplicarOverrideCbsArt12(row, cbsOverride))
     return { exercicio: row.exercicio, unitario: cell.exercicio.unitario, deltaPct: cell.deltaPct }
   })
 }

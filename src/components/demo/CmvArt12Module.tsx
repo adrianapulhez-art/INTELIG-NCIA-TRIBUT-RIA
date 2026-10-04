@@ -28,6 +28,9 @@ import {
   reguasArt12,
   matrizArt12,
   escadaArt12,
+  aplicarOverrideCbsArt12,
+  CBS_EDITAVEL_EXERCICIOS,
+  CBS_DEFAULT,
   type CellConfigArt,
   type CellResultArt,
   type CmvArt12Input,
@@ -614,6 +617,11 @@ function MatrizResumoDialog({
 export function CmvArt12Module() {
   const [exercicio, setExercicio] = useState<ExercicioKey>(2027)
   const [config, setConfig] = useState<CellConfigArt>(CONFIG_PADRAO_ART12)
+  // CBS EDITÁVEL (decisão da CEO, 04/10): só 2027/2028 — default 8,8% preserva os
+  // ouros chancelados; o contador digita outra projeção ou a alíquota real do Senado.
+  const [cbsOverride, setCbsOverride] = useState<number | undefined>(undefined)
+  const cbsEfetiva = cbsOverride ?? CBS_DEFAULT
+  const cbsEditavelAqui = CBS_EDITAVEL_EXERCICIOS.includes(exercicio)
   // VÍNCULO AUTOMÁTICO (regra da CEO, 25/09): a célula lê a Calculadora de Compras
   // DIRETO do TaxContext — a MESMA fonte que o "Zerar campos" limpa. Zero lá = zero aqui.
   const { purchasesItems, addPurchaseItem, updatePurchaseItem } = useTaxContext()
@@ -664,7 +672,13 @@ export function CmvArt12Module() {
     updatePurchaseItem(idB, 'icmsFreightValue', 9)
   }
 
-  const row = useMemo(() => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!, [exercicio])
+  const rowBase = useMemo(
+    () => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio)!,
+    [exercicio],
+  )
+  // Override de CBS (2027/2028) aplicado UMA vez — flui para célula ativa, réguas,
+  // matriz, memórias e Sessão SN (referência plena) sem tocar o cronograma original.
+  const row = useMemo(() => aplicarOverrideCbsArt12(rowBase, cbsOverride), [rowBase, cbsOverride])
 
   // CÁLCULO POR ITEM (CEO, 27/09): memória Art. 12 completa para CADA item com valor.
   // A memória vive DENTRO dos cards de repasse (espelho) — não mais na página geral.
@@ -688,7 +702,10 @@ export function CmvArt12Module() {
   const activeCell = useMemo(() => computeCellArt12(input, config, row), [input, config, row])
   const reguas = useMemo(() => reguasArt12(input, config, row), [input, config, row])
   const matriz = useMemo(() => matrizArt12(input, config, row), [input, config, row])
-  const escada = useMemo(() => escadaArt12(input, config), [input, config])
+  const escada = useMemo(
+    () => escadaArt12(input, config, cbsOverride),
+    [input, config, cbsOverride],
+  )
 
   const semaforoStyle = SEMAFORO_STYLE[activeCell.semaforo]
 
@@ -795,6 +812,45 @@ export function CmvArt12Module() {
               ? 'ICMS por dentro sobre operação + CBS + IBS (lacuna normativa) — nota maior. Cadeia plena fecha igual; muda o custo do comprador SN.'
               : 'ICMS sobre a operação sem CBS/IBS (PLP 16/25) — nota menor. Cadeia plena fecha igual; muda o custo do comprador SN.'}
           </span>
+        </div>
+        {/* CBS EDITÁVEL (decisão da CEO, 04/10) — só 2027/2028; 2026 é cravado em lei (art. 342) */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-mono text-slate-500 uppercase">Alíquota da CBS:</span>
+          {cbsEditavelAqui ? (
+            <>
+              <Input
+                type="number"
+                step="0.01"
+                min={0}
+                value={cbsEfetiva}
+                onChange={(e) => {
+                  const v = Number(e.target.value)
+                  setCbsOverride(Number.isFinite(v) && v > 0 ? v : undefined)
+                }}
+                className="w-24 h-7 text-[11px] font-mono bg-slate-950 border-slate-700 text-slate-100"
+              />
+              <span className="text-[10px] font-mono">%</span>
+              <span className="inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-mono font-bold border-amber-500/40 bg-amber-500/10 text-amber-300">
+                ESTIMADA — pendente de fixação (Senado, art. 349)
+              </span>
+              {cbsOverride !== undefined && cbsOverride !== CBS_DEFAULT && (
+                <button
+                  type="button"
+                  onClick={() => setCbsOverride(undefined)}
+                  className="text-[9px] font-mono text-sky-400 hover:text-sky-300 underline underline-offset-2 cursor-pointer"
+                >
+                  voltar ao padrão 8,8%
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="text-[11px] font-mono font-bold text-slate-100">{row.cbsRate}%</span>
+              <span className="inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-mono font-bold border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
+                CRAVADA EM LEI (art. 342)
+              </span>
+            </>
+          )}
         </div>
         {/* INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA — vínculo automático com a Compras */}
         <PainelIntegracaoOrigem
