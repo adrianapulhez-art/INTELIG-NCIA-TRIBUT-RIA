@@ -137,7 +137,7 @@ export function calcularSessaoSN(
   const creditoPisCofinsHoje = r2(
     r2(pisCofinsBaseHoje * (1.65 / 100)) + r2(pisCofinsBaseHoje * (7.6 / 100)),
   )
-  const creditoHojeSN = icmsNota
+  const creditoHojeSN = adquirente === 'real' ? r2(icmsNota + creditoPisCofinsHoje) : icmsNota
   const custoHojeSN = r2(receitaBruta - creditoHojeSN)
   const custoUnitarioHojeSN = r2(custoHojeSN / Math.max(1, item.quantity))
 
