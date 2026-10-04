@@ -388,8 +388,10 @@ export function SessaoSnSection({
   const resultados = useMemo(() => {
     if (itens.length === 0) return []
     return itens.map((item) => {
-      // --- SN PURO: nota congelada + crédito proporcional do art. 23 (motor da sessão)
-      const r = calcularSessaoSN(item, perfil)
+      // --- SN PURO: nota congelada + crédito proporcional do art. 23 (motor da sessão).
+      // Adquirente passado ao motor (03/10): define o crédito de 2026 — o LR credita
+      // também PIS/COFINS (ADI SRF 15/2007 + SC COSIT 297/2019); LP fica só no ICMS.
+      const r = calcularSessaoSN(item, perfil, adquirente)
       const cellHojePuro = computeCellArt12Item(
         item,
         { ...cfgBase, compradorRegime: adquirente, fornecedorRegime: adquirente },
@@ -723,6 +725,11 @@ export function SessaoSnSection({
                   Crédito PROPORCIONAL de CBS+IBS (art. 23) — o ICMS do fornecedor segue no DAS e o
                   SN híbrido não o apropria.
                 </span>
+              ) : adquirente === 'real' ? (
+                <span>
+                  Crédito PROPORCIONAL de ICMS+CBS+IBS (art. 23) + PIS 1,65% e COFINS 7,6% em 2026
+                  (ADI SRF 15/2007 + SC COSIT 297/2019 — base sem o ICMS destacado, Lei 14.592/23).
+                </span>
               ) : (
                 <span>
                   Crédito PROPORCIONAL de ICMS+CBS+IBS (art. 23) — montante equivalente ao cobrado
@@ -883,11 +890,25 @@ export function SessaoSnSection({
                         value: itemAtivo.puro.r.receitaBruta,
                       },
                       {
-                        label: '(−) Crédito proporcional do adquirente — SÓ ICMS em 2026',
+                        label: '(−) Crédito de ICMS do adquirente (2026)',
                         formula: `${fmtSN(itemAtivo.puro.r.icmsPct, 2)}% × ${fmtSN(itemAtivo.puro.r.receitaBruta)} = ${fmtSN(itemAtivo.puro.r.icmsNota)}`,
-                        value: -itemAtivo.puro.r.creditoHojeSN,
+                        value: -itemAtivo.puro.r.icmsNota,
                         destaque: true,
                       },
+                      ...(adquirente === 'real' && itemAtivo.puro.r.creditoPisCofinsHoje > 0
+                        ? [
+                            {
+                              label: '(−) Crédito de PIS do adquirente LR (2026)',
+                              formula: `1,65% × ${fmtSN(itemAtivo.puro.r.pisCofinsBaseHoje)} (base sem o ICMS destacado) = ${fmtSN(itemAtivo.puro.r.pisCofinsBaseHoje * 0.0165)}`,
+                              value: -(itemAtivo.puro.r.pisCofinsBaseHoje * 0.0165),
+                            },
+                            {
+                              label: '(−) Crédito de COFINS do adquirente LR (2026)',
+                              formula: `7,60% × ${fmtSN(itemAtivo.puro.r.pisCofinsBaseHoje)} (base sem o ICMS destacado) = ${fmtSN(itemAtivo.puro.r.pisCofinsBaseHoje * 0.076)}`,
+                              value: -(itemAtivo.puro.r.pisCofinsBaseHoje * 0.076),
+                            },
+                          ]
+                        : []),
                       {
                         label: '(=) Custo líquido da aquisição em 2026',
                         formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} − ${fmtSN(itemAtivo.puro.r.creditoHojeSN)} = ${fmtSN(itemAtivo.puro.r.custoHojeSN)}`,

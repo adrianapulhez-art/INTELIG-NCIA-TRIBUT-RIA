@@ -179,7 +179,8 @@ export function PainelIntegracaoOrigem({
           <span>
             Vínculo automático: todos os resultados (memórias, matriz, réguas, espelho, notas)
             derivam destes itens. Zerar a Compras zera a célula — salvar o cenário preserva o
-            vínculo (F5 não quebra).
+            vínculo. Edições entram no cenário ativo automaticamente (auto-sync): F5 reidrata o
+            estado atual, nunca um snapshot antigo.
           </span>
         </div>
       )}

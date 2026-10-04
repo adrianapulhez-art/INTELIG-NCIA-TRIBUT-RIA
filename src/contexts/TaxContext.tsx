@@ -4734,6 +4734,33 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     realFreightPisCofinsMethod,
   ])
 
+  // AUTO-SYNC DO CENÁRIO ATIVO (pedido da CEO, 03/10): toda edição do estado vivo
+  // regrava o snapshot do cenário ativo no localStorage — o F5/reload reidrata o
+  // estado ATUAL, nunca um snapshot antigo (fim do "sistema reativou itens deletados").
+  // Primeira execução após a hidratação é só marcação (o snapshot gravado já é atual).
+  const cenarioSyncRef = useRef<boolean>(false)
+  useEffect(() => {
+    if (!cenarioAtivo) {
+      cenarioSyncRef.current = false
+      return
+    }
+    if (!cenarioHidratadoRef.current) return
+    if (!cenarioSyncRef.current) {
+      cenarioSyncRef.current = true
+      return
+    }
+    try {
+      const raw = localStorage.getItem(CENARIO_ATIVO_KEY)
+      if (!raw) return
+      const salvo = JSON.parse(raw) as { id: string; cliente: string; nome: string }
+      if (salvo?.id !== cenarioAtivo.id) return
+      localStorage.setItem(CENARIO_ATIVO_KEY, JSON.stringify({ ...salvo, snapshot: getSnapshot() }))
+    } catch (err) {
+      console.warn('Falha no auto-sync do cenário ativo:', err)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getSnapshot, cenarioAtivo])
+
   // MECANISMO DE UNDO / REDO EM MEMÓRIA (Ctrl+Z)
   // Pilhas de snapshots com limite de 50 passos
   const MAX_HISTORY = 50

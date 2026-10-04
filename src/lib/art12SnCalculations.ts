@@ -86,6 +86,11 @@ export interface ResultadoSessaoSN {
   creditoHojeSN: number
   custoHojeSN: number
   custoUnitarioHojeSN: number
+  /** Crédito PIS/COFINS do adquirente LR em 2026 (adição 03/10) — ADI SRF 15/2007 +
+   *  SC COSIT 297/2019: alíquotas plenas 1,65%/7,6% sobre a base SEM o ICMS destacado
+   *  na nota (Lei 14.592/23 + STJ Tema 1231). Itens do estoque ALFA: regra geral. */
+  creditoPisCofinsHoje: number
+  pisCofinsBaseHoje: number
 }
 
 /**
@@ -94,7 +99,12 @@ export interface ResultadoSessaoSN {
  * → preço da nota (congelado) → crédito proporcional do adquirente (art. 23)
  * → custo líquido.
  */
-export function calcularSessaoSN(item: ItemIntegracaoArt12, perfil: PerfilSN): ResultadoSessaoSN {
+export function calcularSessaoSN(
+  item: ItemIntegracaoArt12,
+  perfil: PerfilSN,
+  /** Adquirente da combinação — define o crédito de 2026 (LP: só ICMS; LR: + PIS/COFINS). */
+  adquirente?: 'presumido' | 'real' | 'simples' | 'simples_hibrido',
+): ResultadoSessaoSN {
   const merc = r2(item.merchandiseValue || 0)
   const frete = r2(item.freightValue || 0)
   const receitaBruta = r2(merc + frete)
@@ -119,6 +129,14 @@ export function calcularSessaoSN(item: ItemIntegracaoArt12, perfil: PerfilSN): R
   // HOJE DA COMBINAÇÃO (Δ honesto, CEO 02/10): em 2026 vale a redação ORIGINAL do
   // art. 23 — crédito proporcional SÓ de ICMS (a redação LC 214/25, que inclui CBS+IBS,
   // tem produção de efeitos em 01/01/2027 — LegJur). Nota congelada nos dois lados.
+  // CRÉDITO PIS/COFINS DO ADQUIRENTE LR EM 2026 (pedido da CEO, 03/10): ADI SRF
+  // 15/2007 + SC COSIT 297/2019 (VIGENTES) — alíquotas plenas 1,65%/7,6% sobre a
+  // base SEM o ICMS destacado na nota (Lei 14.592/23 + STJ Tema 1231). Itens do
+  // estoque ALFA são todos da regra geral (03/10) — sem vedação a tratar aqui.
+  const pisCofinsBaseHoje = r2(receitaBruta - icmsNota)
+  const creditoPisCofinsHoje = r2(
+    r2(pisCofinsBaseHoje * (1.65 / 100)) + r2(pisCofinsBaseHoje * (7.6 / 100)),
+  )
   const creditoHojeSN = icmsNota
   const custoHojeSN = r2(receitaBruta - creditoHojeSN)
   const custoUnitarioHojeSN = r2(custoHojeSN / Math.max(1, item.quantity))
@@ -213,6 +231,22 @@ export function calcularSessaoSN(item: ItemIntegracaoArt12, perfil: PerfilSN): R
       fundamento: 'Art. 23, §1º: crédito em montante equivalente ao cobrado no regime único.',
     },
     {
+      key: 'credito_pis_hoje',
+      label: '(+) Crédito de PIS do adquirente LR (2026)',
+      formula: `1,65% × ${pisCofinsBaseHoje} (base sem o ICMS destacado) = ${r2(pisCofinsBaseHoje * (1.65 / 100))}`,
+      value: r2(pisCofinsBaseHoje * (1.65 / 100)),
+      fundamento:
+        'ADI SRF 15/2007 + SC COSIT 297/2019 (vigentes) — crédito básico do art. 3º, II, da Lei 10.637/2002.',
+    },
+    {
+      key: 'credito_cofins_hoje',
+      label: '(+) Crédito de COFINS do adquirente LR (2026)',
+      formula: `7,60% × ${pisCofinsBaseHoje} (base sem o ICMS destacado) = ${r2(pisCofinsBaseHoje * (7.6 / 100))}`,
+      value: r2(pisCofinsBaseHoje * (7.6 / 100)),
+      fundamento:
+        'ADI SRF 15/2007 + SC COSIT 297/2019 (vigentes) — crédito básico do art. 3º, II, da Lei 10.833/2003; base sem ICMS (Lei 14.592/23, STJ Tema 1231).',
+    },
+    {
       key: 'credito_cbs',
       label: '(+) Crédito de CBS do adquirente',
       formula: `${cbsPct}% × ${receitaBruta} = ${cbsDAS}`,
@@ -276,6 +310,8 @@ export function calcularSessaoSN(item: ItemIntegracaoArt12, perfil: PerfilSN): R
     creditoHojeSN,
     custoHojeSN,
     custoUnitarioHojeSN,
+    creditoPisCofinsHoje,
+    pisCofinsBaseHoje,
   }
 }
 
@@ -292,12 +328,16 @@ export function fmtSN(v: number, casas = 2): string {
  *   · SN híbrido (regime regular) → crédito PROPORCIONAL de CBS + IBS apenas —
  *     o ICMS do fornecedor segue no DAS e o híbrido NÃO o apropria (art. 41)
  *   · SN puro (optante)           → SEM crédito — optante não apropria (art. 47)
+ *   · LR em 2026 (HOJE-SN)        → ICMS + PIS 1,65% + COFINS 7,6% s/ base sem ICMS
+ *     (ADI SRF 15/2007 + SC COSIT 297/2019) — usa creditoHojeLR quando informado
  */
 export function creditoEfetivoArt23(
   adquirente: 'presumido' | 'real' | 'simples' | 'simples_hibrido',
   r: Pick<ResultadoSessaoSN, 'creditoTotal' | 'cbsDAS' | 'ibsDAS'>,
+  creditoHojeLR?: number,
 ): number {
   if (adquirente === 'simples') return 0
   if (adquirente === 'simples_hibrido') return r2(r.cbsDAS + r.ibsDAS)
+  if (adquirente === 'real' && creditoHojeLR !== undefined) return r2(creditoHojeLR)
   return r.creditoTotal
 }

@@ -94,4 +94,64 @@ describe('Sessão SN na Reforma — crédito proporcional do art. 23', () => {
     expect(r.custoUnitarioLiquido).not.toBe(1413.33)
     expect(r.custoUnitarioLiquido).toBe(1354.4)
   })
+
+  it('LR comprando em 2026 — crédito ICMS + PIS 1,65% + COFINS 7,6% s/ base sem ICMS (ADI SRF 15/2007)', () => {
+    const r = calcularSessaoSN(itemCanônico, PERFIL_SN_NOTA_PADRAO, 'real')
+    // Base PIS/COFINS = 42.400 − 551,20 (ICMS destacado) = 41.848,80 (Lei 14.592/23, STJ Tema 1231)
+    expect(r.pisCofinsBaseHoje).toBe(41848.8)
+    expect(r.icmsNota).toBe(551.2)
+    // PIS 1,65% × 41.848,80 = 690,51 · COFINS 7,60% × 41.848,80 = 3.180,51 → 3.871,02
+    expect(r.creditoPisCofinsHoje).toBe(3871.02)
+    // HOJE-SN do LR = 42.400 − 551,20 − 690,51 − 3.180,51 = 37.977,78 → 1.265,93/un (ouro)
+    expect(r.creditoHojeSN).toBe(4422.22)
+    expect(r.custoHojeSN).toBe(37977.78)
+    expect(r.custoUnitarioHojeSN).toBe(1265.93)
+    // LP intocado: HOJE-SN = só ICMS → 1.394,96 (ouro de 02/10)
+    const rLP = calcularSessaoSN(itemCanônico, PERFIL_SN_NOTA_PADRAO, 'presumido')
+    expect(rLP.custoUnitarioHojeSN).toBe(1394.96)
+    expect(rLP.creditoPisCofinsHoje).toBe(0)
+    // 2027 do LR: nota congelada − crédito art. 23 integral (ICMS+CBS+IBS) = 1.354,40 — não muda
+    expect(r.custoUnitarioLiquido).toBe(1354.4)
+    // Δ honesto do LR (2027 × 2026-SN, mesma combinação) = +6,99%
+    const delta = (r.custoUnitarioLiquido / r.custoUnitarioHojeSN - 1) * 100
+    expect(Math.round(delta * 100) / 100).toBe(6.99)
+    // Δ honesto do LP segue −2,91% (regressão)
+    const deltaLP = (rLP.custoUnitarioLiquido / rLP.custoUnitarioHojeSN - 1) * 100
+    expect(Math.round(deltaLP * 100) / 100).toBe(-2.91)
+  })
+
+  it('edredom (50 un × 200) e travesseiro (30 un — 1.050 + 50) — ouros por item do LR em 2026', () => {
+    const edr = montarItensIntegracao([
+      {
+        id: 'edr',
+        name: 'Edredom',
+        quantity: 50,
+        merchandiseValue: 10000,
+        freightValue: 0,
+        icmsRate: 18,
+        icmsFreightRate: 18,
+        ipiRate: 0,
+        hasSt: false,
+        stValue: 0,
+      },
+    ])[0]
+    const rEdr = calcularSessaoSN(edr, PERFIL_SN_NOTA_PADRAO, 'real')
+    expect(rEdr.custoUnitarioHojeSN).toBe(179.14)
+    const trav = montarItensIntegracao([
+      {
+        id: 'trav',
+        name: 'Travesseiro',
+        quantity: 30,
+        merchandiseValue: 1050,
+        freightValue: 50,
+        icmsRate: 18,
+        icmsFreightRate: 18,
+        ipiRate: 0,
+        hasSt: false,
+        stValue: 0,
+      },
+    ])[0]
+    const rTrav = calcularSessaoSN(trav, PERFIL_SN_NOTA_PADRAO, 'real')
+    expect(rTrav.custoUnitarioHojeSN).toBe(32.84)
+  })
 })
