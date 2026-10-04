@@ -948,11 +948,11 @@ export function CmvArt12Module() {
               </div>
               <div className="text-[11px] font-mono text-slate-400 mt-0.5">
                 {formatBRL(cell.exercicio.unitario)}/un ·{' '}
-                {cell.deltaPct < -0.5
-                  ? 'fornecedor absorve (margem)'
-                  : cell.deltaPct > 0.5
-                    ? 'comprador absorve (custo)'
-                    : 'neutro p/ comprador'}
+                {mode === 'integral'
+                  ? 'cadeia neutra — Fisco abre mão'
+                  : mode === 'parcial'
+                    ? 'dividido — fornecedor e comprador'
+                    : 'comprador absorve (escada)'}
               </div>
             </button>
           ))}
