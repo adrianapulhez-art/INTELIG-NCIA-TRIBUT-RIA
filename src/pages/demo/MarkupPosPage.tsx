@@ -1,14 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  Calculator,
-  ArrowLeft,
-  Percent,
-  TrendingUp,
-  FileText,
-  Sparkles,
-  AlertTriangle,
-} from 'lucide-react'
+import { Calculator, ArrowLeft, Percent, Sparkles, AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,7 +13,15 @@ import {
   type RegimeVendedor,
   type ModoMarkup,
   type TeseBaseIcms,
+  type AliquotasExercicio,
 } from '@/lib/markupPosCalculations'
+import { montarItensIntegracao } from '@/lib/integracaoComprasArt12'
+import {
+  computeCellArt12Item,
+  CRONOGRAMA_ART12,
+  CONFIG_PADRAO_ART12,
+  type RegimeId,
+} from '@/lib/art12Calculations'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 import { useTaxContext } from '@/contexts/TaxContext'
 
@@ -50,6 +50,13 @@ const REGIME_COR_TITULO: Record<RegimeVendedor, string> = {
   simples_hibrido: 'text-emerald-300',
 }
 
+const FORNECEDOR_LABEL: Record<RegimeId, string> = {
+  presumido: 'Fornecedor LP',
+  real: 'Fornecedor LR',
+  simples: 'Fornecedor SN',
+  simples_hibrido: 'Fornecedor SN híbrido',
+}
+
 const REGIMES: RegimeVendedor[] = ['presumido', 'real', 'simples', 'simples_hibrido']
 
 /** Card de um regime — número primeiro, memória a 1 clique (padrão canônico da CEO). */
@@ -58,11 +65,13 @@ function CardRegimePos({
   resultado,
   custoOrigem,
   nomeItem,
+  modoLabel,
 }: {
   regime: RegimeVendedor
   resultado: ReturnType<typeof calcularMarkupPos>
   custoOrigem: number
   nomeItem: string
+  modoLabel: string
 }) {
   const [memoriaAberta, setMemoriaAberta] = useState(false)
   const indisponivel = resultado.fator === null
@@ -188,8 +197,7 @@ function CardRegimePos({
                   </div>
                 ))}
                 <div className="text-[9px] font-mono text-slate-500 pt-1">
-                  Base: {modo === 'custo_margem' ? 'custo do item' : 'RL âncora'}{' '}
-                  {formatBRL(custoOrigem)} · {nomeItem}
+                  Base: {modoLabel} {formatBRL(custoOrigem)} · {nomeItem}
                 </div>
               </div>
             </div>
@@ -200,56 +208,78 @@ function CardRegimePos({
   )
 }
 
-const modo_ = undefined as unknown as ModoMarkup | undefined
-
 export function MarkupPosPage() {
   const navigate = useNavigate()
   const { purchasesItems } = useTaxContext()
   const [exercicio, setExercicio] = useState<2026 | 2027 | 2028>(2027)
   const [modo, setModo] = useState<ModoMarkup>('custo_margem')
   const [tese, setTese] = useState<TeseBaseIcms>('fisco')
+  const [fornecedor, setFornecedor] = useState<RegimeId>('presumido')
   const [margemPct, setMargemPct] = useState(30)
   const [dvPct, setDvPct] = useState(5)
   const [customPct, setCustomPct] = useState(0)
   const [rlAncora, setRlAncora] = useState(2000)
+  // DAS efetivo e fração ICMS do híbrido — EDITÁVEIS (decisão da CEO, 05/10):
+  // campo informável como na pré-reforma; vazio = padrão do exercício (4,17% / 1,3 p.p.).
+  const [dasInput, setDasInput] = useState('')
+  const [fracInput, setFracInput] = useState('')
 
-  // VÍNCULO AUTOMÁTICO — o custo vem do item de maior valor da Compras (máxima da casa:
-  // nunca média). Zero na origem = zero na página.
-  const itensComValor = useMemo(
-    () => purchasesItems.filter((i) => (i.quantity || 0) > 0 && (i.unitPrice || 0) > 0),
+  const aliquotas: AliquotasExercicio = useMemo(() => {
+    const pad = ALIQUOTAS_PADRAO[exercicio]
+    const das = dasInput.trim() === '' ? pad.efetivaSN : Number(dasInput)
+    const frac = fracInput.trim() === '' ? pad.icmsFracHibrido : Number(fracInput)
+    return {
+      ...pad,
+      efetivaSN: das > 0 ? das : pad.efetivaSN,
+      icmsFracHibrido: frac > 0 ? frac : pad.icmsFracHibrido,
+    }
+  }, [exercicio, dasInput, fracInput])
+
+  // VÍNCULO AUTOMÁTICO — o custo vem do motor Art. 12 por item (item de maior valor
+  // da Compras — máxima da casa: nunca média). Zero na origem = zero na página.
+  // Cada card usa a CÉLULA da matriz 4×4: fornecedor selecionado × comprador = o regime do card.
+  const itensIntegracao = useMemo(
+    () => montarItensIntegracao(purchasesItems || []),
     [purchasesItems],
   )
   const itemAtivo = useMemo(() => {
-    if (itensComValor.length === 0) return null
-    const ordenados = [...itensComValor].sort(
-      (a, b) =>
-        (b as { unitPrice: number; quantity: number }).unitPrice *
-          (b as { quantity: number }).quantity -
-        (a as { unitPrice: number; quantity: number }).unitPrice *
-          (a as { quantity: number }).quantity,
-    )
-    return ordenados[0]
-  }, [itensComValor])
+    const comValor = itensIntegracao.filter((i) => i.valorNota > 0)
+    if (comValor.length === 0) return null
+    return [...comValor].sort((a, b) => b.valorNota - a.valorNota)[0]
+  }, [itensIntegracao])
 
-  const custoUnitario = useMemo(() => {
-    if (!itemAtivo) return 0
-    // Custo líquido pré-reforma do item (mesma memória da Compras: bruto − ICMS − PIS/COFINS LR)
-    const merc = (itemAtivo.unitPrice || 0) * (itemAtivo.quantity || 0)
-    const frete = itemAtivo.freightValue || 0
-    const icms =
-      merc * ((itemAtivo.icmsRate || 0) / 100) +
-      (frete || 0) * ((itemAtivo.icmsFreightRate || 0) / 100)
-    const basePisCofins = Math.max(0, merc + (frete || 0) - icms)
-    const piscofins = basePisCofins * 0.0925 // LR credita — custo líquido padrão da casa
-    return (
-      Math.round((merc + (frete || 0) - icms - piscofins) * 100) /
-      100 /
-      Math.max(1, itemAtivo.quantity || 1)
-    )
-  }, [itemAtivo])
+  const row = useMemo(
+    () => CRONOGRAMA_ART12.find((r) => r.exercicio === exercicio) ?? CRONOGRAMA_ART12[1],
+    [exercicio],
+  )
 
-  const aliquotas = ALIQUOTAS_PADRAO[exercicio]
-  const base = modo === 'custo_margem' ? custoUnitario : rlAncora
+  const custoPorRegime = useMemo(() => {
+    const mapa = {} as Record<RegimeVendedor, number>
+    for (const regime of REGIMES) {
+      if (!itemAtivo) {
+        mapa[regime] = 0
+        continue
+      }
+      const config = {
+        ...CONFIG_PADRAO_ART12,
+        fornecedorRegime: fornecedor,
+        compradorRegime: regime,
+      }
+      const cell = computeCellArt12Item(itemAtivo, config, row)
+      mapa[regime] = exercicio === 2026 ? cell.hoje.unitario : cell.exercicio.unitario
+    }
+    return mapa
+  }, [itemAtivo, fornecedor, row, exercicio])
+
+  const base =
+    modo === 'custo_margem'
+      ? custoPorRegime
+      : ({
+          presumido: rlAncora,
+          real: rlAncora,
+          simples: rlAncora,
+          simples_hibrido: rlAncora,
+        } as Record<RegimeVendedor, number>)
 
   const resultados = useMemo(
     () =>
@@ -259,7 +289,7 @@ export function MarkupPosPage() {
           regime,
           exercicio,
           modo,
-          { base, margemPct, dvPct, customTaxesPct: customPct },
+          { base: base[regime], margemPct, dvPct, customTaxesPct: customPct },
           aliquotas,
           tese,
         ),
@@ -268,6 +298,7 @@ export function MarkupPosPage() {
   )
 
   const fatorLP = fatorVendaPos('presumido', exercicio, aliquotas, tese)
+  const modoLabel = modo === 'custo_margem' ? 'custo do item' : 'RL âncora'
 
   return (
     <DemoLayout currentTab="markup-pos">
@@ -344,6 +375,25 @@ export function MarkupPosPage() {
               </button>
             ))}
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-mono text-slate-500 uppercase">
+              Fornecedor (custo Art. 12):
+            </span>
+            {(['presumido', 'real', 'simples', 'simples_hibrido'] as RegimeId[]).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFornecedor(f)}
+                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
+                  fornecedor === f
+                    ? 'bg-teal-500 text-slate-950 border-teal-400'
+                    : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+                }`}
+              >
+                {FORNECEDOR_LABEL[f]}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             {modo === 'custo_margem' && (
               <label className="flex items-center gap-1.5">
@@ -387,6 +437,32 @@ export function MarkupPosPage() {
                 className="w-20 h-7 text-[11px] font-mono bg-slate-950 border-slate-700 text-slate-100"
               />
             </label>
+            <label className="flex items-center gap-1.5">
+              <span className="text-[10px] font-mono text-slate-500 uppercase">
+                DAS efetivo % (SN)
+              </span>
+              <Input
+                type="number"
+                value={dasInput}
+                onChange={(e) => setDasInput(e.target.value)}
+                placeholder={`${aliquotas.efetivaSN}`}
+                className="w-20 h-7 text-[11px] font-mono bg-slate-950 border-slate-700 text-slate-100"
+              />
+            </label>
+            {exercicio >= 2027 && (
+              <label className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono text-slate-500 uppercase">
+                  Fração ICMS no DAS % (híbrido)
+                </span>
+                <Input
+                  type="number"
+                  value={fracInput}
+                  onChange={(e) => setFracInput(e.target.value)}
+                  placeholder={`${aliquotas.icmsFracHibrido}`}
+                  className="w-20 h-7 text-[11px] font-mono bg-slate-950 border-slate-700 text-slate-100"
+                />
+              </label>
+            )}
             <span className="text-[10px] font-mono text-slate-400">
               CBS {aliquotas.cbs}% · IBS {aliquotas.ibs}% · ICMS {aliquotas.icms}%
               {exercicio >= 2027 && fatorLP !== null && (
@@ -403,11 +479,14 @@ export function MarkupPosPage() {
               <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono">
                 <Sparkles className="w-4 h-4 text-sky-400" />
                 <span className="text-sky-300 font-bold">
-                  Custo do item: {itemAtivo.name || 'Item'} — {formatBRL(custoUnitario)}/un
+                  Custo Art. 12 — {itemAtivo.name || 'Item'}: {FORNECEDOR_LABEL[fornecedor]} → LP{' '}
+                  {formatBRL(custoPorRegime.presumido)} · LR {formatBRL(custoPorRegime.real)} · SN{' '}
+                  {formatBRL(custoPorRegime.simples)} · SNH{' '}
+                  {formatBRL(custoPorRegime.simples_hibrido)} /un
                 </span>
                 <span className="text-slate-400">
                   ({itemAtivo.quantity} un · vínculo automático com a Calculadora de Compras — nunca
-                  média)
+                  média; cada card usa a célula fornecedor × adquirente)
                 </span>
               </div>
             ) : (
@@ -429,8 +508,9 @@ export function MarkupPosPage() {
               key={regime}
               regime={regime}
               resultado={resultado}
-              custoOrigem={base}
+              custoOrigem={base[regime]}
               nomeItem={itemAtivo?.name || 'RL âncora'}
+              modoLabel={modoLabel}
             />
           ))}
         </div>
@@ -442,8 +522,10 @@ export function MarkupPosPage() {
             Fatores derivados da álgebra chancelada da CEO (F1, 04/10) — prova de continuidade com
             os divisores da pré-reforma ao 6º decimal. CBS 8,8% é ESTIMADA (pendente de fixação pelo
             Senado, art. 349) e editável no motor Art. 12; IBS 0,1% (2027-28) e alíquotas de 2026
-            são CRAVADAS EM LEI. O SN híbrido cobra CBS/IBS por fora sobre base sem o ICMS do DAS
-            (premissa IT chancelada) — o cliente PJ credita o destaque (art. 47).
+            são CRAVADAS EM LEI. DAS efetivo do SN e fração de ICMS do híbrido são INFORMADOS (art.
+            23 §2º e art. 41 §3º — campos editáveis acima; vazio = padrão do exercício). O SN
+            híbrido cobra CBS/IBS por fora sobre base sem o ICMS do DAS (premissa IT chancelada) — o
+            cliente PJ credita o destaque (art. 47).
           </span>
         </div>
 
@@ -471,8 +553,3 @@ export function MarkupPosPage() {
 }
 
 export default MarkupPosPage
-
-const modo: ModoMarkup | undefined = modo_
-void modo
-void FileText
-void TrendingUp
