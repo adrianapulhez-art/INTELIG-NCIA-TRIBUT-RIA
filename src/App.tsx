@@ -20,6 +20,7 @@ import DreSimplesPage from './pages/demo/DreSimplesPage'
 import DemoDashboardPage from './pages/demo/DemoDashboardPage'
 import ReformaPage from './pages/demo/ReformaPage'
 import Ponte2027Page from './pages/demo/Ponte2027Page'
+import MarkupPosPage from './pages/demo/MarkupPosPage'
 import ClientsPage from './pages/demo/ClientsPage'
 import ManualPage from './pages/demo/ManualPage'
 import { Navigate } from 'react-router-dom'
@@ -118,6 +119,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Ponte2027Page />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/demo/markup-pos"
+              element={
+                <ProtectedRoute>
+                  <MarkupPosPage />
                 </ProtectedRoute>
               }
             />
