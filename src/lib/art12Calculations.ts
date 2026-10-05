@@ -173,8 +173,13 @@ export interface MemoryLineArt {
   fundamento: Fundamento
   /** BLOCO da memória (estrutura da proposta): 1 = formação do preço do fornecedor; 2 = custo da aquisição do comprador. */
   bloco: 1 | 2
-  /** Subtotal do bloco: 'preco_nota' (fim do bloco 1) ou 'custo_unitario' (fim do bloco 2). */
-  subtotal?: 'preco_nota' | 'custo_unitario'
+  /** Subtotal do bloco: 'preco_nota' (fim do bloco 1), 'custo_unitario' (fim do bloco 2) ou marcadores de subtotais intermediários/SN. */
+  subtotal?:
+    | 'preco_nota'
+    | 'custo_unitario'
+    | 'compras_liquidas_hoje'
+    | 'custo_unitario_hoje'
+    | 'preco_nota_sn'
   /** Camada de auditoria (Fase A): derivação passo a passo, 6 casas, sem arredondamento intermediário. */
   passos?: DerivaPasso[]
 }

@@ -532,14 +532,14 @@ describe('CMV Art. 12 — INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA (Fase 1)
       abcPct: 100,
       classe: 'A',
     }
-    const input = derivarCasoDeItens([itemCanonico])
-    expect(input.quantity).toBe(30)
-    expect(input.unitPrice).toBe(1400)
-    expect(input.freightValue).toBe(400)
-    expect(input.icmsRate).toBe(18)
-    expect(input.ipiRate).toBe(10)
+    const { input } = derivarCasoUnitario([itemCanonico])
+    expect(input!.quantity).toBe(30)
+    expect(input!.unitPrice).toBe(1400)
+    expect(input!.freightValue).toBe(400)
+    expect(input!.icmsRate).toBe(18)
+    expect(input!.ipiRate).toBe(10)
     // Célula LP×LP com o input derivado = ouros chancelados
-    const cell = computeCellArt12(input, { ...CONFIG_PADRAO_ART12 }, row)
+    const cell = computeCellArt12(input!, { ...CONFIG_PADRAO_ART12 }, row)
     expect(fmt(cell.hoje.unitario)).toBe('1158.93')
     expect(fmt(cell.exercicio.unitario)).toBe('1116.63')
     expect(fmt(cell.deltaPct)).toBe('-3.65')

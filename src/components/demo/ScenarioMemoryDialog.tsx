@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { PurchaseItem } from '@/contexts/TaxContext'
+import { PurchaseItem, TaxStateSnapshot } from '@/contexts/TaxContext'
 import {
   formatBRL,
   formatNumberBR,
@@ -38,7 +38,7 @@ export interface ScenarioMemorySource {
   /** Escopo do cenário (badge do cabeçalho). */
   scope?: string
   /** Snapshot gravado (da versão, quando inspeção de vN; do registro, quando atual). */
-  snapshot?: Record<string, unknown> | null
+  snapshot?: Record<string, unknown> | TaxStateSnapshot | null
   /** Data ISO do salvamento (versão ou registro). */
   savedAt?: string
 }

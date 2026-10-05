@@ -23,9 +23,9 @@ export interface ItemComprasOrigem {
   name: string
   quantity: number
   merchandiseValue: number
-  freightValue: number
+  freightValue?: number
   icmsRate: number
-  icmsFreightRate: number
+  icmsFreightRate?: number
   ipiRate: number
   hasSt: boolean
   stValue: number
@@ -83,8 +83,10 @@ export function derivarCasoUnitario(items: ItemIntegracaoArt12[]): CasoUnitario 
 
 /** Calcula valor de nota, % e classe ABC de cada item (sobre o total com valor > 0). */
 export function montarItensIntegracao(origem: ItemComprasOrigem[]): ItemIntegracaoArt12[] {
-  const base = origem.map((i) => ({
+  const base: ItemIntegracaoArt12[] = origem.map((i) => ({
     ...i,
+    freightValue: i.freightValue || 0,
+    icmsFreightRate: i.icmsFreightRate || 0,
     valorNota: r2(
       (i.merchandiseValue || 0) +
         (i.freightValue || 0) +
@@ -92,7 +94,7 @@ export function montarItensIntegracao(origem: ItemComprasOrigem[]): ItemIntegrac
         (i.hasSt ? i.stValue || 0 : 0),
     ),
     abcPct: 0,
-    classe: '—' as const,
+    classe: '—',
   }))
   const total = base.reduce((a, i) => a + i.valorNota, 0)
   const ordenados = [...base].sort((a, b) => b.valorNota - a.valorNota)

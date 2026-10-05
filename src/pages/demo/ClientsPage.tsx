@@ -219,6 +219,7 @@ export default function ClientsPage() {
   const [deleteScenarioConfirm, setDeleteScenarioConfirm] = useState<{
     id: string
     name: string
+    clientName?: string
   } | null>(null)
   const [isDeletingScenario, setIsDeletingScenario] = useState<boolean>(false)
   // CEO 02/10: ABRIR = memória de cálculo do cenário do depósito (componente compartilhado)

@@ -118,7 +118,6 @@ function formatClientRecord(rec: RecordModel): AccountingClientRecord {
     created: rec.created,
     updated: rec.updated,
     source: 'cloud',
-    versions: vers,
   }
 }
 
@@ -680,7 +679,7 @@ export async function updateScenarioVersionSnapshot(params: {
   const now = new Date().toISOString()
   const applyLocal = (list: ClientSavedScenarioRecord[]) =>
     list.map((s) =>
-      s.id !== id
+      s.id !== params.id
         ? s
         : {
             ...s,

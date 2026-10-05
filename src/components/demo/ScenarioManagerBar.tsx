@@ -120,26 +120,17 @@ export const ScenarioManagerBar: React.FC<ScenarioManagerBarProps> = ({ onGravar
                 (Gerenciar e Carregar Cenários saem da barra; gestão vive no modal) */}
             <div className="flex items-center gap-2 flex-wrap">
               {/* Botão Gravar Cenário (abre o modal rico quando onGravarCenario é fornecido) */}
-              <Button
-                size="sm"
-                onClick={() => {
-                  if (onGravarCenario) {
-                    onGravarCenario()
-                  } else {
-                    setScenarioNameInput(
-                      activeScenarioName
-                        ? `${activeScenarioName} (revisão)`
-                        : `Cenário Gravado — ${new Date().toLocaleDateString('pt-BR')}`,
-                    )
-                    setIsSaveModalOpen(true)
-                  }
-                }}
-                className="h-8 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25 gap-1.5 cursor-pointer"
-                title="Gravar cenário tributário completo"
-              >
-                <Save className="w-3.5 h-3.5 text-slate-950" />
-                <span>Gravar Cenário</span>
-              </Button>
+              {onGravarCenario && (
+                <Button
+                  size="sm"
+                  onClick={onGravarCenario}
+                  className="h-8 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25 gap-1.5 cursor-pointer"
+                  title="Gravar cenário tributário completo"
+                >
+                  <Save className="w-3.5 h-3.5 text-slate-950" />
+                  <span>Gravar Cenário</span>
+                </Button>
+              )}
             </div>
           </div>
 

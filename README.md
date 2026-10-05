@@ -1,4 +1,4 @@
-# Projeto Criado com o Skip
+# IT - Precificação e Planejamento Tributário
 
 Este projeto foi criado de ponta a ponta com o [Skip](https://goskip.dev).
 
