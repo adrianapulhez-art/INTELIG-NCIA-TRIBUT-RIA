@@ -28,7 +28,6 @@ routerAdd(
         '/demo/simples': 'DRE Simples Nacional (/demo/simples) — do preço à DRE: capítulo 8',
         '/demo/dashboard': 'Dashboard (/demo/dashboard) — visão consolidada',
         '/demo/reforma': 'Reforma Tributária IBS/CBS (/demo/reforma) — Glossário: capítulo 10',
-        '/demo/ponte-2027': 'Ponte 2027 (/demo/ponte-2027) — Glossário: capítulo 10',
         '/demo/clientes': 'Clientes (/demo/clientes) — depósito de cenários: capítulo 2',
         '/demo/manual': 'Manual de Uso (/demo/manual) — todos os capítulos',
       }

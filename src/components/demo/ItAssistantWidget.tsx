@@ -28,7 +28,6 @@ const ROUTE_LABELS: Record<string, string> = {
   '/demo/simples': '/demo/simples',
   '/demo/dashboard': '/demo/dashboard',
   '/demo/reforma': '/demo/reforma',
-  '/demo/ponte-2027': '/demo/ponte-2027',
   '/demo/clientes': '/demo/clientes',
   '/demo/manual': '/demo/manual',
 }

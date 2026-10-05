@@ -19,7 +19,6 @@ import DreRealPage from './pages/demo/DreRealPage'
 import DreSimplesPage from './pages/demo/DreSimplesPage'
 import DemoDashboardPage from './pages/demo/DemoDashboardPage'
 import ReformaPage from './pages/demo/ReformaPage'
-import Ponte2027Page from './pages/demo/Ponte2027Page'
 import MarkupPosPage from './pages/demo/MarkupPosPage'
 import ClientsPage from './pages/demo/ClientsPage'
 import ManualPage from './pages/demo/ManualPage'
@@ -114,14 +113,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/demo/ponte-2027"
-              element={
-                <ProtectedRoute>
-                  <Ponte2027Page />
-                </ProtectedRoute>
-              }
-            />
+
             <Route
               path="/demo/markup-pos"
               element={

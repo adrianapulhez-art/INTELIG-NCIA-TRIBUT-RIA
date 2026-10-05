@@ -22,7 +22,7 @@ Precificar antes de conferir custo, modo e regime é precificar no escuro. Siga 
 - **Seção "Parâmetros e Produtos do MARKUP"**: modos de precificação, regimes, despesas variáveis e tributos.
 - **Lista "PRODUTOS / SERVIÇOS CADASTRADOS"**: seus produtos, um por linha-camada.
 - **Rodapé da página**: botões "Simular", "Gravar Cenário", "Carregar Cenários", "Voltar para Calculadora de Compras" e "Ir para a DRE".
-- **Pills no topo do sistema**: navegação entre os módulos (Compras, Markup, DREs, Dashboard, Reforma, Ponte 2027, Clientes e este Manual).
+- **Pills no topo do sistema**: navegação entre os módulos (Compras, Markup, DREs, Dashboard, Reforma, Markup Pós-Reforma, Clientes e este Manual).
 
 ## Passo a passo
 
