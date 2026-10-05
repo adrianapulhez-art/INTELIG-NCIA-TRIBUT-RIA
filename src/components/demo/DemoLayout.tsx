@@ -18,7 +18,6 @@ export type TabKey =
   | 'simples'
   | 'dashboard'
   | 'reforma'
-  | 'markup-pos'
   | 'clientes'
   | 'manual'
 interface DemoLayoutProps {
@@ -140,7 +139,6 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
     { key: 'simples', label: 'DRE Simples Nacional', path: '/demo/simples' },
     { key: 'dashboard', label: 'Dashboard', path: '/demo/dashboard' },
     { key: 'reforma', label: 'Reforma Tributária', path: '/demo/reforma' },
-    { key: 'markup-pos', label: 'Markup Pós-Reforma', path: '/demo/markup-pos' },
     { key: 'clientes', label: 'Clientes', path: '/demo/clientes' },
     { key: 'manual', label: 'Manual', path: '/demo/manual' },
   ]

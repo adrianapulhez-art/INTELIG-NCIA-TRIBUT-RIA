@@ -60,7 +60,7 @@ export function PainelIntegracaoOrigem({
         ABC).
       </p>
 
-      {/* Três portas de origem */}
+      {/* Portas de origem */}
       <div className="flex flex-wrap gap-1.5">
         <button
           type="button"
@@ -69,14 +69,6 @@ export function PainelIntegracaoOrigem({
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-mono font-bold bg-sky-500 text-slate-950 border border-sky-400 cursor-pointer hover:bg-sky-400 transition-colors"
         >
           <ShoppingBasket className="w-3 h-3" /> Calculadora de Compras
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/demo/markup-pos')}
-          title="Abrir o Markup Pós-Reforma — precificação do cliente em 4 regimes"
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-mono font-bold bg-sky-500 text-slate-950 border border-sky-400 cursor-pointer hover:bg-sky-400 transition-colors"
-        >
-          <BarChart3 className="w-3 h-3" /> Markup Pós-Reforma
         </button>
         <span
           title="Importação na próxima fase"
