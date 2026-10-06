@@ -39,6 +39,7 @@ import {
 import { type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
 import { CardEstoqueReajustado, type LinhaEstoqueSN } from './CardEstoqueReajustado'
 import { ComparadorFornecedoresDialog } from './ComparadorFornecedoresDialog'
+import { ManualContadorSnDialog } from './ManualContadorSnDialog'
 import { PainelTesesSn } from './PainelTesesSn'
 import { TrilhaChancelaBadge } from './TrilhaChancelaBadge'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
@@ -255,6 +256,7 @@ export function SessaoSnSection({
   const [idxItem, setIdxItem] = useState(0)
   const [detalheAberto, setDetalheAberto] = useState(false)
   const [comparadorAberto, setComparadorAberto] = useState(false)
+  const [manualAberto, setManualAberto] = useState(false)
 
   // Estado da origem e parâmetros (Fase 1 e Fase 2)
   const [origem, setOrigem] = useState<OrigemPercentual>('tabela') // default: estimativa da tabela oficial
@@ -424,11 +426,22 @@ export function SessaoSnSection({
               Sessão SN na Reforma — tratamento diferenciado para optantes
             </span>
           </div>
-          <TrilhaChancelaBadge
-            label="CRITÉRIO IT v2 (chancela CEO 2026)"
-            descricao="Repartição por fração da tabela oficial e parcela creditável isolada"
-            compact
-          />
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setManualAberto(true)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-violet-500/40 bg-violet-950/60 px-2 py-0.5 text-[10px] font-mono font-bold text-violet-200 hover:bg-violet-900/60 hover:text-white hover:border-violet-400 transition-colors cursor-pointer"
+              title="Abrir Manual de Utilização Didático do Contador"
+            >
+              <span>📘</span>
+              <span>Manual</span>
+            </button>
+            <TrilhaChancelaBadge
+              label="CRITÉRIO IT v2 (chancela CEO 2026)"
+              descricao="Repartição por fração da tabela oficial e parcela creditável isolada"
+              compact
+            />
+          </div>
         </div>
         <p className="text-[10px] font-mono text-slate-400">
           Todas as operações com Simples Nacional — LC 123/2006, art. 23, §§1º–2º (redação LC
@@ -1208,6 +1221,9 @@ export function SessaoSnSection({
             exercicio={exercicio}
             custoPlenoUnitario={custoPlenoUnitario}
           />
+
+          {/* MANUAL DE UTILIZAÇÃO DIDÁTICO PARA O CONTADOR INICIANTE */}
+          <ManualContadorSnDialog open={manualAberto} onOpenChange={setManualAberto} />
         </>
       )}
     </div>
