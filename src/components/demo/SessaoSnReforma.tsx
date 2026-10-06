@@ -1,5 +1,14 @@
 import React, { useMemo, useState } from 'react'
-import { Percent, Calculator, AlertTriangle, ArrowLeft, ArrowDown } from 'lucide-react'
+import {
+  Percent,
+  Calculator,
+  AlertTriangle,
+  ArrowLeft,
+  ArrowDown,
+  ArrowLeftRight,
+  ShieldCheck,
+  CheckCircle2,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,8 +16,12 @@ import {
   calcularSessaoSN,
   creditoEfetivoArt23,
   fmtSN,
+  fmt6,
   PERFIL_SN_NOTA_PADRAO,
+  TABELA_OFICIAL_SN,
   type ModoPreenchimentoSN,
+  type OrigemPercentual,
+  type BaseDoDas,
   type PerfilSN,
 } from '@/lib/art12SnCalculations'
 import {
@@ -24,26 +37,24 @@ import {
 import { type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
 import { CardEstoqueReajustado, type LinhaEstoqueSN } from './CardEstoqueReajustado'
 import { ComparadorFornecedoresDialog } from './ComparadorFornecedoresDialog'
-import { ArrowLeftRight } from 'lucide-react'
+import { PainelTesesSn } from './PainelTesesSn'
+import { TrilhaChancelaBadge } from './TrilhaChancelaBadge'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 
 /**
  * ============================================================================
- * SESSÃO "SN NA REFORMA" — REARRANJO (decisão da CEO, 29/09)
+ * SESSÃO "SN NA REFORMA" — TRATAMENTO DIFERENCIADO PARA OPTANTES
  * Todas as operações com Simples Nacional saem do espelho LP/LR e vivem AQUI,
  * organizadas por FORNECEDOR (SN puro × SN híbrido) × 4 adquirentes.
- * Réguas de repasse SÓ para fornecedor híbrido — fornecedor SN puro tem nota
- * congelada: "repasse não se aplica".
- * Regras de crédito cravadas (art. 23 LC 123/2006, redação LC 214/25):
- *   · LP/LR comprando de SN puro  → crédito PROPORCIONAL (ICMS+CBS+IBS da faixa)
- *   · SNH comprando de SN puro    → crédito PROPORCIONAL de CBS+IBS (ICMS segue no DAS)
- *   · SN comprando de SN puro     → SEM crédito (optante não apropria — art. 47)
- *   · Fornecedor híbrido          → motor Art. 12 chancelado (crédito integral)
- * Alíquota efetiva INFORMADA pelo contador (nota ou anexo+faixa+RBT12) alimenta
- * os dois fluxos — crédito proporcional e base limpa do híbrido.
- * COMPARAÇÃO SEMPRE VISÍVEL (siga 29/09): cada card mostra o custo do fornecedor
- * selecionado E o do outro — puro × híbrido lado a lado na camada 1.
- * Ouros do Art. 12 intactos — camada própria, motor art12SnCalculations.
+ *
+ * MUDANÇAS RECENTES (Chancela CEO - Fases 1 e 2):
+ *   1. Fim do hardcode: alíquota efetiva e frações de repartição derivadas da tabela oficial.
+ *   2. DAS devido em 4 blocos com selo de consistência half-up no Card 2º.
+ *   3. Parcela creditável isolada formalmente do DAS devido total.
+ *   4. Origem rotulada visível: "da nota" × "estimativa da tabela" em todos os campos.
+ *   5. Parâmetro baseDoDas: 'bruta' | 'liquida' com comparativo simultâneo das teses.
+ *   6. Memória intermediária auditável com precisão de 6 decimais.
+ *   7. Painel de teses abertas (Res. CGSN 190/2026) e Trilha de Chancela CEO.
  * ============================================================================
  */
 
@@ -63,6 +74,7 @@ function LinhaSN({
     label: string
     formula: string
     value: number
+    value6?: number
     destaque?: boolean
     fundamento?: string
   }
@@ -78,7 +90,9 @@ function LinhaSN({
     >
       <div className="min-w-0">
         <span
-          className={`text-[10px] font-mono font-semibold block leading-tight ${line.destaque ? 'text-emerald-300' : 'text-slate-200'}`}
+          className={`text-[10px] font-mono font-semibold block leading-tight ${
+            line.destaque ? 'text-emerald-300' : 'text-slate-200'
+          }`}
         >
           {line.label}
         </span>
@@ -93,180 +107,54 @@ function LinhaSN({
           </span>
         )}
       </div>
-      <span
-        className={`text-[10px] font-mono font-bold shrink-0 ${
-          line.value < 0
-            ? 'text-emerald-300'
-            : line.destaque
+      <div className="text-right shrink-0">
+        <span
+          className={`text-[10px] font-mono font-bold block ${
+            line.value < 0
               ? 'text-emerald-300'
-              : line.value > 0
-                ? 'text-slate-100'
-                : 'text-slate-500'
-        }`}
-      >
-        {isPct ? `${formatNumberBR(line.value)}%` : formatBRL(line.value)}
-      </span>
-    </div>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* DETALHE POR ITEM — SN PURO (memória completa do fluxo por dentro)   */
-/* ------------------------------------------------------------------ */
-function DetalheItemSNPuro({
-  item,
-  perfil,
-  resultado,
-  custoPlenoUnitario,
-}: {
-  item: ItemIntegracaoArt12
-  perfil: PerfilSN
-  resultado: ReturnType<typeof calcularSessaoSN>
-  custoPlenoUnitario: number
-}) {
-  const gap = resultado.custoUnitarioLiquido - custoPlenoUnitario
-  return (
-    <div className="space-y-2">
-      {/* 2 — Cálculo guiado */}
-      <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/[0.05] p-3 space-y-1">
-        <span className="text-[11px] font-mono font-black uppercase text-emerald-300 block">
-          2 · Cálculo guiado — memória detalhada ({item.name || 'item'})
+              : line.destaque
+                ? 'text-emerald-300'
+                : line.value > 0
+                  ? 'text-slate-100'
+                  : 'text-slate-500'
+          }`}
+        >
+          {isPct ? `${formatNumberBR(line.value)}%` : formatBRL(line.value)}
         </span>
-        {resultado.memoria
-          .filter((l) =>
-            [
-              'mercadorias',
-              'frete',
-              'receitabruta',
-              'efetiva',
-              'das',
-              'icmsnota',
-              'cbsdas',
-              'ibsdas',
-              'preconota',
-            ].includes(l.key),
-          )
-          .map((l) => (
-            <LinhaSN key={l.key} line={l} />
-          ))}
-      </div>
-      {/* 3 — Crédito proporcional */}
-      <div className="rounded-xl border border-amber-500/45 bg-amber-500/[0.06] p-3 space-y-1">
-        <span className="text-[11px] font-mono font-black uppercase text-amber-300 block">
-          3 · Crédito proporcional do ADQUIRENTE (art. 23) — o coração da sessão
-        </span>
-        {resultado.memoria
-          .filter((l) =>
-            [
-              'credito_base',
-              'credito_icms',
-              'credito_cbs',
-              'credito_ibs',
-              'credito_total',
-              'credito_unidade',
-            ].includes(l.key),
-          )
-          .map((l) => (
-            <LinhaSN key={l.key} line={l} />
-          ))}
-      </div>
-      {/* 4 — Leitura de negociação */}
-      <div className="rounded-xl border border-orange-500/45 bg-orange-500/[0.06] p-3 space-y-1">
-        <span className="text-[11px] font-mono font-black uppercase text-orange-300 block">
-          4 · Leitura de negociação — custo líquido do adquirente
-        </span>
-        <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-slate-950/50 border border-slate-800/60">
-          <span className="text-[10px] font-mono text-slate-200">
-            Preço da nota do fornecedor SN (sem crédito — mundo antigo)
+        {line.value6 !== undefined && Math.abs(line.value6 - line.value) > 0.000001 && (
+          <span className="text-[8px] font-mono text-slate-500 block leading-none">
+            {fmt6(line.value6)}
           </span>
-          <span className="text-[10px] font-mono font-bold text-slate-100">
-            {formatBRL(resultado.receitaBruta)}
-          </span>
-        </div>
-        <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-slate-950/50 border border-slate-800/60">
-          <span className="text-[10px] font-mono text-slate-200">
-            (−) Crédito proporcional do art. 23
-          </span>
-          <span className="text-[10px] font-mono font-bold text-emerald-300">
-            -{formatBRL(resultado.creditoTotal)}
-          </span>
-        </div>
-        <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/40">
-          <span className="text-[10px] font-mono font-bold text-emerald-300">
-            (=) CUSTO LÍQUIDO COM O ART. 23
-          </span>
-          <span className="text-[11px] font-black font-mono text-emerald-300">
-            {formatBRL(resultado.custoUnitarioLiquido)}/un
-          </span>
-        </div>
-        {/* HOJE DA PRÓPRIA COMBINAÇÃO (CEO, 02/10): crédito de 2026 = SÓ ICMS (redação
-            original do art. 23; CBS+IBS entram com a LC 214/25 em 2027) */}
-        <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/40">
-          <span className="text-[10px] font-mono font-bold text-violet-300">
-            📌 HOJE (2026) comprando de fornecedor SN — crédito proporcional só de ICMS (redação
-            original do art. 23)
-          </span>
-          <span className="text-[11px] font-black font-mono text-violet-300">
-            {formatBRL(resultado.custoUnitarioHojeSN)}/un
-          </span>
-        </div>
-        <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-slate-950/50 border border-slate-800/60">
-          <span className="text-[10px] font-mono text-slate-200">
-            Δ vs HOJE-SN (mesma combinação — mede só a REFORMA)
-          </span>
-          <span
-            className={`text-[10px] font-mono font-bold ${
-              resultado.custoUnitarioLiquido > resultado.custoUnitarioHojeSN
-                ? 'text-rose-300'
-                : resultado.custoUnitarioLiquido < resultado.custoUnitarioHojeSN
-                  ? 'text-emerald-300'
-                  : 'text-slate-400'
-            }`}
-          >
-            {resultado.custoUnitarioHojeSN > 0
-              ? `${((resultado.custoUnitarioLiquido / resultado.custoUnitarioHojeSN - 1) * 100).toFixed(2).replace('.', ',')}%`
-              : '—'}
-          </span>
-        </div>
-        <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-slate-950/50 border border-slate-800/60">
-          <span className="text-[10px] font-mono text-slate-200">
-            Comparativo: comprar de fornecedor LP (célula LP×LP chancelada)
-          </span>
-          <span className="text-[10px] font-mono font-bold text-slate-100">
-            {formatBRL(custoPlenoUnitario)}/un
-          </span>
-        </div>
-        <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-orange-500/10 border border-orange-500/40">
-          <span className="text-[10px] font-mono font-bold text-orange-300">
-            Gap de negociação — o que o fornecedor SN precisa compensar em preço
-          </span>
-          <span className="text-[11px] font-black font-mono text-orange-300">
-            {formatBRL(gap)}/un
-          </span>
-        </div>
+        )}
       </div>
     </div>
   )
 }
 
 /* ------------------------------------------------------------------ */
-/* MODELO CANÔNICO DA CEO (29/09): 3 CARDS LADO A LADO NO DETALHE      */
+/* MODELO CANÔNICO DA CEO: 3 CARDS LADO A LADO NO DETALHE             */
 /* Card 1º — memória da aquisição em 2026 (HOJE, pré-reforma)          */
-/* Card 2º — formação do preço do fornecedor (SN puro: POR DENTRO,    */
-/*           nota congelada; híbrido: base limpa + CBS/IBS por fora)  */
-/* Card 3º — custo do adquirente com ajuste pós-reforma               */
+/* Card 2º — formação do preço do fornecedor / DAS em 4 blocos        */
+/* Card 3º — custo do adquirente com ajuste pós-reforma (parcela cred) */
 /* ------------------------------------------------------------------ */
 function CardMemoriaCanonical({
   titulo,
   cor,
   linhas,
+  badgeExtra,
 }: {
   titulo: string
   cor: 'emerald' | 'violet' | 'orange' | 'sky'
-  linhas: { label: string; formula?: string; value: number; destaque?: boolean; kind?: string }[]
+  linhas: {
+    label: string
+    formula?: string
+    value: number
+    value6?: number
+    destaque?: boolean
+    kind?: string
+  }[]
+  badgeExtra?: React.ReactNode
 }) {
-  // 'sky' = card de DESTAQUE (CEO, 02/10): fundo mais preenchido para o 1º-B —
-  // ao bater o olho o contador enxerga os dois pontos de comparação.
   const corCls = {
     emerald: 'border-emerald-500/45 bg-emerald-500/[0.05]',
     violet: 'border-violet-500/45 bg-violet-500/[0.05]',
@@ -279,13 +167,17 @@ function CardMemoriaCanonical({
     orange: 'text-orange-300',
     sky: 'text-sky-200',
   }[cor]
+
   return (
     <div className={`flex-1 min-w-[240px] rounded-xl border p-3 space-y-1 ${corCls}`}>
-      <span
-        className={`text-[10px] font-mono font-black uppercase leading-tight block ${tituloCls}`}
-      >
-        {titulo}
-      </span>
+      <div className="flex items-start justify-between gap-1">
+        <span
+          className={`text-[10px] font-mono font-black uppercase leading-tight block ${tituloCls}`}
+        >
+          {titulo}
+        </span>
+        {badgeExtra}
+      </div>
       {linhas.map((l, i) => (
         <div
           key={`${l.label}-${i}`}
@@ -311,11 +203,20 @@ function CardMemoriaCanonical({
               </span>
             )}
           </div>
-          <span
-            className={`text-[10px] font-mono font-bold shrink-0 ${l.value < 0 ? 'text-emerald-300' : l.destaque ? 'text-white' : 'text-slate-100'}`}
-          >
-            {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
-          </span>
+          <div className="text-right shrink-0">
+            <span
+              className={`text-[10px] font-mono font-bold block ${
+                l.value < 0 ? 'text-emerald-300' : l.destaque ? 'text-white' : 'text-slate-100'
+              }`}
+            >
+              {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
+            </span>
+            {l.value6 !== undefined && Math.abs(l.value6 - l.value) > 0.000001 && (
+              <span className="text-[8px] font-mono text-slate-500 block leading-none">
+                {fmt6(l.value6)}
+              </span>
+            )}
+          </div>
         </div>
       ))}
     </div>
@@ -353,30 +254,61 @@ export function SessaoSnSection({
   const [detalheAberto, setDetalheAberto] = useState(false)
   const [comparadorAberto, setComparadorAberto] = useState(false)
 
-  // Estado da alíquota efetiva INFORMADA (um campo, dois fluxos)
-  const [modo, setModo] = useState<ModoPreenchimentoSN>('nota')
+  // Estado da origem e parâmetros (Fase 1 e Fase 2)
+  const [origem, setOrigem] = useState<OrigemPercentual>('tabela') // default: estimativa da tabela oficial
+  const [baseDoDas, setBaseDoDas] = useState<BaseDoDas>('bruta') // default: bruta
+
+  // Parâmetros de modo nota (digitados pelo contador)
   const [icmsNotaPct, setIcmsNotaPct] = useState(PERFIL_SN_NOTA_PADRAO.icmsNotaPct)
   const [cbsNotaPct, setCbsNotaPct] = useState(PERFIL_SN_NOTA_PADRAO.cbsNotaPct)
   const [ibsNotaPct, setIbsNotaPct] = useState(PERFIL_SN_NOTA_PADRAO.ibsNotaPct)
+
+  // Parâmetros de tabela oficial
   const [anexo, setAnexo] = useState(PERFIL_SN_NOTA_PADRAO.anexo)
   const [faixa, setFaixa] = useState(PERFIL_SN_NOTA_PADRAO.faixa)
   const [rbt12, setRbt12] = useState(PERFIL_SN_NOTA_PADRAO.rbt12)
   const [efetivaPct, setEfetivaPct] = useState(PERFIL_SN_NOTA_PADRAO.efetivaPct)
   const [icmsFracPct, setIcmsFracPct] = useState(PERFIL_SN_NOTA_PADRAO.icmsFracPct)
+  const [cbsFracPct, setCbsFracPct] = useState(PERFIL_SN_NOTA_PADRAO.cbsFracPct)
+  const [ibsFracPct, setIbsFracPct] = useState(PERFIL_SN_NOTA_PADRAO.ibsFracPct)
+  const [irpjCsllCppFracPct, setIrpjCsllCppFracPct] = useState(
+    PERFIL_SN_NOTA_PADRAO.irpjCsllCppFracPct,
+  )
 
   const perfil: PerfilSN = useMemo(
     () => ({
-      modo,
+      origem,
+      modo: origem === 'nota' ? 'nota' : 'anexo',
       icmsNotaPct,
       cbsNotaPct,
       ibsNotaPct,
       anexo,
       faixa,
+      exercicio: Number(exercicio) || 2027,
       rbt12,
       efetivaPct,
       icmsFracPct,
+      cbsFracPct,
+      ibsFracPct,
+      irpjCsllCppFracPct,
+      baseDoDas,
     }),
-    [modo, icmsNotaPct, cbsNotaPct, ibsNotaPct, anexo, faixa, rbt12, efetivaPct, icmsFracPct],
+    [
+      origem,
+      icmsNotaPct,
+      cbsNotaPct,
+      ibsNotaPct,
+      anexo,
+      faixa,
+      exercicio,
+      rbt12,
+      efetivaPct,
+      icmsFracPct,
+      cbsFracPct,
+      ibsFracPct,
+      irpjCsllCppFracPct,
+      baseDoDas,
+    ],
   )
 
   const cfgBase: CellConfigArt = useMemo(
@@ -384,37 +316,36 @@ export function SessaoSnSection({
     [config, repasse, repassePct],
   )
 
-  // RESULTADO POR ITEM — OS DOIS FORNECEDORES SEMPRE (comparação lado a lado, siga 29/09)
+  // RESULTADO POR ITEM — OS DOIS FORNECEDORES SEMPRE (comparação lado a lado)
   const resultados = useMemo(() => {
     if (itens.length === 0) return []
     return itens.map((item) => {
-      // --- SN PURO: nota congelada + crédito proporcional do art. 23 (motor da sessão).
-      // Adquirente passado ao motor (03/10): define o crédito de 2026 — o LR credita
-      // também PIS/COFINS (ADI SRF 15/2007 + SC COSIT 297/2019); LP fica só no ICMS.
+      // --- SN PURO: nota congelada + parcela creditável do art. 23 (motor da sessão)
       const r = calcularSessaoSN(item, perfil, adquirente)
       const cellHojePuro = computeCellArt12Item(
         item,
         { ...cfgBase, compradorRegime: adquirente, fornecedorRegime: adquirente },
         row,
       )
-      // REGRA DE CRÉDITO (art. 23 + art. 47): quem apropria o quê — função pura blindada.
+
+      // Regra de crédito: consome a parcela creditável isolada (não a efetiva cheia)
       const creditoEfetivo = creditoEfetivoArt23(adquirente, r)
       const custoLiquidoPuro = r.receitaBruta - creditoEfetivo
       const unitarioPuro = custoLiquidoPuro / Math.max(1, item.quantity)
-      // Δ HONESTO (CEO, 02/10): compara 2027-SN × 2026-SN (MESMA combinação) — mede só a
-      // REFORMA. HOJE-SN = nota congelada − crédito de 2026 (só ICMS: redação original do
-      // art. 23; CBS+IBS entram com a LC 214/25 em 2027). O Δ vs baseline plena segue
-      // disponível como GAP DE NEGOCIAÇÃO (troca de fornecedor).
+
+      // Δ honesto: compara 2027-SN × 2026-SN (mesma combinação)
       const deltaPctPuro =
         r.custoUnitarioHojeSN > 0
           ? ((unitarioPuro - r.custoUnitarioHojeSN) / r.custoUnitarioHojeSN) * 100
           : 0
-      // --- SN HÍBRIDO: motor Art. 12 CHANCELADO (crédito integral, premissa IT)
+
+      // --- SN HÍBRIDO: motor Art. 12 chancelado
       const cellHib = computeCellArt12Item(
         item,
         { ...cfgBase, compradorRegime: adquirente, fornecedorRegime: 'simples_hibrido' },
         row,
       )
+
       return {
         item,
         puro: {
@@ -422,9 +353,7 @@ export function SessaoSnSection({
           deltaPct: deltaPctPuro,
           r,
           creditoEfetivo,
-          // HOJE-SN (2026, crédito só de ICMS) — baseline da combinação (Δ honesto)
           cellHojeUnitario: r.custoUnitarioHojeSN,
-          // Linhas HOJE para o CARD 1º do detalhe (modelo canônico da CEO)
           cellHojeLinhas: cellHojePuro.hoje.lines,
         },
         hibrido: {
@@ -432,7 +361,6 @@ export function SessaoSnSection({
           deltaPct: cellHib.deltaPct,
           cell: cellHib,
           cellHojeUnitario: cellHib.hoje.unitario,
-          // Linhas HOJE para o CARD 1º do detalhe (modelo canônico da CEO)
           cellHojeLinhas: cellHib.hoje.lines,
         },
       }
@@ -453,109 +381,135 @@ export function SessaoSnSection({
     >
       {/* Cabeçalho */}
       <div className="space-y-0.5">
-        <div className="flex items-center gap-2">
-          <Percent className="w-5 h-5 text-violet-400" />
-          <span className="text-xs font-mono font-black uppercase tracking-wider text-violet-300">
-            Sessão SN na Reforma — tratamento diferenciado para optantes
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Percent className="w-5 h-5 text-violet-400" />
+            <span className="text-xs font-mono font-black uppercase tracking-wider text-violet-300">
+              Sessão SN na Reforma — tratamento diferenciado para optantes
+            </span>
+          </div>
+          <TrilhaChancelaBadge
+            label="CRITÉRIO IT v2 (chancela CEO 2026)"
+            descricao="Repartição por fração da tabela oficial e parcela creditável isolada"
+            compact
+          />
         </div>
         <p className="text-[10px] font-mono text-slate-400">
           Todas as operações com Simples Nacional — LC 123/2006, art. 23, §§1º–2º (redação LC
-          214/2025) · por item da Calculadora de Compras (nunca média) · motor próprio; o Art. 12
-          consolidado não é alterado
+          214/2025) · por item da Calculadora de Compras (nunca média) · motor próprio com memória
+          em 6 decimais; zonas do Art. 12 consolidado intactas.
         </p>
       </div>
 
       {semOrigem ? (
         <p className="text-[10px] font-mono text-slate-400">
-          Nenhum item com valor na Calculadora de Compras — lance os itens para calcular o crédito
-          proporcional do adquirente (art. 23 da LC 123/2006).
+          Nenhum item com valor na Calculadora de Compras — lance os itens para calcular a parcela
+          creditável do adquirente (art. 23 da LC 123/2006).
         </p>
       ) : (
         <>
-          {/* 1 — Contexto: alíquota efetiva INFORMADA (um campo, dois fluxos) */}
+          {/* 1 — Contexto: alíquota efetiva INFORMADA com ORIGEM ROTULADA */}
           <div className="rounded-xl border border-sky-500/40 bg-sky-500/[0.05] p-3 space-y-2">
-            <span className="text-[11px] font-mono font-black uppercase text-sky-300 block">
-              1 · Contexto da operação — alíquota efetiva do fornecedor (informada por vc)
-            </span>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-[11px] font-mono font-black uppercase text-sky-300 block">
+                1 · Contexto da operação — alíquota efetiva do fornecedor
+              </span>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-sky-400/40 bg-sky-950/60 text-sky-200">
+                Origem ativa:{' '}
+                <span className="text-emerald-300 uppercase">
+                  {origem === 'nota' ? 'da nota' : 'estimativa da tabela'}
+                </span>
+              </span>
+            </div>
+
             <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
-                onClick={() => setModo('nota')}
+                onClick={() => setOrigem('tabela')}
                 className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
-                  modo === 'nota'
+                  origem === 'tabela'
                     ? 'bg-emerald-500 text-slate-950 border-emerald-400'
                     : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
                 }`}
               >
-                Preencher pelo percentual da NOTA
+                Tabela Oficial (Anexo I · 1ª Faixa · 2027–28) [Default]
               </button>
               <button
                 type="button"
-                onClick={() => setModo('anexo')}
+                onClick={() => setOrigem('nota')}
                 className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
-                  modo === 'anexo'
+                  origem === 'nota'
                     ? 'bg-emerald-500 text-slate-950 border-emerald-400'
                     : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
                 }`}
               >
-                Preencher por Anexo + Faixa + RBT12
+                Preencher pelo percentual da NOTA (art. 23, §2º)
               </button>
             </div>
-            {modo === 'nota' ? (
+
+            {origem === 'nota' ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-500 uppercase block">
-                    % ICMS da nota
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[9px] font-mono text-slate-400 uppercase">
+                      % ICMS da nota
+                    </label>
+                    <span className="text-[8px] font-mono text-emerald-400">da nota</span>
+                  </div>
                   <Input
                     type="number"
-                    step="0.01"
+                    step="0.0001"
                     value={icmsNotaPct}
                     onChange={(e) => setIcmsNotaPct(Number(e.target.value) || 0)}
                     className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-500 uppercase block">
-                    % CBS da nota
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[9px] font-mono text-slate-400 uppercase">
+                      % CBS da nota
+                    </label>
+                    <span className="text-[8px] font-mono text-emerald-400">da nota</span>
+                  </div>
                   <Input
                     type="number"
-                    step="0.01"
+                    step="0.0001"
                     value={cbsNotaPct}
                     onChange={(e) => setCbsNotaPct(Number(e.target.value) || 0)}
                     className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-500 uppercase block">
-                    % IBS da nota
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[9px] font-mono text-slate-400 uppercase">
+                      % IBS da nota
+                    </label>
+                    <span className="text-[8px] font-mono text-emerald-400">da nota</span>
+                  </div>
                   <Input
                     type="number"
-                    step="0.01"
+                    step="0.0001"
                     value={ibsNotaPct}
                     onChange={(e) => setIbsNotaPct(Number(e.target.value) || 0)}
                     className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
                   />
                 </div>
-                <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/[0.06] px-2 py-1.5">
-                  <span className="text-[8px] font-mono text-slate-500 uppercase block">
+                <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/[0.06] px-2 py-1.5 flex flex-col justify-center">
+                  <span className="text-[8px] font-mono text-slate-400 uppercase block">
                     Origem
                   </span>
                   <span className="text-[10px] font-mono font-bold text-emerald-300">
-                    DOCUMENTO FISCAL
+                    DOCUMENTO FISCAL (da nota)
                   </span>
                   <span className="text-[8px] font-mono text-emerald-400/80 block">
-                    padrão ouro — art. 23, §2º
+                    LC 123/2006, art. 23, §2º campo próprio
                   </span>
                 </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-500 uppercase block">
+                  <label className="text-[9px] font-mono text-slate-400 uppercase block">
                     Anexo
                   </label>
                   <Input
@@ -565,7 +519,7 @@ export function SessaoSnSection({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-500 uppercase block">
+                  <label className="text-[9px] font-mono text-slate-400 uppercase block">
                     Faixa
                   </label>
                   <Input
@@ -575,19 +529,8 @@ export function SessaoSnSection({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-500 uppercase block">
-                    RBT12 (R$)
-                  </label>
-                  <Input
-                    type="number"
-                    value={rbt12}
-                    onChange={(e) => setRbt12(Number(e.target.value) || 0)}
-                    className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-500 uppercase block">
-                    Alíquota efetiva (%)
+                  <label className="text-[9px] font-mono text-slate-400 uppercase block">
+                    Alíquota Efetiva (%)
                   </label>
                   <Input
                     type="number"
@@ -598,31 +541,41 @@ export function SessaoSnSection({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-500 uppercase block">
-                    Fração ICMS no anexo (%)
+                  <label className="text-[9px] font-mono text-slate-400 uppercase block">
+                    Fração ICMS ({formatNumberBR(icmsFracPct, 2)}%)
                   </label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={icmsFracPct}
-                    onChange={(e) => setIcmsFracPct(Number(e.target.value) || 0)}
-                    className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
-                  />
+                  <div className="h-8 px-2 flex items-center bg-slate-950/70 border border-slate-700/60 rounded text-xs font-mono text-slate-200">
+                    {formatNumberBR((efetivaPct * icmsFracPct) / 100, 2)}%
+                  </div>
                 </div>
-                <div className="col-span-2 sm:col-span-5 rounded-lg border border-amber-500/40 bg-amber-500/[0.06] px-2 py-1">
-                  <span className="text-[9px] font-mono font-bold text-amber-300 uppercase">
-                    ESTIMADO pela faixa — premissa declarada (não é dado do documento fiscal)
+                <div className="space-y-1">
+                  <label className="text-[9px] font-mono text-slate-400 uppercase block">
+                    Fração CBS+IBS ({formatNumberBR(cbsFracPct + ibsFracPct, 2)}%)
+                  </label>
+                  <div className="h-8 px-2 flex items-center bg-slate-950/70 border border-slate-700/60 rounded text-xs font-mono text-slate-200">
+                    {formatNumberBR((efetivaPct * (cbsFracPct + ibsFracPct)) / 100, 4)}%
+                  </div>
+                </div>
+
+                <div className="col-span-2 sm:col-span-5 rounded-lg border border-sky-500/40 bg-sky-500/[0.06] px-2.5 py-1.5 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[9px] font-mono font-bold text-sky-300 uppercase">
+                    ESTIMATIVA DA TABELA OFICIAL (Faixa × Exercício {exercicio}) — alíquota efetiva
+                    4,00% · ICMS 34,00% · CBS 15,33% · IBS 0,17% · IRPJ/CSLL/CPP 50,50%
+                  </span>
+                  <span className="text-[9px] font-mono text-emerald-300 font-bold">
+                    Parcela creditável derivada: 1,9800%
                   </span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* 2 — A combinação: fornecedor × adquirente (+ repasse quando couber) */}
+          {/* 2 — A combinação: fornecedor × adquirente (+ seletor da base do DAS) */}
           <div className="rounded-xl border border-violet-500/40 bg-violet-500/[0.05] p-3 space-y-2">
             <span className="text-[11px] font-mono font-black uppercase text-violet-300 block">
               2 · A combinação — fornecedor SN × adquirente
             </span>
+
             {/* Fornecedor */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[9px] font-mono text-slate-500 uppercase w-20">Fornecedor</span>
@@ -649,6 +602,7 @@ export function SessaoSnSection({
                 SN híbrido (regime regular IBS/CBS)
               </button>
             </div>
+
             {/* Adquirente */}
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[9px] font-mono text-slate-500 uppercase w-20">Adquirente</span>
@@ -667,6 +621,39 @@ export function SessaoSnSection({
                 </button>
               ))}
             </div>
+
+            {/* Base do DAS (Res. CGSN 190/2026) */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[9px] font-mono text-slate-500 uppercase w-20">
+                Base do DAS
+              </span>
+              <button
+                type="button"
+                onClick={() => setBaseDoDas('bruta')}
+                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
+                  baseDoDas === 'bruta'
+                    ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                    : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+                }`}
+              >
+                Bruta (LC 123 art. 3º §12º) [Default]
+              </button>
+              <button
+                type="button"
+                onClick={() => setBaseDoDas('liquida')}
+                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
+                  baseDoDas === 'liquida'
+                    ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                    : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+                }`}
+              >
+                Líquida do ICMS da nota (art. 25 §1º II)
+              </button>
+              <span className="text-[8px] font-mono text-slate-400">
+                (Res. CGSN 190/2026 pendente)
+              </span>
+            </div>
+
             {/* Repasse — SÓ quando o fornecedor reprecifica (híbrido) */}
             {fornecedorSN === 'hibrido' ? (
               <div className="flex flex-wrap items-center gap-2">
@@ -709,35 +696,8 @@ export function SessaoSnSection({
                 </span>
               </div>
             )}
-            {/* Regra de crédito da combinação */}
-            <div className="text-[9px] font-mono text-slate-400">
-              {fornecedorSN === 'hibrido' ? (
-                <span>
-                  Crédito INTEGRAL ao adquirente (art. 47) — motor Art. 12 chancelado · premissa IT:
-                  base do IBS/CBS do fornecedor sem ICMS.
-                </span>
-              ) : adquirente === 'simples' ? (
-                <span className="text-amber-300">
-                  SEM crédito — adquirente optante do SN não apropria crédito de nota SN (art. 47).
-                </span>
-              ) : adquirente === 'simples_hibrido' ? (
-                <span>
-                  Crédito PROPORCIONAL de CBS+IBS (art. 23) — o ICMS do fornecedor segue no DAS e o
-                  SN híbrido não o apropria.
-                </span>
-              ) : adquirente === 'real' ? (
-                <span>
-                  Crédito PROPORCIONAL de ICMS+CBS+IBS (art. 23) + PIS 1,65% e COFINS 7,6% em 2026
-                  (ADI SRF 15/2007 + SC COSIT 297/2019 — base sem o ICMS destacado, Lei 14.592/23).
-                </span>
-              ) : (
-                <span>
-                  Crédito PROPORCIONAL de ICMS+CBS+IBS (art. 23) — montante equivalente ao cobrado
-                  no regime único, alíquota informada no documento fiscal.
-                </span>
-              )}
-            </div>
-            {/* GATILHO DO COMPARADOR (aprovado pela CEO na prévia, 30/09) */}
+
+            {/* GATILHO DO COMPARADOR */}
             <Button
               size="sm"
               variant="outline"
@@ -748,12 +708,19 @@ export function SessaoSnSection({
             </Button>
           </div>
 
+          {/* PAINEL DE TESES EM ABERTO — RES. CGSN 190/2026 (Fase 2) */}
+          <PainelTesesSn
+            resultado={itemAtivo ? itemAtivo.puro.r : resultados[0].puro.r}
+            baseAtual={baseDoDas}
+            onAlternarBase={setBaseDoDas}
+          />
+
           {/* 3 — Camada 1: resumo por item (ABC, nunca média) COM os dois fornecedores */}
           <div className="rounded-xl border border-orange-500/45 bg-orange-500/[0.06] p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-mono font-black uppercase text-orange-300">
                 3 · Custo líquido do adquirente — {nomeAdquirente(adquirente)} · Exercício{' '}
-                {exercicio}
+                {exercicio} (Consome Parcela Creditável)
               </span>
               <Button
                 size="sm"
@@ -772,15 +739,10 @@ export function SessaoSnSection({
                 )}
               </Button>
             </div>
-            {/* CARDS COMPACTOS LADO A LADO (preferência da CEO) — custo selecionado + o OUTRO fornecedor.
-                4 colunas já a partir de telas médias — caixas pequenas, nunca largura total. */}
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {exibidos.map((res, i) => {
                 const sel = fornecedorSN === 'puro' ? res.puro : res.hibrido
-                // RÓTULO DO REGIME SELECIONADO no card (fix CEO 30/09): o card se identifica
-                // pelo regime ESCOLHIDO. Comparação puro × híbrido REMOVIDA dos cards (CEO,
-                // 30/09): para o contador, a linha "vs" podia parecer resultado de outro
-                // regime — a comparação segue disponível no detalhe e no estoque.
                 const selLabel = fornecedorSN === 'puro' ? 'SN puro' : 'SN híbrido'
                 return (
                   <button
@@ -821,30 +783,9 @@ export function SessaoSnSection({
                 )
               })}
             </div>
-            {restantes > 0 && (
-              <div className="text-[9px] font-mono text-slate-500">
-                +{restantes} item{restantes === 1 ? '' : 's'} — cálculo por item, cada um com a
-                própria célula (nunca média)
-              </div>
-            )}
-            {/* Gap de negociação — item de maior valor */}
-            {itemAtivo && ativo && (
-              <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/40">
-                <span className="text-[10px] font-mono font-bold text-violet-300">
-                  Gap de negociação vs célula plena de referência ({formatBRL(custoPlenoUnitario)}
-                  /un) — {itemAtivo.item.name || 'item'}
-                </span>
-                <span className="text-[11px] font-black font-mono text-violet-300">
-                  {formatBRL(ativo.unitario - custoPlenoUnitario)}/un
-                </span>
-              </div>
-            )}
           </div>
 
-          {/* 4 — Camada 2: detalhe por item — MODELO CANÔNICO DA CEO (29/09):
-              3 CARDS DE MEMÓRIA LADO A LADO — 1º aquisição 2026 · 2º formação do preço
-              do fornecedor · 3º custo do adquirente ajustado. Botões por produto e demais
-              estruturas da sessão ficam INTACTOS. */}
+          {/* 4 — Camada 2: detalhe por item — MODELO CANÔNICO DA CEO */}
           {detalheAberto && itemAtivo && ativo && (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -855,13 +796,9 @@ export function SessaoSnSection({
                   × {nomeAdquirente(adquirente)}
                 </span>
               </div>
-              {/* CARDS DO DETALHE — modelo CEO (02/10): 1º-A fornecedor pleno (baseline) +
-                  1º-B fornecedor SN em 2026 (DESTAQUE sky) + 2º fornecedor + 3º adquirente.
-                  O 1º-B existe só no fluxo SN puro: em 2026 não há fornecedor híbrido
-                  (a opção da janela set/2026 produz efeitos em 01/01/2027). */}
+
               <div className="flex flex-col lg:flex-row gap-2 items-stretch">
-                {/* CARD 1º-A — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 · FORNECEDOR PLENO
-                    (baseline de referência — fica como está) */}
+                {/* CARD 1º-A — BASELINE PLENO */}
                 <CardMemoriaCanonical
                   titulo={`CARD 1º-A — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 · COMPRA DE FORNECEDOR PLENO (baseline de referência) · ${itemAtivo.item.name || 'item'}`}
                   cor="emerald"
@@ -875,10 +812,8 @@ export function SessaoSnSection({
                     kind: l.kind,
                   }))}
                 />
-                {/* CARD 1º-B — HOJE (2026) COMPRANDO DE FORNECEDOR SN — DESTAQUE (CEO, 02/10):
-                    memória detalhada no padrão canônico. Crédito de 2026 = SÓ ICMS (redação
-                    original do art. 23; a redação LC 214/25 com CBS+IBS produz efeitos em
-                    01/01/2027 — LegJur). Nota congelada nos dois lados. */}
+
+                {/* CARD 1º-B — HOJE (2026) COMPRANDO DE FORNECEDOR SN */}
                 {fornecedorSN === 'puro' && (
                   <CardMemoriaCanonical
                     titulo={`CARD 1º-B — HOJE (2026) COMPRANDO DE FORNECEDOR SN · ${itemAtivo.item.name || 'item'}`}
@@ -886,66 +821,119 @@ export function SessaoSnSection({
                     linhas={[
                       {
                         label: '(+) Valor da operação — nota congelada (sem destaque)',
-                        formula: `${itemAtivo.item.quantity} un. × ${fmtSN(itemAtivo.item.merchandiseValue / Math.max(1, itemAtivo.item.quantity))} — da Calculadora de Compras`,
+                        formula: `${itemAtivo.item.quantity} un. × R$ ${fmtSN(itemAtivo.item.merchandiseValue / Math.max(1, itemAtivo.item.quantity), 2)} — da Calculadora de Compras`,
                         value: itemAtivo.puro.r.receitaBruta,
+                        value6: itemAtivo.puro.r.receitaBruta6,
                       },
                       {
-                        label: '(−) Crédito de ICMS do adquirente (2026)',
-                        formula: `${fmtSN(itemAtivo.puro.r.icmsPct, 2)}% × ${fmtSN(itemAtivo.puro.r.receitaBruta)} = ${fmtSN(itemAtivo.puro.r.icmsNota)}`,
-                        value: -itemAtivo.puro.r.icmsNota,
+                        label: `(−) Crédito de ICMS do adquirente (2026) [Fração ${fmtSN(itemAtivo.puro.r.icmsPct, 2)}%]`,
+                        formula: `${fmtSN(itemAtivo.puro.r.icmsPct, 2)}% × ${fmtSN(itemAtivo.puro.r.receitaBruta)} = ${fmtSN(itemAtivo.puro.r.creditoHojeSN6, 6)}`,
+                        value: -itemAtivo.puro.r.creditoHojeSN,
+                        value6: -itemAtivo.puro.r.creditoHojeSN6,
                         destaque: true,
                       },
                       ...(adquirente === 'real' && itemAtivo.puro.r.creditoPisCofinsHoje > 0
                         ? [
                             {
-                              label: '(−) Crédito de PIS do adquirente LR (2026)',
-                              formula: `1,65% × ${fmtSN(itemAtivo.puro.r.pisCofinsBaseHoje)} (base sem o ICMS destacado) = ${fmtSN(itemAtivo.puro.r.pisCofinsBaseHoje * 0.0165)}`,
-                              value: -(itemAtivo.puro.r.pisCofinsBaseHoje * 0.0165),
-                            },
-                            {
-                              label: '(−) Crédito de COFINS do adquirente LR (2026)',
-                              formula: `7,60% × ${fmtSN(itemAtivo.puro.r.pisCofinsBaseHoje)} (base sem o ICMS destacado) = ${fmtSN(itemAtivo.puro.r.pisCofinsBaseHoje * 0.076)}`,
-                              value: -(itemAtivo.puro.r.pisCofinsBaseHoje * 0.076),
+                              label: '(−) Crédito PIS/COFINS LR (2026) — base sem ICMS',
+                              formula: `9,25% × ${fmtSN(itemAtivo.puro.r.pisCofinsBaseHoje)} = ${fmtSN(itemAtivo.puro.r.creditoPisCofinsHoje6, 6)}`,
+                              value: -itemAtivo.puro.r.creditoPisCofinsHoje,
+                              value6: -itemAtivo.puro.r.creditoPisCofinsHoje6,
                             },
                           ]
                         : []),
                       {
                         label: '(=) Custo líquido da aquisição em 2026',
-                        formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} − ${fmtSN(itemAtivo.puro.r.creditoHojeSN)} = ${fmtSN(itemAtivo.puro.r.custoHojeSN)}`,
+                        formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} − ${fmtSN(itemAtivo.puro.r.creditoHojeSN)} = ${fmtSN(itemAtivo.puro.r.custoHojeSN6, 6)}`,
                         value: itemAtivo.puro.r.custoHojeSN,
+                        value6: itemAtivo.puro.r.custoHojeSN6,
                       },
                       {
                         label: '(÷) CUSTO UNITÁRIO — HOJE-SN',
-                        formula: `${fmtSN(itemAtivo.puro.r.custoHojeSN)} ÷ ${itemAtivo.item.quantity} un.`,
+                        formula: `${fmtSN(itemAtivo.puro.r.custoHojeSN6, 6)} ÷ ${itemAtivo.item.quantity} un. = ${fmt6(itemAtivo.puro.r.custoUnitarioHojeSN6)}`,
                         value: itemAtivo.puro.r.custoUnitarioHojeSN,
+                        value6: itemAtivo.puro.r.custoUnitarioHojeSN6,
                         destaque: true,
                       },
                     ]}
                   />
                 )}
-                {/* CARD 2º — MEMÓRIA DE CÁLCULO DA FORMAÇÃO DE PREÇO DO FORNECEDOR */}
+
+                {/* CARD 2º — DAS DEVIDO EM 4 BLOCOS COM SELO DE CONSISTÊNCIA */}
                 {fornecedorSN === 'puro' ? (
                   <CardMemoriaCanonical
-                    titulo={`CARD 2º — FORMAÇÃO DE PREÇO DO FORNECEDOR SN PURO (POR DENTRO) · ${itemAtivo.item.name || 'item'}`}
+                    titulo={`CARD 2º — FORMAÇÃO DE PREÇO E DAS EM 4 BLOCOS (POR DENTRO) · ${itemAtivo.item.name || 'item'}`}
                     cor="violet"
-                    linhas={itemAtivo.puro.r.memoria
-                      .filter((l) =>
-                        [
-                          'receitabruta',
-                          'efetiva',
-                          'das',
-                          'icmsnota',
-                          'cbsdas',
-                          'ibsdas',
-                          'preconota',
-                        ].includes(l.key),
-                      )
-                      .map((l) => ({
-                        label: l.label,
-                        formula: l.formula,
-                        value: l.value,
-                        destaque: l.destaque || l.key === 'preconota',
-                      }))}
+                    badgeExtra={
+                      <span
+                        className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                          itemAtivo.puro.r.das4Blocos.consistente
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-3 h-3" />
+                        {itemAtivo.puro.r.das4Blocos.consistente
+                          ? 'Soma DAS: 100% OK'
+                          : 'Divergência'}
+                      </span>
+                    }
+                    linhas={[
+                      {
+                        label: '(=) Base de cálculo do DAS',
+                        formula: `Base ${itemAtivo.puro.r.baseDoDas}: ${fmtSN(itemAtivo.puro.r.baseDasUtilizada6, 6)}`,
+                        value: itemAtivo.puro.r.baseDasUtilizada,
+                        value6: itemAtivo.puro.r.baseDasUtilizada6,
+                      },
+                      {
+                        label: `(i) Alíquota Efetiva do Fornecedor — ${fmtSN(itemAtivo.puro.r.efetivaPct, 2)}%`,
+                        formula: `Origem: [${itemAtivo.puro.r.origemRotulo}]`,
+                        value: itemAtivo.puro.r.efetivaPct,
+                        value6: itemAtivo.puro.r.efetivaPct,
+                      },
+                      {
+                        label: '(−) DAS Devido Total (4 blocos)',
+                        formula: `${fmtSN(itemAtivo.puro.r.efetivaPct, 2)}% × ${fmtSN(itemAtivo.puro.r.baseDasUtilizada)} = ${fmtSN(itemAtivo.puro.r.dasEfetivo6, 6)}`,
+                        value: -itemAtivo.puro.r.dasEfetivo,
+                        value6: -itemAtivo.puro.r.dasEfetivo6,
+                        destaque: true,
+                      },
+                      // BLOCO 1
+                      {
+                        label: `1. Parcela ICMS (${fmtSN(itemAtivo.puro.r.icmsPct, 4)}%)`,
+                        formula: `Fração 34,00% × 4% = ${fmtSN(itemAtivo.puro.r.icmsNota6, 6)}`,
+                        value: itemAtivo.puro.r.icmsNota,
+                        value6: itemAtivo.puro.r.icmsNota6,
+                      },
+                      // BLOCO 2
+                      {
+                        label: `2. Parcela CBS (${fmtSN(itemAtivo.puro.r.cbsPct, 4)}%)`,
+                        formula: `Fração 15,33% × 4% = ${fmtSN(itemAtivo.puro.r.cbsDAS6, 6)}`,
+                        value: itemAtivo.puro.r.cbsDAS,
+                        value6: itemAtivo.puro.r.cbsDAS6,
+                      },
+                      // BLOCO 3
+                      {
+                        label: `3. Parcela IBS (${fmtSN(itemAtivo.puro.r.ibsPct, 4)}%)`,
+                        formula: `Fração 0,17% × 4% = ${fmtSN(itemAtivo.puro.r.ibsDAS6, 6)}`,
+                        value: itemAtivo.puro.r.ibsDAS,
+                        value6: itemAtivo.puro.r.ibsDAS6,
+                      },
+                      // BLOCO 4
+                      {
+                        label: `4. Parcela IRPJ / CSLL / CPP (${fmtSN(itemAtivo.puro.r.irpjCsllCppPct, 4)}%) — NÃO GERA CRÉDITO`,
+                        formula: `Fração 50,50% × 4% = ${fmtSN(itemAtivo.puro.r.irpjCsllCppDAS6, 6)}`,
+                        value: itemAtivo.puro.r.irpjCsllCppDAS,
+                        value6: itemAtivo.puro.r.irpjCsllCppDAS6,
+                      },
+                      {
+                        label: '(=) PREÇO DA NOTA DO FORNECEDOR SN (CONGELADA)',
+                        formula: 'tributos por dentro do preço, sem destaque de CBS/IBS',
+                        value: itemAtivo.puro.r.receitaBruta,
+                        value6: itemAtivo.puro.r.receitaBruta6,
+                        destaque: true,
+                      },
+                    ]}
                   />
                 ) : (
                   <CardMemoriaCanonical
@@ -962,30 +950,65 @@ export function SessaoSnSection({
                       }))}
                   />
                 )}
-                {/* CARD 3º — MEMÓRIA DE CÁLCULO DO ADQUIRENTE COM AJUSTE PÓS-REFORMA */}
+
+                {/* CARD 3º — CUSTO DO ADQUIRENTE (CONSUMO DA PARCELA CREDITÁVEL) */}
                 {fornecedorSN === 'puro' ? (
                   <CardMemoriaCanonical
-                    titulo={`CARD 3º — CUSTO DO ADQUIRENTE COM AJUSTE PÓS-REFORMA (ART. 23) · ${itemAtivo.item.name || 'item'}`}
+                    titulo={`CARD 3º — CUSTO DO ADQUIRENTE COM PARCELA CREDITÁVEL (ART. 23) · ${itemAtivo.item.name || 'item'}`}
                     cor="orange"
-                    linhas={itemAtivo.puro.r.memoria
-                      .filter((l) =>
-                        [
-                          'credito_base',
-                          'credito_icms',
-                          'credito_cbs',
-                          'credito_ibs',
-                          'credito_total',
-                          'credito_unidade',
-                          'custoliquido',
-                          'custounitario',
-                        ].includes(l.key),
-                      )
-                      .map((l) => ({
-                        label: l.label,
-                        formula: l.formula,
-                        value: l.value,
-                        destaque: l.destaque,
-                      }))}
+                    linhas={[
+                      {
+                        label: 'Base da Parcela Creditável',
+                        formula: `Base: ${fmtSN(itemAtivo.puro.r.baseDasUtilizada6, 6)}`,
+                        value: itemAtivo.puro.r.baseDasUtilizada,
+                        value6: itemAtivo.puro.r.baseDasUtilizada6,
+                      },
+                      {
+                        label: `(+) Crédito ICMS da nota (${fmtSN(itemAtivo.puro.r.icmsPct, 4)}%)`,
+                        formula: `${fmtSN(itemAtivo.puro.r.icmsNota6, 6)} [${itemAtivo.puro.r.origemRotulo}]`,
+                        value: itemAtivo.puro.r.icmsNota,
+                        value6: itemAtivo.puro.r.icmsNota6,
+                      },
+                      {
+                        label: `(+) Crédito CBS do DAS (${fmtSN(itemAtivo.puro.r.cbsPct, 4)}%)`,
+                        formula: `${fmtSN(itemAtivo.puro.r.cbsDAS6, 6)}`,
+                        value: itemAtivo.puro.r.cbsDAS,
+                        value6: itemAtivo.puro.r.cbsDAS6,
+                      },
+                      {
+                        label: `(+) Crédito IBS do DAS (${fmtSN(itemAtivo.puro.r.ibsPct, 4)}%)`,
+                        formula: `${fmtSN(itemAtivo.puro.r.ibsDAS6, 6)}`,
+                        value: itemAtivo.puro.r.ibsDAS,
+                        value6: itemAtivo.puro.r.ibsDAS6,
+                      },
+                      {
+                        label: '(=) PARCELA CREDITÁVEL TOTAL (ICMS + CBS + IBS)',
+                        formula: `${fmtSN(itemAtivo.puro.r.icmsNota6, 6)} + ${fmtSN(itemAtivo.puro.r.cbsDAS6, 6)} + ${fmtSN(itemAtivo.puro.r.ibsDAS6, 6)} = ${fmtSN(itemAtivo.puro.r.parcelaCreditavelTotal6, 6)}`,
+                        value: itemAtivo.puro.r.parcelaCreditavelTotal,
+                        value6: itemAtivo.puro.r.parcelaCreditavelTotal6,
+                        destaque: true,
+                      },
+                      {
+                        label: '(÷) Crédito por unidade',
+                        formula: `${fmtSN(itemAtivo.puro.r.parcelaCreditavelTotal6, 6)} ÷ ${itemAtivo.item.quantity} un.`,
+                        value: itemAtivo.puro.r.creditoUnidade,
+                        value6: itemAtivo.puro.r.creditoUnidade6,
+                      },
+                      {
+                        label: '(=) CUSTO LÍQUIDO (NOTA − PARCELA CREDITÁVEL)',
+                        formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} − ${fmtSN(itemAtivo.puro.r.parcelaCreditavelTotal6, 6)} = ${fmtSN(itemAtivo.puro.r.custoLiquido6, 6)}`,
+                        value: itemAtivo.puro.r.custoLiquido,
+                        value6: itemAtivo.puro.r.custoLiquido6,
+                        destaque: true,
+                      },
+                      {
+                        label: '(÷) CUSTO UNITÁRIO LÍQUIDO',
+                        formula: `${fmtSN(itemAtivo.puro.r.custoLiquido6, 6)} ÷ ${itemAtivo.item.quantity} un. = ${fmt6(itemAtivo.puro.r.custoUnitarioLiquido6)}`,
+                        value: itemAtivo.puro.r.custoUnitarioLiquido,
+                        value6: itemAtivo.puro.r.custoUnitarioLiquido6,
+                        destaque: true,
+                      },
+                    ]}
                   />
                 ) : (
                   <CardMemoriaCanonical
@@ -1003,25 +1026,15 @@ export function SessaoSnSection({
                   />
                 )}
               </div>
-              {fornecedorSN === 'hibrido' && onAbrirMemoriaItem && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onAbrirMemoriaItem(itemAtivo.item, itemAtivo.hibrido.cell)}
-                  className="border-orange-500/40 text-orange-300 hover:bg-orange-500/10 cursor-pointer h-7 text-[10px] self-start"
-                >
-                  <Calculator className="w-3 h-3 mr-1" /> Memória + base legal deste item
-                </Button>
-              )}
             </div>
           )}
 
-          {/* 5 — CARD 3 do desenho da CEO: nova composição do custo do estoque (IBS/CBS) */}
+          {/* 5 — Card do Estoque Reajustado (consome parcela creditável) */}
           <CardEstoqueReajustado
             exercicio={exercicio}
             fornecedorTxt={
               fornecedorSN === 'puro'
-                ? 'fornecedor SN puro (nota congelada + crédito proporcional do art. 23)'
+                ? 'fornecedor SN puro (nota congelada + parcela creditável oficial do art. 23)'
                 : 'fornecedor SN híbrido (regime regular — crédito integral, motor Art. 12 chancelado)'
             }
             linhas={resultados.map<LinhaEstoqueSN>((res) => {
@@ -1030,7 +1043,6 @@ export function SessaoSnSection({
                 id: res.item.id,
                 nome: res.item.name || 'Item',
                 qtd: res.item.quantity,
-                // HOJE = custo de aquisição pré-reforma do PRÓPRIO adquirente (baseline da sessão)
                 custoHoje: sel.cellHojeUnitario,
                 custoNovo: sel.unitario,
                 deltaPct: sel.deltaPct,
@@ -1038,18 +1050,7 @@ export function SessaoSnSection({
             })}
           />
 
-          {/* Nota de honestidade */}
-          <div className="flex items-start gap-2 text-[9px] font-mono text-slate-500">
-            <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
-            <span>
-              Percentuais de partilha e crédito dependem da faixa do fornecedor no mês da operação e
-              da regulamentação em curso (art. 23, §2º: alíquota informada no documento fiscal). A
-              sessão calcula com o dado que o contador informa — estimativas ficam marcadas como
-              estimadas.
-            </span>
-          </div>
-
-          {/* COMPARADOR DE FORNECEDORES SN (aprovado pela CEO na prévia, 30/09) */}
+          {/* COMPARADOR DE FORNECEDORES SN */}
           <ComparadorFornecedoresDialog
             open={comparadorAberto}
             onOpenChange={setComparadorAberto}

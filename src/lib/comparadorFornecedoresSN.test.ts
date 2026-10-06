@@ -30,22 +30,22 @@ const cfg = { ...CONFIG_PADRAO_ART12, repasse: 'integral' as const }
 const custoPleno = 1116.63 // ouro LP×LP chancelado
 
 describe('Comparador de fornecedores SN — os dois lados dos motores chancelados (v2)', () => {
-  it('LP comprando: puro 1.354,40 × híbrido 1.394,96 — puro vence por 40,56', () => {
+  it('LP comprando: puro 1.385,35 × híbrido 1.394,96 — puro vence por 9,61', () => {
     const c = compararFornecedoresSN(item, PERFIL_SN_NOTA_PADRAO, 'presumido', cfg, row, custoPleno)
-    // PURO — motor da sessão (intocado pelo v2)
+    // PURO — motor da sessão corrigido com Anexo I 1ª faixa oficial (crédito 839,52)
     expect(c.puro.precoNota).toBe(42400)
-    expect(c.puro.credito).toBe(1768.08)
-    expect(c.puro.unitario).toBe(1354.4)
-    expect(c.puro.estoque).toBe(40631.92)
-    expect(c.puro.gap).toBe(237.77)
+    expect(c.puro.credito).toBe(839.52)
+    expect(c.puro.unitario).toBe(1385.35)
+    expect(c.puro.estoque).toBe(41560.5) // 1.385,35 × 30
+    expect(c.puro.gap).toBe(268.72) // 1.385,35 − 1.116,63
     // HÍBRIDO — critério IT v2: ICMS do DAS 551,20 fora da base; nota 46.124,54;
     // créditos 3.682,69 + 41,85 + 551,20 = 4.275,74 → líquido 41.848,80
     expect(c.hibrido.unitario).toBe(1394.96)
     expect(c.hibrido.estoque).toBe(41848.8)
     expect(c.hibrido.gap).toBe(278.33)
     // Diferenças
-    expect(c.diffUnitario).toBe(-40.56)
-    expect(c.diffEstoque).toBe(-1216.88)
+    expect(c.diffUnitario).toBe(-9.61)
+    expect(c.diffEstoque).toBe(-288.3)
   })
 
   it('SN comprando: sem crédito dos dois lados — puro 1.413,33 (ouro) × híbrido 1.537,48 (v2)', () => {

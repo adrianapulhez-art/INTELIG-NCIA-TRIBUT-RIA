@@ -451,7 +451,7 @@ export function CmvExercicioModule({ purchasesItems }: { purchasesItems: Purchas
         <p className="text-[10px] font-mono text-slate-500 leading-relaxed">
           ¹ Referência ≈8,9% com a redução de 0,1 p.p. obrigatória em 2027–2028 (composição: CBS
           plena de referência 8,8% + ajuste de 0,1 p.p. da LC 214/2025 — exibido na memória do
-          exercício). ² IPI extinto a partir de 2027, exceto Zona Franca de Manús — seletor ZFM por
+          exercício). ² IPI extinto a partir de 2027, exceto Zona Franca de Manaus — seletor ZFM por
           célula mantém o IPI. ³ IBS da transição = % × 17,7% (editável na tabela).
         </p>
       </div>
