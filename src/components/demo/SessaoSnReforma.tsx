@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   Percent,
   Calculator,
@@ -13,10 +13,12 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
+  ANEXOS_BASE_LC123,
   calcularSessaoSN,
   creditoEfetivoArt23,
   fmtSN,
   fmt6,
+  getTabelaOficialConfig,
   PERFIL_SN_NOTA_PADRAO,
   TABELA_OFICIAL_SN,
   type ModoPreenchimentoSN,
@@ -263,17 +265,51 @@ export function SessaoSnSection({
   const [cbsNotaPct, setCbsNotaPct] = useState(PERFIL_SN_NOTA_PADRAO.cbsNotaPct)
   const [ibsNotaPct, setIbsNotaPct] = useState(PERFIL_SN_NOTA_PADRAO.ibsNotaPct)
 
-  // Parâmetros de tabela oficial
-  const [anexo, setAnexo] = useState(PERFIL_SN_NOTA_PADRAO.anexo)
-  const [faixa, setFaixa] = useState(PERFIL_SN_NOTA_PADRAO.faixa)
-  const [rbt12, setRbt12] = useState(PERFIL_SN_NOTA_PADRAO.rbt12)
-  const [efetivaPct, setEfetivaPct] = useState(PERFIL_SN_NOTA_PADRAO.efetivaPct)
-  const [icmsFracPct, setIcmsFracPct] = useState(PERFIL_SN_NOTA_PADRAO.icmsFracPct)
-  const [cbsFracPct, setCbsFracPct] = useState(PERFIL_SN_NOTA_PADRAO.cbsFracPct)
-  const [ibsFracPct, setIbsFracPct] = useState(PERFIL_SN_NOTA_PADRAO.ibsFracPct)
-  const [irpjCsllCppFracPct, setIrpjCsllCppFracPct] = useState(
+  // Parâmetros de tabela oficial (Seleção de Anexo I a V e Faixa 1 a 6)
+  const [anexoId, setAnexoId] = useState<string>('anexo1')
+  const [faixaNum, setFaixaNum] = useState<number>(1)
+  const [rbt12, setRbt12] = useState<number>(PERFIL_SN_NOTA_PADRAO.rbt12)
+  const [anexoNome, setAnexoNome] = useState<string>(PERFIL_SN_NOTA_PADRAO.anexo)
+  const [faixaNome, setFaixaNome] = useState<string>(PERFIL_SN_NOTA_PADRAO.faixa)
+  const [efetivaPct, setEfetivaPct] = useState<number>(PERFIL_SN_NOTA_PADRAO.efetivaPct)
+  const [icmsFracPct, setIcmsFracPct] = useState<number>(PERFIL_SN_NOTA_PADRAO.icmsFracPct)
+  const [cbsFracPct, setCbsFracPct] = useState<number>(PERFIL_SN_NOTA_PADRAO.cbsFracPct)
+  const [ibsFracPct, setIbsFracPct] = useState<number>(PERFIL_SN_NOTA_PADRAO.ibsFracPct)
+  const [irpjCsllCppFracPct, setIrpjCsllCppFracPct] = useState<number>(
     PERFIL_SN_NOTA_PADRAO.irpjCsllCppFracPct,
   )
+  const [statusLegalTabela, setStatusLegalTabela] = useState<'OFICIAL' | 'PENDENTE_CONFIRMACAO'>(
+    'OFICIAL',
+  )
+  const [notaFonteTabela, setNotaFonteTabela] = useState<string>(
+    'LC 123/2006 Anexo I + LC 214/2025: chancelado pela Adri.',
+  )
+
+  // Sincroniza parâmetros quando o exercício da página muda, ou quando usuário troca anexo/faixa/RBT12
+  const atualizarTabela = (
+    novoAnexoId: string,
+    novaFaixaNum: number,
+    novoRbt12: number,
+    ano: number,
+  ) => {
+    const configTabela = getTabelaOficialConfig(ano, novoAnexoId, novaFaixaNum, novoRbt12)
+    setAnexoNome(configTabela.anexo)
+    setFaixaNome(configTabela.faixa)
+    setEfetivaPct(configTabela.aliquotaEfetivaPct)
+    setIcmsFracPct(configTabela.fracaoIcmsPct)
+    setCbsFracPct(configTabela.fracaoCbsPct)
+    setIbsFracPct(configTabela.fracaoIbsPct)
+    setIrpjCsllCppFracPct(configTabela.fracaoIrpjCsllCppPct)
+    setStatusLegalTabela(configTabela.statusLegal || 'OFICIAL')
+    setNotaFonteTabela(configTabela.notaFonte || '')
+  }
+
+  // Efeito ao trocar exercício da tela (/demo/reforma)
+  useEffect(() => {
+    if (origem === 'tabela') {
+      atualizarTabela(anexoId, faixaNum, rbt12, Number(exercicio) || 2027)
+    }
+  }, [exercicio])
 
   const perfil: PerfilSN = useMemo(
     () => ({
@@ -282,8 +318,8 @@ export function SessaoSnSection({
       icmsNotaPct,
       cbsNotaPct,
       ibsNotaPct,
-      anexo,
-      faixa,
+      anexo: anexoNome,
+      faixa: faixaNome,
       exercicio: Number(exercicio) || 2027,
       rbt12,
       efetivaPct,
@@ -298,8 +334,8 @@ export function SessaoSnSection({
       icmsNotaPct,
       cbsNotaPct,
       ibsNotaPct,
-      anexo,
-      faixa,
+      anexoNome,
+      faixaNome,
       exercicio,
       rbt12,
       efetivaPct,
@@ -425,14 +461,17 @@ export function SessaoSnSection({
             <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
-                onClick={() => setOrigem('tabela')}
+                onClick={() => {
+                  setOrigem('tabela')
+                  atualizarTabela(anexoId, faixaNum, rbt12, Number(exercicio) || 2027)
+                }}
                 className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
                   origem === 'tabela'
                     ? 'bg-emerald-500 text-slate-950 border-emerald-400'
                     : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
                 }`}
               >
-                Tabela Oficial (Anexo I · 1ª Faixa · 2027–28) [Default]
+                Tabela Oficial Completa (Anexos I a V · 6 Faixas) [Default]
               </button>
               <button
                 type="button"
@@ -507,65 +546,172 @@ export function SessaoSnSection({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-400 uppercase block">
-                    Anexo
-                  </label>
-                  <Input
-                    value={anexo}
-                    onChange={(e) => setAnexo(e.target.value)}
-                    className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-400 uppercase block">
-                    Faixa
-                  </label>
-                  <Input
-                    value={faixa}
-                    onChange={(e) => setFaixa(e.target.value)}
-                    className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-400 uppercase block">
-                    Alíquota Efetiva (%)
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={efetivaPct}
-                    onChange={(e) => setEfetivaPct(Number(e.target.value) || 0)}
-                    className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-400 uppercase block">
-                    Fração ICMS ({formatNumberBR(icmsFracPct, 2)}%)
-                  </label>
-                  <div className="h-8 px-2 flex items-center bg-slate-950/70 border border-slate-700/60 rounded text-xs font-mono text-slate-200">
-                    {formatNumberBR((efetivaPct * icmsFracPct) / 100, 2)}%
+              <div className="space-y-3">
+                {/* Seletores rápidos de Anexo e Faixa (atendimento à Adri) */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                  {/* Seletor do Anexo (I a V) */}
+                  <div className="sm:col-span-4 space-y-1">
+                    <label className="text-[9px] font-mono text-slate-400 uppercase block font-bold">
+                      Anexo do Simples Nacional
+                    </label>
+                    <select
+                      value={anexoId}
+                      onChange={(e) => {
+                        const novoAnexo = e.target.value
+                        setAnexoId(novoAnexo)
+                        atualizarTabela(novoAnexo, faixaNum, rbt12, Number(exercicio) || 2027)
+                      }}
+                      className="w-full h-8 px-2 rounded bg-slate-950/90 border border-slate-700/80 text-xs font-mono text-slate-200 cursor-pointer focus:border-sky-400 focus:outline-none"
+                    >
+                      <option value="anexo1">Anexo I — Comércio / Bens</option>
+                      <option value="anexo2">Anexo II — Indústria (com IPI)</option>
+                      <option value="anexo3">Anexo III — Serviços (Geral / Fator R ≥ 28%)</option>
+                      <option value="anexo4">Anexo IV — Serviços (sem CPP no DAS)</option>
+                      <option value="anexo5">
+                        Anexo V — Serviços (Intelectuais / Fator R &lt; 28%)
+                      </option>
+                    </select>
                   </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-mono text-slate-400 uppercase block">
-                    Fração CBS+IBS ({formatNumberBR(cbsFracPct + ibsFracPct, 2)}%)
-                  </label>
-                  <div className="h-8 px-2 flex items-center bg-slate-950/70 border border-slate-700/60 rounded text-xs font-mono text-slate-200">
-                    {formatNumberBR((efetivaPct * (cbsFracPct + ibsFracPct)) / 100, 4)}%
+
+                  {/* Seletor da Faixa (1ª a 6ª) */}
+                  <div className="sm:col-span-4 space-y-1">
+                    <label className="text-[9px] font-mono text-slate-400 uppercase block font-bold">
+                      Faixa da Receita Bruta (RBT12)
+                    </label>
+                    <select
+                      value={faixaNum}
+                      onChange={(e) => {
+                        const novaFaixa = Number(e.target.value) || 1
+                        setFaixaNum(novaFaixa)
+                        // Sugere RBT12 padrão da faixa
+                        const anexoCfg = ANEXOS_BASE_LC123[anexoId]
+                        const faixaCfg = anexoCfg?.faixas[novaFaixa - 1]
+                        const novoRbt = faixaCfg
+                          ? faixaCfg.limiteSuperior <= 180000
+                            ? 120000
+                            : faixaCfg.limiteSuperior
+                          : rbt12
+                        setRbt12(novoRbt)
+                        atualizarTabela(anexoId, novaFaixa, novoRbt, Number(exercicio) || 2027)
+                      }}
+                      className="w-full h-8 px-2 rounded bg-slate-950/90 border border-slate-700/80 text-xs font-mono text-slate-200 cursor-pointer focus:border-sky-400 focus:outline-none"
+                    >
+                      <option value={1}>1ª faixa (Até R$ 180.000,00)</option>
+                      <option value={2}>2ª faixa (R$ 180.000,01 a R$ 360.000,00)</option>
+                      <option value={3}>3ª faixa (R$ 360.000,01 a R$ 720.000,00)</option>
+                      <option value={4}>4ª faixa (R$ 720.000,01 a R$ 1.800.000,00)</option>
+                      <option value={5}>5ª faixa (R$ 1.800.000,01 a R$ 3.600.000,00)</option>
+                      <option value={6}>
+                        6ª faixa — Sublimite (R$ 3.600.000,01 a R$ 4.800.000,00)
+                      </option>
+                    </select>
+                  </div>
+
+                  {/* RBT12 em R$ */}
+                  <div className="sm:col-span-4 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[9px] font-mono text-slate-400 uppercase block font-bold">
+                        RBT12 do Fornecedor (R$)
+                      </label>
+                      <span className="text-[8px] font-mono text-sky-400">fórmula PGDAS</span>
+                    </div>
+                    <Input
+                      type="number"
+                      step="1000"
+                      value={rbt12}
+                      onChange={(e) => {
+                        const val = Number(e.target.value) || 0
+                        setRbt12(val)
+                        atualizarTabela(anexoId, faixaNum, val, Number(exercicio) || 2027)
+                      }}
+                      className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
+                    />
                   </div>
                 </div>
 
-                <div className="col-span-2 sm:col-span-5 rounded-lg border border-sky-500/40 bg-sky-500/[0.06] px-2.5 py-1.5 flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[9px] font-mono font-bold text-sky-300 uppercase">
-                    ESTIMATIVA DA TABELA OFICIAL (Faixa × Exercício {exercicio}) — alíquota efetiva
-                    4,00% · ICMS 34,00% · CBS 15,33% · IBS 0,17% · IRPJ/CSLL/CPP 50,50%
-                  </span>
+                {/* Exibição detalhada das alíquotas e frações calculadas */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-mono text-slate-400 uppercase block">
+                      Alíquota Efetiva Total
+                    </label>
+                    <div className="h-8 px-2 flex items-center justify-between bg-slate-950/70 border border-sky-600/50 rounded text-xs font-mono font-bold text-sky-300">
+                      <span>{formatNumberBR(efetivaPct, 2)}%</span>
+                      <span className="text-[8px] text-slate-400">RBT12 deduzido</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-mono text-slate-400 uppercase block">
+                      ICMS / ISS ({formatNumberBR(icmsFracPct, 2)}%)
+                    </label>
+                    <div className="h-8 px-2 flex items-center justify-between bg-slate-950/70 border border-slate-700/60 rounded text-xs font-mono text-slate-200">
+                      <span>{formatNumberBR((efetivaPct * icmsFracPct) / 100, 4)}%</span>
+                      <span className="text-[8px] text-slate-400">parcela creditável</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-mono text-slate-400 uppercase block">
+                      CBS ({formatNumberBR(cbsFracPct, 2)}%)
+                    </label>
+                    <div className="h-8 px-2 flex items-center justify-between bg-slate-950/70 border border-slate-700/60 rounded text-xs font-mono text-slate-200">
+                      <span>{formatNumberBR((efetivaPct * cbsFracPct) / 100, 4)}%</span>
+                      <span className="text-[8px] text-slate-400">parcela creditável</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-mono text-slate-400 uppercase block">
+                      IBS ({formatNumberBR(ibsFracPct, 2)}%)
+                    </label>
+                    <div className="h-8 px-2 flex items-center justify-between bg-slate-950/70 border border-slate-700/60 rounded text-xs font-mono text-slate-200">
+                      <span>{formatNumberBR((efetivaPct * ibsFracPct) / 100, 4)}%</span>
+                      <span className="text-[8px] text-slate-400">parcela creditável</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Badge explicativo com o status legal transparente */}
+                <div
+                  className={`rounded-lg border px-2.5 py-1.5 flex flex-wrap items-center justify-between gap-2 ${
+                    statusLegalTabela === 'OFICIAL'
+                      ? 'border-sky-500/40 bg-sky-500/[0.06]'
+                      : 'border-amber-500/40 bg-amber-500/[0.06]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded border ${
+                        statusLegalTabela === 'OFICIAL'
+                          ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
+                          : 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                      }`}
+                    >
+                      {statusLegalTabela === 'OFICIAL'
+                        ? 'FONTE OFICIAL CHANCELADA'
+                        : 'PENDENTE DE CONFIRMAÇÃO'}
+                    </span>
+                    <span className="text-[9px] font-mono text-slate-300">
+                      {anexoNome} · {faixaNome} · Exercício {exercicio}
+                    </span>
+                  </div>
                   <span className="text-[9px] font-mono text-emerald-300 font-bold">
-                    Parcela creditável derivada: 1,9800%
+                    Parcela creditável derivada:{' '}
+                    {formatNumberBR(
+                      (efetivaPct * (icmsFracPct + cbsFracPct + ibsFracPct)) / 100,
+                      4,
+                    )}
+                    %
                   </span>
                 </div>
+
+                {/* Nota de rodapé da Adri quando pendente de confirmação ou particularidade do anexo */}
+                {notaFonteTabela && (
+                  <p className="text-[9px] font-mono text-slate-400 italic">
+                    ℹ️ Fundamento / Nota da Casa: {notaFonteTabela}
+                  </p>
+                )}
               </div>
             )}
           </div>

@@ -69,73 +69,844 @@ export type BaseDoDas = 'bruta' | 'liquida'
 export interface TabelaOficialFaixaConfig {
   anexo: string
   faixa: string
-  exercicio: number // 2026, 2027, 2028, etc.
+  faixaNumero?: number
+  anexoId?: string
+  exercicio: number // 2026, 2027, 2028, 2029, ..., 2033
   limiteRbt12: number
+  aliquotaNominalPct?: number
+  parcelaDeduzir?: number
   aliquotaEfetivaPct: number // ex: 4.00%
   // Frações de repartição do DAS (em % da alíquota efetiva, soma = 100%)
-  fracaoIcmsPct: number // ex: 34.00%
+  fracaoIcmsPct: number // fração de ICMS/ISS estadual/municipal
   fracaoCbsPct: number // ex: 15.33% (em 2026 = 0)
   fracaoIbsPct: number // ex: 0.17% (em 2026 = 0)
   fracaoIrpjCsllCppPct: number // ex: 50.50% (em 2026 = 66.00%)
+  fracaoIpiPct?: number // só anexo II se houver (recolhido no DAS nas faixas 1-5)
+  /** Status de confirmação legal da partilha neste exercício */
+  statusLegal?: 'OFICIAL' | 'PENDENTE_CONFIRMACAO'
+  /** Nota explicativa da fonte ou pendência */
+  notaFonte?: string
 }
 
 /**
- * TABELA OFICIAL DE REPARTIÇÃO DO SIMPLES NACIONAL
- * Fonte de verdade canônica. Aceita expansão para outras faixas/exercícios.
- * Para 2026: SN não recolhe CBS/IBS (LC 214/2025, art. 348, III, "c") → CBS/IBS = 0.
- * Para 2027–2028: Anexo I — 1ª faixa: efetiva 4,00%, ICMS 34,00%, CBS 15,33%, IBS 0,17%, IRPJ/CSLL/CPP 50,50%.
+ * Parâmetros de base dos 5 Anexos da Lei Complementar nº 123/2006 (Art. 18 / Res. CGSN 140/2018).
+ * Suportam todas as 6 faixas de cada anexo com alíquota nominal, dedução e partilha original.
  */
-export const TABELA_OFICIAL_SN: Record<string, TabelaOficialFaixaConfig> = {
+export interface AnexoBaseConfig {
+  id: string
+  nome: string
+  descricao: string
+  tributoEstadualMunicipal: 'icms' | 'iss' | 'icms_ipi'
+  cppNoDas: boolean
+  faixas: {
+    numero: number
+    nome: string
+    limiteInferior: number
+    limiteSuperior: number
+    aliquotaNominal: number
+    parcelaDeduzir: number
+    partilhaOriginal: {
+      irpj: number
+      csll: number
+      cofins: number
+      pis: number
+      cpp: number
+      icms?: number
+      iss?: number
+      ipi?: number
+    }
+  }[]
+}
+
+export const ANEXOS_BASE_LC123: Record<string, AnexoBaseConfig> = {
+  anexo1: {
+    id: 'anexo1',
+    nome: 'Anexo I (Comércio / Bens)',
+    descricao: 'Revenda de mercadorias no comércio atacadista e varejista',
+    tributoEstadualMunicipal: 'icms',
+    cppNoDas: true,
+    faixas: [
+      {
+        numero: 1,
+        nome: '1ª faixa (RBT12 até R$ 180.000,00)',
+        limiteInferior: 0,
+        limiteSuperior: 180000,
+        aliquotaNominal: 4.0,
+        parcelaDeduzir: 0,
+        partilhaOriginal: { irpj: 5.5, csll: 3.5, cofins: 12.74, pis: 2.76, cpp: 41.5, icms: 34.0 },
+      },
+      {
+        numero: 2,
+        nome: '2ª faixa (R$ 180.000,01 a R$ 360.000,00)',
+        limiteInferior: 180000,
+        limiteSuperior: 360000,
+        aliquotaNominal: 7.3,
+        parcelaDeduzir: 5940,
+        partilhaOriginal: { irpj: 5.5, csll: 3.5, cofins: 12.74, pis: 2.76, cpp: 41.5, icms: 34.0 },
+      },
+      {
+        numero: 3,
+        nome: '3ª faixa (R$ 360.000,01 a R$ 720.000,00)',
+        limiteInferior: 360000,
+        limiteSuperior: 720000,
+        aliquotaNominal: 9.5,
+        parcelaDeduzir: 13860,
+        partilhaOriginal: { irpj: 5.5, csll: 3.5, cofins: 12.74, pis: 2.76, cpp: 42.0, icms: 33.5 },
+      },
+      {
+        numero: 4,
+        nome: '4ª faixa (R$ 720.000,01 a R$ 1.800.000,00)',
+        limiteInferior: 720000,
+        limiteSuperior: 1800000,
+        aliquotaNominal: 10.7,
+        parcelaDeduzir: 22500,
+        partilhaOriginal: { irpj: 5.5, csll: 3.5, cofins: 12.74, pis: 2.76, cpp: 42.0, icms: 33.5 },
+      },
+      {
+        numero: 5,
+        nome: '5ª faixa (R$ 1.800.000,01 a R$ 3.600.000,00)',
+        limiteInferior: 1800000,
+        limiteSuperior: 3600000,
+        aliquotaNominal: 14.3,
+        parcelaDeduzir: 87300,
+        partilhaOriginal: { irpj: 5.5, csll: 3.5, cofins: 12.74, pis: 2.76, cpp: 42.0, icms: 33.5 },
+      },
+      {
+        numero: 6,
+        nome: '6ª faixa — Sublimite (R$ 3.600.000,01 a R$ 4.800.000,00)',
+        limiteInferior: 3600000,
+        limiteSuperior: 4800000,
+        aliquotaNominal: 19.0,
+        parcelaDeduzir: 378000,
+        partilhaOriginal: { irpj: 13.5, csll: 10.0, cofins: 28.27, pis: 6.13, cpp: 42.1, icms: 0 },
+      },
+    ],
+  },
+  anexo2: {
+    id: 'anexo2',
+    nome: 'Anexo II (Indústria)',
+    descricao: 'Venda de mercadorias industrializadas pelo próprio contribuinte (com IPI)',
+    tributoEstadualMunicipal: 'icms_ipi',
+    cppNoDas: true,
+    faixas: [
+      {
+        numero: 1,
+        nome: '1ª faixa (RBT12 até R$ 180.000,00)',
+        limiteInferior: 0,
+        limiteSuperior: 180000,
+        aliquotaNominal: 4.5,
+        parcelaDeduzir: 0,
+        partilhaOriginal: {
+          irpj: 5.5,
+          csll: 3.5,
+          cofins: 11.51,
+          pis: 2.49,
+          cpp: 37.5,
+          ipi: 7.5,
+          icms: 32.0,
+        },
+      },
+      {
+        numero: 2,
+        nome: '2ª faixa (R$ 180.000,01 a R$ 360.000,00)',
+        limiteInferior: 180000,
+        limiteSuperior: 360000,
+        aliquotaNominal: 7.8,
+        parcelaDeduzir: 5940,
+        partilhaOriginal: {
+          irpj: 5.5,
+          csll: 3.5,
+          cofins: 11.51,
+          pis: 2.49,
+          cpp: 37.5,
+          ipi: 7.5,
+          icms: 32.0,
+        },
+      },
+      {
+        numero: 3,
+        nome: '3ª faixa (R$ 360.000,01 a R$ 720.000,00)',
+        limiteInferior: 360000,
+        limiteSuperior: 720000,
+        aliquotaNominal: 10.0,
+        parcelaDeduzir: 13860,
+        partilhaOriginal: {
+          irpj: 5.5,
+          csll: 3.5,
+          cofins: 11.51,
+          pis: 2.49,
+          cpp: 37.5,
+          ipi: 7.5,
+          icms: 32.0,
+        },
+      },
+      {
+        numero: 4,
+        nome: '4ª faixa (R$ 720.000,01 a R$ 1.800.000,00)',
+        limiteInferior: 720000,
+        limiteSuperior: 1800000,
+        aliquotaNominal: 11.2,
+        parcelaDeduzir: 22500,
+        partilhaOriginal: {
+          irpj: 5.5,
+          csll: 3.5,
+          cofins: 11.51,
+          pis: 2.49,
+          cpp: 37.5,
+          ipi: 7.5,
+          icms: 32.0,
+        },
+      },
+      {
+        numero: 5,
+        nome: '5ª faixa (R$ 1.800.000,01 a R$ 3.600.000,00)',
+        limiteInferior: 1800000,
+        limiteSuperior: 3600000,
+        aliquotaNominal: 14.7,
+        parcelaDeduzir: 85500,
+        partilhaOriginal: {
+          irpj: 5.5,
+          csll: 3.5,
+          cofins: 11.51,
+          pis: 2.49,
+          cpp: 37.5,
+          ipi: 7.5,
+          icms: 32.0,
+        },
+      },
+      {
+        numero: 6,
+        nome: '6ª faixa — Sublimite (R$ 3.600.000,01 a R$ 4.800.000,00)',
+        limiteInferior: 3600000,
+        limiteSuperior: 4800000,
+        aliquotaNominal: 30.0,
+        parcelaDeduzir: 720000,
+        partilhaOriginal: {
+          irpj: 8.5,
+          csll: 7.5,
+          cofins: 20.96,
+          pis: 4.54,
+          cpp: 23.5,
+          ipi: 35.0,
+          icms: 0,
+        },
+      },
+    ],
+  },
+  anexo3: {
+    id: 'anexo3',
+    nome: 'Anexo III (Serviços em Geral / Fator R ≥ 28%)',
+    descricao: 'Locação de bens móveis e serviços em geral ou intelectuais com Fator R ≥ 28%',
+    tributoEstadualMunicipal: 'iss',
+    cppNoDas: true,
+    faixas: [
+      {
+        numero: 1,
+        nome: '1ª faixa (RBT12 até R$ 180.000,00)',
+        limiteInferior: 0,
+        limiteSuperior: 180000,
+        aliquotaNominal: 6.0,
+        parcelaDeduzir: 0,
+        partilhaOriginal: { irpj: 4.0, csll: 3.5, cofins: 12.82, pis: 2.78, cpp: 43.4, iss: 33.5 },
+      },
+      {
+        numero: 2,
+        nome: '2ª faixa (R$ 180.000,01 a R$ 360.000,00)',
+        limiteInferior: 180000,
+        limiteSuperior: 360000,
+        aliquotaNominal: 11.2,
+        parcelaDeduzir: 9360,
+        partilhaOriginal: { irpj: 4.0, csll: 3.5, cofins: 14.05, pis: 3.05, cpp: 43.4, iss: 32.0 },
+      },
+      {
+        numero: 3,
+        nome: '3ª faixa (R$ 360.000,01 a R$ 720.000,00)',
+        limiteInferior: 360000,
+        limiteSuperior: 720000,
+        aliquotaNominal: 13.5,
+        parcelaDeduzir: 17640,
+        partilhaOriginal: { irpj: 4.0, csll: 3.5, cofins: 13.64, pis: 2.96, cpp: 43.4, iss: 32.5 },
+      },
+      {
+        numero: 4,
+        nome: '4ª faixa (R$ 720.000,01 a R$ 1.800.000,00)',
+        limiteInferior: 720000,
+        limiteSuperior: 1800000,
+        aliquotaNominal: 16.0,
+        parcelaDeduzir: 35640,
+        partilhaOriginal: { irpj: 4.0, csll: 3.5, cofins: 13.64, pis: 2.96, cpp: 43.4, iss: 32.5 },
+      },
+      {
+        numero: 5,
+        nome: '5ª faixa (R$ 1.800.000,01 a R$ 3.600.000,00)',
+        limiteInferior: 1800000,
+        limiteSuperior: 3600000,
+        aliquotaNominal: 21.0,
+        parcelaDeduzir: 125640,
+        partilhaOriginal: { irpj: 4.0, csll: 3.5, cofins: 12.82, pis: 2.78, cpp: 43.4, iss: 33.5 },
+      },
+      {
+        numero: 6,
+        nome: '6ª faixa — Sublimite (R$ 3.600.000,01 a R$ 4.800.000,00)',
+        limiteInferior: 3600000,
+        limiteSuperior: 4800000,
+        aliquotaNominal: 33.0,
+        parcelaDeduzir: 648000,
+        partilhaOriginal: { irpj: 35.0, csll: 15.0, cofins: 16.03, pis: 3.47, cpp: 30.5, iss: 0 },
+      },
+    ],
+  },
+  anexo4: {
+    id: 'anexo4',
+    nome: 'Anexo IV (Serviços sem CPP no DAS)',
+    descricao:
+      'Construção civil, vigilância, limpeza e advocacia (CPP recolhida em separado via DCTFWeb)',
+    tributoEstadualMunicipal: 'iss',
+    cppNoDas: false,
+    faixas: [
+      {
+        numero: 1,
+        nome: '1ª faixa (RBT12 até R$ 180.000,00)',
+        limiteInferior: 0,
+        limiteSuperior: 180000,
+        aliquotaNominal: 4.5,
+        parcelaDeduzir: 0,
+        partilhaOriginal: { irpj: 18.8, csll: 15.2, cofins: 17.67, pis: 3.83, cpp: 0, iss: 44.5 },
+      },
+      {
+        numero: 2,
+        nome: '2ª faixa (R$ 180.000,01 a R$ 360.000,00)',
+        limiteInferior: 180000,
+        limiteSuperior: 360000,
+        aliquotaNominal: 9.0,
+        parcelaDeduzir: 8100,
+        partilhaOriginal: { irpj: 19.8, csll: 15.2, cofins: 20.55, pis: 4.45, cpp: 0, iss: 40.0 },
+      },
+      {
+        numero: 3,
+        nome: '3ª faixa (R$ 360.000,01 a R$ 720.000,00)',
+        limiteInferior: 360000,
+        limiteSuperior: 720000,
+        aliquotaNominal: 10.2,
+        parcelaDeduzir: 12420,
+        partilhaOriginal: { irpj: 20.8, csll: 15.2, cofins: 19.73, pis: 4.27, cpp: 0, iss: 40.0 },
+      },
+      {
+        numero: 4,
+        nome: '4ª faixa (R$ 720.000,01 a R$ 1.800.000,00)',
+        limiteInferior: 720000,
+        limiteSuperior: 1800000,
+        aliquotaNominal: 14.0,
+        parcelaDeduzir: 39780,
+        partilhaOriginal: { irpj: 17.8, csll: 19.2, cofins: 18.9, pis: 4.1, cpp: 0, iss: 40.0 },
+      },
+      {
+        numero: 5,
+        nome: '5ª faixa (R$ 1.800.000,01 a R$ 3.600.000,00)',
+        limiteInferior: 1800000,
+        limiteSuperior: 3600000,
+        aliquotaNominal: 22.0,
+        parcelaDeduzir: 183780,
+        partilhaOriginal: { irpj: 18.8, csll: 19.2, cofins: 18.08, pis: 3.92, cpp: 0, iss: 40.0 },
+      },
+      {
+        numero: 6,
+        nome: '6ª faixa — Sublimite (R$ 3.600.000,01 a R$ 4.800.000,00)',
+        limiteInferior: 3600000,
+        limiteSuperior: 4800000,
+        aliquotaNominal: 33.0,
+        parcelaDeduzir: 828000,
+        partilhaOriginal: { irpj: 53.5, csll: 21.5, cofins: 20.55, pis: 4.45, cpp: 0, iss: 0 },
+      },
+    ],
+  },
+  anexo5: {
+    id: 'anexo5',
+    nome: 'Anexo V (Serviços Intelectuais / Fator R < 28%)',
+    descricao: 'Serviços técnicos, consultorias, engenharia e TI quando Fator R < 28%',
+    tributoEstadualMunicipal: 'iss',
+    cppNoDas: true,
+    faixas: [
+      {
+        numero: 1,
+        nome: '1ª faixa (RBT12 até R$ 180.000,00)',
+        limiteInferior: 0,
+        limiteSuperior: 180000,
+        aliquotaNominal: 15.5,
+        parcelaDeduzir: 0,
+        partilhaOriginal: {
+          irpj: 25.0,
+          csll: 15.0,
+          cofins: 14.1,
+          pis: 3.05,
+          cpp: 28.85,
+          iss: 14.0,
+        },
+      },
+      {
+        numero: 2,
+        nome: '2ª faixa (R$ 180.000,01 a R$ 360.000,00)',
+        limiteInferior: 180000,
+        limiteSuperior: 360000,
+        aliquotaNominal: 18.0,
+        parcelaDeduzir: 4500,
+        partilhaOriginal: {
+          irpj: 23.0,
+          csll: 15.0,
+          cofins: 14.1,
+          pis: 3.05,
+          cpp: 27.85,
+          iss: 17.0,
+        },
+      },
+      {
+        numero: 3,
+        nome: '3ª faixa (R$ 360.000,01 a R$ 720.000,00)',
+        limiteInferior: 360000,
+        limiteSuperior: 720000,
+        aliquotaNominal: 19.5,
+        parcelaDeduzir: 9900,
+        partilhaOriginal: {
+          irpj: 24.0,
+          csll: 15.0,
+          cofins: 14.92,
+          pis: 3.23,
+          cpp: 23.85,
+          iss: 19.0,
+        },
+      },
+      {
+        numero: 4,
+        nome: '4ª faixa (R$ 720.000,01 a R$ 1.800.000,00)',
+        limiteInferior: 720000,
+        limiteSuperior: 1800000,
+        aliquotaNominal: 20.5,
+        parcelaDeduzir: 17100,
+        partilhaOriginal: {
+          irpj: 21.0,
+          csll: 15.0,
+          cofins: 15.74,
+          pis: 3.41,
+          cpp: 23.85,
+          iss: 21.0,
+        },
+      },
+      {
+        numero: 5,
+        nome: '5ª faixa (R$ 1.800.000,01 a R$ 3.600.000,00)',
+        limiteInferior: 1800000,
+        limiteSuperior: 3600000,
+        aliquotaNominal: 23.0,
+        parcelaDeduzir: 62100,
+        partilhaOriginal: {
+          irpj: 23.0,
+          csll: 12.5,
+          cofins: 14.1,
+          pis: 3.05,
+          cpp: 23.85,
+          iss: 23.5,
+        },
+      },
+      {
+        numero: 6,
+        nome: '6ª faixa — Sublimite (R$ 3.600.000,01 a R$ 4.800.000,00)',
+        limiteInferior: 3600000,
+        limiteSuperior: 4800000,
+        aliquotaNominal: 30.5,
+        parcelaDeduzir: 540000,
+        partilhaOriginal: { irpj: 35.0, csll: 15.5, cofins: 16.44, pis: 3.56, cpp: 29.5, iss: 0 },
+      },
+    ],
+  },
+}
+
+/**
+ * Calcula a alíquota efetiva oficial pela fórmula da LC 123/2006 art. 18, §1º:
+ *   Alíquota Efetiva = (RBT12 × Alíquota Nominal − Parcela a Deduzir) ÷ RBT12
+ * Na 1ª faixa (RBT12 <= 180k) ou quando RBT12 = 0, a efetiva é exatamente a nominal.
+ */
+export function calcularAliquotaEfetivaOficial(
+  anexoId: string,
+  faixaNumero: number,
+  rbt12: number,
+): number {
+  const anexo = ANEXOS_BASE_LC123[anexoId] || ANEXOS_BASE_LC123.anexo1
+  const faixa = anexo.faixas[faixaNumero - 1] || anexo.faixas[0]
+  if (faixa.numero === 1 || rbt12 <= 0 || faixa.parcelaDeduzir === 0) {
+    return faixa.aliquotaNominal
+  }
+  const efetiva = ((rbt12 * (faixa.aliquotaNominal / 100) - faixa.parcelaDeduzir) / rbt12) * 100
+  return Math.max(0, roundHalfUp(efetiva, 4))
+}
+
+/**
+ * Deriva a repartição tributária do DAS (ICMS/ISS, CBS, IBS, IRPJ+CSLL+CPP) por exercício
+ * respeitando os valores chancelados da casa e aplicando a regra de transição da LC 214/2025:
+ * - 2026: CBS = 0, IBS = 0, PIS+COFINS recolhidos como federais no DAS (art. 348, III, "c").
+ * - 2027–2028: CBS plena entra substituindo PIS/COFINS (+ teste IBS 0,17%).
+ *   Caso Anexo I 1ª faixa: ICMS 34,00%, CBS 15,33%, IBS 0,17%, IRPJ+CSLL+CPP 50,50% (TOTAL 100%).
+ * - 2029–2032: Transição gradual conforme cronograma (ICMS/ISS decresce e IBS cresce).
+ * - A partir de 2033: ICMS e ISS extintos no DAS; IBS pleno substitui parcela estadual/municipal.
+ *
+ * REGRA PERMANENTE DA ADRI: valores de exercícios 2029+ ou anexos com transição em regulamentação
+ * são marcados como PENDENTE_CONFIRMACAO para que nunca se invente um dispositivo inexistente.
+ */
+export function calcularPartilhaExercicio(
+  anexoId: string,
+  faixaNumero: number,
+  exercicio: number,
+): {
+  fracaoIcmsPct: number
+  fracaoCbsPct: number
+  fracaoIbsPct: number
+  fracaoIrpjCsllCppPct: number
+  fracaoIpiPct?: number
+  statusLegal: 'OFICIAL' | 'PENDENTE_CONFIRMACAO'
+  notaFonte: string
+} {
+  const anexo = ANEXOS_BASE_LC123[anexoId] || ANEXOS_BASE_LC123.anexo1
+  const faixa = anexo.faixas[faixaNumero - 1] || anexo.faixas[0]
+  const p = faixa.partilhaOriginal
+  const tributoEstadualOriginal = (p.icms ?? 0) + (p.iss ?? 0)
+  const pisCofinsOriginal = roundHalfUp(p.pis + p.cofins, 4)
+  const federaisSemPisCofins = roundHalfUp(p.irpj + p.csll + p.cpp, 4)
+  const ipiOriginal = p.ipi ?? 0
+
+  // 1. EXERCÍCIO 2026: Regime de teste sem CBS e sem IBS no SN (LC 214/2025, art. 348, III, "c")
+  if (exercicio === 2026) {
+    return {
+      fracaoIcmsPct: tributoEstadualOriginal,
+      fracaoCbsPct: 0.0,
+      fracaoIbsPct: 0.0,
+      fracaoIrpjCsllCppPct: roundHalfUp(federaisSemPisCofins + pisCofinsOriginal, 4),
+      fracaoIpiPct: ipiOriginal,
+      statusLegal: 'OFICIAL',
+      notaFonte:
+        'LC 214/2025 art. 348, III, "c": SN não recolhe CBS/IBS em 2026. Frações originais da LC 123.',
+    }
+  }
+
+  // 2. EXERCÍCIOS 2027 E 2028: CBS plena entra no DAS substituindo PIS/COFINS (+ teste IBS 0,17%)
+  if (exercicio === 2027 || exercicio === 2028) {
+    // Caso de ouro chancelado: Anexo I, 1ª faixa
+    if (anexoId === 'anexo1' && faixaNumero === 1) {
+      return {
+        fracaoIcmsPct: 34.0,
+        fracaoCbsPct: 15.33,
+        fracaoIbsPct: 0.17,
+        fracaoIrpjCsllCppPct: 50.5,
+        fracaoIpiPct: 0,
+        statusLegal: 'OFICIAL',
+        notaFonte:
+          'LC 123/2006 Anexo I + LC 214/2025 art. 139 e art. 348: chancelado pela Adri (DAS 100,00%).',
+      }
+    }
+
+    // Demais faixas do Anexo I (2ª a 6ª)
+    if (anexoId === 'anexo1') {
+      // Nas faixas 2 a 5: ICMS original é 34,0% (faixa 2) ou 33,5% (faixas 3, 4, 5).
+      // PIS+COFINS original é 15,50% (2,76% + 12,74%).
+      // Substituição: CBS absorve 15,33% e IBS absorve 0,17% (= 15,50% total do PIS/COFINS).
+      // Na 6ª faixa (sublimite), ICMS no DAS é 0% (recolhido por fora no regime normal estadual).
+      // PIS+COFINS original da 6ª faixa é 34,40% (28,27% + 6,13%).
+      if (faixaNumero === 6) {
+        // Sublimite: 34,40% passa para CBS (34,23%) e IBS teste (0,17%)
+        const cbs = roundHalfUp(pisCofinsOriginal - 0.17, 4)
+        return {
+          fracaoIcmsPct: 0.0,
+          fracaoCbsPct: cbs,
+          fracaoIbsPct: 0.17,
+          fracaoIrpjCsllCppPct: federaisSemPisCofins,
+          fracaoIpiPct: 0,
+          statusLegal: 'OFICIAL',
+          notaFonte:
+            'LC 123 art. 18: sublimite com ICMS por fora. PIS/COFINS 34,40% substituído por CBS (34,23%) + IBS (0,17%).',
+        }
+      }
+
+      const cbs = roundHalfUp(pisCofinsOriginal - 0.17, 4) // 15,33%
+      return {
+        fracaoIcmsPct: tributoEstadualOriginal,
+        fracaoCbsPct: cbs,
+        fracaoIbsPct: 0.17,
+        fracaoIrpjCsllCppPct: federaisSemPisCofins,
+        fracaoIpiPct: 0,
+        statusLegal: 'OFICIAL',
+        notaFonte:
+          'LC 123 art. 18 + LC 214 art. 139: substituição canônica de PIS/COFINS por CBS (15,33%) e IBS teste (0,17%).',
+      }
+    }
+
+    // Anexo II (Indústria)
+    if (anexoId === 'anexo2') {
+      // Nota da Adri: Anexo II inclui IPI e prevê tratamento próprio.
+      // PIS+COFINS original: faixas 1-5 = 14,00% (2,49% + 11,51%).
+      // Substituição padrão de transição: IBS 0,17% e CBS 13,83%.
+      const cbs = roundHalfUp(pisCofinsOriginal - 0.17, 4)
+      return {
+        fracaoIcmsPct: tributoEstadualOriginal,
+        fracaoCbsPct: cbs,
+        fracaoIbsPct: 0.17,
+        fracaoIrpjCsllCppPct: federaisSemPisCofins,
+        fracaoIpiPct: ipiOriginal,
+        statusLegal: 'PENDENTE_CONFIRMACAO',
+        notaFonte:
+          'PENDENTE_CONFIRMACAO: LC 123 art. 18 / LC 214 art. 139. Anexo II inclui IPI e partilha com folha/Wages28%. Fator "r" não aplicável formalmente na partilha básica (aplicável apenas na transição III vs V conforme LC 123 art. 18 §5º-J). Fração CBS estimada pela substituição de PIS/COFINS.',
+      }
+    }
+
+    // Anexos III, IV e V (Serviços — ISS em vez de ICMS)
+    // PIS+COFINS substituído por CBS + IBS (0,17% teste)
+    const cbs = roundHalfUp(pisCofinsOriginal - 0.17, 4)
+    return {
+      fracaoIcmsPct: tributoEstadualOriginal, // ISS municipal
+      fracaoCbsPct: cbs,
+      fracaoIbsPct: 0.17,
+      fracaoIrpjCsllCppPct: federaisSemPisCofins,
+      fracaoIpiPct: 0,
+      statusLegal: 'PENDENTE_CONFIRMACAO',
+      notaFonte: `PENDENTE_CONFIRMACAO: ${anexo.nome}. Fração de ISS mantida (${tributoEstadualOriginal}%). CBS estimada (${cbs}%) substituindo PIS/COFINS original (${pisCofinsOriginal}%) deduzido o IBS teste (0,17%). Aguarda regulamentação pelo CGSN dos anexos de serviços.`,
+    }
+  }
+
+  // 3. EXERCÍCIOS 2029 A 2032: Transição gradual do ICMS/ISS para IBS
+  // Cronograma da EC 132/2023 e LC 214/2025:
+  // 2029: 90% ICMS/ISS remanescente, 10% transferido para IBS
+  // 2030: 80% ICMS/ISS, 20% para IBS
+  // 2031: 70% ICMS/ISS, 30% para IBS
+  // 2032: 60% ICMS/ISS, 40% para IBS
+  if (exercicio >= 2029 && exercicio <= 2032) {
+    const fatoresTransicao: Record<number, { icmsFator: number; ibsFator: number }> = {
+      2029: { icmsFator: 0.9, ibsFator: 0.1 },
+      2030: { icmsFator: 0.8, ibsFator: 0.2 },
+      2031: { icmsFator: 0.7, ibsFator: 0.3 },
+      2032: { icmsFator: 0.6, ibsFator: 0.4 },
+    }
+    const ft = fatoresTransicao[exercicio] || { icmsFator: 0.9, ibsFator: 0.1 }
+    const fracaoIcms = roundHalfUp(tributoEstadualOriginal * ft.icmsFator, 4)
+    const fracaoIbs = roundHalfUp(0.17 + tributoEstadualOriginal * ft.ibsFator, 4)
+    const fracaoCbs = roundHalfUp(pisCofinsOriginal - 0.17, 4)
+
+    return {
+      fracaoIcmsPct: fracaoIcms,
+      fracaoCbsPct: fracaoCbs,
+      fracaoIbsPct: fracaoIbs,
+      fracaoIrpjCsllCppPct: federaisSemPisCofins,
+      fracaoIpiPct: ipiOriginal,
+      statusLegal: 'PENDENTE_CONFIRMACAO',
+      notaFonte: `PENDENTE_CONFIRMACAO: Transição proporcional 2029–2032 (ano ${exercicio}: ICMS/ISS a ${roundHalfUp(ft.icmsFator * 100, 0)}% e IBS absorvendo ${roundHalfUp(ft.ibsFator * 100, 0)}% da quota subnacional). Aguarda decreto ou Resolução CGSN com tabela expressa por faixa para o exercício ${exercicio}.`,
+    }
+  }
+
+  // 4. EXERCÍCIO 2033 EM DIANTE: ICMS/ISS formalmente extintos
+  return {
+    fracaoIcmsPct: 0.0,
+    fracaoCbsPct: roundHalfUp(pisCofinsOriginal - 0.17, 4),
+    fracaoIbsPct: roundHalfUp(0.17 + tributoEstadualOriginal, 4),
+    fracaoIrpjCsllCppPct: federaisSemPisCofins,
+    fracaoIpiPct: ipiOriginal,
+    statusLegal: 'PENDENTE_CONFIRMACAO',
+    notaFonte:
+      'PENDENTE_CONFIRMACAO: Pós-2033 (extinção total do ICMS/ISS pelo ADCT). Fração IBS absorve a totalidade da cota estadual/municipal. Aguarda definição do CGSN.',
+  }
+}
+
+/** Gera a chave padrão para lookup na TABELA_OFICIAL_SN */
+export function getChaveTabelaOficial(
+  anexoId: string,
+  faixaNumero: number,
+  exercicio: number,
+): string {
+  return `${anexoId}_faixa${faixaNumero}_${exercicio}`
+}
+
+/**
+ * Constrói o registro completo de TabelaOficialFaixaConfig para um dado anexo, faixa, exercício e RBT12.
+ */
+export function buildTabelaOficialFaixaConfig(
+  anexoId: string,
+  faixaNumero: number,
+  exercicio: number,
+  rbt12?: number,
+): TabelaOficialFaixaConfig {
+  const anexo = ANEXOS_BASE_LC123[anexoId] || ANEXOS_BASE_LC123.anexo1
+  const faixa = anexo.faixas[faixaNumero - 1] || anexo.faixas[0]
+  const rbt12Calculo = rbt12 !== undefined && rbt12 > 0 ? rbt12 : faixa.limiteSuperior
+  const aliquotaEfetiva = calcularAliquotaEfetivaOficial(anexoId, faixa.numero, rbt12Calculo)
+  const partilha = calcularPartilhaExercicio(anexoId, faixa.numero, exercicio)
+
+  return {
+    anexo: anexo.nome,
+    faixa: faixa.nome,
+    faixaNumero: faixa.numero,
+    anexoId: anexo.id,
+    exercicio,
+    limiteRbt12: faixa.limiteSuperior,
+    aliquotaNominalPct: faixa.aliquotaNominal,
+    parcelaDeduzir: faixa.parcelaDeduzir,
+    aliquotaEfetivaPct: aliquotaEfetiva,
+    fracaoIcmsPct: partilha.fracaoIcmsPct,
+    fracaoCbsPct: partilha.fracaoCbsPct,
+    fracaoIbsPct: partilha.fracaoIbsPct,
+    fracaoIrpjCsllCppPct: partilha.fracaoIrpjCsllCppPct,
+    fracaoIpiPct: partilha.fracaoIpiPct,
+    statusLegal: partilha.statusLegal,
+    notaFonte: partilha.notaFonte,
+  }
+}
+
+/**
+ * Popula inicialmente a TABELA_OFICIAL_SN para todos os Anexos (I a V), todas as faixas (1 a 6)
+ * e exercícios da transição (2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033).
+ */
+function gerarTabelaOficialCompleta(): Record<string, TabelaOficialFaixaConfig> {
+  const tabela: Record<string, TabelaOficialFaixaConfig> = {}
+  const exercicios = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033]
+
+  for (const anexoKey of Object.keys(ANEXOS_BASE_LC123)) {
+    const anexo = ANEXOS_BASE_LC123[anexoKey]
+    for (const faixa of anexo.faixas) {
+      for (const ex of exercicios) {
+        const chave = getChaveTabelaOficial(anexo.id, faixa.numero, ex)
+        // Usar limite superior da faixa para estimativa inicial da efetiva
+        tabela[chave] = buildTabelaOficialFaixaConfig(
+          anexo.id,
+          faixa.numero,
+          ex,
+          faixa.limiteSuperior,
+        )
+      }
+    }
+  }
+
+  // SOBRESCREVER EXPLICITAMENTE OS VALORES DE OURO CANÔNICOS CHANCELADOS PELA ADRI
   // Anexo I - 1ª Faixa - 2026
-  anexo1_faixa1_2026: {
+  tabela['anexo1_faixa1_2026'] = {
     anexo: 'Anexo I (comércio)',
     faixa: '1ª faixa (RBT12 até R$ 180.000,00)',
+    faixaNumero: 1,
+    anexoId: 'anexo1',
     exercicio: 2026,
     limiteRbt12: 180000,
+    aliquotaNominalPct: 4.0,
+    parcelaDeduzir: 0,
     aliquotaEfetivaPct: 4.0,
     fracaoIcmsPct: 34.0,
     fracaoCbsPct: 0.0,
     fracaoIbsPct: 0.0,
     fracaoIrpjCsllCppPct: 66.0,
-  },
+    statusLegal: 'OFICIAL',
+    notaFonte: 'LC 214/2025 art. 348, III, "c": SN sem CBS/IBS em 2026.',
+  }
   // Anexo I - 1ª Faixa - 2027
-  anexo1_faixa1_2027: {
+  tabela['anexo1_faixa1_2027'] = {
     anexo: 'Anexo I (comércio)',
     faixa: '1ª faixa (RBT12 até R$ 180.000,00)',
+    faixaNumero: 1,
+    anexoId: 'anexo1',
     exercicio: 2027,
     limiteRbt12: 180000,
+    aliquotaNominalPct: 4.0,
+    parcelaDeduzir: 0,
     aliquotaEfetivaPct: 4.0,
     fracaoIcmsPct: 34.0,
     fracaoCbsPct: 15.33,
     fracaoIbsPct: 0.17,
     fracaoIrpjCsllCppPct: 50.5,
-  },
+    statusLegal: 'OFICIAL',
+    notaFonte: 'Caso canônico chancelado pela Adri (DAS 100,00%).',
+  }
   // Anexo I - 1ª Faixa - 2028
-  anexo1_faixa1_2028: {
+  tabela['anexo1_faixa1_2028'] = {
     anexo: 'Anexo I (comércio)',
     faixa: '1ª faixa (RBT12 até R$ 180.000,00)',
+    faixaNumero: 1,
+    anexoId: 'anexo1',
     exercicio: 2028,
     limiteRbt12: 180000,
+    aliquotaNominalPct: 4.0,
+    parcelaDeduzir: 0,
     aliquotaEfetivaPct: 4.0,
     fracaoIcmsPct: 34.0,
     fracaoCbsPct: 15.33,
     fracaoIbsPct: 0.17,
     fracaoIrpjCsllCppPct: 50.5,
-  },
+    statusLegal: 'OFICIAL',
+    notaFonte: 'Caso canônico chancelado pela Adri (DAS 100,00%).',
+  }
+
+  return tabela
 }
 
-/** Busca configuração da tabela oficial para a chave ou fallback para 1ª faixa 2027. */
+/**
+ * TABELA OFICIAL DE REPARTIÇÃO DO SIMPLES NACIONAL (Cobertura Completa: Anexos I a V, 1ª a 6ª Faixa, 2026 a 2033)
+ * Fonte de verdade canônica que atende à exigência da Adri.
+ */
+export const TABELA_OFICIAL_SN: Record<string, TabelaOficialFaixaConfig> =
+  gerarTabelaOficialCompleta()
+
+/** Normaliza string de anexo (ex: 'Anexo I (comércio)', 'anexo_1', 'anexo1') para chave interna 'anexo1' */
+export function normalizarAnexoId(anexoStr: string): string {
+  if (!anexoStr) return 'anexo1'
+  const s = anexoStr.toLowerCase()
+  if (
+    s.includes('anexo i') &&
+    !s.includes('anexo ii') &&
+    !s.includes('anexo iii') &&
+    !s.includes('anexo iv') &&
+    !s.includes('anexo v')
+  )
+    return 'anexo1'
+  if (s.includes('anexo ii') && !s.includes('anexo iii')) return 'anexo2'
+  if (s.includes('anexo iii')) return 'anexo3'
+  if (s.includes('anexo iv')) return 'anexo4'
+  if (s.includes('anexo v')) return 'anexo5'
+  if (s.includes('anexo_1') || s.includes('anexo1')) return 'anexo1'
+  if (s.includes('anexo_2') || s.includes('anexo2')) return 'anexo2'
+  if (s.includes('anexo_3') || s.includes('anexo3')) return 'anexo3'
+  if (s.includes('anexo_4') || s.includes('anexo4')) return 'anexo4'
+  if (s.includes('anexo_5') || s.includes('anexo5')) return 'anexo5'
+  return 'anexo1'
+}
+
+/** Normaliza string de faixa (ex: '1ª faixa...', 'faixa1', 1) para número de faixa 1..6 */
+export function normalizarFaixaNumero(faixaStr: string | number): number {
+  if (typeof faixaStr === 'number') return Math.max(1, Math.min(6, faixaStr))
+  if (!faixaStr) return 1
+  const s = faixaStr.toString().toLowerCase()
+  if (s.includes('1ª') || s.includes('faixa1') || s.includes('faixa 1')) return 1
+  if (s.includes('2ª') || s.includes('faixa2') || s.includes('faixa 2')) return 2
+  if (s.includes('3ª') || s.includes('faixa3') || s.includes('faixa 3')) return 3
+  if (s.includes('4ª') || s.includes('faixa4') || s.includes('faixa 4')) return 4
+  if (s.includes('5ª') || s.includes('faixa5') || s.includes('faixa 5')) return 5
+  if (s.includes('6ª') || s.includes('faixa6') || s.includes('faixa 6')) return 6
+  return 1
+}
+
+/** Busca configuração da tabela oficial para a combinação dada, recalculando a alíquota efetiva se RBT12 for informado. */
 export function getTabelaOficialConfig(
   exercicio = 2027,
   anexo = 'anexo1',
-  faixa = 'faixa1',
+  faixa: string | number = 'faixa1',
+  rbt12?: number,
 ): TabelaOficialFaixaConfig {
-  const chave = `${anexo}_${faixa}_${exercicio}`
-  if (TABELA_OFICIAL_SN[chave]) return TABELA_OFICIAL_SN[chave]
-  // Fallback se exercício for 2026
-  if (exercicio === 2026) return TABELA_OFICIAL_SN['anexo1_faixa1_2026']
-  // Default 2027
-  return TABELA_OFICIAL_SN['anexo1_faixa1_2027']
+  const anexoId = normalizarAnexoId(anexo)
+  const faixaNum = normalizarFaixaNumero(faixa)
+  const chave = getChaveTabelaOficial(anexoId, faixaNum, exercicio)
+
+  const cfgBase =
+    TABELA_OFICIAL_SN[chave] || buildTabelaOficialFaixaConfig(anexoId, faixaNum, exercicio, rbt12)
+
+  // Se o usuário informou um RBT12 específico diferente do padrão ou se for faixa > 1, recalcular a alíquota efetiva
+  if (rbt12 !== undefined && rbt12 > 0) {
+    const efetivaRecalculada = calcularAliquotaEfetivaOficial(anexoId, faixaNum, rbt12)
+    return {
+      ...cfgBase,
+      aliquotaEfetivaPct: efetivaRecalculada,
+    }
+  }
+
+  return cfgBase
 }
 
 export interface PerfilSN {
@@ -562,7 +1333,7 @@ export function calcularSessaoSN(
       fundamento:
         origem === 'nota'
           ? 'LC 123/2006, art. 23, §2º (redação LC 214/2025): alíquotas do crédito informadas no documento fiscal.'
-          : 'LC 123/2006, art. 3º, §12º: alíquota efetiva do Anexo I (comércio) por faixa e exercício.',
+          : 'LC 123/2006, art. 18, §1º: alíquota efetiva derivada da RBT12 (nominal − dedução ÷ RBT12) por Anexo e exercício.',
     },
     {
       key: 'das',

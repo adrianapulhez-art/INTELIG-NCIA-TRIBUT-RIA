@@ -35,8 +35,12 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
+  ANEXOS_BASE_LC123,
+  calcularAliquotaEfetivaOficial,
+  calcularPartilhaExercicio,
   calcularSessaoSN,
   creditoEfetivoArt23,
+  getTabelaOficialConfig,
   PERFIL_SN_NOTA_PADRAO,
   TABELA_OFICIAL_SN,
   type PerfilSN,
@@ -249,5 +253,140 @@ describe('Sessão SN na Reforma — Blindagem do Caso Canônico Corrigido (Padr�
     expect(TABELA_OFICIAL_SN['anexo1_faixa1_2027'].fracaoCbsPct).toBe(15.33)
     expect(TABELA_OFICIAL_SN['anexo1_faixa1_2027'].fracaoIbsPct).toBe(0.17)
     expect(TABELA_OFICIAL_SN['anexo1_faixa1_2027'].fracaoIrpjCsllCppPct).toBe(50.5)
+  })
+
+  it('8. Expansão Completa — Anexo I 6ª faixa (Sublimite: ICMS 0% no DAS, recolhido por fora)', () => {
+    // Anexo I 6ª faixa (RBT12 = R$ 4.000.000,00)
+    // Nominal: 19,00%, Parcela deduzir: R$ 378.000,00
+    // Efetiva: (4.000.000 × 19% − 378.000) ÷ 4.000.000 = (760.000 − 378.000) ÷ 4.000.000 = 382.000 ÷ 4.000.000 = 9,55%
+    const efetiva6a = calcularAliquotaEfetivaOficial('anexo1', 6, 4000000)
+    expect(efetiva6a).toBe(9.55)
+
+    const cfg6a = getTabelaOficialConfig(2027, 'anexo1', 6, 4000000)
+    expect(cfg6a.aliquotaEfetivaPct).toBe(9.55)
+    // No sublimite estadual do Anexo I, o ICMS no DAS é 0% (recolhido por fora no regime normal)
+    expect(cfg6a.fracaoIcmsPct).toBe(0.0)
+    // PIS/COFINS de 34,40% substituído por CBS (34,23%) e IBS teste (0,17%)
+    expect(cfg6a.fracaoCbsPct).toBeCloseTo(34.23, 2)
+    expect(cfg6a.fracaoIbsPct).toBe(0.17)
+    expect(cfg6a.fracaoIrpjCsllCppPct).toBe(65.6) // 13.5 + 10.0 + 42.1 = 65.6%
+    expect(cfg6a.fracaoCbsPct + cfg6a.fracaoIbsPct + cfg6a.fracaoIrpjCsllCppPct).toBeCloseTo(
+      100.0,
+      2,
+    )
+
+    // Simulação com o item canônico sob a 6ª faixa
+    const perfil6a: PerfilSN = {
+      origem: 'tabela',
+      modo: 'anexo',
+      anexo: cfg6a.anexo,
+      faixa: cfg6a.faixa,
+      exercicio: 2027,
+      rbt12: 4000000,
+      efetivaPct: cfg6a.aliquotaEfetivaPct,
+      icmsFracPct: cfg6a.fracaoIcmsPct,
+      cbsFracPct: cfg6a.fracaoCbsPct,
+      ibsFracPct: cfg6a.fracaoIbsPct,
+      irpjCsllCppFracPct: cfg6a.fracaoIrpjCsllCppPct,
+      baseDoDas: 'bruta',
+      icmsNotaPct: 0,
+      cbsNotaPct: 0,
+      ibsNotaPct: 0,
+    }
+    const r6 = calcularSessaoSN(itemCanônico, perfil6a)
+    // DAS devido total: 42.400 × 9,55% = 4.049,20
+    expect(r6.dasEfetivo).toBe(4049.2)
+    // ICMS no DAS = 0
+    expect(r6.icmsNota).toBe(0)
+    // Parcela creditável do DAS: CBS + IBS = 34,40% da efetiva 9,55% = 3,2852%
+    // 42.400 × 3,2852% = 1.392,9248 → 1.392,92
+    expect(r6.parcelaCreditavelTotal6).toBeCloseTo(1392.9248, 4)
+    expect(r6.das4Blocos.consistente).toBe(true)
+  })
+
+  it('9. Expansão Completa — Anexo III (Serviços em Geral / Fator R ≥ 28%)', () => {
+    // Anexo III 1ª faixa: nominal 6,00%, parcela deduzir 0
+    // Partilha: ISS 33,50%, CBS 15,43%, IBS 0,17%, Federais 50,90% (IRPJ 4 + CSLL 3.5 + CPP 43.4)
+    const cfgAnexo3 = getTabelaOficialConfig(2027, 'anexo3', 1, 150000)
+    expect(cfgAnexo3.aliquotaEfetivaPct).toBe(6.0)
+    expect(cfgAnexo3.fracaoIcmsPct).toBe(33.5) // ISS municipal
+    expect(cfgAnexo3.fracaoCbsPct).toBeCloseTo(15.43, 2) // PIS (2,78%) + COFINS (12,82%) - IBS (0,17%)
+    expect(cfgAnexo3.fracaoIbsPct).toBe(0.17)
+    expect(cfgAnexo3.fracaoIrpjCsllCppPct).toBe(50.9)
+    expect(cfgAnexo3.statusLegal).toBe('PENDENTE_CONFIRMACAO')
+
+    // DAS devido e decomposição para serviços de R$ 42.400,00
+    const perfil3: PerfilSN = {
+      origem: 'tabela',
+      modo: 'anexo',
+      anexo: cfgAnexo3.anexo,
+      faixa: cfgAnexo3.faixa,
+      exercicio: 2027,
+      rbt12: 150000,
+      efetivaPct: cfgAnexo3.aliquotaEfetivaPct,
+      icmsFracPct: cfgAnexo3.fracaoIcmsPct,
+      cbsFracPct: cfgAnexo3.fracaoCbsPct,
+      ibsFracPct: cfgAnexo3.fracaoIbsPct,
+      irpjCsllCppFracPct: cfgAnexo3.fracaoIrpjCsllCppPct,
+      baseDoDas: 'bruta',
+      icmsNotaPct: 0,
+      cbsNotaPct: 0,
+      ibsNotaPct: 0,
+    }
+    const r3 = calcularSessaoSN(itemCanônico, perfil3)
+    // DAS devido total: 42.400 × 6,00% = 2.544,00
+    expect(r3.dasEfetivo).toBe(2544.0)
+    expect(r3.das4Blocos.consistente).toBe(true)
+  })
+
+  it('10. Expansão Completa — Anexo V (Serviços Intelectuais / Fator R < 28%)', () => {
+    // Anexo V 1ª faixa: nominal 15,50%, parcela deduzir 0
+    // Partilha: ISS 14,00%, CBS 16,98%, IBS 0,17%, Federais 68,85% (IRPJ 25 + CSLL 15 + CPP 28.85)
+    const cfgAnexo5 = getTabelaOficialConfig(2027, 'anexo5', 1, 150000)
+    expect(cfgAnexo5.aliquotaEfetivaPct).toBe(15.5)
+    expect(cfgAnexo5.fracaoIcmsPct).toBe(14.0) // ISS
+    expect(cfgAnexo5.fracaoCbsPct).toBeCloseTo(16.98, 2) // PIS (3,05%) + COFINS (14,10%) - IBS (0,17%)
+    expect(cfgAnexo5.fracaoIbsPct).toBe(0.17)
+    expect(cfgAnexo5.fracaoIrpjCsllCppPct).toBe(68.85)
+    expect(cfgAnexo5.statusLegal).toBe('PENDENTE_CONFIRMACAO')
+
+    const perfil5: PerfilSN = {
+      origem: 'tabela',
+      modo: 'anexo',
+      anexo: cfgAnexo5.anexo,
+      faixa: cfgAnexo5.faixa,
+      exercicio: 2027,
+      rbt12: 150000,
+      efetivaPct: cfgAnexo5.aliquotaEfetivaPct,
+      icmsFracPct: cfgAnexo5.fracaoIcmsPct,
+      cbsFracPct: cfgAnexo5.fracaoCbsPct,
+      ibsFracPct: cfgAnexo5.fracaoIbsPct,
+      irpjCsllCppFracPct: cfgAnexo5.fracaoIrpjCsllCppPct,
+      baseDoDas: 'bruta',
+      icmsNotaPct: 0,
+      cbsNotaPct: 0,
+      ibsNotaPct: 0,
+    }
+    const r5 = calcularSessaoSN(itemCanônico, perfil5)
+    // DAS devido total: 42.400 × 15,50% = 6.572,00
+    expect(r5.dasEfetivo).toBe(6572.0)
+    expect(r5.das4Blocos.consistente).toBe(true)
+  })
+
+  it('11. Transição 2029–2032 e Tratamento Honesto do Anexo II (Indústria / IPI)', () => {
+    // Anexo II (Indústria): 1ª faixa nominal 4,50%, IPI 7,50%, ICMS 32,00%
+    const cfgAnexo2 = getTabelaOficialConfig(2027, 'anexo2', 1, 150000)
+    expect(cfgAnexo2.fracaoIpiPct).toBe(7.5)
+    expect(cfgAnexo2.fracaoIcmsPct).toBe(32.0)
+    expect(cfgAnexo2.statusLegal).toBe('PENDENTE_CONFIRMACAO')
+    expect(cfgAnexo2.notaFonte).toContain('PENDENTE_CONFIRMACAO')
+
+    // Exercício 2029 (Anexo I, 1ª faixa): ICMS tem redução de 10% (recolhe 90% = 30,60%) e IBS absorve 10% do ICMS + 0,17% = 3,57%
+    const cfg2029 = getTabelaOficialConfig(2029, 'anexo1', 1)
+    expect(cfg2029.fracaoIcmsPct).toBeCloseTo(30.6, 2) // 34% × 90% = 30,60%
+    expect(cfg2029.fracaoIbsPct).toBeCloseTo(3.57, 2) // 0,17% + (34% × 10%) = 3,57%
+    expect(cfg2029.fracaoCbsPct).toBe(15.33)
+    expect(cfg2029.fracaoIrpjCsllCppPct).toBe(50.5)
+    expect(cfg2029.statusLegal).toBe('PENDENTE_CONFIRMACAO')
   })
 })
