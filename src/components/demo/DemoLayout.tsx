@@ -10,6 +10,7 @@ import { ItAssistantWidget } from '@/components/demo/ItAssistantWidget'
 
 export type TabKey =
   | 'home'
+  | 'simulador-opcao'
   | 'compras'
   | 'markup'
   | 'despesas-operacionais'
@@ -127,6 +128,11 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
 
   const tabs: { key: TabKey; label: string; path: string }[] = [
     { key: 'home', label: 'Início', path: '/demo' },
+    {
+      key: 'simulador-opcao',
+      label: 'Simulador de Opção (PGDAS × Regular)',
+      path: '/demo/simulador-opcao',
+    },
     { key: 'compras', label: 'Calculadora de Compras', path: '/demo/compras' },
     { key: 'markup', label: 'Calculadora Markup', path: '/demo/markup' },
     {
