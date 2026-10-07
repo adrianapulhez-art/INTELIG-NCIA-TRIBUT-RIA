@@ -148,9 +148,9 @@ export interface CellConfigArt {
 }
 export const PERFIL_SN_PADRAO = {
   anexo: 'Anexo I (comércio)',
-  faixa: '1ª faixa (RBT12 até R$ 120.000,00)',
+  faixa: '1ª faixa (RBT12 até R$ 180.000,00)',
   efetivaPct: 4.0,
-  icmsFracPct: 32.5,
+  icmsFracPct: 34.0,
 }
 
 export const CONFIG_PADRAO_ART12: CellConfigArt = {
