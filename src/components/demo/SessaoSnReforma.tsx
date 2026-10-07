@@ -869,13 +869,6 @@ export function SessaoSnSection({
             </Button>
           </div>
 
-          {/* PAINEL DE TESES EM ABERTO — RES. CGSN 190/2026 (Fase 2) */}
-          <PainelTesesSn
-            resultado={itemAtivo ? itemAtivo.puro.r : resultados[0].puro.r}
-            baseAtual={baseDoDas}
-            onAlternarBase={setBaseDoDas}
-          />
-
           {/* 3 — Camada 1: resumo por item (ABC, nunca média) COM os dois fornecedores */}
           <div className="rounded-xl border border-orange-500/45 bg-orange-500/[0.06] p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
@@ -1189,6 +1182,13 @@ export function SessaoSnSection({
               </div>
             </div>
           )}
+
+          {/* PAINEL DE TESES EM ABERTO — RES. CGSN 190/2026 (Fase 2) */}
+          <PainelTesesSn
+            resultado={itemAtivo ? itemAtivo.puro.r : resultados[0].puro.r}
+            baseAtual={baseDoDas}
+            onAlternarBase={setBaseDoDas}
+          />
 
           {/* 5 — Card do Estoque Reajustado (consome parcela creditável) */}
           <CardEstoqueReajustado
