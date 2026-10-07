@@ -256,7 +256,7 @@ export function SessaoSnSection({
   const [repasse, setRepasse] = useState<RepasseMode>('integral')
   const [repassePct, setRepassePct] = useState(50)
   const [idxItem, setIdxItem] = useState(0)
-  const [detalheAberto, setDetalheAberto] = useState(false)
+  const [detalheAberto, setDetalheAberto] = useState(true)
   const [comparadorAberto, setComparadorAberto] = useState(false)
   const [manualAberto, setManualAberto] = useState(false)
 
@@ -958,7 +958,7 @@ export function SessaoSnSection({
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5 items-stretch">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 items-stretch">
                 {/* CARD 1º-A — BASELINE PLENO */}
                 <CardMemoriaCanonical
                   titulo={`CARD 1º-A — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 · COMPRA DE FORNECEDOR PLENO (baseline de referência) · ${itemAtivo.item.name || 'item'}`}

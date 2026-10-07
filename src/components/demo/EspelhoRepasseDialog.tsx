@@ -321,7 +321,7 @@ export function EspelhoRepasseDialog({
           </div>
         ) : (
           /* CAMADA 1 — grid dos 16 cards principais do cenário, com unitários POR ITEM */
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {celulas.map((linha) =>
               linha.cells.map(({ fornecedor, fi }) => {
                 const cfgComb = {
