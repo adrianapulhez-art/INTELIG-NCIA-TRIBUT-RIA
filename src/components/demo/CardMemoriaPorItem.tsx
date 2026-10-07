@@ -146,7 +146,7 @@ export function CardMemoriaPorItem({
               )}
             </div>
           </div>
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {/* 1º — Custo de aquisição para o ADQUIRENTE (comprador) — HOJE */}
             <div className="rounded-xl border border-sky-500/45 bg-sky-500/[0.05] p-3 space-y-1.5">
               <div className="space-y-0.5">
