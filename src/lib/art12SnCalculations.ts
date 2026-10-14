@@ -1216,26 +1216,35 @@ export function calcularSessaoSN(
   const custoUnitarioLiquido6 = custoLiquido6 / qtd
   const custoUnitarioLiquido = roundHalfUp(custoUnitarioLiquido6, 2)
 
-  // 5. Baseline 2026 do fornecedor SN: crédito só de ICMS pela fração
-  // (art. 23 redação original; CBS/IBS inexistem no SN em 2026 conforme LC 214 art. 348 III "c")
-  // Fração do ICMS: 34% × 4% = 1,36% sobre a nota bruta (42.400 × 1,36% = 576,64)
+  // 5. Baseline 2026 do fornecedor SN conforme o adquirente:
+  // - Adquirente Simples Nacional Puro: ZERO crédito (art. 13, §1º, LC 123/2006 — dedução na apuração do DAS,
+  //   não crédito na aquisição; PIS/COFINS = 0,00 por ser isento da não cumulatividade; compras líquidas = nota cheia).
+  // - Adquirente Lucro Presumido: crédito só de ICMS pela fração (34% × 4% = 1,36% sobre a nota bruta; 42.400 × 1,36% = 576,64).
+  // - Adquirente Lucro Real: ICMS pela fração (576,64) + PIS/COFINS (ADI SRF 15/2007 + SC COSIT 297/2019) sobre a base sem ICMS = 4.445,30 total.
   const icmsBaselinePct = origem === 'nota' ? icmsPct : (efetivaPct * icmsFracPct) / 100
-  const icmsCredito2026_6 = (receitaBruta6 * icmsBaselinePct) / 100
+  const icmsCreditoCalculado6 = (receitaBruta6 * icmsBaselinePct) / 100
+
+  // Se o adquirente for Simples Nacional Puro ('simples'), crédito de ICMS é 0,00
+  const icmsCredito2026_6 = adquirente === 'simples' ? 0 : icmsCreditoCalculado6
   const icmsCredito2026 = roundHalfUp(icmsCredito2026_6, 2)
   const icmsCreditoHojeSN6 = icmsCredito2026_6
   const icmsCreditoHojeSN = icmsCredito2026
 
   // Adquirente Lucro Real em 2026: ADI SRF 15/2007 + SC COSIT 297/2019
   // Alíquotas plenas 1,65% e 7,60% sobre a base sem o ICMS destacado na nota (Lei 14.592/2023)
-  const pisCofinsBaseHoje6 = receitaBruta6 - icmsCredito2026_6
+  const pisCofinsBaseHoje6 = adquirente === 'real' ? receitaBruta6 - icmsCreditoCalculado6 : 0
   const pisCofinsBaseHoje = roundHalfUp(pisCofinsBaseHoje6, 2)
-  const creditoPisHoje6 = (pisCofinsBaseHoje6 * 1.65) / 100
-  const creditoCofinsHoje6 = (pisCofinsBaseHoje6 * 7.6) / 100
+  const creditoPisHoje6 = adquirente === 'real' ? (pisCofinsBaseHoje6 * 1.65) / 100 : 0
+  const creditoCofinsHoje6 = adquirente === 'real' ? (pisCofinsBaseHoje6 * 7.6) / 100 : 0
   const creditoPisCofinsHoje6 = creditoPisHoje6 + creditoCofinsHoje6
   const creditoPisCofinsHoje = roundHalfUp(creditoPisCofinsHoje6, 2)
 
   const creditoHojeSN6 =
-    adquirente === 'real' ? icmsCredito2026_6 + creditoPisCofinsHoje6 : icmsCredito2026_6
+    adquirente === 'simples'
+      ? 0
+      : adquirente === 'real'
+        ? icmsCredito2026_6 + creditoPisCofinsHoje6
+        : icmsCredito2026_6
   const creditoHojeSN = roundHalfUp(creditoHojeSN6, 2)
 
   const custoHojeSN6 = receitaBruta6 - creditoHojeSN6

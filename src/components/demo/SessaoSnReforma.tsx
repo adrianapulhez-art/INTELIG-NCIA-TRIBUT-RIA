@@ -972,44 +972,82 @@ export function SessaoSnSection({
                   <CardMemoriaCanonical
                     titulo={`CARD 1º-B — HOJE (2026) COMPRANDO DE FORNECEDOR SN · ${itemAtivo.item.name || 'item'}`}
                     cor="sky"
-                    linhas={[
-                      {
-                        label: '(+) Valor da operação — nota congelada (sem destaque)',
-                        formula: `${itemAtivo.item.quantity} un. × R$ ${fmtSN(itemAtivo.item.merchandiseValue / Math.max(1, itemAtivo.item.quantity), 2)} — da Calculadora de Compras`,
-                        value: itemAtivo.puro.r.receitaBruta,
-                        value6: itemAtivo.puro.r.receitaBruta6,
-                      },
-                      {
-                        label: `(−) Crédito de ICMS do adquirente (2026) [Fração ${fmtSN(itemAtivo.puro.r.icmsPct, 2)}%]`,
-                        formula: `${fmtSN(itemAtivo.puro.r.icmsPct, 2)}% × ${fmtSN(itemAtivo.puro.r.receitaBruta)} = ${fmtSN(itemAtivo.puro.r.icmsCreditoHojeSN6, 6)}`,
-                        value: -itemAtivo.puro.r.icmsCreditoHojeSN,
-                        value6: -itemAtivo.puro.r.icmsCreditoHojeSN6,
-                        destaque: true,
-                      },
-                      ...(adquirente === 'real' && itemAtivo.puro.r.creditoPisCofinsHoje > 0
+                    linhas={
+                      adquirente === 'simples'
                         ? [
                             {
-                              label: '(−) Crédito PIS/COFINS LR (2026) — base sem ICMS',
-                              formula: `9,25% × ${fmtSN(itemAtivo.puro.r.pisCofinsBaseHoje)} = ${fmtSN(itemAtivo.puro.r.creditoPisCofinsHoje6, 6)}`,
-                              value: -itemAtivo.puro.r.creditoPisCofinsHoje,
-                              value6: -itemAtivo.puro.r.creditoPisCofinsHoje6,
+                              label: '(+) Valor da operação — nota cheia (mercadorias + frete)',
+                              formula: `${fmtSN(itemAtivo.item.merchandiseValue)} + ${fmtSN(itemAtivo.item.freightValue)} = ${fmtSN(itemAtivo.puro.r.receitaBruta)} (${itemAtivo.item.quantity} un.)`,
+                              value: itemAtivo.puro.r.receitaBruta,
+                              value6: itemAtivo.puro.r.receitaBruta6,
+                            },
+                            {
+                              label: '(−) Crédito ICMS (art. 13, §1º, LC 123/2006)',
+                              formula:
+                                '0,00 (dedução na apuração do DAS, não crédito na aquisição; sem destaque na nota)',
+                              value: 0,
+                              value6: 0,
+                            },
+                            {
+                              label: '(−) Crédito PIS/COFINS (SN isento da não cumulatividade)',
+                              formula:
+                                '0,00 (adquirente optante pelo Simples Nacional é isento do regime não cumulativo)',
+                              value: 0,
+                              value6: 0,
+                            },
+                            {
+                              label: '(=) Compras líquidas (custo de aquisição = NOTA CHEIA)',
+                              formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} − 0,00 = ${fmtSN(itemAtivo.puro.r.custoHojeSN6, 6)}`,
+                              value: itemAtivo.puro.r.custoHojeSN,
+                              value6: itemAtivo.puro.r.custoHojeSN6,
+                            },
+                            {
+                              label: '(÷) Custo unitário HOJE-SN',
+                              formula: `${fmtSN(itemAtivo.puro.r.custoHojeSN)} ÷ ${itemAtivo.item.quantity} un. = ${fmtSN(itemAtivo.puro.r.custoUnitarioHojeSN)}`,
+                              value: itemAtivo.puro.r.custoUnitarioHojeSN,
+                              value6: itemAtivo.puro.r.custoUnitarioHojeSN6,
+                              destaque: true,
                             },
                           ]
-                        : []),
-                      {
-                        label: '(=) Custo líquido da aquisição em 2026',
-                        formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} − ${fmtSN(itemAtivo.puro.r.creditoHojeSN)} = ${fmtSN(itemAtivo.puro.r.custoHojeSN6, 6)}`,
-                        value: itemAtivo.puro.r.custoHojeSN,
-                        value6: itemAtivo.puro.r.custoHojeSN6,
-                      },
-                      {
-                        label: '(÷) CUSTO UNITÁRIO — HOJE-SN',
-                        formula: `${fmtSN(itemAtivo.puro.r.custoHojeSN6, 6)} ÷ ${itemAtivo.item.quantity} un. = ${fmt6(itemAtivo.puro.r.custoUnitarioHojeSN6)}`,
-                        value: itemAtivo.puro.r.custoUnitarioHojeSN,
-                        value6: itemAtivo.puro.r.custoUnitarioHojeSN6,
-                        destaque: true,
-                      },
-                    ]}
+                        : [
+                            {
+                              label: '(+) Valor da operação — nota congelada (sem destaque)',
+                              formula: `${itemAtivo.item.quantity} un. × R$ ${fmtSN(itemAtivo.item.merchandiseValue / Math.max(1, itemAtivo.item.quantity), 2)} — da Calculadora de Compras`,
+                              value: itemAtivo.puro.r.receitaBruta,
+                              value6: itemAtivo.puro.r.receitaBruta6,
+                            },
+                            {
+                              label: `(−) Crédito de ICMS do adquirente (2026) [Fração ${fmtSN(itemAtivo.puro.r.icmsPct, 2)}%]`,
+                              formula: `${fmtSN(itemAtivo.puro.r.icmsPct, 2)}% × ${fmtSN(itemAtivo.puro.r.receitaBruta)} = ${fmtSN(itemAtivo.puro.r.icmsCreditoHojeSN6, 6)}`,
+                              value: -itemAtivo.puro.r.icmsCreditoHojeSN,
+                              value6: -itemAtivo.puro.r.icmsCreditoHojeSN6,
+                              destaque: true,
+                            },
+                            ...(adquirente === 'real' && itemAtivo.puro.r.creditoPisCofinsHoje > 0
+                              ? [
+                                  {
+                                    label: '(−) Crédito PIS/COFINS LR (2026) — base sem ICMS',
+                                    formula: `9,25% × ${fmtSN(itemAtivo.puro.r.pisCofinsBaseHoje)} = ${fmtSN(itemAtivo.puro.r.creditoPisCofinsHoje6, 6)}`,
+                                    value: -itemAtivo.puro.r.creditoPisCofinsHoje,
+                                    value6: -itemAtivo.puro.r.creditoPisCofinsHoje6,
+                                  },
+                                ]
+                              : []),
+                            {
+                              label: '(=) Custo líquido da aquisição em 2026',
+                              formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} − ${fmtSN(itemAtivo.puro.r.creditoHojeSN)} = ${fmtSN(itemAtivo.puro.r.custoHojeSN6, 6)}`,
+                              value: itemAtivo.puro.r.custoHojeSN,
+                              value6: itemAtivo.puro.r.custoHojeSN6,
+                            },
+                            {
+                              label: '(÷) CUSTO UNITÁRIO — HOJE-SN',
+                              formula: `${fmtSN(itemAtivo.puro.r.custoHojeSN6, 6)} ÷ ${itemAtivo.item.quantity} un. = ${fmt6(itemAtivo.puro.r.custoUnitarioHojeSN6)}`,
+                              value: itemAtivo.puro.r.custoUnitarioHojeSN,
+                              value6: itemAtivo.puro.r.custoUnitarioHojeSN6,
+                              destaque: true,
+                            },
+                          ]
+                    }
                   />
                 )}
 

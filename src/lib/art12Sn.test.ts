@@ -228,6 +228,41 @@ describe('Sessão SN na Reforma — Blindagem do Caso Canônico Corrigido (Padr�
     expect(creditoEfetivoArt23('simples', r)).toBe(0)
   })
 
+  it('5-B. Adquirente Simples Nacional Puro no Card 1º-B (HOJE 2026 comprando de fornecedor SN)', () => {
+    const rSN = calcularSessaoSN(itemCanônico, PERFIL_SN_NOTA_PADRAO, 'simples')
+
+    // Mercadorias 42.000,00 + Frete 400,00 = Valor da nota 42.400,00
+    expect(rSN.receitaBruta).toBe(42400)
+    expect(rSN.receitaBruta6).toBe(42400)
+
+    // Adquirente SN Puro não tem direito a crédito:
+    // (1) ICMS = 0,00 (art. 13, §1º, LC 123/2006)
+    // (2) PIS/COFINS = 0,00 (SN isento da não cumulatividade)
+    expect(rSN.icmsCreditoHojeSN).toBe(0)
+    expect(rSN.icmsCreditoHojeSN6).toBe(0)
+    expect(rSN.creditoPisCofinsHoje).toBe(0)
+    expect(rSN.creditoPisCofinsHoje6).toBe(0)
+    expect(rSN.creditoHojeSN).toBe(0)
+    expect(rSN.creditoHojeSN6).toBe(0)
+
+    // Compras líquidas = NOTA CHEIA = 42.400,00
+    expect(rSN.custoHojeSN).toBe(42400)
+    expect(rSN.custoHojeSN6).toBe(42400)
+
+    // Custo unitário HOJE: 42.400 ÷ 30 = 1.413,333333... → 1.413,33
+    expect(rSN.custoUnitarioHojeSN).toBe(1413.33)
+    expect(rSN.custoUnitarioHojeSN6).toBeCloseTo(1413.333333, 5)
+
+    // Custo 2027 = 1.413,33 também (SN puro continua sem crédito em 2027) → Δ = 0,00%
+    const credito2027 = creditoEfetivoArt23('simples', rSN)
+    expect(credito2027).toBe(0)
+    const custoLiquido2027 = rSN.receitaBruta - credito2027
+    const custoUnitario2027 = roundHalfUp(custoLiquido2027 / 30, 2)
+    expect(custoUnitario2027).toBe(1413.33)
+    const deltaPct = ((custoUnitario2027 - rSN.custoUnitarioHojeSN) / rSN.custoUnitarioHojeSN) * 100
+    expect(roundHalfUp(deltaPct, 2)).toBe(0.0)
+  })
+
   it('6. Adquirente Lucro Real em 2026 (ADI SRF 15/2007 + SC COSIT 297/2019)', () => {
     const rLR = calcularSessaoSN(itemCanônico, PERFIL_SN_NOTA_PADRAO, 'real')
 
