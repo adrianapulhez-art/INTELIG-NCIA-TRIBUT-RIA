@@ -981,9 +981,9 @@ export function SessaoSnSection({
                       },
                       {
                         label: `(−) Crédito de ICMS do adquirente (2026) [Fração ${fmtSN(itemAtivo.puro.r.icmsPct, 2)}%]`,
-                        formula: `${fmtSN(itemAtivo.puro.r.icmsPct, 2)}% × ${fmtSN(itemAtivo.puro.r.receitaBruta)} = ${fmtSN(itemAtivo.puro.r.creditoHojeSN6, 6)}`,
-                        value: -itemAtivo.puro.r.creditoHojeSN,
-                        value6: -itemAtivo.puro.r.creditoHojeSN6,
+                        formula: `${fmtSN(itemAtivo.puro.r.icmsPct, 2)}% × ${fmtSN(itemAtivo.puro.r.receitaBruta)} = ${fmtSN(itemAtivo.puro.r.icmsCreditoHojeSN6, 6)}`,
+                        value: -itemAtivo.puro.r.icmsCreditoHojeSN,
+                        value6: -itemAtivo.puro.r.icmsCreditoHojeSN6,
                         destaque: true,
                       },
                       ...(adquirente === 'real' && itemAtivo.puro.r.creditoPisCofinsHoje > 0

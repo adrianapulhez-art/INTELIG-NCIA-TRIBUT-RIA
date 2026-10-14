@@ -42,6 +42,7 @@ import {
   creditoEfetivoArt23,
   getTabelaOficialConfig,
   PERFIL_SN_NOTA_PADRAO,
+  roundHalfUp,
   TABELA_OFICIAL_SN,
   type PerfilSN,
 } from './art12SnCalculations'
@@ -238,9 +239,41 @@ describe('Sessão SN na Reforma — Blindagem do Caso Canônico Corrigido (Padr�
     expect(rLR.creditoPisCofinsHoje6).toBeCloseTo(3868.6608, 6)
     expect(rLR.creditoPisCofinsHoje).toBe(3868.66)
 
+    // ICMS 2026 isolado (1,36% da nota) = 576,64 (nunca 4.445,30 na linha do ICMS)
+    expect(rLR.icmsCreditoHojeSN).toBe(576.64)
+    expect(rLR.icmsCreditoHojeSN6).toBeCloseTo(576.64, 2)
+    expect(rLR.icmsCreditoHojeSN).not.toBe(4445.3)
+
     // Total créditos LR 2026 = 576,64 + 3.868,66 = 4.445,30
     expect(rLR.creditoHojeSN).toBe(4445.3)
     // Custo líquido LR 2026 = 42.400 − 4.445,30 = 37.954,70 → unitário 1.265,16
+    expect(rLR.custoHojeSN).toBe(37954.7)
+    expect(rLR.custoUnitarioHojeSN).toBe(1265.16)
+  })
+
+  it('6-B. Blindagem Card 1º-B: ICMS 1,36% isolado = 576,64 tanto no LP quanto no LR', () => {
+    const rLP = calcularSessaoSN(itemCanônico, PERFIL_SN_NOTA_PADRAO, 'presumido')
+    const rLR = calcularSessaoSN(itemCanônico, PERFIL_SN_NOTA_PADRAO, 'real')
+
+    // No Lucro Presumido: crédito hoje = 576,64; icmsCreditoHojeSN = 576,64
+    expect(rLP.icmsCreditoHojeSN).toBe(576.64)
+    expect(rLP.creditoHojeSN).toBe(576.64)
+    expect(rLP.custoHojeSN).toBe(41823.36)
+    expect(rLP.custoUnitarioHojeSN).toBe(1394.11)
+
+    // No Lucro Real: icmsCreditoHojeSN deve ser EXATAMENTE 576,64 isolado (NÃO 4.445,30)
+    expect(rLR.icmsCreditoHojeSN).toBe(576.64)
+    expect(rLR.icmsCreditoHojeSN6).toBe(576.64)
+    expect(rLR.icmsCreditoHojeSN).not.toBe(rLR.creditoHojeSN)
+
+    // PIS/COFINS LR permanece 3.868,66
+    expect(rLR.creditoPisCofinsHoje).toBe(3868.66)
+
+    // Total acumulado de créditos no LR permanece 4.445,30 (576,64 + 3.868,66)
+    expect(rLR.creditoHojeSN).toBe(4445.3)
+    expect(roundHalfUp(rLR.icmsCreditoHojeSN + rLR.creditoPisCofinsHoje, 2)).toBe(4445.3)
+
+    // Custos permanecem os de ouro intocados
     expect(rLR.custoHojeSN).toBe(37954.7)
     expect(rLR.custoUnitarioHojeSN).toBe(1265.16)
   })

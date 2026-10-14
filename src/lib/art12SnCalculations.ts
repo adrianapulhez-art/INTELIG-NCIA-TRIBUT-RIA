@@ -1057,6 +1057,8 @@ export interface ResultadoSessaoSN {
   custoUnitarioLiquido6: number
 
   /** Baseline 2026 do fornecedor SN: crédito só de ICMS pela fração (34% × 4% = 1,36%) */
+  icmsCreditoHojeSN: number
+  icmsCreditoHojeSN6: number
   creditoHojeSN: number
   creditoHojeSN6: number
   custoHojeSN: number
@@ -1220,6 +1222,8 @@ export function calcularSessaoSN(
   const icmsBaselinePct = origem === 'nota' ? icmsPct : (efetivaPct * icmsFracPct) / 100
   const icmsCredito2026_6 = (receitaBruta6 * icmsBaselinePct) / 100
   const icmsCredito2026 = roundHalfUp(icmsCredito2026_6, 2)
+  const icmsCreditoHojeSN6 = icmsCredito2026_6
+  const icmsCreditoHojeSN = icmsCredito2026
 
   // Adquirente Lucro Real em 2026: ADI SRF 15/2007 + SC COSIT 297/2019
   // Alíquotas plenas 1,65% e 7,60% sobre a base sem o ICMS destacado na nota (Lei 14.592/2023)
@@ -1509,6 +1513,8 @@ export function calcularSessaoSN(
     custoLiquido6,
     custoUnitarioLiquido,
     custoUnitarioLiquido6,
+    icmsCreditoHojeSN,
+    icmsCreditoHojeSN6,
     creditoHojeSN,
     creditoHojeSN6,
     custoHojeSN,
