@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import {
   ANEXOS_BASE_LC123,
   calcularSessaoSN,
+  calcularQuatroCelulasComparacao,
   creditoEfetivoArt23,
   fmtSN,
   fmt6,
@@ -25,6 +26,7 @@ import {
   type OrigemPercentual,
   type BaseDoDas,
   type PerfilSN,
+  type ResultadoCelulaFornecedorPlenoXAdquirenteSn,
 } from '@/lib/art12SnCalculations'
 import {
   computeCellArt12Item,
@@ -411,6 +413,16 @@ export function SessaoSnSection({
   const ativo = itemAtivo ? (fornecedorSN === 'puro' ? itemAtivo.puro : itemAtivo.hibrido) : null
   const exibidos = resultados.slice(0, 3)
   const restantes = resultados.length - exibidos.length
+
+  // 4 NOVAS CÉLULAS DE COMPARAÇÃO: Fornecedor LP/LR × Adquirente SN Puro/Híbrido
+  const quatroCelulas = useMemo(() => {
+    return calcularQuatroCelulasComparacao(itemAtivo?.item)
+  }, [itemAtivo?.item])
+
+  const [celulaAtivaId, setCelulaAtivaId] = useState<string>('lp_x_sn')
+  const celulaAtiva = useMemo(() => {
+    return quatroCelulas.find((c) => c.id === celulaAtivaId) || quatroCelulas[0]
+  }, [quatroCelulas, celulaAtivaId])
 
   const semOrigem = itens.length === 0
 
@@ -1220,6 +1232,251 @@ export function SessaoSnSection({
               </div>
             </div>
           )}
+
+          {/* ============================================================================ */}
+          {/* 4 NOVAS CÉLULAS DE COMPARAÇÃO: FORNECEDOR LP/LR × ADQUIRENTE SN PURO/HÍBRIDO  */}
+          {/* Regras de ouro chanceladas pela Adri: memória em 3 cards abertos por célula  */}
+          {/* ============================================================================ */}
+          <div
+            id="quatro-celulas-sn"
+            className="rounded-xl border border-sky-500/50 bg-sky-950/20 p-3 sm:p-4 space-y-3"
+          >
+            {/* Cabeçalho da subseção */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sky-500/30 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-sky-500/20 text-[10px] font-mono font-bold text-sky-300 border border-sky-400/40">
+                  4
+                </span>
+                <div>
+                  <span className="text-xs font-mono font-black uppercase tracking-wider text-sky-300 block">
+                    4 Novas Células de Comparação — Fornecedores LP/LR × Adquirentes SN / SN Híbrido
+                  </span>
+                  <span className="text-[9px] font-mono text-slate-400">
+                    Cadeia Canônica: HOJE (2026) Nota R$ 42.400,00 · 2027 Nota R$ 44.488,27
+                    (Formação pelo Fornecedor com CBS + IBS + ICMS por dentro)
+                  </span>
+                </div>
+              </div>
+              <TrilhaChancelaBadge
+                label="OURO CHANCELADO ADRI"
+                descricao="SN Puro = nota cheia; SN Híbrido = credita só CBS/IBS (sem ICMS 18% e sem PIS/COFINS)"
+                compact
+              />
+            </div>
+
+            {/* TABELA COMPARATIVA LADO A LADO DAS 4 CÉLULAS */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-mono font-bold uppercase text-slate-300 block">
+                Tabela Comparativa Lado a Lado (HOJE × 2027 × Δ)
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                {quatroCelulas.map((cel) => {
+                  const isSel = cel.id === celulaAtiva.id
+                  const isPos = cel.deltaPct > 0
+                  const isNeg = cel.deltaPct < 0
+                  return (
+                    <button
+                      key={cel.id}
+                      type="button"
+                      onClick={() => setCelulaAtivaId(cel.id)}
+                      className={`rounded-xl border p-3 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                        isSel
+                          ? 'border-sky-400 bg-sky-500/15 shadow-md shadow-sky-500/10 ring-1 ring-sky-400/60'
+                          : 'border-slate-800 bg-slate-950/60 hover:bg-slate-900/80 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <div>
+                          <span className="text-[11px] font-mono font-black uppercase text-sky-200 block">
+                            {cel.rotuloConfronto}
+                          </span>
+                          <span className="text-[9px] font-mono text-slate-400 block">
+                            Fornec. {cel.fornecedorSigla} × Adquir. {cel.adquirenteSigla}
+                          </span>
+                        </div>
+                        <span
+                          className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                            cel.adquirenteSigla === 'SN'
+                              ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                              : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                          }`}
+                        >
+                          {cel.adquirenteSigla === 'SN' ? 'Sem Crédito' : 'CBS + IBS'}
+                        </span>
+                      </div>
+
+                      <div className="my-2 py-2 border-y border-slate-800/80 space-y-1 font-mono text-[10px]">
+                        <div className="flex justify-between items-center text-slate-400">
+                          <span>HOJE (2026):</span>
+                          <span className="font-bold text-slate-200">
+                            {formatBRL(cel.hoje.custoUnitario)}/un
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-slate-400">
+                          <span>2027:</span>
+                          <span className="font-bold text-sky-300">
+                            {formatBRL(cel.exercicio2027.custoUnitario)}/un
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center pt-0.5 border-t border-slate-800/50">
+                          <span className="text-[9px] text-slate-400">Variação (Δ):</span>
+                          <span
+                            className={`font-black ${
+                              isPos
+                                ? 'text-rose-300'
+                                : isNeg
+                                  ? 'text-emerald-300'
+                                  : 'text-slate-300'
+                            }`}
+                          >
+                            {isPos ? '+' : ''}
+                            {formatNumberBR(cel.deltaPct, 2)}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[8px] font-mono text-slate-400">
+                        <span>Nota: {formatBRL(cel.exercicio2027.notaCheia)}</span>
+                        <span className="text-sky-300 font-bold">
+                          {isSel ? '● Visualizando' : 'Clique p/ abrir'}
+                        </span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* CARDS ABERTOS DE MEMÓRIA DA CÉLULA ATIVA (CARD 01, CARD 02, CARD 03) */}
+            <div className="space-y-2 pt-1">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[11px] font-mono font-bold uppercase text-sky-200">
+                  Memória de Cálculo Aberta (3 Cards) — {celulaAtiva.rotuloConfronto} (
+                  {celulaAtiva.adquirenteRotulo} comprando de {celulaAtiva.fornecedorRotulo})
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">
+                  30 unidades · Mercadorias R$ 42.000,00 + Frete R$ 400,00
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 items-stretch">
+                {/* CARD 01 */}
+                <CardMemoriaCanonical
+                  titulo={`${celulaAtiva.card01.numero} — ${celulaAtiva.card01.titulo}`}
+                  cor={celulaAtiva.card01.cor}
+                  badgeExtra={
+                    <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                      HOJE 2026
+                    </span>
+                  }
+                  linhas={celulaAtiva.card01.linhas.map((l) => ({
+                    label: `${l.sinal} ${l.label}`,
+                    formula: l.fundamento ? `${l.formula} [${l.fundamento}]` : l.formula,
+                    value: l.valor,
+                    destaque: l.destaque,
+                  }))}
+                />
+
+                {/* CARD 02 */}
+                <CardMemoriaCanonical
+                  titulo={`${celulaAtiva.card02.numero} — ${celulaAtiva.card02.titulo}`}
+                  cor={celulaAtiva.card02.cor}
+                  badgeExtra={
+                    <span className="text-[9px] font-mono font-bold text-violet-300 bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/30">
+                      FORNECEDOR 2027
+                    </span>
+                  }
+                  linhas={celulaAtiva.card02.linhas.map((l) => ({
+                    label: `${l.sinal} ${l.label}`,
+                    formula: l.fundamento ? `${l.formula} [${l.fundamento}]` : l.formula,
+                    value: l.valor,
+                    destaque: l.destaque,
+                  }))}
+                />
+
+                {/* CARD 03 */}
+                <CardMemoriaCanonical
+                  titulo={`${celulaAtiva.card03.numero} — ${celulaAtiva.card03.titulo}`}
+                  cor={celulaAtiva.card03.cor}
+                  badgeExtra={
+                    <span
+                      className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                        celulaAtiva.deltaPct > 0
+                          ? 'text-rose-300 bg-rose-500/10 border-rose-500/30'
+                          : 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30'
+                      }`}
+                    >
+                      {celulaAtiva.deltaPct > 0 ? '+' : ''}
+                      {formatNumberBR(celulaAtiva.deltaPct, 2)}%
+                    </span>
+                  }
+                  linhas={celulaAtiva.card03.linhas.map((l) => ({
+                    label: `${l.sinal} ${l.label}`,
+                    formula: l.fundamento ? `${l.formula} [${l.fundamento}]` : l.formula,
+                    value: l.valor,
+                    destaque: l.destaque,
+                  }))}
+                />
+              </div>
+            </div>
+
+            {/* NOTA DIDÁTICA EXPLICANDO AS DUPLICIDADES POR CONSTRUÇÃO */}
+            <div className="rounded-xl border border-sky-500/30 bg-slate-950/70 p-3 space-y-1.5 font-mono text-[10px]">
+              <div className="flex items-center gap-1.5 text-sky-300 font-bold uppercase tracking-wider text-[11px]">
+                <ShieldCheck className="w-4 h-4 text-sky-400" />
+                <span>Nota Didática: Duplicidades por Construção e Assimetria de Regimes</span>
+              </div>
+              <p className="text-slate-300 leading-relaxed">
+                Por que os pares <strong className="text-white">LP × SN puro</strong> e{' '}
+                <strong className="text-white">LR × SN puro</strong> geram exatamente os mesmos
+                valores (<span className="text-emerald-300">R$ 1.413,33</span> em 2026 e{' '}
+                <span className="text-amber-300">R$ 1.482,94</span> em 2027, com{' '}
+                <span className="text-rose-300">+4,92%</span>), e o mesmo ocorre entre{' '}
+                <strong className="text-white">LP × SN híbrido</strong> e{' '}
+                <strong className="text-white">LR × SN híbrido</strong> (
+                <span className="text-emerald-300">R$ 1.413,33</span> em 2026 e{' '}
+                <span className="text-emerald-300">R$ 1.383,56</span> em 2027, com{' '}
+                <span className="text-emerald-300">−2,11%</span>)?
+              </p>
+              <ul className="list-disc pl-5 space-y-1 text-slate-400">
+                <li>
+                  <strong className="text-slate-200">
+                    Para o adquirente Simples Nacional Puro:
+                  </strong>{' '}
+                  o regime tributário do fornecedor (LP ou LR) é totalmente irrelevante para a
+                  apuração do custo. O adquirente puro ignora toda a nota para fins de crédito (art.
+                  13, §1º da LC 123/2006: não toma crédito de ICMS, é isento da não cumulatividade
+                  de PIS/COFINS e permanece pagando CBS/IBS unificados no DAS). O custo dele é
+                  exatamente a nota cheia do fornecedor (R$ 42.400,00 em 2026 e R$ 44.488,27 em
+                  2027).
+                </li>
+                <li>
+                  <strong className="text-slate-200">
+                    Para o adquirente Simples Nacional Híbrido:
+                  </strong>{' '}
+                  em 2027 fornecedores LP e LR destacam rigorosamente o mesmo montante na nota
+                  fiscal: CBS (R$ 2.947,91) e IBS (R$ 33,50), com PIS e COFINS já extintos. O
+                  híbrido faz opt-in da não cumulatividade plena{' '}
+                  <em className="text-slate-200">exclusivamente</em> para CBS e IBS (art. 41 da LC
+                  214/2025). Ele <em className="text-rose-300">nunca credita ICMS 18%</em> de
+                  fornecedor LP/LR (pois a nota não possui campo com fração do DAS — art. 23 da LC
+                  123/2006). Assim, o adquirente híbrido apropria exatamente R$ 2.981,41 de créditos
+                  tanto de LP quanto de LR, resultando em compras líquidas idênticas de R$ 41.506,86
+                  (R$ 1.383,56/un).
+                </li>
+                <li>
+                  <strong className="text-slate-200">
+                    A distinção LP × LR só existe para adquirentes plenos:
+                  </strong>{' '}
+                  a diferença entre comprar de fornecedor Lucro Presumido ou Lucro Real só impacta
+                  compradores do regime regular pleno (Lucro Real), via não cumulatividade própria
+                  de PIS/COFINS em 2026. A partir de 2027, com a extinção do PIS/COFINS e
+                  substituição integral por CBS/IBS na tese do Fisco, a nota formada por LP e LR
+                  coincide em R$ 44.488,27.
+                </li>
+              </ul>
+            </div>
+          </div>
 
           {/* PAINEL DE TESES EM ABERTO — RES. CGSN 190/2026 (Fase 2) */}
           <PainelTesesSn

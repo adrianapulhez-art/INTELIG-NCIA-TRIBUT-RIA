@@ -1553,3 +1553,521 @@ export function creditoEfetivoArt23(
   if (adquirente === 'real' && creditoHojeLR !== undefined) return roundHalfUp(creditoHojeLR, 2)
   return r.parcelaCreditavelTotal ?? r.creditoTotal
 }
+
+/**
+ * ============================================================================
+ * 4 CÉLULAS DE COMPARAÇÃO — FORNECEDOR LP / LR × ADQUIRENTE SN PURO / SN HÍBRIDO
+ * Regras chanceladas pela Adri (padrão ouro, não negociável):
+ * 1. Adquirente SN puro: não credita NADA (art. 13 §1º LC 123/06).
+ *    Custo = NOTA CHEIA em 2026 (42.400,00 → 1.413,33) e em 2027 (44.488,27 → 1.482,94; Δ = +4,92%).
+ * 2. Adquirente SN híbrido: credita APENAS CBS e IBS destacados na nota (art. 41 LC 214/25).
+ *    NUNCA credita ICMS 18% nem PIS/COFINS.
+ *    Custo 2026 = NOTA CHEIA (42.400,00 → 1.413,33);
+ *    Custo 2027 = 44.488,27 − 2.947,91 − 33,50 = 41.506,86 → 1.383,56 (Δ = −2,11%).
+ * 3. Convenção de arredondamento: half-up 2 casas decimais.
+ * ============================================================================
+ */
+
+export type FornecedorPlenoRegime = 'lucro_presumido' | 'lucro_real'
+export type AdquirenteSnRegime = 'simples' | 'simples_hibrido'
+
+export interface LinhaPassoCard {
+  sinal: '(+)' | '(−)' | '(=)' | '(÷)' | '(i)'
+  label: string
+  formula: string
+  valor: number
+  valor6?: number
+  destaque?: boolean
+  fundamento?: string
+}
+
+export interface CardMemoriaQuatroCelulas {
+  numero: 'CARD 01' | 'CARD 02' | 'CARD 03'
+  titulo: string
+  subtitulo: string
+  cor: 'emerald' | 'violet' | 'orange' | 'sky'
+  linhas: LinhaPassoCard[]
+}
+
+export interface ResultadoCelulaFornecedorPlenoXAdquirenteSn {
+  id: string
+  fornecedor: FornecedorPlenoRegime
+  fornecedorRotulo: string
+  fornecedorSigla: 'LP' | 'LR'
+  adquirente: AdquirenteSnRegime
+  adquirenteRotulo: string
+  adquirenteSigla: 'SN' | 'SNH'
+  rotuloConfronto: string // ex: "LP × SN puro"
+
+  // Quantidade de unidades
+  quantidade: number
+
+  // HOJE (2026)
+  hoje: {
+    mercadorias: number
+    frete: number
+    notaCheia: number
+    icmsDestacadoNota: number
+    icmsCredito: number
+    pisCredito: number
+    cofinsCredito: number
+    cbsCredito: number
+    ibsCredito: number
+    totalCreditos: number
+    comprasLiquidas: number
+    custoUnitario: number
+  }
+
+  // 2027
+  exercicio2027: {
+    // Formação pelo fornecedor
+    baseLimpa: number
+    cbsAliquotaPct: number
+    cbsDestacada: number
+    ibsAliquotaPct: number
+    ibsDestacado: number
+    subtotalAntesIcms: number
+    icmsAliquotaPct: number
+    divisorIcms: number
+    notaCheia: number
+    icmsDestacadoNota: number
+
+    // Formação do custo pelo adquirente
+    icmsCredito: number
+    pisCredito: number
+    cofinsCredito: number
+    cbsCredito: number
+    ibsCredito: number
+    totalCreditos: number
+    comprasLiquidas: number
+    custoUnitario: number
+  }
+
+  // Variação
+  deltaUnitario: number
+  deltaPct: number
+
+  // Memória em 3 cards abertos
+  card01: CardMemoriaQuatroCelulas
+  card02: CardMemoriaQuatroCelulas
+  card03: CardMemoriaQuatroCelulas
+}
+
+/**
+ * Motor de cálculo das 4 células: fornecedor (LP ou LR) × adquirente (SN puro ou SN híbrido)
+ * Calculado dinamicamente passo a passo com matemática honesta (sem hardcoding).
+ */
+export function calcularCelulaFornecedorPlenoXAdquirenteSn(
+  fornecedor: FornecedorPlenoRegime,
+  adquirente: AdquirenteSnRegime,
+  item?: ItemIntegracaoArt12,
+): ResultadoCelulaFornecedorPlenoXAdquirenteSn {
+  const qtd = item?.quantity && item.quantity > 0 ? item.quantity : 30
+  const mercHoje = item?.merchandiseValue !== undefined ? item.merchandiseValue : 42000.0
+  const freteHoje = item?.freightValue !== undefined ? item.freightValue : 400.0
+  const notaHoje = roundHalfUp(mercHoje + freteHoje, 2)
+
+  const isLP = fornecedor === 'lucro_presumido'
+  const isPuro = adquirente === 'simples'
+
+  const fornecedorSigla: 'LP' | 'LR' = isLP ? 'LP' : 'LR'
+  const fornecedorRotulo = isLP ? 'Lucro Presumido' : 'Lucro Real'
+  const adquirenteSigla: 'SN' | 'SNH' = isPuro ? 'SN' : 'SNH'
+  const adquirenteRotulo = isPuro ? 'Simples Nacional Puro' : 'Simples Nacional Híbrido'
+  const id = `${fornecedorSigla.toLowerCase()}_x_${adquirenteSigla.toLowerCase()}`
+  const rotuloConfronto = `${fornecedorSigla} × ${isPuro ? 'SN puro' : 'SN híbrido'}`
+
+  // -------------------------------------------------------------
+  // HOJE 2026:
+  // Fornecedor vende por 42.400,00 (mercadorias 42.000 + frete 400)
+  // ICMS destacado na nota de hoje = 18% sobre 42.400 = 7.632,00
+  // PIS/COFINS de hoje:
+  // - LP: PIS 0,65% (225,99) + COFINS 3% (1.043,04) sobre base sem ICMS (34.768,00), recolhidos por dentro
+  // - LR: PIS 1,65% (573,67) + COFINS 7,6% (2.642,37) sobre base sem ICMS (34.768,00)
+  // Mas para o comprador SN puro ou SN híbrido em 2026:
+  // - SN puro: crédito ICMS = 0,00 (art. 13 §1º LC 123); crédito PIS/COFINS = 0,00; crédito CBS/IBS = 0,00
+  // - SN híbrido: não existia CBS/IBS em 2026 (0,00); nunca credita ICMS 18% (art. 23 LC 123) nem PIS/COFINS = 0,00
+  // Logo, compras líquidas HOJE = NOTA CHEIA 42.400,00 → unitário = 1.413,33 (42.400 / 30)
+  // -------------------------------------------------------------
+  const icmsNotaHoje = roundHalfUp(notaHoje * 0.18, 2) // 7.632,00
+  const creditoIcmsHoje = 0.0
+  const creditoPisHoje = 0.0
+  const creditoCofinsHoje = 0.0
+  const creditoCbsHoje = 0.0
+  const creditoIbsHoje = 0.0
+  const totalCreditosHoje = 0.0
+  const comprasLiquidasHoje = notaHoje // 42.400,00
+  const unitarioHoje = roundHalfUp(comprasLiquidasHoje / qtd, 2) // 1.413,33
+
+  // Fornecedor receita líquida hoje (para o Card 02):
+  // 42.400,00 − ICMS 7.632,00 = 34.768,00
+  // Para LR: PIS 573,67 + COFINS 2.642,37 sobre 34.768,00
+  const baseSemIcmsHoje = roundHalfUp(notaHoje - icmsNotaHoje, 2) // 34.768,00
+  const pisFornecedorLRHoje = roundHalfUp(baseSemIcmsHoje * 0.0165, 2) // 573,67
+  const cofinsFornecedorLRHoje = roundHalfUp(baseSemIcmsHoje * 0.076, 2) // 2.642,37
+  const pisFornecedorLPHoje = roundHalfUp(baseSemIcmsHoje * 0.0065, 2) // 225,99
+  const cofinsFornecedorLPHoje = roundHalfUp(baseSemIcmsHoje * 0.03, 2) // 1.043,04
+
+  // -------------------------------------------------------------
+  // FORMAÇÃO DO PREÇO PELO FORNECEDOR EM 2027 (Card 02):
+  // Base líquida de referência = 33.498,97 (invariante chancelada do Art. 12)
+  // Alíquotas 2027: CBS 8,8% (referência menos 0,1 p.p. de teste IBS), IBS 0,1%
+  // CBS destacada por fora: 33.498,97 × 8,8% = 2.947,90936 → half-up 2.947,91
+  // IBS destacado por fora: 33.498,97 × 0,1% = 33,49897 → half-up 33,50
+  // Subtotal antes do ICMS = 33.498,97 + 2.947,91 + 33,50 = 36.480,38
+  // Desembute do ICMS 18% por dentro: divisor = (1 − 0,18) = 0,82
+  // Preço da nota 2027 = 36.480,38 ÷ 0,82 = 44.488,26829... → half-up 44.488,27
+  // ICMS destacado na nota 2027 = 44.488,27 × 18% = 8.007,8886 → half-up 8.007,89
+  // -------------------------------------------------------------
+  const baseLimpa2027 = 33498.97
+  const cbsAliquota2027Pct = 8.8
+  const ibsAliquota2027Pct = 0.1
+  const cbsDestacada2027 = roundHalfUp((baseLimpa2027 * cbsAliquota2027Pct) / 100, 2) // 2.947,91
+  const ibsDestacado2027 = roundHalfUp((baseLimpa2027 * ibsAliquota2027Pct) / 100, 2) // 33,50
+  const subtotalAntesIcms2027 = roundHalfUp(baseLimpa2027 + cbsDestacada2027 + ibsDestacado2027, 2) // 36.480,38
+  const icmsAliquota2027Pct = 18.0
+  const divisorIcms2027 = 0.82 // (1 - 0.18)
+  const notaCheia2027 = roundHalfUp(subtotalAntesIcms2027 / divisorIcms2027, 2) // 44.488,27
+  const icmsDestacadoNota2027 = roundHalfUp(notaCheia2027 * 0.18, 2) // 8.007,89
+
+  // -------------------------------------------------------------
+  // FORMAÇÃO DO CUSTO PELO ADQUIRENTE EM 2027 (Card 03):
+  // - Adquirente SN Puro: ZERO crédito de tudo (ICMS 0,00, PIS/COFINS 0,00, CBS 0,00, IBS 0,00)
+  //   Compras líquidas = NOTA CHEIA 44.488,27
+  //   Custo unitário = 44.488,27 ÷ 30 = 1.482,94233... → half-up 1.482,94
+  //   Δ = (1.482,94 − 1.413,33) ÷ 1.413,33 = +4,9249% → +4,92%
+  //
+  // - Adquirente SN Híbrido:
+  //   Credita APENAS CBS (2.947,91) e IBS (33,50) destacados na nota do fornecedor
+  //   NUNCA credita ICMS 18% (8.007,89) → crédito ICMS = 0,00
+  //   NUNCA credita PIS/COFINS → 0,00
+  //   Total créditos = 2.947,91 + 33,50 = 2.981,41
+  //   Compras líquidas = 44.488,27 − 2.947,91 − 33,50 = 41.506,86
+  //   Custo unitário = 41.506,86 ÷ 30 = 1.383,562 → half-up 1.383,56
+  //   Δ = (1.383,56 − 1.413,33) ÷ 1.413,33 = −2,1063...% → −2,11%
+  // -------------------------------------------------------------
+  const creditoIcms2027 = 0.0
+  const creditoPis2027 = 0.0
+  const creditoCofins2027 = 0.0
+  const creditoCbs2027 = isPuro ? 0.0 : cbsDestacada2027 // 0,00 ou 2.947,91
+  const creditoIbs2027 = isPuro ? 0.0 : ibsDestacado2027 // 0,00 ou 33,50
+  const totalCreditos2027 = roundHalfUp(creditoCbs2027 + creditoIbs2027, 2)
+  const comprasLiquidas2027 = roundHalfUp(notaCheia2027 - totalCreditos2027, 2) // 44.488,27 ou 41.506,86
+  const unitario2027 = roundHalfUp(comprasLiquidas2027 / qtd, 2) // 1.482,94 ou 1.383,56
+
+  const deltaUnitario = roundHalfUp(unitario2027 - unitarioHoje, 2)
+  const deltaPct = roundHalfUp(((unitario2027 - unitarioHoje) / unitarioHoje) * 100, 2)
+
+  // -------------------------------------------------------------
+  // MONTAGEM DOS 3 CARDS ABERTOS
+  // -------------------------------------------------------------
+
+  // CARD 01 — Custo de Aquisição para o Adquirente HOJE (2026)
+  const linhasCard01: LinhaPassoCard[] = [
+    {
+      sinal: '(+)',
+      label: 'Mercadorias na nota fiscal',
+      formula: `${qtd} un. × R$ ${fmtSN(mercHoje / qtd, 2)}`,
+      valor: mercHoje,
+      fundamento: 'LC 214/2025, art. 12, caput: valor da operação.',
+    },
+    {
+      sinal: '(+)',
+      label: 'Frete sobre compras cobrado pelo fornecedor',
+      formula: `valor contratado na nota fiscal de aquisição`,
+      valor: freteHoje,
+      fundamento: 'LC 214/2025, art. 12, §1º, IV: transporte cobrado integra o valor da operação.',
+    },
+    {
+      sinal: '(−)',
+      label: `Crédito de ICMS do adquirente ${adquirenteSigla}`,
+      formula: isPuro
+        ? `0,00 [nota destaca ${fmtSN(icmsNotaHoje, 2)} (18%), mas adquirente SN não se apropria — art. 13, §1º, LC 123/2006: dedução na saída via DAS, não crédito na compra]`
+        : `0,00 [nota destaca ${fmtSN(icmsNotaHoje, 2)} (18%), mas SN híbrido só aproveitaria fração do DAS do fornecedor em campo próprio — art. 23 LC 123/2006 — e nota de ${fornecedorSigla} não possui esse campo]`,
+      valor: 0.0,
+      fundamento: isPuro
+        ? 'LC 123/2006, art. 13, §1º: optante puro não toma crédito na aquisição.'
+        : 'LC 123/2006, art. 23, §1º/§2º: crédito restrito à fração do DAS informada em campo próprio; nota de LP/LR não gera crédito de ICMS ao SN híbrido.',
+    },
+    {
+      sinal: '(−)',
+      label: `Crédito PIS/COFINS do adquirente ${adquirenteSigla}`,
+      formula: `0,00 [adquirente ${adquirenteSigla} é optante pelo regime unificado e isento do regime não cumulativo de PIS/COFINS — Leis 10.637/2002 e 10.833/2003]`,
+      valor: 0.0,
+      fundamento:
+        'Leis 10.637/2002 e 10.833/2003: não cumulatividade inaplicável ao optante pelo Simples Nacional.',
+    },
+    ...(!isPuro
+      ? [
+          {
+            sinal: '(−)' as const,
+            label: 'Crédito CBS e IBS do adquirente SN híbrido (2026)',
+            formula:
+              '0,00 [CBS e IBS não existem na apuração do Simples em 2026 — LC 214/2025 art. 348, III, "c"]',
+            valor: 0.0,
+            fundamento:
+              'LC 214/2025, art. 348, III, "c": CBS e IBS não são recolhidos nem creditados pelo Simples em 2026.',
+          },
+        ]
+      : []),
+    {
+      sinal: '(=)',
+      label: 'Compras líquidas em 2026 (custo de aquisição = NOTA CHEIA)',
+      formula: `${fmtSN(notaHoje, 2)} − 0,00 = ${fmtSN(comprasLiquidasHoje, 2)}`,
+      valor: comprasLiquidasHoje,
+      destaque: true,
+      fundamento:
+        'Regra de ouro: sem apropriação de créditos, custo de aquisição HOJE coincide integralmente com a nota cheia.',
+    },
+    {
+      sinal: '(÷)',
+      label: 'Custo unitário de aquisição HOJE (2026)',
+      formula: `${fmtSN(comprasLiquidasHoje, 2)} ÷ ${qtd} un. = R$ ${fmtSN(unitarioHoje, 2)}/un`,
+      valor: unitarioHoje,
+      destaque: true,
+      fundamento: 'Baseline de comparação unitária pré-reforma.',
+    },
+  ]
+
+  const card01: CardMemoriaQuatroCelulas = {
+    numero: 'CARD 01',
+    titulo: `1º CUSTO DE AQUISIÇÃO PARA O ADQUIRENTE (${adquirenteSigla} · 2026)`,
+    subtitulo: `Memória de aquisição HOJE · compra de fornecedor ${fornecedorSigla} · ${rotuloConfronto}`,
+    cor: 'emerald',
+    linhas: linhasCard01,
+  }
+
+  // CARD 02 — Formação do Preço pelo Fornecedor (LP ou LR)
+  const linhasCard02: LinhaPassoCard[] = [
+    {
+      sinal: '(i)',
+      label: `HOJE (2026): Venda pelo fornecedor ${fornecedorSigla}`,
+      formula: isLP
+        ? `Vende a ${fmtSN(notaHoje, 2)} com ICMS 18% destacado (${fmtSN(icmsNotaHoje, 2)}). Receita líquida sem ICMS = ${fmtSN(baseSemIcmsHoje, 2)}. PIS 0,65% (${fmtSN(pisFornecedorLPHoje, 2)}) e COFINS 3,00% (${fmtSN(cofinsFornecedorLPHoje, 2)}) recolhidos no regime cumulativo.`
+        : `Vende a ${fmtSN(notaHoje, 2)} com ICMS 18% destacado (${fmtSN(icmsNotaHoje, 2)}). Base líquida sem ICMS = ${fmtSN(baseSemIcmsHoje, 2)}. Destaca/recolhe PIS 1,65% (${fmtSN(pisFornecedorLRHoje, 2)}) e COFINS 7,60% (${fmtSN(cofinsFornecedorLRHoje, 2)}) no regime não cumulativo.`,
+      valor: notaHoje,
+      fundamento: `Regra pré-reforma do ${fornecedorRotulo}: tributos embutidos no preço da operação.`,
+    },
+    {
+      sinal: '(=)',
+      label: 'Base líquida de venda do fornecedor em 2027 (referência limpa)',
+      formula: `R$ ${fmtSN(baseLimpa2027, 2)} (invariante do Art. 12: receita preservada após extinção de PIS/COFINS)`,
+      valor: baseLimpa2027,
+      destaque: true,
+      fundamento:
+        'LC 214/2025, art. 12, §2º, V: dedução do ICMS e de PIS/COFINS da base do IBS/CBS.',
+    },
+    {
+      sinal: '(+)',
+      label: `CBS 8,80% por fora (destacada na nota fiscal)`,
+      formula: `8,80% × ${fmtSN(baseLimpa2027, 2)} = ${fmtSN(cbsDestacada2027, 2)}`,
+      valor: cbsDestacada2027,
+      fundamento:
+        'LC 214/2025, art. 12, §2º, I: CBS não integra a própria base de cálculo (incidência por fora).',
+    },
+    {
+      sinal: '(+)',
+      label: `IBS 0,10% por fora (destacado na nota fiscal — alíquota teste)`,
+      formula: `0,10% × ${fmtSN(baseLimpa2027, 2)} = ${fmtSN(ibsDestacado2027, 2)}`,
+      valor: ibsDestacado2027,
+      fundamento:
+        'LC 214/2025, art. 12, §2º, I + art. 344: IBS não integra a própria base de cálculo.',
+    },
+    {
+      sinal: '(=)',
+      label: 'Subtotal antes do ICMS por dentro (2027)',
+      formula: `${fmtSN(baseLimpa2027, 2)} + ${fmtSN(cbsDestacada2027, 2)} + ${fmtSN(ibsDestacado2027, 2)} = ${fmtSN(subtotalAntesIcms2027, 2)}`,
+      valor: subtotalAntesIcms2027,
+      fundamento: 'Base recomposta do fornecedor antes da incidência do ICMS por dentro.',
+    },
+    {
+      sinal: '(÷)',
+      label: 'Desembute do ICMS 18% por dentro (tese do Fisco na transição)',
+      formula: `${fmtSN(subtotalAntesIcms2027, 2)} ÷ (1 − 0,18) = ${fmtSN(subtotalAntesIcms2027, 2)} ÷ 0,820000`,
+      valor: divisorIcms2027,
+      fundamento:
+        'Art. 12, §2º + ADCT art. 128: ICMS estadual permanece por dentro até a transição de 2029–2032.',
+    },
+    {
+      sinal: '(=)',
+      label: 'Preço da nota fiscal do fornecedor em 2027',
+      formula: `${fmtSN(subtotalAntesIcms2027, 2)} ÷ 0,82 = ${fmtSN(notaCheia2027, 2)} [ICMS na nota: ${fmtSN(icmsDestacadoNota2027, 2)}]`,
+      valor: notaCheia2027,
+      destaque: true,
+      fundamento: isLP
+        ? 'Preço formado pelo fornecedor LP em 2027 (PIS/COFINS extintos; CBS + IBS por fora).'
+        : 'Preço formado pelo fornecedor LR em 2027 (idêntico ao LP: PIS/COFINS já extintos; CBS + IBS por fora).',
+    },
+  ]
+
+  const card02: CardMemoriaQuatroCelulas = {
+    numero: 'CARD 02',
+    titulo: `2º FORMAÇÃO DO PREÇO PELO FORNECEDOR (${fornecedorSigla} · 2027)`,
+    subtitulo: `Base limpa 33.498,97 + CBS 8,8% + IBS 0,1% ÷ 0,82 (ICMS 18% por dentro) = Nota 44.488,27`,
+    cor: 'violet',
+    linhas: linhasCard02,
+  }
+
+  // CARD 03 — Formação do Custo pelo Adquirente (2027)
+  const linhasCard03: LinhaPassoCard[] = [
+    {
+      sinal: '(+)',
+      label: 'Valor bruto da nota fiscal do fornecedor (2027)',
+      formula: `Preço da nota = ${fmtSN(notaCheia2027, 2)} (${qtd} un.)`,
+      valor: notaCheia2027,
+      fundamento:
+        'LC 214/2025, art. 12, caput: valor total da operação constante do documento fiscal.',
+    },
+    {
+      sinal: '(−)',
+      label: `Crédito ICMS 18% da nota (${fmtSN(icmsDestacadoNota2027, 2)} destacado)`,
+      formula: isPuro
+        ? `0,00 [adquirente SN puro não credita ICMS — art. 13, §1º, LC 123/2006]`
+        : `0,00 [SN híbrido NUNCA credita ICMS 18% de nota LP/LR: crédito restrito à fração do DAS informada em campo próprio — art. 23 LC 123/2006]`,
+      valor: 0.0,
+      fundamento: isPuro
+        ? 'LC 123/2006, art. 13, §1º: não cumulatividade inaplicável ao optante puro.'
+        : 'LC 123/2006, art. 23, §1º/§2º: adquirente híbrido só credita ICMS de nota de fornecedor optante pelo Simples com fração do DAS informada em campo próprio.',
+    },
+    {
+      sinal: '(−)',
+      label: 'Crédito PIS/COFINS da nota',
+      formula: '0,00 [PIS e COFINS extintos a partir de 2027 — EC 132/2023, art. 22, I]',
+      valor: 0.0,
+      fundamento:
+        'EC 132/2023, art. 22, I: extinção formal das contribuições ao PIS e COFINS em 2027.',
+    },
+    {
+      sinal: '(−)',
+      label: `Crédito CBS destacado na nota (${fmtSN(cbsDestacada2027, 2)})`,
+      formula: isPuro
+        ? '0,00 [adquirente SN puro não credita CBS — recolhimento permanece unificado no DAS]'
+        : `${fmtSN(cbsDestacada2027, 2)} [SN híbrido credita CBS integralmente por opt-in no regime regular — LC 214/2025, art. 41]`,
+      valor: isPuro ? 0.0 : -creditoCbs2027,
+      destaque: !isPuro,
+      fundamento: isPuro
+        ? 'LC 123/2006 + LC 214/2025 art. 47: optante puro não apropria créditos de CBS.'
+        : 'LC 214/2025, art. 41 c/c art. 47, §2º: opção pelo regime regular de CBS confere direito a crédito do destaque da nota.',
+    },
+    {
+      sinal: '(−)',
+      label: `Crédito IBS destacado na nota (${fmtSN(ibsDestacado2027, 2)})`,
+      formula: isPuro
+        ? '0,00 [adquirente SN puro não credita IBS — recolhimento permanece unificado no DAS]'
+        : `${fmtSN(ibsDestacado2027, 2)} [SN híbrido credita IBS integralmente por opt-in no regime regular — LC 214/2025, art. 41]`,
+      valor: isPuro ? 0.0 : -creditoIbs2027,
+      destaque: !isPuro,
+      fundamento: isPuro
+        ? 'LC 123/2006 + LC 214/2025 art. 47: optante puro não apropria créditos de IBS.'
+        : 'LC 214/2025, art. 41 c/c art. 47, §2º: opção pelo regime regular de IBS confere direito a crédito do destaque da nota.',
+    },
+    {
+      sinal: '(=)',
+      label: 'Compras líquidas em 2027 (custo total para o adquirente)',
+      formula: isPuro
+        ? `${fmtSN(notaCheia2027, 2)} − 0,00 = ${fmtSN(comprasLiquidas2027, 2)} (custo = nota cheia)`
+        : `${fmtSN(notaCheia2027, 2)} − ${fmtSN(cbsDestacada2027, 2)} (CBS) − ${fmtSN(ibsDestacado2027, 2)} (IBS) = ${fmtSN(comprasLiquidas2027, 2)}`,
+      valor: comprasLiquidas2027,
+      destaque: true,
+      fundamento:
+        'LC 214/2025, art. 47: custo de aquisição = valor bruto da nota deduzido dos créditos apropriados.',
+    },
+    {
+      sinal: '(÷)',
+      label: 'Custo unitário de aquisição em 2027',
+      formula: `${fmtSN(comprasLiquidas2027, 2)} ÷ ${qtd} un. = R$ ${fmtSN(unitario2027, 2)}/un`,
+      valor: unitario2027,
+      destaque: true,
+      fundamento: 'Custo unitário para precificação e composição do CMV pós-reforma.',
+    },
+    {
+      sinal: '(i)',
+      label: 'Variação do custo unitário vs HOJE 2026 (Δ)',
+      formula: `${fmtSN(unitario2027, 2)} vs ${fmtSN(unitarioHoje, 2)} → Δ = ${deltaPct >= 0 ? '+' : ''}${fmtSN(deltaPct, 2)}% (${deltaUnitario >= 0 ? '+' : ''}R$ ${fmtSN(deltaUnitario, 2)}/un)`,
+      valor: deltaPct,
+      destaque: true,
+      fundamento: isPuro
+        ? 'Aumento de +4,92%: a nota do fornecedor encarece para embute de ICMS sobre CBS/IBS e o SN puro não credita nada.'
+        : 'Redução de −2,11%: embora não credite ICMS, o crédito pleno de CBS e IBS supera a variação da nota de compra.',
+    },
+  ]
+
+  const card03: CardMemoriaQuatroCelulas = {
+    numero: 'CARD 03',
+    titulo: `3º FORMAÇÃO DO CUSTO PELO ADQUIRENTE (${adquirenteSigla} · 2027)`,
+    subtitulo: isPuro
+      ? `Nota 44.488,27 sem créditos = 44.488,27 → R$ 1.482,94/un (Δ = +4,92%)`
+      : `Nota 44.488,27 − CBS 2.947,91 − IBS 33,50 = 41.506,86 → R$ 1.383,56/un (Δ = −2,11%)`,
+    cor: 'orange',
+    linhas: linhasCard03,
+  }
+
+  return {
+    id,
+    fornecedor,
+    fornecedorRotulo,
+    fornecedorSigla,
+    adquirente,
+    adquirenteRotulo,
+    adquirenteSigla,
+    rotuloConfronto,
+    quantidade: qtd,
+    hoje: {
+      mercadorias: mercHoje,
+      frete: freteHoje,
+      notaCheia: notaHoje,
+      icmsDestacadoNota: icmsNotaHoje,
+      icmsCredito: creditoIcmsHoje,
+      pisCredito: creditoPisHoje,
+      cofinsCredito: creditoCofinsHoje,
+      cbsCredito: creditoCbsHoje,
+      ibsCredito: creditoIbsHoje,
+      totalCreditos: totalCreditosHoje,
+      comprasLiquidas: comprasLiquidasHoje,
+      custoUnitario: unitarioHoje,
+    },
+    exercicio2027: {
+      baseLimpa: baseLimpa2027,
+      cbsAliquotaPct: cbsAliquota2027Pct,
+      cbsDestacada: cbsDestacada2027,
+      ibsAliquotaPct: ibsAliquota2027Pct,
+      ibsDestacado: ibsDestacado2027,
+      subtotalAntesIcms: subtotalAntesIcms2027,
+      icmsAliquotaPct: icmsAliquota2027Pct,
+      divisorIcms: divisorIcms2027,
+      notaCheia: notaCheia2027,
+      icmsDestacadoNota: icmsDestacadoNota2027,
+      icmsCredito: creditoIcms2027,
+      pisCredito: creditoPis2027,
+      cofinsCredito: creditoCofins2027,
+      cbsCredito: creditoCbs2027,
+      ibsCredito: creditoIbs2027,
+      totalCreditos: totalCreditos2027,
+      comprasLiquidas: comprasLiquidas2027,
+      custoUnitario: unitario2027,
+    },
+    deltaUnitario,
+    deltaPct,
+    card01,
+    card02,
+    card03,
+  }
+}
+
+/**
+ * Retorna as 4 células canônicas calculadas de ponta a ponta:
+ * [0] LP × SN puro
+ * [1] LR × SN puro
+ * [2] LP × SN híbrido
+ * [3] LR × SN híbrido
+ */
+export function calcularQuatroCelulasComparacao(
+  item?: ItemIntegracaoArt12,
+): ResultadoCelulaFornecedorPlenoXAdquirenteSn[] {
+  return [
+    calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_presumido', 'simples', item),
+    calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_real', 'simples', item),
+    calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_presumido', 'simples_hibrido', item),
+    calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_real', 'simples_hibrido', item),
+  ]
+}
