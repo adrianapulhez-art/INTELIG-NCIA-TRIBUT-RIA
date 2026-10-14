@@ -972,16 +972,16 @@ export function CmvArt12Module() {
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-bold uppercase text-emerald-300">
-                  Cenário Único Chancelado
+                  Cenário Único (chancelado)
                 </span>
                 <span className="text-[9px] font-mono font-semibold text-emerald-400/90 border border-emerald-500/40 rounded px-1.5 py-0.5">
-                  Sem composição de repasse
+                  Sem repasse (LC 123/2006)
                 </span>
               </div>
               <p className="text-[10px] font-mono text-slate-400">
-                Adquirente {REGIME_LABEL_FULL[config.compradorRegime]}: custo fiscal apurado em cenário
-                único (art. 13 §1º LC 123/2006; art. 41 LC 214/2025). Valores de repasse parcial ou sem
-                repasse não são chancelados para optantes do Simples.
+                Adquirente {REGIME_LABEL_FULL[config.compradorRegime]}: custo fiscal apurado em
+                cenário único (art. 13 §1º LC 123/2006; art. 41 LC 214/2025). Valores de repasse
+                parcial ou sem repasse não são chancelados para optantes do Simples.
               </p>
             </div>
             <Button

@@ -3,7 +3,22 @@ import {
   calcularCelulaFornecedorPlenoXAdquirenteSn,
   calcularQuatroCelulasComparacao,
 } from './art12SnCalculations'
-import { CASO_CANONICO_ITEM } from './art12Calculations'
+import { montarItensIntegracao } from './integracaoComprasArt12'
+
+const CASO_CANONICO_ITEM = montarItensIntegracao([
+  {
+    id: 'purch-samsung',
+    name: 'Celular Samsung (exemplo)',
+    quantity: 30,
+    merchandiseValue: 42000,
+    freightValue: 400,
+    icmsRate: 18,
+    icmsFreightRate: 18,
+    ipiRate: 0,
+    hasSt: false,
+    stValue: 0,
+  },
+])[0]
 
 /**
  * BLINDAGEM DO COMPORTAMENTO DO ESPELHO COM COMPRADOR SN E SN HÍBRIDO (CHANCELA ADRI)
@@ -32,7 +47,7 @@ describe('Espelho Repasse — Comprador SN / SN Híbrido (Chancela Adri)', () =>
     expect(res.hoje.custoUnitario).toBeCloseTo(1413.33, 2)
     expect(res.exercicio2027.custoUnitario).toBeCloseTo(1482.94, 2)
     expect(res.deltaPct).toBeCloseTo(4.92, 2)
-    expect(res.exercicio2027.creditosTotais).toBe(0)
+    expect(res.exercicio2027.totalCreditos).toBe(0)
     expect(res.exercicio2027.comprasLiquidas).toBeCloseTo(44488.27, 2)
   })
 
@@ -57,10 +72,10 @@ describe('Espelho Repasse — Comprador SN / SN Híbrido (Chancela Adri)', () =>
 
     expect(res.hoje.custoUnitario).toBeCloseTo(1413.33, 2)
     expect(res.exercicio2027.notaCheia).toBeCloseTo(44488.27, 2)
-    expect(res.exercicio2027.creditoCbs).toBeCloseTo(2947.91, 2)
-    expect(res.exercicio2027.creditoIbs).toBeCloseTo(33.50, 2)
-    expect(res.exercicio2027.creditoIcms).toBe(0) // Regra Adri: híbrido NUNCA credita ICMS 18%
-    expect(res.exercicio2027.creditosTotais).toBeCloseTo(2981.41, 2)
+    expect(res.exercicio2027.cbsCredito).toBeCloseTo(2947.91, 2)
+    expect(res.exercicio2027.ibsCredito).toBeCloseTo(33.5, 2)
+    expect(res.exercicio2027.icmsCredito).toBe(0) // Regra Adri: híbrido NUNCA credita ICMS 18%
+    expect(res.exercicio2027.totalCreditos).toBeCloseTo(2981.41, 2)
     expect(res.exercicio2027.comprasLiquidas).toBeCloseTo(41506.86, 2)
     expect(res.exercicio2027.custoUnitario).toBeCloseTo(1383.56, 2)
     expect(res.deltaPct).toBeCloseTo(-2.11, 2)

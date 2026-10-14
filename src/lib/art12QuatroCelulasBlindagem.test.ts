@@ -1,6 +1,6 @@
 /**
- * BLINDAGEM DAS 4 NOVAS CÉLULAS DE COMPARAÇÃO — SESSÃO SN NA REFORMA
- * (Fornecedores LP / LR × Adquirentes SN puro / SN híbrido)
+ * BLINDAGEM DAS 4 NOVAS CÉLULAS DE COMPARAÇÃO — ESPELHO DE REPASSE (CHANCELA ADRI)
+ * (Fornecedores LP / LR × Adquirentes SN puro / SN híbrido — migrado da antiga Sessão 04 independente para o Espelho)
  *
  * Regras chanceladas pela Adri (padrão ouro, não negociável):
  * 1. Adquirente SN puro: não credita NADA (art. 13, §1º, LC 123/2006).

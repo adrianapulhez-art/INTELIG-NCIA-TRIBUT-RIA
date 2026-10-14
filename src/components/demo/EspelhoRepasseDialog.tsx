@@ -93,7 +93,9 @@ function CardMemoriaCanonicalEspelho({
       className={`w-full min-w-0 rounded-xl border p-3 space-y-1.5 flex flex-col justify-between ${corCls}`}
     >
       <div className="flex items-start justify-between gap-1 pb-1 border-b border-slate-800/80">
-        <span className={`text-[10px] font-mono font-black uppercase leading-tight block ${tituloCls}`}>
+        <span
+          className={`text-[10px] font-mono font-black uppercase leading-tight block ${tituloCls}`}
+        >
           {titulo}
         </span>
         {badgeExtra}
@@ -285,7 +287,8 @@ export function EspelhoRepasseDialog({
     baseConfig.compradorRegime === 'simples_hibrido' ? 'simples_hibrido' : 'simples'
 
   // Item de referência para a memória canônica das células SN
-  const itemReferencia = celulasPorItem && celulasPorItem.length > 0 ? celulasPorItem[0].item : undefined
+  const itemReferencia =
+    celulasPorItem && celulasPorItem.length > 0 ? celulasPorItem[0].item : undefined
 
   // CÉLULAS SN: Fornecedores LP e LR × Comprador SN / SNH (chancela Adri)
   // Calculadas pelo motor oficial calcularCelulaFornecedorPlenoXAdquirenteSn
@@ -300,7 +303,10 @@ export function EspelhoRepasseDialog({
     itemReferencia,
   )
 
-  const celulasSnPorFornecedor: Record<'presumido' | 'real', ResultadoCelulaFornecedorPlenoXAdquirenteSn> = {
+  const celulasSnPorFornecedor: Record<
+    'presumido' | 'real',
+    ResultadoCelulaFornecedorPlenoXAdquirenteSn
+  > = {
     presumido: celulaLpSn,
     real: celulaLrSn,
   }
@@ -331,7 +337,9 @@ export function EspelhoRepasseDialog({
     })),
   }))
 
-  const menorPleno = Math.min(...celulasPlenas.flatMap((l) => l.cells.map((c) => c.cell.exercicio.unitario)))
+  const menorPleno = Math.min(
+    ...celulasPlenas.flatMap((l) => l.cells.map((c) => c.cell.exercicio.unitario)),
+  )
   const repassePct = mode === 'parcial' ? ` ${formatNumberBR(baseConfig.repassePct)}%` : ''
   const repasseTxt = isCompradorSn
     ? 'CENÁRIO ÚNICO CHANCELADO'
@@ -347,8 +355,7 @@ export function EspelhoRepasseDialog({
       }
     : null
 
-  const celulaSnAtiva =
-    fornecedorSnAberto === 'real' ? celulaLrSn : celulaLpSn
+  const celulaSnAtiva = fornecedorSnAberto === 'real' ? celulaLrSn : celulaLpSn
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -359,7 +366,8 @@ export function EspelhoRepasseDialog({
             <span>
               {isCompradorSn ? (
                 <>
-                  Espelho dos cálculos — Cenário Único Chancelado (sem repasse) · Exercício {exercicio}
+                  Espelho dos cálculos — Cenário Único (chancelado) · Sem repasse · Exercício{' '}
+                  {exercicio}
                 </>
               ) : (
                 <>
@@ -373,9 +381,12 @@ export function EspelhoRepasseDialog({
             {isCompradorSn ? (
               <>
                 Memória de cálculo aberta linha a linha (Cards 01, 02 e 03) para o adquirente{' '}
-                <strong className="text-slate-200">{REGIME_NOME[baseConfig.compradorRegime]}</strong> comprando
-                de fornecedores <strong className="text-slate-200">LP ou LR</strong>. Cenário único
-                chancelado pela Adri, sem composição de repasse. Fundamentação legal explícita entre colchetes.
+                <strong className="text-slate-200">
+                  {REGIME_NOME[baseConfig.compradorRegime]}
+                </strong>{' '}
+                comprando de fornecedores <strong className="text-slate-200">LP ou LR</strong>.
+                Cenário único chancelado pela Adri, sem composição de repasse. Fundamentação legal
+                explícita entre colchetes.
               </>
             ) : abertoPleno ? (
               'Camada interna: os 6 cards do cenário selecionado — 3 por item da Calculadora de Compras.'
@@ -412,7 +423,10 @@ export function EspelhoRepasseDialog({
                             : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-800'
                         }`}
                       >
-                        {REGIME_LABEL[forn]} ({REGIME_NOME[forn]}) · {formatBRL(cel.exercicio2027.custoUnitario)}/un ({cel.deltaPct >= 0 ? '+' : ''}{formatNumberBR(cel.deltaPct)}%)
+                        {REGIME_LABEL[forn]} ({REGIME_NOME[forn]}) ·{' '}
+                        {formatBRL(cel.exercicio2027.custoUnitario)}/un (
+                        {cel.deltaPct >= 0 ? '+' : ''}
+                        {formatNumberBR(cel.deltaPct)}%)
                       </button>
                     )
                   })}
@@ -420,7 +434,7 @@ export function EspelhoRepasseDialog({
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
-                  Cenário Único Chancelado
+                  Cenário Único (chancelado)
                 </span>
                 <span className="text-[9px] font-mono text-slate-400">
                   Sem repasse (LC 123/2006)
@@ -431,18 +445,21 @@ export function EspelhoRepasseDialog({
             {/* Identificação da Operação */}
             <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/[0.05] p-3 space-y-1">
               <div className="text-[12px] font-mono font-black uppercase text-white">
-                OPERAÇÃO ANALISADA: ADQUIRENTE: {REGIME_NOME[baseConfig.compradorRegime]} / FORNECEDOR:{' '}
-                {REGIME_NOME[fornecedorSnAberto || 'presumido']}
+                OPERAÇÃO ANALISADA: ADQUIRENTE: {REGIME_NOME[baseConfig.compradorRegime]} /
+                FORNECEDOR: {REGIME_NOME[fornecedorSnAberto || 'presumido']}
               </div>
               <div className="text-[10px] font-mono text-emerald-300 uppercase">
-                CENÁRIO ÚNICO CHANCELADO · EXERCÍCIO {exercicio}
+                CENÁRIO ÚNICO (CHANCELADO) · EXERCÍCIO {exercicio}
               </div>
               <div className="text-[10px] font-mono text-slate-300">
-                HOJE: {formatBRL(celulaSnAtiva.hoje.custoUnitario)}/un → 2027: {formatBRL(celulaSnAtiva.exercicio2027.custoUnitario)}/un ·{' '}
+                HOJE: {formatBRL(celulaSnAtiva.hoje.custoUnitario)}/un → 2027:{' '}
+                {formatBRL(celulaSnAtiva.exercicio2027.custoUnitario)}/un ·{' '}
                 {celulaSnAtiva.deltaPct >= 0 ? '+' : ''}
                 {formatNumberBR(celulaSnAtiva.deltaPct)}% vs HOJE
-                {adquirenteSnRegime === 'simples' && ' · NOTA CHEIA SEM CRÉDITO (ART. 13 §1º LC 123/2006)'}
-                {adquirenteSnRegime === 'simples_hibrido' && ' · CRÉDITO CBS + IBS (ART. 41 LC 214/2025; SEM ICMS 18%)'}
+                {adquirenteSnRegime === 'simples' &&
+                  ' · NOTA CHEIA SEM CRÉDITO (ART. 13 §1º LC 123/2006)'}
+                {adquirenteSnRegime === 'simples_hibrido' &&
+                  ' · CRÉDITO CBS + IBS (ART. 41 LC 214/2025; SEM ICMS 18%)'}
               </div>
             </div>
 
@@ -528,7 +545,9 @@ export function EspelhoRepasseDialog({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => onAbrirCelula(abertoPleno.comprador, abertoPleno.fornecedor, abertoPleno.cell)}
+                  onClick={() =>
+                    onAbrirCelula(abertoPleno.comprador, abertoPleno.fornecedor, abertoPleno.cell)
+                  }
                   className="inline-flex items-center gap-1 rounded-md border border-orange-500/40 bg-orange-500/10 px-2 py-1 text-[9px] font-mono font-bold text-orange-300 hover:bg-orange-500/20 cursor-pointer"
                 >
                   <Calculator className="w-3 h-3" /> Memória + base legal
@@ -628,10 +647,11 @@ export function EspelhoRepasseDialog({
         )}
 
         <p className="text-[10px] font-mono text-slate-500">
-          LP = Lucro Presumido · LR = Lucro Real. Para adquirentes do Simples Nacional (SN puro e SN híbrido),
-          o espelho exibe o cenário único chancelado pela Adri, sem composição de repasse, com fundamentação legal
-          expressa (art. 13 §1º LC 123/2006; art. 23 LC 123/2006; art. 41 LC 214/2025). As operações com fornecedor
-          SN vivem na Sessão SN com regras próprias de repartição do DAS.
+          LP = Lucro Presumido · LR = Lucro Real. Para adquirentes do Simples Nacional (SN puro e SN
+          híbrido), o espelho exibe o cenário único chancelado pela Adri, sem composição de repasse,
+          com fundamentação legal expressa (art. 13 §1º LC 123/2006; art. 23 LC 123/2006; art. 41 LC
+          214/2025). As operações com fornecedor SN vivem na Sessão SN com regras próprias de
+          repartição do DAS.
         </p>
       </DialogContent>
     </Dialog>
