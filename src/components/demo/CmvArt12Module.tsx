@@ -963,72 +963,103 @@ export function CmvArt12Module() {
             </div>
           </div>
         </div>
-        {/* Réguas de repasse — ao clicar, abrem o espelho com a MEMÓRIA POR ITEM do cenário.
-            REARRANJO DA CEO (29/09): o espelho cobre só LP/LR × LP/LR — as operações com SN
-            (SN puro e SN híbrido) vivem na SESSÃO SN abaixo, com as regras próprias delas. */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {reguas.map(({ mode, cell }) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => {
-                setConfig((c) => ({ ...c, repasse: mode }))
-                setEspelhoModal({ open: true, mode })
-              }}
-              className={`p-2.5 rounded-lg border text-left cursor-pointer transition-colors ${
-                config.repasse === mode
-                  ? 'border-emerald-400 bg-emerald-500/10'
-                  : 'border-slate-700 bg-slate-950/50 hover:bg-slate-900'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-bold uppercase text-slate-300">
-                  {mode === 'integral'
-                    ? 'Repasse integral'
-                    : mode === 'parcial'
-                      ? `Parcial ${formatNumberBR(config.repassePct)}%`
-                      : 'Sem repasse'}
+        {/* Réguas de repasse / Cenário Único Chancelado:
+            Quando o comprador é Simples Nacional (puro ou híbrido), as réguas de repasse
+            (Integral/Parcial/Sem repasse) são ocultadas e é indicado "Cenário Único Chancelado",
+            pois nas regras do SN e LC 123/2006 não há composição de repasse nessas células. */}
+        {config.compradorRegime === 'simples' || config.compradorRegime === 'simples_hibrido' ? (
+          <div className="rounded-lg border border-emerald-500/50 bg-emerald-500/[0.08] p-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold uppercase text-emerald-300">
+                  Cenário Único Chancelado
                 </span>
-                <span
-                  className={`text-xs font-mono font-black ${
-                    cell.deltaPct <= -0.5
-                      ? 'text-emerald-400'
-                      : cell.deltaPct < 0.5
-                        ? 'text-amber-400'
-                        : 'text-rose-400'
+                <span className="text-[9px] font-mono font-semibold text-emerald-400/90 border border-emerald-500/40 rounded px-1.5 py-0.5">
+                  Sem composição de repasse
+                </span>
+              </div>
+              <p className="text-[10px] font-mono text-slate-400">
+                Adquirente {REGIME_LABEL_FULL[config.compradorRegime]}: custo fiscal apurado em cenário
+                único (art. 13 §1º LC 123/2006; art. 41 LC 214/2025). Valores de repasse parcial ou sem
+                repasse não são chancelados para optantes do Simples.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setEspelhoModal({ open: true, mode: 'integral' })}
+              className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-mono font-bold text-xs cursor-pointer h-7"
+            >
+              <Calculator className="w-3.5 h-3.5 mr-1" />
+              Abrir Espelho (Cards 01, 02 e 03)
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {reguas.map(({ mode, cell }) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    setConfig((c) => ({ ...c, repasse: mode }))
+                    setEspelhoModal({ open: true, mode })
+                  }}
+                  className={`p-2.5 rounded-lg border text-left cursor-pointer transition-colors ${
+                    config.repasse === mode
+                      ? 'border-emerald-400 bg-emerald-500/10'
+                      : 'border-slate-700 bg-slate-950/50 hover:bg-slate-900'
                   }`}
                 >
-                  {cell.deltaPct > 0 ? '+' : ''}
-                  {formatNumberBR(cell.deltaPct)}%
-                </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold uppercase text-slate-300">
+                      {mode === 'integral'
+                        ? 'Repasse integral'
+                        : mode === 'parcial'
+                          ? `Parcial ${formatNumberBR(config.repassePct)}%`
+                          : 'Sem repasse'}
+                    </span>
+                    <span
+                      className={`text-xs font-mono font-black ${
+                        cell.deltaPct <= -0.5
+                          ? 'text-emerald-400'
+                          : cell.deltaPct < 0.5
+                            ? 'text-amber-400'
+                            : 'text-rose-400'
+                      }`}
+                    >
+                      {cell.deltaPct > 0 ? '+' : ''}
+                      {formatNumberBR(cell.deltaPct)}%
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                    {formatBRL(cell.exercicio.unitario)}/un ·{' '}
+                    {mode === 'integral'
+                      ? 'cadeia neutra — Fisco abre mão'
+                      : mode === 'parcial'
+                        ? 'dividido — fornecedor e comprador'
+                        : 'comprador absorve (escada)'}
+                  </div>
+                </button>
+              ))}
+            </div>
+            {config.repasse === 'parcial' && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-slate-500">Fração repassada:</span>
+                <Input
+                  type="number"
+                  value={config.repassePct}
+                  onChange={(e) =>
+                    setConfig((c) => ({
+                      ...c,
+                      repassePct: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                    }))
+                  }
+                  className="w-24 h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
+                />
+                <span className="text-[10px] font-mono text-slate-500">%</span>
               </div>
-              <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-                {formatBRL(cell.exercicio.unitario)}/un ·{' '}
-                {mode === 'integral'
-                  ? 'cadeia neutra — Fisco abre mão'
-                  : mode === 'parcial'
-                    ? 'dividido — fornecedor e comprador'
-                    : 'comprador absorve (escada)'}
-              </div>
-            </button>
-          ))}
-        </div>
-        {config.repasse === 'parcial' && (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-slate-500">Fração repassada:</span>
-            <Input
-              type="number"
-              value={config.repassePct}
-              onChange={(e) =>
-                setConfig((c) => ({
-                  ...c,
-                  repassePct: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
-                }))
-              }
-              className="w-24 h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
-            />
-            <span className="text-[10px] font-mono text-slate-500">%</span>
-          </div>
+            )}
+          </>
         )}
         {/* ZFM */}
         <label className="flex items-center gap-2 text-[10px] font-mono text-slate-400 cursor-pointer">

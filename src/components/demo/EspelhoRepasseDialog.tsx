@@ -22,6 +22,12 @@ import {
   type RepasseMode,
   type ScheduleRowArt,
 } from '@/lib/art12Calculations'
+import {
+  calcularCelulaFornecedorPlenoXAdquirenteSn,
+  type ResultadoCelulaFornecedorPlenoXAdquirenteSn,
+  type FornecedorPlenoRegime,
+  type AdquirenteSnRegime,
+} from '@/lib/art12SnCalculations'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 
 /**
@@ -36,7 +42,7 @@ import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
  * fallback '—'. NENHUM cálculo alterado — só identificação.
  */
 
-const REGIMES: RegimeId[] = ['presumido', 'real']
+const REGIMES_FORNECEDOR_PLENO: RegimeId[] = ['presumido', 'real']
 
 const REGIME_LABEL: Record<RegimeId, string> = {
   presumido: 'LP',
@@ -50,6 +56,93 @@ const REGIME_NOME: Record<RegimeId, string> = {
   real: 'Lucro Real',
   simples: 'Simples Nacional',
   simples_hibrido: 'SN híbrido',
+}
+
+function CardMemoriaCanonicalEspelho({
+  titulo,
+  cor,
+  linhas,
+  badgeExtra,
+}: {
+  titulo: string
+  cor: 'emerald' | 'violet' | 'orange' | 'sky'
+  linhas: {
+    label: string
+    formula?: string
+    valor: number
+    destaque?: boolean
+    fundamento?: string
+  }[]
+  badgeExtra?: React.ReactNode
+}) {
+  const corCls = {
+    emerald: 'border-emerald-500/45 bg-emerald-500/[0.05]',
+    violet: 'border-violet-500/45 bg-violet-500/[0.05]',
+    orange: 'border-orange-500/45 bg-orange-500/[0.06]',
+    sky: 'border-sky-400/70 bg-sky-500/[0.16]',
+  }[cor]
+  const tituloCls = {
+    emerald: 'text-emerald-300',
+    violet: 'text-violet-300',
+    orange: 'text-orange-300',
+    sky: 'text-sky-200',
+  }[cor]
+
+  return (
+    <div
+      className={`w-full min-w-0 rounded-xl border p-3 space-y-1.5 flex flex-col justify-between ${corCls}`}
+    >
+      <div className="flex items-start justify-between gap-1 pb-1 border-b border-slate-800/80">
+        <span className={`text-[10px] font-mono font-black uppercase leading-tight block ${tituloCls}`}>
+          {titulo}
+        </span>
+        {badgeExtra}
+      </div>
+      <div className="space-y-1 flex-1">
+        {linhas.map((l, i) => (
+          <div
+            key={`${l.label}-${i}`}
+            className={`flex items-start justify-between gap-2 px-2 py-1 rounded-lg border ${
+              l.destaque
+                ? cor === 'emerald'
+                  ? 'bg-emerald-500/10 border-emerald-500/40'
+                  : cor === 'violet'
+                    ? 'bg-violet-500/10 border-violet-500/40'
+                    : cor === 'sky'
+                      ? 'bg-sky-500/25 border-sky-400/60'
+                      : 'bg-orange-500/10 border-orange-500/40'
+                : 'bg-slate-950/50 border-slate-800/60'
+            }`}
+          >
+            <div className="min-w-0">
+              <span className="text-[10px] font-mono text-slate-200 block leading-tight">
+                {l.label}
+              </span>
+              {l.formula && (
+                <span className="text-[9px] font-mono text-slate-500 block break-words leading-tight mt-0.5">
+                  {l.formula}
+                </span>
+              )}
+              {l.fundamento && (
+                <span className="text-[8px] font-mono text-sky-400/80 block break-words leading-tight mt-0.5">
+                  [{l.fundamento}]
+                </span>
+              )}
+            </div>
+            <div className="text-right shrink-0">
+              <span
+                className={`text-[10px] font-mono font-bold block ${
+                  l.valor < 0 ? 'text-emerald-300' : l.destaque ? 'text-white' : 'text-slate-100'
+                }`}
+              >
+                {formatBRL(l.valor)}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 const nomeRegime = (r: RegimeId | undefined) => (r && REGIME_NOME[r] ? REGIME_NOME[r] : '—')
@@ -185,16 +278,49 @@ export function EspelhoRepasseDialog({
   celulasPorItem?: { item: ItemIntegracaoArt12; cell: CellResultArt }[]
   onAbrirMemoriaItem?: (item: ItemIntegracaoArt12, cell: CellResultArt) => void
 }) {
-  // CAMADA 1 = grid de 16 cards principais; CAMADA 2 = cenário aberto (6 cards por item).
-  // IDENTIFICAÇÃO POR ÍNDICE (checagem da CEO, 28/09): o cenário aberto é guardado como
-  // par de índices (0–3) — a nomenclatura da camada interna sai SEMPRE dos mesmos índices
-  // que o card externo exibiu, sem depender de matching por string.
+  // Determina se o comprador ativo é optante do Simples Nacional (puro ou híbrido)
+  const isCompradorSn =
+    baseConfig.compradorRegime === 'simples' || baseConfig.compradorRegime === 'simples_hibrido'
+  const adquirenteSnRegime: AdquirenteSnRegime =
+    baseConfig.compradorRegime === 'simples_hibrido' ? 'simples_hibrido' : 'simples'
+
+  // Item de referência para a memória canônica das células SN
+  const itemReferencia = celulasPorItem && celulasPorItem.length > 0 ? celulasPorItem[0].item : undefined
+
+  // CÉLULAS SN: Fornecedores LP e LR × Comprador SN / SNH (chancela Adri)
+  // Calculadas pelo motor oficial calcularCelulaFornecedorPlenoXAdquirenteSn
+  const celulaLpSn = calcularCelulaFornecedorPlenoXAdquirenteSn(
+    'lucro_presumido',
+    adquirenteSnRegime,
+    itemReferencia,
+  )
+  const celulaLrSn = calcularCelulaFornecedorPlenoXAdquirenteSn(
+    'lucro_real',
+    adquirenteSnRegime,
+    itemReferencia,
+  )
+
+  const celulasSnPorFornecedor: Record<'presumido' | 'real', ResultadoCelulaFornecedorPlenoXAdquirenteSn> = {
+    presumido: celulaLpSn,
+    real: celulaLrSn,
+  }
+
+  // Estado para cenário aberto:
+  // Para comprador pleno: { ci, fi }
+  // Para comprador SN/SNH: fornecedor pleno selecionado ('presumido' | 'real')
   const [cenarioAberto, setCenarioAberto] = useState<{ ci: number; fi: number } | null>(null)
+  const [fornecedorSnAberto, setFornecedorSnAberto] = useState<RegimeId | null>(
+    isCompradorSn ? (baseConfig.fornecedorRegime === 'real' ? 'real' : 'presumido') : null,
+  )
+
   const cfg: CellConfigArt = { ...baseConfig, repasse: mode }
-  const celulas = REGIMES.map((comprador, ci) => ({
+
+  // Regimes do espelho pleno padrão
+  const regimesCompradorPleno: RegimeId[] = ['presumido', 'real']
+  const celulasPlenas = regimesCompradorPleno.map((comprador, ci) => ({
     comprador,
     ci,
-    cells: REGIMES.map((fornecedor, fi) => ({
+    cells: REGIMES_FORNECEDOR_PLENO.map((fornecedor, fi) => ({
       fornecedor,
       fi,
       cell: computeCellArt12(
@@ -204,20 +330,25 @@ export function EspelhoRepasseDialog({
       ),
     })),
   }))
-  const menor = Math.min(...celulas.flatMap((l) => l.cells.map((c) => c.cell.exercicio.unitario)))
+
+  const menorPleno = Math.min(...celulasPlenas.flatMap((l) => l.cells.map((c) => c.cell.exercicio.unitario)))
   const repassePct = mode === 'parcial' ? ` ${formatNumberBR(baseConfig.repassePct)}%` : ''
-  const repasseTxt =
-    mode === 'parcial'
+  const repasseTxt = isCompradorSn
+    ? 'CENÁRIO ÚNICO CHANCELADO'
+    : mode === 'parcial'
       ? `REPASSE PARCIAL ${formatNumberBR(baseConfig.repassePct)}%`
       : REPASSE_TITULO[mode]
 
-  const aberto = cenarioAberto
+  const abertoPleno = cenarioAberto
     ? {
-        comprador: REGIMES[cenarioAberto.ci],
-        fornecedor: REGIMES[cenarioAberto.fi],
-        cell: celulas[cenarioAberto.ci].cells[cenarioAberto.fi].cell,
+        comprador: regimesCompradorPleno[cenarioAberto.ci],
+        fornecedor: REGIMES_FORNECEDOR_PLENO[cenarioAberto.fi],
+        cell: celulasPlenas[cenarioAberto.ci].cells[cenarioAberto.fi].cell,
       }
     : null
+
+  const celulaSnAtiva =
+    fornecedorSnAberto === 'real' ? celulaLrSn : celulaLpSn
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -226,17 +357,163 @@ export function EspelhoRepasseDialog({
           <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
             <Calculator className="w-5 h-5 text-emerald-400" />
             <span>
-              Espelho dos cálculos — {REPASSE_TITULO[mode]}
-              {repassePct} · Exercício {exercicio}
+              {isCompradorSn ? (
+                <>
+                  Espelho dos cálculos — Cenário Único Chancelado (sem repasse) · Exercício {exercicio}
+                </>
+              ) : (
+                <>
+                  Espelho dos cálculos — {REPASSE_TITULO[mode]}
+                  {repassePct} · Exercício {exercicio}
+                </>
+              )}
             </span>
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-400">
-            {aberto
-              ? 'Camada interna: os 6 cards do cenário selecionado — 3 por item da Calculadora de Compras.'
-              : 'Cenários PLENOS COMPRADOR × FORNECEDOR (LP/LR). Cada card reflete exatamente o repasse selecionado — clique para abrir os 6 cards do cenário. As operações com Simples Nacional (SN puro e SN híbrido) vivem na SESSÃO SN da página, com as regras próprias delas.'}
+            {isCompradorSn ? (
+              <>
+                Memória de cálculo aberta linha a linha (Cards 01, 02 e 03) para o adquirente{' '}
+                <strong className="text-slate-200">{REGIME_NOME[baseConfig.compradorRegime]}</strong> comprando
+                de fornecedores <strong className="text-slate-200">LP ou LR</strong>. Cenário único
+                chancelado pela Adri, sem composição de repasse. Fundamentação legal explícita entre colchetes.
+              </>
+            ) : abertoPleno ? (
+              'Camada interna: os 6 cards do cenário selecionado — 3 por item da Calculadora de Compras.'
+            ) : (
+              'Cenários PLENOS COMPRADOR × FORNECEDOR (LP/LR). Cada card reflete exatamente o repasse selecionado — clique para abrir os 6 cards do cenário. As operações com Simples Nacional (SN puro e SN híbrido) vivem na SESSÃO SN da página, com as regras próprias delas.'
+            )}
           </DialogDescription>
         </DialogHeader>
-        {aberto ? (
+
+        {isCompradorSn ? (
+          /* ======================================================================= */
+          /* COMPRADOR SN / SN HÍBRIDO — CENÁRIO ÚNICO CHANCELADO (Cards 01, 02 e 03)  */
+          /* Sem seletor de repasse; valores Parcial/Sem repasse NÃO aparecem        */
+          /* ======================================================================= */
+          <div className="space-y-4">
+            {/* Seletor do fornecedor pleno (LP ou LR) */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono text-slate-400 uppercase">
+                  Fornecedor da operação:
+                </span>
+                <div className="flex gap-1.5">
+                  {(['presumido', 'real'] as const).map((forn) => {
+                    const isAtivo = (fornecedorSnAberto || 'presumido') === forn
+                    const cel = celulasSnPorFornecedor[forn]
+                    return (
+                      <button
+                        key={forn}
+                        type="button"
+                        onClick={() => setFornecedorSnAberto(forn)}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold cursor-pointer transition-all ${
+                          isAtivo
+                            ? 'border-emerald-400 bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/50'
+                            : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-800'
+                        }`}
+                      >
+                        {REGIME_LABEL[forn]} ({REGIME_NOME[forn]}) · {formatBRL(cel.exercicio2027.custoUnitario)}/un ({cel.deltaPct >= 0 ? '+' : ''}{formatNumberBR(cel.deltaPct)}%)
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
+                  Cenário Único Chancelado
+                </span>
+                <span className="text-[9px] font-mono text-slate-400">
+                  Sem repasse (LC 123/2006)
+                </span>
+              </div>
+            </div>
+
+            {/* Identificação da Operação */}
+            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/[0.05] p-3 space-y-1">
+              <div className="text-[12px] font-mono font-black uppercase text-white">
+                OPERAÇÃO ANALISADA: ADQUIRENTE: {REGIME_NOME[baseConfig.compradorRegime]} / FORNECEDOR:{' '}
+                {REGIME_NOME[fornecedorSnAberto || 'presumido']}
+              </div>
+              <div className="text-[10px] font-mono text-emerald-300 uppercase">
+                CENÁRIO ÚNICO CHANCELADO · EXERCÍCIO {exercicio}
+              </div>
+              <div className="text-[10px] font-mono text-slate-300">
+                HOJE: {formatBRL(celulaSnAtiva.hoje.custoUnitario)}/un → 2027: {formatBRL(celulaSnAtiva.exercicio2027.custoUnitario)}/un ·{' '}
+                {celulaSnAtiva.deltaPct >= 0 ? '+' : ''}
+                {formatNumberBR(celulaSnAtiva.deltaPct)}% vs HOJE
+                {adquirenteSnRegime === 'simples' && ' · NOTA CHEIA SEM CRÉDITO (ART. 13 §1º LC 123/2006)'}
+                {adquirenteSnRegime === 'simples_hibrido' && ' · CRÉDITO CBS + IBS (ART. 41 LC 214/2025; SEM ICMS 18%)'}
+              </div>
+            </div>
+
+            {/* OS 3 CARDS ABERTOS LINHA A LINHA */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
+              {/* CARD 01 */}
+              <CardMemoriaCanonicalEspelho
+                titulo={`${celulaSnAtiva.card01.numero} — ${celulaSnAtiva.card01.titulo}`}
+                cor={celulaSnAtiva.card01.cor}
+                badgeExtra={
+                  <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                    HOJE 2026
+                  </span>
+                }
+                linhas={celulaSnAtiva.card01.linhas.map((l) => ({
+                  label: `${l.sinal} ${l.label}`,
+                  formula: l.formula,
+                  valor: l.valor,
+                  destaque: l.destaque,
+                  fundamento: l.fundamento,
+                }))}
+              />
+
+              {/* CARD 02 */}
+              <CardMemoriaCanonicalEspelho
+                titulo={`${celulaSnAtiva.card02.numero} — ${celulaSnAtiva.card02.titulo}`}
+                cor={celulaSnAtiva.card02.cor}
+                badgeExtra={
+                  <span className="text-[9px] font-mono font-bold text-violet-300 bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/30">
+                    FORNECEDOR 2027
+                  </span>
+                }
+                linhas={celulaSnAtiva.card02.linhas.map((l) => ({
+                  label: `${l.sinal} ${l.label}`,
+                  formula: l.formula,
+                  valor: l.valor,
+                  destaque: l.destaque,
+                  fundamento: l.fundamento,
+                }))}
+              />
+
+              {/* CARD 03 */}
+              <CardMemoriaCanonicalEspelho
+                titulo={`${celulaSnAtiva.card03.numero} — ${celulaSnAtiva.card03.titulo}`}
+                cor={celulaSnAtiva.card03.cor}
+                badgeExtra={
+                  <span
+                    className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                      celulaSnAtiva.deltaPct > 0
+                        ? 'text-rose-300 bg-rose-500/10 border-rose-500/30'
+                        : 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30'
+                    }`}
+                  >
+                    {celulaSnAtiva.deltaPct > 0 ? '+' : ''}
+                    {formatNumberBR(celulaSnAtiva.deltaPct, 2)}%
+                  </span>
+                }
+                linhas={celulaSnAtiva.card03.linhas.map((l) => ({
+                  label: `${l.sinal} ${l.label}`,
+                  formula: l.formula,
+                  valor: l.valor,
+                  destaque: l.destaque,
+                  fundamento: l.fundamento,
+                }))}
+              />
+            </div>
+          </div>
+        ) : abertoPleno ? (
+          /* ======================================================================= */
+          /* COMPRADOR PLENO — CAMADA 2: CENÁRIO ABERTO                              */
+          /* ======================================================================= */
           <div className="space-y-3">
             {/* CAMADA 2 — cabeçalho: voltar + memória/notas da combinação */}
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -251,7 +528,7 @@ export function EspelhoRepasseDialog({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => onAbrirCelula(aberto.comprador, aberto.fornecedor, aberto.cell)}
+                  onClick={() => onAbrirCelula(abertoPleno.comprador, abertoPleno.fornecedor, abertoPleno.cell)}
                   className="inline-flex items-center gap-1 rounded-md border border-orange-500/40 bg-orange-500/10 px-2 py-1 text-[9px] font-mono font-bold text-orange-300 hover:bg-orange-500/20 cursor-pointer"
                 >
                   <Calculator className="w-3 h-3" /> Memória + base legal
@@ -259,11 +536,11 @@ export function EspelhoRepasseDialog({
                 {row && (
                   <NotaCelulaTrigger
                     inp={input}
-                    cell={aberto.cell}
+                    cell={abertoPleno.cell}
                     row={row}
                     exercicio={exercicio}
-                    comprador={aberto.comprador}
-                    fornecedor={aberto.fornecedor}
+                    comprador={abertoPleno.comprador}
+                    fornecedor={abertoPleno.fornecedor}
                     repasse={mode}
                     repassePct={baseConfig.repassePct}
                   />
@@ -274,17 +551,17 @@ export function EspelhoRepasseDialog({
                 exatamente a combinação do card externo clicado */}
             <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/[0.05] p-3 space-y-1">
               <div className="text-[12px] font-mono font-black uppercase text-white">
-                OPERAÇÃO ANALISADA: ADQUIRENTE: {nomeRegime(aberto.comprador)} / FORNECEDOR:{' '}
-                {nomeRegime(aberto.fornecedor)}
+                OPERAÇÃO ANALISADA: ADQUIRENTE: {nomeRegime(abertoPleno.comprador)} / FORNECEDOR:{' '}
+                {nomeRegime(abertoPleno.fornecedor)}
               </div>
               <div className="text-[10px] font-mono text-emerald-300 uppercase">
                 {repasseTxt} · Exercício {exercicio}
               </div>
               <div className="text-[10px] font-mono text-slate-300">
-                Custo líquido {formatBRL(aberto.cell.exercicio.unitario)}/un ·{' '}
-                {aberto.cell.deltaPct > 0 ? '+' : ''}
-                {formatNumberBR(aberto.cell.deltaPct)}% vs HOJE
-                {aberto.cell.exercicio.unitario === menor && ' · MENOR CUSTO DO CENÁRIO'}
+                Custo líquido {formatBRL(abertoPleno.cell.exercicio.unitario)}/un ·{' '}
+                {abertoPleno.cell.deltaPct > 0 ? '+' : ''}
+                {formatNumberBR(abertoPleno.cell.deltaPct)}% vs HOJE
+                {abertoPleno.cell.exercicio.unitario === menorPleno && ' · MENOR CUSTO DO CENÁRIO'}
               </div>
             </div>
             {/* OS 6 CARDS — 3 por item, modelo canônico, regimes da combinação */}
@@ -293,14 +570,12 @@ export function EspelhoRepasseDialog({
                 celulasPorItem && celulasPorItem.length > 0
                   ? celulasPorItem.map(({ item }) => ({
                       item,
-                      // CÁLCULO POR ITEM (máxima da casa): cada item com a SUA célula
-                      // na combinação aberta — nunca o input consolidado de outro item.
                       cell: computeCellArt12Item(
                         item,
                         {
                           ...cfg,
-                          compradorRegime: aberto.comprador,
-                          fornecedorRegime: aberto.fornecedor,
+                          compradorRegime: abertoPleno.comprador,
+                          fornecedorRegime: abertoPleno.fornecedor,
                         },
                         row,
                       ),
@@ -310,8 +585,8 @@ export function EspelhoRepasseDialog({
               config={cfg}
               configOverride={{
                 ...cfg,
-                compradorRegime: aberto.comprador,
-                fornecedorRegime: aberto.fornecedor,
+                compradorRegime: abertoPleno.comprador,
+                fornecedorRegime: abertoPleno.fornecedor,
               }}
               exercicio={exercicio}
               mode={mode}
@@ -320,9 +595,11 @@ export function EspelhoRepasseDialog({
             />
           </div>
         ) : (
-          /* CAMADA 1 — grid dos 16 cards principais do cenário, com unitários POR ITEM */
+          /* ======================================================================= */
+          /* COMPRADOR PLENO — CAMADA 1: GRID DOS 4 CARDS PRINCIPAIS                 */
+          /* ======================================================================= */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-            {celulas.map((linha) =>
+            {celulasPlenas.map((linha) =>
               linha.cells.map(({ fornecedor, fi }) => {
                 const cfgComb = {
                   ...cfg,
@@ -340,7 +617,7 @@ export function EspelhoRepasseDialog({
                     celulasItens={celulasItens}
                     comprador={linha.comprador}
                     fornecedor={fornecedor}
-                    isMenor={cellComando?.exercicio.unitario === menor}
+                    isMenor={cellComando?.exercicio.unitario === menorPleno}
                     repasseTxt={repasseTxt}
                     onAbrir={() => setCenarioAberto({ ci: linha.ci, fi })}
                   />
@@ -349,12 +626,12 @@ export function EspelhoRepasseDialog({
             )}
           </div>
         )}
+
         <p className="text-[10px] font-mono text-slate-500">
-          LP = Lucro Presumido · LR = Lucro Real. Espelho pleno: só os regimes que destacam tributo
-          na nota — as operações com Simples Nacional (SN puro e SN híbrido, 12 combinações) vivem
-          na SESSÃO SN da página, com réguas e crédito próprios (art. 23 da LC 123/2006). Custo
-          líquido POR ITEM (nunca média — máxima da casa); até 3 maiores por valor no card, demais
-          na camada interna. Card em destaque = menor custo no item de maior valor.
+          LP = Lucro Presumido · LR = Lucro Real. Para adquirentes do Simples Nacional (SN puro e SN híbrido),
+          o espelho exibe o cenário único chancelado pela Adri, sem composição de repasse, com fundamentação legal
+          expressa (art. 13 §1º LC 123/2006; art. 23 LC 123/2006; art. 41 LC 214/2025). As operações com fornecedor
+          SN vivem na Sessão SN com regras próprias de repartição do DAS.
         </p>
       </DialogContent>
     </Dialog>
