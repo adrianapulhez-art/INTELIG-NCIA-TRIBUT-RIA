@@ -74,6 +74,13 @@ describe('CMV Art. 12 v2 — invariante central (cadeia plena neutra)', () => {
       row,
     )
     expect(fmt(lr.hoje.unitario)).toBe('1051.73')
+    // Comprador LR comprando de LP: credita PIS 1,65% + COFINS 7,6% (tese do século) → HOJE = 1.051,73
+    const lrXlp = computeCellArt12(
+      CASO_CANONICO_ART12,
+      { ...CONFIG_PADRAO_ART12, fornecedorRegime: 'presumido', compradorRegime: 'real' },
+      row,
+    )
+    expect(fmt(lrXlp.hoje.unitario)).toBe('1051.73')
     // FIX 25/09 (auditado com a CEO): comprador LP NÃO credita PIS/COFINS — só o LR credita.
     // LP×LR HOJE: créditos = só ICMS (7.632) → compras líq 34.768 → 1.158,93 (era 10.848,04 → 1.051,73)
     const lpXlr = computeCellArt12(
@@ -255,7 +262,7 @@ describe('CMV Art. 12 v2 — matriz (2027)', () => {
     expect(fmt(get('presumido', 'real').exercicio.unitario)).toBe('1051.73')
     expect(fmt(get('presumido', 'real').deltaPct)).toBe('-9.25')
     expect(fmt(get('real', 'presumido').exercicio.unitario)).toBe('1116.63')
-    expect(fmt(get('real', 'presumido').deltaPct)).toBe('-3.65')
+    expect(fmt(get('real', 'presumido').deltaPct)).toBe('6.17')
     // Comprador SN: destaque vira custo integral
     expect(fmt(get('simples', 'presumido').exercicio.unitario)).toBe('1482.94')
     expect(fmt(get('simples', 'presumido').deltaPct)).toBe('4.93')

@@ -299,7 +299,7 @@ export function NotaExplicativaCelula({
               label: '(−) PIS/COFINS',
               valor:
                 piscofinsHoje > 0
-                  ? `${formatBRL(piscofinsHoje)} (9,25% × base sem ICMS — tese do século)`
+                  ? `${formatBRL(piscofinsHoje)} (1,65% + 7,6% × base sem ICMS — tese do século)`
                   : comprador === 'simples' || comprador === 'simples_hibrido'
                     ? 'sem crédito — comprador SN não apropria crédito'
                     : comprador === 'presumido'
@@ -591,7 +591,7 @@ export function NotaExplicativaBloco({
                   label: '(−) PIS/COFINS',
                   valor:
                     piscofinsHoje > 0
-                      ? `${formatBRL(piscofinsHoje)} (9,25% × base sem ICMS — tese do século)`
+                      ? `${formatBRL(piscofinsHoje)} (1,65% + 7,6% × base sem ICMS — tese do século)`
                       : 'sem crédito — regime LP não apropria PIS/COFINS (só ICMS)',
                 },
                 {

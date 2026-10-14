@@ -368,23 +368,28 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
   })
 
   const basePis = r2(merc - icmsMerc + (frete - icmsFrete))
-  // Crédito PIS/COFINS exige AMBOS: fornecedor LR (destaca) E comprador LR (apropria — regime
-  // não cumulativo). Comprador LP NÃO credita PIS/COFINS (só ICMS) — correção auditada com a CEO.
+  // Crédito PIS/COFINS: adquirente Lucro Real no regime não-cumulativo credita PIS 1,65% e COFINS 7,6%
+  // inclusive comprando de Lucro Presumido, com ICMS deduzido da base (tese do século, STF RE 574.706).
+  // Arredondamento chancelado: meio a meio para cima em cada parcela separadamente.
   const compradorLR = config.compradorRegime === 'real'
-  const creditoPis =
-    config.fornecedorRegime === 'real' && compradorLR && pleno ? r2(basePis * 0.0925) : 0
+  const tomaCreditoLR =
+    compradorLR &&
+    pleno &&
+    (config.fornecedorRegime === 'real' || config.fornecedorRegime === 'presumido')
+
+  const creditoPisParcela = tomaCreditoLR ? r2(basePis * 0.0165) : 0
+  const creditoCofinsParcela = tomaCreditoLR ? r2(basePis * 0.076) : 0
+  const creditoPis = r2(creditoPisParcela + creditoCofinsParcela)
+
   lines.push({
     key: 'piscofins',
-    label: '(−) Crédito PIS/COFINS',
-    formula:
-      config.fornecedorRegime === 'real'
-        ? compradorLR && pleno
-          ? `${fmt(basePis)} × 9,25% (base sem ICMS — tese do século)`
-          : config.compradorRegime === 'simples' || config.compradorRegime === 'simples_hibrido'
-            ? 'Comprador SN — sem crédito'
-            : 'Comprador LP — sem crédito de PIS/COFINS (só ICMS)'
-        : config.fornecedorRegime === 'presumido'
-          ? 'cumulativo — sem aproveitamento'
+    label: '(−) Crédito PIS/COFINS (1,65% + 7,6%)',
+    formula: tomaCreditoLR
+      ? `${fmt(basePis)} × (1,65% + 7,6% = ${fmt(creditoPisParcela)} + ${fmt(creditoCofinsParcela)}) (base sem ICMS — tese do século)`
+      : config.compradorRegime === 'simples' || config.compradorRegime === 'simples_hibrido'
+        ? 'Comprador SN — sem crédito'
+        : config.compradorRegime === 'presumido'
+          ? 'Comprador LP — sem crédito de PIS/COFINS (só ICMS)'
           : 'fornecedor SN — sem destaque',
     value: -creditoPis,
     kind: 'credito',
@@ -1465,26 +1470,29 @@ export function computeExercicioArt12(
     })
   }
 
-  // Crédito PIS/COFINS do comprador LR (2026 — fornecedor LR destaca E comprador LR apropria)
+  // Crédito PIS/COFINS do comprador LR (2026 — adquirente LR credita comprando de LR ou LP)
   if (
     row.exercicio === 2026 &&
-    config.fornecedorRegime === 'real' &&
+    (config.fornecedorRegime === 'real' || config.fornecedorRegime === 'presumido') &&
     config.compradorRegime === 'real' &&
     pleno
   ) {
     // Base do crédito = valor da operação da nota de hoje (sem reprecificação) − ICMS destacado
     const basePisC = r2(merc + frete - icmsNota)
-    const creditoPis = r2(basePisC * 0.0925)
+    const credPis26 = r2(basePisC * 0.0165)
+    const credCofins26 = r2(basePisC * 0.076)
+    const creditoPis = r2(credPis26 + credCofins26)
     lines.push({
       key: 'creditopiscofins',
       label: '(−) Crédito PIS/COFINS (comprador LR)',
-      formula: `${fmt(basePisC)} × 9,25% (base sem ICMS — tese do século)`,
+      formula: `${fmt(basePisC)} × (1,65% + 7,6% = ${fmt(credPis26)} + ${fmt(credCofins26)}) (base sem ICMS — tese do século)`,
       value: -creditoPis,
       kind: 'credito',
       bloco: 2,
       fundamento: {
-        dispositivo: 'LC 10.865/2003 + STJ RE 1.188.403',
-        efeito: 'crédito do adquirente LR na aquisição (regime não cumulativo)',
+        dispositivo: 'Leis 10.637/2002 e 10.833/2003 + STF RE 574.706',
+        efeito:
+          'crédito do adquirente LR na aquisição (regime não cumulativo, inclusive de fornecedor LP)',
         validade: 'integral',
       },
     })
@@ -1520,7 +1528,11 @@ export function computeExercicioArt12(
         ordem: 2,
         descricao:
           'Créditos do adquirente (ICMS + CBS + IBS' +
-          (row.exercicio === 2026 && config.fornecedorRegime === 'real' ? ' + PIS/COFINS' : '') +
+          (row.exercicio === 2026 &&
+          config.compradorRegime === 'real' &&
+          (config.fornecedorRegime === 'real' || config.fornecedorRegime === 'presumido')
+            ? ' + PIS/COFINS'
+            : '') +
           ')',
         expressao: '—',
         resultado: fmtMoney6(creditos),
