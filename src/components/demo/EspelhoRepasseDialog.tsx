@@ -28,6 +28,7 @@ import {
   type FornecedorPlenoRegime,
   type AdquirenteSnRegime,
 } from '@/lib/art12SnCalculations'
+import { calcularCelulaLrXLr, type ResultadoCelulaLrXLr } from '@/lib/art12LrCalculations'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 
 /**
@@ -286,7 +287,7 @@ export function EspelhoRepasseDialog({
   const adquirenteSnRegime: AdquirenteSnRegime =
     baseConfig.compradorRegime === 'simples_hibrido' ? 'simples_hibrido' : 'simples'
 
-  // Item de referência para a memória canônica das células SN
+  // Item de referência para a memória canônica das células SN e LR × LR
   const itemReferencia =
     celulasPorItem && celulasPorItem.length > 0 ? celulasPorItem[0].item : undefined
 
@@ -302,6 +303,9 @@ export function EspelhoRepasseDialog({
     adquirenteSnRegime,
     itemReferencia,
   )
+
+  // Célula LR × LR chancelada (Régua A, neutra Δ 0,00%)
+  const celulaLrXLr = calcularCelulaLrXLr(itemReferencia)
 
   const celulasSnPorFornecedor: Record<
     'presumido' | 'real',
@@ -569,9 +573,16 @@ export function EspelhoRepasseDialog({
             {/* IDENTIFICAÇÃO DA OPERAÇÃO (checagem da CEO, 28/09) — antes dos itens,
                 exatamente a combinação do card externo clicado */}
             <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/[0.05] p-3 space-y-1">
-              <div className="text-[12px] font-mono font-black uppercase text-white">
-                OPERAÇÃO ANALISADA: ADQUIRENTE: {nomeRegime(abertoPleno.comprador)} / FORNECEDOR:{' '}
-                {nomeRegime(abertoPleno.fornecedor)}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-[12px] font-mono font-black uppercase text-white">
+                  OPERAÇÃO ANALISADA: ADQUIRENTE: {nomeRegime(abertoPleno.comprador)} / FORNECEDOR:{' '}
+                  {nomeRegime(abertoPleno.fornecedor)}
+                </div>
+                {abertoPleno.comprador === 'real' && abertoPleno.fornecedor === 'real' && (
+                  <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded border border-emerald-500/50 bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40">
+                    Célula Neutra (chancelada)
+                  </span>
+                )}
               </div>
               <div className="text-[10px] font-mono text-emerald-300 uppercase">
                 {repasseTxt} · Exercício {exercicio}
@@ -581,37 +592,127 @@ export function EspelhoRepasseDialog({
                 {abertoPleno.cell.deltaPct > 0 ? '+' : ''}
                 {formatNumberBR(abertoPleno.cell.deltaPct)}% vs HOJE
                 {abertoPleno.cell.exercicio.unitario === menorPleno && ' · MENOR CUSTO DO CENÁRIO'}
+                {abertoPleno.comprador === 'real' &&
+                  abertoPleno.fornecedor === 'real' &&
+                  ' · REPASSE PRESERVA RECEITA LÍQUIDA (31.551,96) E CRÉDITO LAVA O DESTAQUE'}
               </div>
             </div>
-            {/* OS 6 CARDS — 3 por item, modelo canônico, regimes da combinação */}
-            <CardMemoriaPorItem
-              celulasPorItem={
-                celulasPorItem && celulasPorItem.length > 0
-                  ? celulasPorItem.map(({ item }) => ({
-                      item,
-                      cell: computeCellArt12Item(
+
+            {/* SE FOR A CÉLULA LR × LR: RENDERIZA OS 3 CARDS ABERTOS CANÔNICOS VIA CardMemoriaCanonicalEspelho COM CONTRASTE DIDÁTICO VS LR × LP */}
+            {abertoPleno.comprador === 'real' && abertoPleno.fornecedor === 'real' ? (
+              <div className="space-y-3">
+                {/* Contraste didático vs LR × LP visível na mesma tela */}
+                <div className="rounded-lg border border-sky-500/40 bg-sky-950/40 p-2.5 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sky-300 font-bold uppercase text-[10px]">
+                      Contraste Didático na Mesma Tela:
+                    </span>
+                    <span className="text-slate-200 text-[11px]">
+                      <strong>LR × LR</strong>: custo{' '}
+                      {formatBRL(celulaLrXLr.exercicio2027.custoUnitario)}/un (Δ 0,00% · Célula
+                      Neutra)
+                    </span>
+                    <span className="text-slate-500">vs</span>
+                    <span className="text-rose-300 text-[11px]">
+                      <strong>LR × LP</strong>: custo{' '}
+                      {formatBRL(celulaLrXLr.contrasteLp.custoUnitario)}/un (+
+                      {formatNumberBR(celulaLrXLr.contrasteLp.deltaPct)}%)
+                    </span>
+                  </div>
+                  <div className="text-[9px] text-slate-400">
+                    Na compra de LP, o LR sofre repasse com alíquota maior sem crédito pleno
+                    (+6,17%). Na compra de LR, a célula é 100% neutra (0,00%).
+                  </div>
+                </div>
+
+                {/* Os 3 Cards Abertos (mesmo padrão visual das células SN) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-stretch">
+                  {/* CARD 01 */}
+                  <CardMemoriaCanonicalEspelho
+                    titulo={`${celulaLrXLr.card01.numero} — ${celulaLrXLr.card01.titulo}`}
+                    cor={celulaLrXLr.card01.cor}
+                    badgeExtra={
+                      <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                        HOJE 2026
+                      </span>
+                    }
+                    linhas={celulaLrXLr.card01.linhas.map((l) => ({
+                      label: `${l.sinal} ${l.label}`,
+                      formula: l.formula,
+                      valor: l.valor,
+                      destaque: l.destaque,
+                      fundamento: l.fundamento,
+                    }))}
+                  />
+
+                  {/* CARD 02 */}
+                  <CardMemoriaCanonicalEspelho
+                    titulo={`${celulaLrXLr.card02.numero} — ${celulaLrXLr.card02.titulo}`}
+                    cor={celulaLrXLr.card02.cor}
+                    badgeExtra={
+                      <span className="text-[9px] font-mono font-bold text-violet-300 bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/30">
+                        FORNECEDOR 2027
+                      </span>
+                    }
+                    linhas={celulaLrXLr.card02.linhas.map((l) => ({
+                      label: `${l.sinal} ${l.label}`,
+                      formula: l.formula,
+                      valor: l.valor,
+                      destaque: l.destaque,
+                      fundamento: l.fundamento,
+                    }))}
+                  />
+
+                  {/* CARD 03 */}
+                  <CardMemoriaCanonicalEspelho
+                    titulo={`${celulaLrXLr.card03.numero} — ${celulaLrXLr.card03.titulo}`}
+                    cor={celulaLrXLr.card03.cor}
+                    badgeExtra={
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border text-emerald-300 bg-emerald-500/10 border-emerald-500/30">
+                        0,00% (Neutra)
+                      </span>
+                    }
+                    linhas={celulaLrXLr.card03.linhas.map((l) => ({
+                      label: `${l.sinal} ${l.label}`,
+                      formula: l.formula,
+                      valor: l.valor,
+                      destaque: l.destaque,
+                      fundamento: l.fundamento,
+                    }))}
+                  />
+                </div>
+              </div>
+            ) : (
+              /* DEMAIS CENÁRIOS PLENOS (LP × LP, LP × LR, LR × LP): OS 6 CARDS POR ITEM */
+              <CardMemoriaPorItem
+                celulasPorItem={
+                  celulasPorItem && celulasPorItem.length > 0
+                    ? celulasPorItem.map(({ item }) => ({
                         item,
-                        {
-                          ...cfg,
-                          compradorRegime: abertoPleno.comprador,
-                          fornecedorRegime: abertoPleno.fornecedor,
-                        },
-                        row,
-                      ),
-                    }))
-                  : []
-              }
-              config={cfg}
-              configOverride={{
-                ...cfg,
-                compradorRegime: abertoPleno.comprador,
-                fornecedorRegime: abertoPleno.fornecedor,
-              }}
-              exercicio={exercicio}
-              mode={mode}
-              mostrarIdentidade={true}
-              onAbrirMemoriaItem={onAbrirMemoriaItem}
-            />
+                        cell: computeCellArt12Item(
+                          item,
+                          {
+                            ...cfg,
+                            compradorRegime: abertoPleno.comprador,
+                            fornecedorRegime: abertoPleno.fornecedor,
+                          },
+                          row,
+                        ),
+                      }))
+                    : []
+                }
+                config={cfg}
+                configOverride={{
+                  ...cfg,
+                  compradorRegime: abertoPleno.comprador,
+                  fornecedorRegime: abertoPleno.fornecedor,
+                }}
+                exercicio={exercicio}
+                mode={mode}
+                mostrarIdentidade={true}
+                onAbrirMemoriaItem={onAbrirMemoriaItem}
+              />
+            )}
           </div>
         ) : (
           /* ======================================================================= */
@@ -631,15 +732,25 @@ export function EspelhoRepasseDialog({
                 }))
                 const cellComando = celulasItens[0]?.cell
                 return (
-                  <CardPrincipalCenario
-                    key={`${linha.comprador}-${fornecedor}`}
-                    celulasItens={celulasItens}
-                    comprador={linha.comprador}
-                    fornecedor={fornecedor}
-                    isMenor={cellComando?.exercicio.unitario === menorPleno}
-                    repasseTxt={repasseTxt}
-                    onAbrir={() => setCenarioAberto({ ci: linha.ci, fi })}
-                  />
+                  <div key={`${linha.comprador}-${fornecedor}`} className="relative flex flex-col">
+                    <CardPrincipalCenario
+                      celulasItens={celulasItens}
+                      comprador={linha.comprador}
+                      fornecedor={fornecedor}
+                      isMenor={cellComando?.exercicio.unitario === menorPleno}
+                      repasseTxt={
+                        linha.comprador === 'real' && fornecedor === 'real'
+                          ? 'CÉLULA NEUTRA (CHANCELADA)'
+                          : repasseTxt
+                      }
+                      onAbrir={() => setCenarioAberto({ ci: linha.ci, fi })}
+                    />
+                    {linha.comprador === 'real' && fornecedor === 'real' && (
+                      <div className="mt-1 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-[8px] font-mono text-emerald-300 text-center">
+                        LR × LR · Δ 0,00% · Célula Neutra (chancelada)
+                      </div>
+                    )}
+                  </div>
                 )
               }),
             )}
