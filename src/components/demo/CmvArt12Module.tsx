@@ -4,8 +4,6 @@ import {
   RotateCcw,
   Calculator,
   AlertTriangle,
-  CheckCircle2,
-  XCircle,
   ShieldAlert,
   ShieldCheck,
 } from 'lucide-react'
@@ -26,8 +24,6 @@ import {
   computeCellArt12,
   computeCellsPorItem,
   reguasArt12,
-  matrizArt12,
-  escadaArt12,
   aplicarOverrideCbsArt12,
   CBS_EDITAVEL_EXERCICIOS,
   CBS_DEFAULT,
@@ -40,7 +36,6 @@ import {
   type RegimeId,
   type RepasseMode,
   type ScheduleRowArt,
-  type Semaforo,
   type SideResultArt,
   r2,
 } from '@/lib/art12Calculations'
@@ -66,21 +61,6 @@ const REGIME_LABEL_FULL: Record<RegimeId, string> = {
   real: 'Lucro Real',
   simples: 'Simples Nacional',
   simples_hibrido: 'Simples Nacional — regime regular IBS/CBS (híbrido)',
-}
-
-const SEMAFORO_STYLE: Record<Semaforo, { bg: string; icon: React.ReactNode }> = {
-  verde: {
-    bg: 'border-emerald-500/50 bg-emerald-500/[0.07]',
-    icon: <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />,
-  },
-  ambar: {
-    bg: 'border-amber-500/50 bg-amber-500/[0.07]',
-    icon: <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />,
-  },
-  vermelho: {
-    bg: 'border-rose-500/50 bg-rose-500/[0.07]',
-    icon: <XCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />,
-  },
 }
 
 const BLOCO_TITULOS: Record<number, string> = {
@@ -506,114 +486,6 @@ function BlocoMemoryDialog({
   )
 }
 
-/** Modal da matriz 4×4 completa (camada interna — pedido da CEO, 23/09). */
-function MatrizResumoDialog({
-  matriz,
-  menorCusto,
-  exercicio,
-  open,
-  onOpenChange,
-  onAbrirCelula,
-}: {
-  matriz: { comprador: RegimeId; cells: { fornecedor: RegimeId; cell: CellResultArt }[] }[]
-  menorCusto: number
-  exercicio: ExercicioKey
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onAbrirCelula: (comprador: RegimeId, fornecedor: RegimeId, cell: CellResultArt) => void
-}) {
-  const ordem: RegimeId[] = ['presumido', 'real', 'simples', 'simples_hibrido']
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
-        <DialogHeader>
-          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-emerald-400" />
-            <span>Matriz plena — Exercício {exercicio}</span>
-          </DialogTitle>
-          <DialogDescription className="text-xs text-slate-400">
-            4 combinações plenas LP/LR × LP/LR. As operações com Simples Nacional (SN puro e SN
-            híbrido) vivem na SESSÃO SN da página — com as regras próprias delas (art. 23 da LC
-            123/2006). Clique numa célula para abrir a memória completa.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[10px] font-mono">
-            <thead>
-              <tr className="text-slate-400">
-                <th className="text-left px-2 py-1.5">COMPRADOR ↓ · FORNECEDOR →</th>
-                {ordem
-                  .filter((f) => f === 'presumido' || f === 'real')
-                  .map((f) => (
-                    <th key={f} className="text-right px-2 py-1.5">
-                      {REGIME_LABEL[f]}
-                    </th>
-                  ))}
-              </tr>
-            </thead>
-            <tbody>
-              {matriz
-                .filter((linha) => linha.comprador === 'presumido' || linha.comprador === 'real')
-                .map((linha) => (
-                  <tr key={linha.comprador} className="border-t border-slate-800/70">
-                    <td className="px-2 py-1.5 font-bold text-slate-300">
-                      {REGIME_LABEL[linha.comprador]}
-                    </td>
-                    {linha.cells.map(({ fornecedor, cell }) => {
-                      const isMenor = cell.exercicio.unitario === menorCusto
-                      return (
-                        <td key={fornecedor} className="px-1 py-1">
-                          <button
-                            type="button"
-                            onClick={() => onAbrirCelula(linha.comprador, fornecedor, cell)}
-                            className={`w-full text-left rounded-lg border p-2 cursor-pointer hover:brightness-125 ${
-                              isMenor
-                                ? 'border-emerald-400/70 bg-emerald-500/10 ring-1 ring-emerald-400/60'
-                                : 'border-slate-700/60 bg-slate-900/40'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-black text-white text-[11px]">
-                                {formatBRL(cell.exercicio.unitario)}/un
-                              </span>
-                              {isMenor && (
-                                <span className="text-[8px] font-mono font-bold text-emerald-300 border border-emerald-500/50 rounded px-1">
-                                  MENOR
-                                </span>
-                              )}
-                            </div>
-                            <div
-                              className={
-                                cell.deltaPct > 0
-                                  ? 'text-rose-300'
-                                  : cell.deltaPct < 0
-                                    ? 'text-emerald-300'
-                                    : 'text-slate-400'
-                              }
-                            >
-                              {cell.deltaPct > 0 ? '+' : ''}
-                              {formatNumberBR(cell.deltaPct)}%
-                            </div>
-                          </button>
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-[10px] font-mono text-slate-500">
-          LP = Lucro Presumido · LR = Lucro Real. Matriz plena: só os regimes que destacam tributo
-          na nota. As operações com Simples Nacional (SN puro e SN híbrido) vivem na SESSÃO SN da
-          página — réguas de repasse e crédito próprios (art. 23 da LC 123/2006). Célula em destaque
-          = menor custo da matriz plena.
-        </p>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 export function CmvArt12Module() {
   const [exercicio, setExercicio] = useState<ExercicioKey>(2027)
   const [config, setConfig] = useState<CellConfigArt>(CONFIG_PADRAO_ART12)
@@ -636,7 +508,6 @@ export function CmvArt12Module() {
     bloco: number
     label: string
   } | null>(null)
-  const [matrizModal, setMatrizModal] = useState<{ open: boolean }>({ open: false })
   const [espelhoModal, setEspelhoModal] = useState<{ open: boolean; mode: RepasseMode } | null>(
     null,
   )
@@ -699,20 +570,7 @@ export function CmvArt12Module() {
   }
   const origemIntegrada = temOrigem
 
-  const activeCell = useMemo(() => computeCellArt12(input, config, row), [input, config, row])
   const reguas = useMemo(() => reguasArt12(input, config, row), [input, config, row])
-  const matriz = useMemo(() => matrizArt12(input, config, row), [input, config, row])
-  const escada = useMemo(
-    () => escadaArt12(input, config, cbsOverride),
-    [input, config, cbsOverride],
-  )
-
-  const semaforoStyle = SEMAFORO_STYLE[activeCell.semaforo]
-
-  const menorCusto = useMemo(() => {
-    const all = matriz.flatMap((l) => l.cells.map((c) => c.cell.exercicio.unitario))
-    return Math.min(...all)
-  }, [matriz])
 
   return (
     <div className="space-y-4">
@@ -1089,85 +947,6 @@ export function CmvArt12Module() {
         }
       />
 
-      {/* ================= Leitura da célula ativa (memória por item vive nos cards de repasse) ================= */}
-      <div className={`flex items-start gap-3 rounded-xl border p-3 ${semaforoStyle.bg}`}>
-        {semaforoStyle.icon}
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-black font-mono text-white">
-              Δ {activeCell.deltaPct > 0 ? '+' : ''}
-              {formatNumberBR(activeCell.deltaPct)}%
-            </span>
-            <span className="text-[11px] font-mono text-slate-300">
-              ({formatBRL(activeCell.hoje.unitario)} → {formatBRL(activeCell.exercicio.unitario)}
-              /un)
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                setMemoryCell({ label: `Exercício ${exercicio}`, cell: activeCell, row })
-              }
-              className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer h-6 text-[10px]"
-            >
-              <Calculator className="w-3 h-3 mr-1" /> Memória da célula ativa
-            </Button>
-          </div>
-          <p className="text-[11px] text-slate-300 leading-relaxed">{activeCell.porque}</p>
-        </div>
-      </div>
-
-      {/* ================= Escada (régua Nenhum) ================= */}
-      <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-2">
-        <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-          Escada do custo — fornecedor NÃO repassa (quem absorve: o comprador)
-        </span>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-          {escada.map((s) => (
-            <div
-              key={s.exercicio}
-              className="rounded-lg border border-slate-700/60 bg-slate-950/50 p-2"
-            >
-              <div className="text-[10px] font-mono font-bold text-slate-300">{s.exercicio}</div>
-              <div className="text-xs font-mono font-black text-white">{formatBRL(s.unitario)}</div>
-              <div
-                className={`text-[10px] font-mono ${s.deltaPct > 0 ? 'text-rose-400' : s.deltaPct < 0 ? 'text-emerald-400' : 'text-slate-500'}`}
-              >
-                {s.deltaPct > 0 ? '+' : ''}
-                {formatNumberBR(s.deltaPct)}%
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="text-[10px] font-mono text-slate-500">
-          Leitura fiscal: com repasse integral a cadeia plena é neutra (crédito lava o destaque);
-          sem repasse, o adquirente absorve a CBS/IBS sobre a base limpa e o custo sobe a cada
-          exercício — o impacto é do comprador, não do fornecedor.
-        </p>
-      </div>
-
-      {/* ================= Matriz — RESUMO na tela + TABELA COMPLETA na camada interna ================= */}
-      <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-            Cruzamento de regimes · Exercício {exercicio}
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setMatrizModal({ open: true })}
-            className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
-          >
-            <Calculator className="w-3.5 h-3.5 mr-1" /> Ver tabela completa (4×4)
-          </Button>
-        </div>
-        <p className="text-[10px] font-mono text-slate-500">
-          Os 4 cruzamentos plenos (LP/LR × LP/LR), com custo unitário e Δ — na camada interna. As
-          operações com Simples Nacional (SN puro e SN híbrido, 12 combinações) vivem na SESSÃO SN
-          abaixo, com as regras próprias delas (art. 23 da LC 123/2006).
-        </p>
-      </div>
-
       {/* ================= Modal de memória por célula ================= */}
       {memoryCell && (
         <CellMemoryDialogArt
@@ -1197,21 +976,6 @@ export function CmvArt12Module() {
           contexto={`Exercício ${exercicio} · ${REGIME_LABEL_FULL[config.fornecedorRegime]} (fornecedor) × ${REGIME_LABEL_FULL[config.compradorRegime]} (comprador)`}
         />
       )}
-      <MatrizResumoDialog
-        matriz={matriz}
-        menorCusto={menorCusto}
-        exercicio={exercicio}
-        open={matrizModal.open}
-        onOpenChange={(o) => setMatrizModal({ open: o })}
-        onAbrirCelula={(comprador, fornecedor, cell) => {
-          setMatrizModal({ open: false })
-          setMemoryCell({
-            label: `${REGIME_LABEL[comprador]} × ${REGIME_LABEL[fornecedor]} — ${exercicio}`,
-            cell,
-            row,
-          })
-        }}
-      />
       {espelhoModal && (
         <EspelhoRepasseDialog
           input={input}
