@@ -37,10 +37,8 @@ import {
   type ScheduleRowArt,
 } from '@/lib/art12Calculations'
 import { type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
-import { CardEstoqueReajustado, type LinhaEstoqueSN } from './CardEstoqueReajustado'
 import { ComparadorFornecedoresDialog } from './ComparadorFornecedoresDialog'
 import { ManualContadorSnDialog } from './ManualContadorSnDialog'
-import { PainelTesesSn } from './PainelTesesSn'
 import { TrilhaChancelaBadge } from './TrilhaChancelaBadge'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 
@@ -1220,34 +1218,6 @@ export function SessaoSnSection({
               </div>
             </div>
           )}
-
-          {/* PAINEL DE TESES EM ABERTO — RES. CGSN 190/2026 (Fase 2) */}
-          <PainelTesesSn
-            resultado={itemAtivo ? itemAtivo.puro.r : resultados[0].puro.r}
-            baseAtual={baseDoDas}
-            onAlternarBase={setBaseDoDas}
-          />
-
-          {/* 5 — Card do Estoque Reajustado (consome parcela creditável) */}
-          <CardEstoqueReajustado
-            exercicio={exercicio}
-            fornecedorTxt={
-              fornecedorSN === 'puro'
-                ? 'fornecedor SN puro (nota congelada + parcela creditável oficial do art. 23)'
-                : 'fornecedor SN híbrido (regime regular — crédito integral, motor Art. 12 chancelado)'
-            }
-            linhas={resultados.map<LinhaEstoqueSN>((res) => {
-              const sel = fornecedorSN === 'puro' ? res.puro : res.hibrido
-              return {
-                id: res.item.id,
-                nome: res.item.name || 'Item',
-                qtd: res.item.quantity,
-                custoHoje: sel.cellHojeUnitario,
-                custoNovo: sel.unitario,
-                deltaPct: sel.deltaPct,
-              }
-            })}
-          />
 
           {/* COMPARADOR DE FORNECEDORES SN */}
           <ComparadorFornecedoresDialog
