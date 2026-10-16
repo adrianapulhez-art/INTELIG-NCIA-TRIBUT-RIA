@@ -106,7 +106,7 @@ function ProductBaseValueInput({
     <div className="space-y-1">
       <div className="flex items-center justify-between">
         <label
-          className="text-[11px] text-slate-300 font-semibold"
+          className="text-[11px] text-slate-700 font-semibold"
           title={
             isLiquid
               ? `Receita Líquida Desejada para o regime ${regimeLabel}. Alimentação 100% manual por regime.`
@@ -116,11 +116,11 @@ function ProductBaseValueInput({
           {isLiquid ? `Receita Líquida Desejada — ${regimeLabel} (R$)` : 'Custo do produto'}
         </label>
         {isReadOnlyCost && (
-          <span className="text-[10px] font-mono text-emerald-400 font-medium">
+          <span className="text-[10px] font-mono text-emerald-700 font-medium">
             · via composição de custo
           </span>
         )}
-        {isLiquid && <span className="text-[10px] font-mono text-emerald-400/80">Manual</span>}
+        {isLiquid && <span className="text-[10px] font-mono text-emerald-700">Manual</span>}
       </div>
       <div className="relative">
         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
@@ -150,7 +150,7 @@ function ProductBaseValueInput({
           }}
           className={`pl-8 text-right text-xs h-8 ${
             isReadOnlyCost
-              ? 'border-emerald-500/40 text-emerald-300 bg-emerald-950/20 cursor-default focus:border-emerald-500/40'
+              ? 'border-emerald-300 text-emerald-800 bg-emerald-50 cursor-default focus:border-emerald-500'
               : 'field-input-interactive'
           }`}
         />
@@ -195,7 +195,7 @@ function ProductMarginInput({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-1 flex-wrap">
-        <label className="text-[11px] text-slate-300 font-semibold flex items-center gap-1">
+        <label className="text-[11px] text-slate-700 font-semibold flex items-center gap-1">
           <span>
             {isLiquid ? 'Margem de lucro (%)' : `Margem de Lucro Desejada — ${regimeLabel} (%)`}
           </span>
@@ -203,7 +203,7 @@ function ProductMarginInput({
         {isLiquid && (
           <Badge
             variant="outline"
-            className="text-[9px] px-1.5 py-0 border-emerald-500/40 text-emerald-300 bg-emerald-500/10 font-mono font-normal"
+            className="text-[9px] px-1.5 py-0 border-emerald-300 text-emerald-800 bg-emerald-50 font-mono font-normal"
           >
             Derivado do valor informado
           </Badge>
@@ -237,7 +237,7 @@ function ProductMarginInput({
           }}
           className={`pr-6 text-right text-xs h-8 ${
             isLiquid
-              ? 'bg-slate-900/90 border-emerald-500/30 text-emerald-300 font-bold cursor-not-allowed opacity-90'
+              ? 'bg-slate-100 border-emerald-300 text-emerald-800 font-bold cursor-not-allowed opacity-90'
               : 'field-input-interactive'
           }`}
           title={
@@ -248,7 +248,7 @@ function ProductMarginInput({
         />
         <span
           className={`absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono pointer-events-none ${
-            isLiquid ? 'text-emerald-400 font-bold' : 'text-slate-500'
+            isLiquid ? 'text-emerald-700 font-bold' : 'text-slate-500'
           }`}
         >
           %
@@ -256,7 +256,7 @@ function ProductMarginInput({
       </div>
 
       {isLiquid && (
-        <p className="text-[10px] text-slate-400 leading-tight">
+        <p className="text-[10px] text-slate-500 leading-tight">
           Receita líquida de vendas ≠ custo da mercadoria — o valor informado já embute CMV,
           despesas operacionais, IR, CSLL e a margem líquida alvo.
         </p>
@@ -287,7 +287,7 @@ function VariableExpenseRow({ dv, onUpdate, onRemove }: VariableExpenseRowProps)
           type="text"
           value={dv.name}
           onChange={(e) => onUpdate(dv.id, 'name', e.target.value)}
-          className="h-7 text-xs font-mono text-slate-200 bg-slate-900/60 border-slate-800 focus:border-emerald-500"
+          className="h-7 text-xs font-mono text-slate-800 bg-white border-slate-200 focus:border-emerald-500"
         />
       </div>
       <div className="flex items-center gap-3">
@@ -315,13 +315,14 @@ function VariableExpenseRow({ dv, onUpdate, onRemove }: VariableExpenseRowProps)
             %
           </span>
         </div>
-        <span className="text-xs font-mono text-slate-400 min-w-[110px] text-right">
-          Fator: <span className="text-slate-200">{formatFactorBR(1 - dv.rate / 100)}</span>
+        <span className="text-xs font-mono text-slate-600 min-w-[110px] text-right">
+          Fator:{' '}
+          <span className="text-slate-800 font-semibold">{formatFactorBR(1 - dv.rate / 100)}</span>
         </span>
         <button
           type="button"
           onClick={() => onRemove(dv.id)}
-          className="p-1 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-rose-500/10 cursor-pointer"
+          className="p-1 text-slate-400 hover:text-rose-600 transition-colors rounded hover:bg-rose-50 cursor-pointer"
           title="Remover despesa variável"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -898,24 +899,24 @@ export default function MarkupPage() {
         {/* Card Principal */}
         <div
           key={`markup-container-${regime}`}
-          className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6"
+          className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-7 shadow-sm space-y-6"
         >
           {/* Header com Ícone de Calculadora */}
-          <div className="flex items-start justify-between flex-wrap gap-3 pb-2 border-b border-emerald-500/15">
+          <div className="flex items-start justify-between flex-wrap gap-3 pb-3 border-b border-slate-200">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0 shadow-sm">
                 <Calculator className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                     Parâmetros e Produtos do MARKUP
                   </h2>
-                  <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono">
+                  <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-mono">
                     {markupProducts.length} {markupProducts.length === 1 ? 'produto' : 'produtos'}
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Configuração de alíquotas automáticas por regime tributário e lista de produtos.
                 </p>
               </div>
@@ -926,25 +927,25 @@ export default function MarkupPage() {
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
-                <label className="text-xs font-semibold text-slate-300">
+                <label className="text-xs font-semibold text-slate-700">
                   Regime tributário da empresa (alíquotas automáticas)
                 </label>
                 {/* Sinalização de fluxo na UI, discreta e em camadas */}
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700/80 text-[11px] font-mono">
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-[11px] font-mono">
                   {markupMode === 'liquid' ? (
                     <span
-                      className="inline-flex items-center gap-1 text-emerald-400 font-medium cursor-help"
+                      className="inline-flex items-center gap-1 text-emerald-700 font-medium cursor-help"
                       title="Fluxo B: a receita líquida desejada alimenta apenas o markup e a DRE deste regime, sem propagação para os demais."
                     >
-                      <Target className="w-3 h-3 text-emerald-400" />
+                      <Target className="w-3 h-3 text-emerald-600" />
                       <span>Precificação por meta (Fluxo B)</span>
                     </span>
                   ) : (
                     <span
-                      className="inline-flex items-center gap-1 text-sky-400 font-medium cursor-help"
+                      className="inline-flex items-center gap-1 text-sky-700 font-medium cursor-help"
                       title="Fluxo Custo + Margem: baseada na composição do CMV ou compras líquidas."
                     >
-                      <Layers className="w-3 h-3 text-sky-400" />
+                      <Layers className="w-3 h-3 text-sky-600" />
                       <span>Custo + Margem</span>
                     </span>
                   )}
@@ -954,19 +955,19 @@ export default function MarkupPage() {
                 <button
                   type="button"
                   onClick={() => setIsMarketComparisonModalOpen(true)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono font-medium bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 hover:text-amber-200 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 hover:text-amber-900 transition-colors cursor-pointer"
                   title="Fluxo A: testar um único preço de venda de mercado como âncora nos 3 regimes"
                 >
-                  <TrendingUp className="w-3 h-3 text-amber-400" />
+                  <TrendingUp className="w-3 h-3 text-amber-600" />
                   <span>Comparação por preço de mercado (Fluxo A) ›</span>
                 </button>
               </div>
 
               <Badge
                 variant="outline"
-                className="text-[11px] font-mono border-emerald-500/40 text-emerald-400 bg-emerald-500/5 px-2 py-0.5 inline-flex items-center gap-1.5 font-normal shadow-sm"
+                className="text-[11px] font-mono border-emerald-300 text-emerald-700 bg-emerald-50 px-2 py-0.5 inline-flex items-center gap-1.5 font-normal shadow-sm"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Sincronizado globalmente
               </Badge>
             </div>
@@ -977,20 +978,20 @@ export default function MarkupPage() {
                 onClick={() => setRegime('presumido')}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   regime === 'presumido'
-                    ? 'bg-orange-500 text-slate-950 border-orange-400 font-bold shadow-md shadow-orange-500/20'
-                    : 'bg-slate-950/40 border-orange-500/30 text-orange-200/80 hover:border-orange-500/60 hover:text-orange-100 hover:bg-orange-500/5'
+                    ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-bold font-mono uppercase ${regime === 'presumido' ? 'text-slate-950' : 'text-orange-300'}`}
+                    className={`text-xs font-bold font-mono uppercase ${regime === 'presumido' ? 'text-emerald-800' : 'text-slate-700'}`}
                   >
                     Lucro Presumido
                   </span>
-                  {regime === 'presumido' && <CheckCircle2 className="w-4 h-4 text-slate-950" />}
+                  {regime === 'presumido' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 </div>
                 <p
-                  className={`text-[11px] mt-1 font-mono ${regime === 'presumido' ? 'text-slate-900/90 font-medium' : 'text-slate-400'}`}
+                  className={`text-[11px] mt-1 font-mono ${regime === 'presumido' ? 'text-slate-700 font-medium' : 'text-slate-500'}`}
                 >
                   PIS 0,65% · COFINS 3,00% (cumulativo)
                 </p>
@@ -1001,20 +1002,20 @@ export default function MarkupPage() {
                 onClick={() => setRegime('real')}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   regime === 'real'
-                    ? 'bg-orange-500 text-slate-950 border-orange-400 font-bold shadow-md shadow-orange-500/20'
-                    : 'bg-slate-950/40 border-orange-500/30 text-orange-200/80 hover:border-orange-500/60 hover:text-orange-100 hover:bg-orange-500/5'
+                    ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-bold font-mono uppercase ${regime === 'real' ? 'text-slate-950' : 'text-orange-300'}`}
+                    className={`text-xs font-bold font-mono uppercase ${regime === 'real' ? 'text-emerald-800' : 'text-slate-700'}`}
                   >
                     Lucro Real
                   </span>
-                  {regime === 'real' && <CheckCircle2 className="w-4 h-4 text-slate-950" />}
+                  {regime === 'real' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 </div>
                 <p
-                  className={`text-[11px] mt-1 font-mono ${regime === 'real' ? 'text-slate-900/90 font-medium' : 'text-slate-400'}`}
+                  className={`text-[11px] mt-1 font-mono ${regime === 'real' ? 'text-slate-700 font-medium' : 'text-slate-500'}`}
                 >
                   PIS 1,65% · COFINS 7,60% (não cumulativo)
                 </p>
@@ -1025,20 +1026,20 @@ export default function MarkupPage() {
                 onClick={() => setRegime('simples')}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   regime === 'simples'
-                    ? 'bg-orange-500 text-slate-950 border-orange-400 font-bold shadow-md shadow-orange-500/20'
-                    : 'bg-slate-950/40 border-orange-500/30 text-orange-200/80 hover:border-orange-500/60 hover:text-orange-100 hover:bg-orange-500/5'
+                    ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-bold font-mono uppercase ${regime === 'simples' ? 'text-slate-950' : 'text-orange-300'}`}
+                    className={`text-xs font-bold font-mono uppercase ${regime === 'simples' ? 'text-emerald-800' : 'text-slate-700'}`}
                   >
                     Simples Nacional
                   </span>
-                  {regime === 'simples' && <CheckCircle2 className="w-4 h-4 text-slate-950" />}
+                  {regime === 'simples' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 </div>
                 <p
-                  className={`text-[11px] mt-1 font-mono ${regime === 'simples' ? 'text-slate-900/90 font-medium' : 'text-slate-400'}`}
+                  className={`text-[11px] mt-1 font-mono ${regime === 'simples' ? 'text-slate-700 font-medium' : 'text-slate-500'}`}
                 >
                   Guia única DAS (PIS/COFINS sem destaque avulso)
                 </p>
@@ -1050,29 +1051,29 @@ export default function MarkupPage() {
           {/* BLOCO DE ENTRADA INTELIGENTE: SIMPLES NACIONAL (PORTA 1 vs PORTA 2)       */}
           {/* ========================================================================= */}
           {regime === 'simples' && (
-            <div className="space-y-4 pt-3 border-t border-orange-500/30 rounded-2xl bg-orange-950/15 p-4 sm:p-5 border border-orange-500/20">
+            <div className="space-y-4 pt-3 border-t border-slate-200 rounded-2xl bg-slate-50 p-4 sm:p-5 border">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-orange-400" />
-                    <h3 className="text-xs sm:text-sm font-mono font-bold uppercase tracking-wider text-orange-300">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                    <h3 className="text-xs sm:text-sm font-mono font-bold uppercase tracking-wider text-slate-900">
                       Entrada Inteligente — Simples Nacional
                     </h3>
                   </div>
-                  <p className="text-xs text-slate-300 mt-1">
+                  <p className="text-xs text-slate-600 mt-1">
                     A empresa já está em atividade há mais de 12 meses?
                   </p>
                 </div>
 
                 {/* Seletor Não / Sim */}
-                <div className="inline-flex rounded-xl bg-slate-950 p-1 border border-orange-500/40 text-xs font-mono shadow-inner">
+                <div className="inline-flex rounded-xl bg-white p-1 border border-slate-200 text-xs font-mono shadow-sm">
                   <button
                     type="button"
                     onClick={() => setSimplesIsActiveMoreThan12m(false)}
                     className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer font-bold ${
                       !simplesIsActiveMoreThan12m
-                        ? 'bg-orange-500 text-slate-950 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     NÃO (Início de atividade)
@@ -1082,8 +1083,8 @@ export default function MarkupPage() {
                     onClick={() => setSimplesIsActiveMoreThan12m(true)}
                     className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer font-bold ${
                       simplesIsActiveMoreThan12m
-                        ? 'bg-orange-500 text-slate-950 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     SIM (&gt; 12 meses)
@@ -1093,13 +1094,16 @@ export default function MarkupPage() {
 
               {/* PORTA 1: Início de Atividade (< 12 meses) */}
               {!simplesIsActiveMoreThan12m && (
-                <div className="space-y-4 pt-2 border-t border-orange-500/20">
+                <div className="space-y-4 pt-2 border-t border-slate-200">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className="text-xs font-semibold text-slate-300">
+                    <span className="text-xs font-semibold text-slate-700">
                       Escolha um cenário de faturamento mensal ou digite livremente:
                     </span>
-                    <span className="text-[11px] font-mono text-orange-300">
-                      RBT12 Adotada: <strong>{formatBRL(effectiveSimplesRbt12)}</strong>
+                    <span className="text-[11px] font-mono text-slate-700">
+                      RBT12 Adotada:{' '}
+                      <strong className="text-emerald-700">
+                        {formatBRL(effectiveSimplesRbt12)}
+                      </strong>
                     </span>
                   </div>
 
@@ -1111,23 +1115,24 @@ export default function MarkupPage() {
                       onClick={() => setSimplesSelectedScenario('conservador')}
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         simplesSelectedScenario === 'conservador'
-                          ? 'bg-orange-500/25 border-orange-400 ring-2 ring-orange-500/40 text-orange-100 shadow-md'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-orange-500/40 hover:text-white'
+                          ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/30 text-slate-900 shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold uppercase text-orange-300">
+                        <span className="text-xs font-mono font-bold uppercase text-slate-800">
                           Conservador
                         </span>
                         {simplesSelectedScenario === 'conservador' && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-orange-400" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                         )}
                       </div>
-                      <div className="mt-1 text-sm font-bold text-white font-mono">
+                      <div className="mt-1 text-sm font-bold text-slate-900 font-mono">
                         R$ 15.000 / mês
                       </div>
-                      <p className="text-[10px] text-slate-400 font-mono mt-1">
-                        RBT12: R$ 180.000 · Alíquota: <strong>4,00%</strong>
+                      <p className="text-[10px] text-slate-500 font-mono mt-1">
+                        RBT12: R$ 180.000 · Alíquota:{' '}
+                        <strong className="text-slate-800">4,00%</strong>
                       </p>
                     </button>
 
@@ -1137,23 +1142,24 @@ export default function MarkupPage() {
                       onClick={() => setSimplesSelectedScenario('moderado')}
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         simplesSelectedScenario === 'moderado'
-                          ? 'bg-orange-500/25 border-orange-400 ring-2 ring-orange-500/40 text-orange-100 shadow-md'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-orange-500/40 hover:text-white'
+                          ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/30 text-slate-900 shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold uppercase text-orange-300">
+                        <span className="text-xs font-mono font-bold uppercase text-slate-800">
                           Moderado
                         </span>
                         {simplesSelectedScenario === 'moderado' && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-orange-400" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                         )}
                       </div>
-                      <div className="mt-1 text-sm font-bold text-white font-mono">
+                      <div className="mt-1 text-sm font-bold text-slate-900 font-mono">
                         R$ 20.000 / mês
                       </div>
-                      <p className="text-[10px] text-slate-400 font-mono mt-1">
-                        RBT12: R$ 240.000 · Alíquota: <strong>4,83%</strong>
+                      <p className="text-[10px] text-slate-500 font-mono mt-1">
+                        RBT12: R$ 240.000 · Alíquota:{' '}
+                        <strong className="text-slate-800">4,83%</strong>
                       </p>
                     </button>
 
@@ -1163,31 +1169,32 @@ export default function MarkupPage() {
                       onClick={() => setSimplesSelectedScenario('otimista')}
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         simplesSelectedScenario === 'otimista'
-                          ? 'bg-orange-500/25 border-orange-400 ring-2 ring-orange-500/40 text-orange-100 shadow-md'
-                          : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-orange-500/40 hover:text-white'
+                          ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/30 text-slate-900 shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold uppercase text-orange-300">
+                        <span className="text-xs font-mono font-bold uppercase text-slate-800">
                           Otimista
                         </span>
                         {simplesSelectedScenario === 'otimista' && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-orange-400" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                         )}
                       </div>
-                      <div className="mt-1 text-sm font-bold text-white font-mono">
+                      <div className="mt-1 text-sm font-bold text-slate-900 font-mono">
                         R$ 30.000 / mês
                       </div>
-                      <p className="text-[10px] text-slate-400 font-mono mt-1">
-                        RBT12: R$ 360.000 · Alíquota: <strong>5,65%</strong>
+                      <p className="text-[10px] text-slate-500 font-mono mt-1">
+                        RBT12: R$ 360.000 · Alíquota:{' '}
+                        <strong className="text-slate-800">5,65%</strong>
                       </p>
                     </button>
                   </div>
 
                   {/* Linha de Personalização: Faturamento mensal projetado + Meses de atividade (1-12) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
                     <div className="space-y-1">
-                      <label className="text-[11px] text-slate-300 font-semibold">
+                      <label className="text-[11px] text-slate-700 font-semibold">
                         Faturamento mensal projetado (R$)
                       </label>
                       <div className="relative">
@@ -1207,10 +1214,10 @@ export default function MarkupPage() {
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <label className="text-[11px] text-slate-300 font-semibold">
+                        <label className="text-[11px] text-slate-700 font-semibold">
                           Meses de atividade decorridos
                         </label>
-                        <span className="text-[10px] font-mono text-orange-300">
+                        <span className="text-[10px] font-mono text-emerald-700">
                           {simplesActivityMonths === 1
                             ? '1º mês (receita × 12)'
                             : `${simplesActivityMonths} meses (acumulado × 12 ÷ meses)`}
@@ -1219,7 +1226,7 @@ export default function MarkupPage() {
                       <select
                         value={simplesActivityMonths}
                         onChange={(e) => setSimplesActivityMonths(parseInt(e.target.value, 10))}
-                        className="w-full h-8 px-2 text-xs font-mono rounded-md bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:border-orange-500"
+                        className="w-full h-8 px-2 text-xs font-mono rounded-md bg-white border border-slate-200 text-slate-800 focus:outline-none focus:border-emerald-500"
                       >
                         {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                           <option key={m} value={m}>
@@ -1234,15 +1241,15 @@ export default function MarkupPage() {
                     const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
                     const pgdasRes = calculatePgdas(anexoClean, effectiveSimplesRbt12)
                     return (
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-orange-500/10 border border-orange-500/25 text-xs font-mono text-orange-200 flex-wrap gap-2">
+                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-mono text-slate-800 flex-wrap gap-2">
                         <span>
                           Faixa detectada:{' '}
-                          <strong className="text-white">Faixa {pgdasRes.faixaNumero}</strong>{' '}
+                          <strong className="text-slate-900">Faixa {pgdasRes.faixaNumero}</strong>{' '}
                           (Anexo I — Comércio)
                         </span>
                         <span>
                           Alíquota efetiva PGDAS:{' '}
-                          <strong className="text-orange-300 text-sm">
+                          <strong className="text-emerald-700 text-sm">
                             {formatPercentBR(pgdasRes.aliquotaEfetiva)}
                           </strong>
                         </span>
@@ -1254,13 +1261,13 @@ export default function MarkupPage() {
 
               {/* PORTA 2: Empresa madura (> 12 meses) */}
               {simplesIsActiveMoreThan12m && (
-                <div className="space-y-3 pt-2 border-t border-orange-500/20">
-                  <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-3 pt-2 border-t border-slate-200">
+                  <div className="p-3.5 rounded-xl bg-white border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
                     <div className="space-y-0.5">
-                      <label className="text-xs font-bold text-slate-200 font-mono">
+                      <label className="text-xs font-bold text-slate-800 font-mono">
                         RBT12 Formada (Receita Bruta Acumulada 12 Meses)
                       </label>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-slate-500">
                         Informe o montante dos últimos 12 meses da empresa para apuração da faixa
                         legal.
                       </p>
@@ -1286,15 +1293,15 @@ export default function MarkupPage() {
                     const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
                     const pgdasRes = calculatePgdas(anexoClean, effectiveSimplesRbt12)
                     return (
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-orange-500/10 border border-orange-500/25 text-xs font-mono text-orange-200 flex-wrap gap-2">
+                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-mono text-slate-800 flex-wrap gap-2">
                         <span>
                           Faixa detectada:{' '}
-                          <strong className="text-white">Faixa {pgdasRes.faixaNumero}</strong>{' '}
+                          <strong className="text-slate-900">Faixa {pgdasRes.faixaNumero}</strong>{' '}
                           (RBT12: {formatBRL(effectiveSimplesRbt12)})
                         </span>
                         <span>
                           Alíquota efetiva PGDAS:{' '}
-                          <strong className="text-orange-300 text-sm">
+                          <strong className="text-emerald-700 text-sm">
                             {formatPercentBR(pgdasRes.aliquotaEfetiva)}
                           </strong>
                         </span>
@@ -1309,19 +1316,19 @@ export default function MarkupPage() {
           {/* ========================================================================= */}
           {/* BLOCO: DESPESAS VARIÁVEIS (DV) - APLICÁVEIS EM TODOS OS REGIMES          */}
           {/* ========================================================================= */}
-          <div className="space-y-3 pt-3 border-t border-slate-800/80">
+          <div className="space-y-3 pt-3 border-t border-slate-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-3.5 bg-emerald-400 rounded-full" />
-                  <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+                  <span className="w-1.5 h-3.5 bg-emerald-600 rounded-full" />
+                  <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-800 font-semibold">
                     Despesas Variáveis de Venda (DV)
                   </h3>
-                  <Badge className="bg-emerald-950/60 text-emerald-300 border-emerald-700/50 text-[10px] font-mono">
+                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-mono">
                     Total: {formatPercentBR(totalVariableExpenseRate)}
                   </Badge>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">
+                <p className="text-[11px] text-slate-500 mt-0.5">
                   Taxas incidentes sobre o preço de venda: maquininha ~3%, comissão ~2%, frete de
                   entrega ~0–5%.
                 </p>
@@ -1332,7 +1339,7 @@ export default function MarkupPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAddDvForm(!showAddDvForm)}
-                className="h-7 text-xs bg-slate-950/40 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer self-start sm:self-center"
+                className="h-7 text-xs bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:text-emerald-700 cursor-pointer self-start sm:self-center shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" />
                 Adicionar despesa variável
@@ -1341,8 +1348,8 @@ export default function MarkupPage() {
 
             {/* Formulário inline para nova despesa variável */}
             {showAddDvForm && (
-              <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
-                <span className="text-xs font-semibold text-slate-200">Nova despesa variável</span>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                <span className="text-xs font-semibold text-slate-800">Nova despesa variável</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <Input
                     type="text"
@@ -1370,7 +1377,7 @@ export default function MarkupPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowAddDvForm(false)}
-                    className="text-xs h-7"
+                    className="text-xs h-7 text-slate-600 hover:text-slate-900"
                   >
                     Cancelar
                   </Button>
@@ -1385,7 +1392,7 @@ export default function MarkupPage() {
                         setShowAddDvForm(false)
                       }
                     }}
-                    className="text-xs h-7 bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-semibold"
+                    className="text-xs h-7 bg-emerald-600 text-white hover:bg-emerald-700 font-semibold shadow-sm"
                   >
                     Salvar
                   </Button>
@@ -1394,7 +1401,7 @@ export default function MarkupPage() {
             )}
 
             {/* Lista item a item de Despesas Variáveis */}
-            <div className="bg-slate-950/50 border border-slate-800 rounded-xl divide-y divide-slate-800/80 text-xs font-mono overflow-hidden">
+            <div className="bg-white border border-slate-200 rounded-xl divide-y divide-slate-100 text-xs font-mono overflow-hidden shadow-sm">
               {variableExpenses.map((dv) => (
                 <VariableExpenseRow
                   key={dv.id}
@@ -1404,9 +1411,9 @@ export default function MarkupPage() {
                 />
               ))}
               {/* Linha de Total */}{' '}
-              <div className="px-3.5 py-2.5 bg-emerald-950/20 flex items-center justify-between text-xs font-bold font-mono">
-                <span className="text-emerald-300 uppercase">Total Despesas Variáveis (Σ DV)</span>
-                <span className="text-emerald-300 text-sm">
+              <div className="px-3.5 py-2.5 bg-emerald-50/60 border-t border-slate-200 flex items-center justify-between text-xs font-bold font-mono">
+                <span className="text-emerald-800 uppercase">Total Despesas Variáveis (Σ DV)</span>
+                <span className="text-emerald-800 text-sm">
                   {formatPercentBR(totalVariableExpenseRate)}
                 </span>
               </div>
@@ -1415,9 +1422,9 @@ export default function MarkupPage() {
 
           {/* Seção % Tributos: ICMS, PIS, COFINS e adicionais (oculto quando o regime for Simples Nacional) */}
           {regime !== 'simples' && (
-            <div className="space-y-4 pt-2 border-t border-slate-800/80">
+            <div className="space-y-4 pt-2 border-t border-slate-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-800 font-semibold">
                   % Tributos
                 </h3>
                 <Button
@@ -1425,7 +1432,7 @@ export default function MarkupPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowAddCustomTax(!showAddCustomTax)}
-                  className="h-7 text-xs bg-slate-950/40 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
+                  className="h-7 text-xs bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:text-emerald-700 cursor-pointer shadow-sm"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" />
                   Adicionar tributo
@@ -1433,8 +1440,8 @@ export default function MarkupPage() {
               </div>
               {/* Modal/Form inline para tributo adicional */}
               {showAddCustomTax && (
-                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
-                  <span className="text-xs font-semibold text-slate-200">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                  <span className="text-xs font-semibold text-slate-800">
                     Novo tributo adicional
                   </span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1459,7 +1466,7 @@ export default function MarkupPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowAddCustomTax(false)}
-                      className="text-xs h-7"
+                      className="text-xs h-7 text-slate-600 hover:text-slate-900"
                     >
                       Cancelar
                     </Button>
@@ -1467,7 +1474,7 @@ export default function MarkupPage() {
                       type="button"
                       size="sm"
                       onClick={handleAddCustomTax}
-                      className="text-xs h-7 bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-semibold"
+                      className="text-xs h-7 bg-emerald-600 text-white hover:bg-emerald-700 font-semibold shadow-sm"
                     >
                       Salvar
                     </Button>
@@ -1475,12 +1482,12 @@ export default function MarkupPage() {
                 </div>
               )}
               {/* ICMS Primeiro: Alíquota livre */}
-              <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold font-mono text-emerald-400 uppercase">
+                  <span className="text-xs font-bold font-mono text-emerald-800 uppercase">
                     ICMS
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-slate-500">
                     (alíquota estadual sobre receita bruta)
                   </span>
                 </div>
@@ -1499,31 +1506,34 @@ export default function MarkupPage() {
                       %
                     </span>
                   </div>
-                  <div className="text-xs font-mono text-slate-400 min-w-[110px] text-right">
-                    Fator: <span className="text-slate-200">{formatFactorBR(icmsFactor)}</span>
+                  <div className="text-xs font-mono text-slate-600 min-w-[110px] text-right">
+                    Fator:{' '}
+                    <span className="text-slate-900 font-semibold">
+                      {formatFactorBR(icmsFactor)}
+                    </span>
                   </div>
                 </div>
               </div>
               {/* Linhas por tributo detalhadas */}
-              <div className="bg-slate-950/50 border border-slate-800 rounded-xl divide-y divide-slate-800/80 text-xs font-mono">
+              <div className="bg-white border border-slate-200 rounded-xl divide-y divide-slate-100 text-xs font-mono shadow-sm">
                 <div className="px-3.5 py-2.5 flex items-center justify-between">
-                  <span className="text-slate-300 font-bold">PIS</span>
+                  <span className="text-slate-800 font-bold">PIS</span>
                   <div className="flex items-center gap-4">
-                    <span className="text-slate-400">{formatNumberBR(pisRate)}%</span>
-                    <span className="text-slate-300">
+                    <span className="text-slate-500">{formatNumberBR(pisRate)}%</span>
+                    <span className="text-slate-700">
                       Fator:{' '}
-                      <strong className="text-emerald-400">{formatFactorBR(pisFactor)}</strong>
+                      <strong className="text-emerald-700">{formatFactorBR(pisFactor)}</strong>
                     </span>
                   </div>
                 </div>
 
                 <div className="px-3.5 py-2.5 flex items-center justify-between">
-                  <span className="text-slate-300 font-bold">COFINS</span>
+                  <span className="text-slate-800 font-bold">COFINS</span>
                   <div className="flex items-center gap-4">
-                    <span className="text-slate-400">{formatNumberBR(cofinsRate)}%</span>
-                    <span className="text-slate-300">
+                    <span className="text-slate-500">{formatNumberBR(cofinsRate)}%</span>
+                    <span className="text-slate-700">
                       Fator:{' '}
-                      <strong className="text-emerald-400">{formatFactorBR(cofinsFactor)}</strong>
+                      <strong className="text-emerald-700">{formatFactorBR(cofinsFactor)}</strong>
                     </span>
                   </div>
                 </div>
@@ -1532,21 +1542,21 @@ export default function MarkupPage() {
                 {customTaxesMarkup.map((ct) => (
                   <div key={ct.id} className="px-3.5 py-2.5 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-300 font-bold">{ct.name}</span>
+                      <span className="text-slate-800 font-bold">{ct.name}</span>
                       <button
                         type="button"
                         onClick={() => removeCustomTaxMarkup(ct.id)}
-                        className="text-slate-500 hover:text-rose-400 transition-colors"
+                        className="text-slate-400 hover:text-rose-600 transition-colors"
                         title="Remover"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="text-slate-400">{formatNumberBR(ct.rate)}%</span>
-                      <span className="text-slate-300">
+                      <span className="text-slate-500">{formatNumberBR(ct.rate)}%</span>
+                      <span className="text-slate-700">
                         Fator:{' '}
-                        <strong className="text-emerald-400">
+                        <strong className="text-emerald-700">
                           {formatFactorBR(1 - ct.rate / 100)}
                         </strong>
                       </span>
@@ -1558,8 +1568,8 @@ export default function MarkupPage() {
           )}
 
           {/* Modo de cálculo predominante (escolha do modo de cálculo) */}
-          <div className="space-y-2 pt-2 border-t border-slate-800/80">
-            <span className="text-xs font-semibold text-slate-300 block">
+          <div className="space-y-2 pt-2 border-t border-slate-200">
+            <span className="text-xs font-semibold text-slate-700 block">
               Modo de cálculo predominante (ou personalize por produto abaixo):
             </span>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1568,17 +1578,17 @@ export default function MarkupPage() {
                 onClick={() => handleSelectDefaultMode('liquid')}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   markupMode === 'liquid'
-                    ? 'bg-emerald-500/10 border-emerald-500 text-white shadow-sm'
-                    : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                    ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white">
+                  <span className="text-sm font-semibold text-slate-900">
                     A partir da receita líquida
                   </span>
-                  {markupMode === 'liquid' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                  {markupMode === 'liquid' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   Partir do valor líquido desejado e aplicar os fatores fracionados.
                 </p>
               </button>
@@ -1588,19 +1598,19 @@ export default function MarkupPage() {
                 onClick={() => handleSelectDefaultMode('cost_margin')}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   markupMode === 'cost_margin'
-                    ? 'bg-emerald-500/10 border-emerald-500 text-white shadow-sm'
-                    : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                    ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white">
+                  <span className="text-sm font-semibold text-slate-900">
                     A partir do custo + margem
                   </span>
                   {markupMode === 'cost_margin' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   )}
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   Partir do custo base e embutir a margem de lucro e tributos.
                 </p>
               </button>
@@ -1608,57 +1618,57 @@ export default function MarkupPage() {
           </div>
 
           {/* ÁREA DE LISTA / TABELA DE PRODUTOS */}
-          <div className="space-y-3 pt-2 border-t border-slate-800/80">
+          <div className="space-y-3 pt-2 border-t border-slate-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <Package className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+                <Package className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-800 font-semibold">
                   Produtos / Serviços Cadastrados ({markupProducts.length})
                 </h3>
                 {/* Chip Compacto em Camada: Puxar itens da Compra (CMV) */}
                 <button
                   type="button"
                   onClick={() => setIsImportPurchasesDialogOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-emerald-500/[0.16] border-emerald-400/80 text-emerald-100 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-sm shadow-emerald-500/15 ring-1 ring-emerald-500/30 ml-1"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100 shadow-sm ml-1"
                   title="Abrir camada para puxar itens da Calculadora de Compras (CMV)"
                 >
-                  <Boxes className="w-3.5 h-3.5 text-emerald-300" />
-                  <span className="font-semibold text-emerald-100">Puxar itens da Compra</span>
-                  <Badge className="text-[9px] px-1.5 py-0 border-0 font-normal bg-emerald-500/35 text-emerald-100">
+                  <Boxes className="w-3.5 h-3.5 text-emerald-700" />
+                  <span className="font-semibold text-emerald-800">Puxar itens da Compra</span>
+                  <Badge className="text-[9px] px-1.5 py-0 border-0 font-normal bg-emerald-200 text-emerald-900">
                     {importedPurchasesCount > 0
                       ? `${importedPurchasesCount}/${totalPurchasesAvailableCount}`
                       : `${totalPurchasesAvailableCount} disp.`}
                   </Badge>
-                  <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
+                  <ChevronRight className="w-3 h-3 text-emerald-700 ml-0.5" />
                 </button>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 {/* Controles de Acordeão: Expandir um / Recolher todos */}
-                <div className="inline-flex items-center rounded-lg bg-slate-900 border border-slate-800 p-0.5 text-xs font-mono">
+                <div className="inline-flex items-center rounded-lg bg-white border border-slate-200 p-0.5 text-xs font-mono shadow-sm">
                   <button
                     type="button"
                     onClick={expandFirstProduct}
                     disabled={!allProductsCollapsed}
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
                       !allProductsCollapsed
-                        ? 'text-slate-500 cursor-not-allowed'
-                        : 'text-slate-300 hover:text-emerald-300 hover:bg-slate-800 cursor-pointer'
+                        ? 'text-slate-400 cursor-not-allowed'
+                        : 'text-slate-700 hover:text-emerald-700 hover:bg-slate-50 cursor-pointer'
                     }`}
                     title="No modo acordeão (01 por vez): expande a camada do primeiro produto"
                   >
                     <ChevronDown className="w-3 h-3" />
                     <span>Expandir todos</span>
                   </button>
-                  <span className="text-slate-700">|</span>
+                  <span className="text-slate-300">|</span>
                   <button
                     type="button"
                     onClick={collapseAllProducts}
                     disabled={allProductsCollapsed}
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
                       allProductsCollapsed
-                        ? 'text-slate-500 cursor-not-allowed'
-                        : 'text-slate-300 hover:text-emerald-300 hover:bg-slate-800 cursor-pointer'
+                        ? 'text-slate-400 cursor-not-allowed'
+                        : 'text-slate-700 hover:text-emerald-700 hover:bg-slate-50 cursor-pointer'
                     }`}
                     title="Recolher todas as camadas para linhas-resumo compactas"
                   >
@@ -1667,7 +1677,7 @@ export default function MarkupPage() {
                   </button>
                 </div>
 
-                <span className="text-[11px] font-mono text-emerald-400">
+                <span className="text-[11px] font-mono text-emerald-700">
                   Atualização em tempo real · clique em <strong>Simular</strong> ou navegue
                   livremente
                 </span>
@@ -1742,7 +1752,7 @@ export default function MarkupPage() {
                     <div
                       key={prod.id}
                       onClick={() => toggleMarkupProduct(prod.id)}
-                      className="group bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 rounded-xl p-3 sm:px-4 sm:py-3 transition-all duration-200 cursor-pointer shadow-sm hover:bg-slate-900/50"
+                      className="group bg-white border border-slate-200 hover:border-emerald-300 rounded-xl p-3 sm:px-4 sm:py-3 transition-all duration-200 cursor-pointer shadow-sm hover:bg-slate-50/70"
                       title="Clique para abrir a camada deste produto (acordeão: 01 por vez)"
                     >
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 font-mono text-xs">
@@ -1752,30 +1762,30 @@ export default function MarkupPage() {
                             #{index + 1}
                           </span>
                           <div className="flex items-center gap-2 flex-wrap min-w-0">
-                            <span className="font-sans font-semibold text-slate-200 group-hover:text-emerald-300 transition-colors text-xs sm:text-sm truncate">
+                            <span className="font-sans font-semibold text-slate-800 group-hover:text-emerald-700 transition-colors text-xs sm:text-sm truncate">
                               {prod.name?.trim() || `Produto ${index + 1}`}
                             </span>
                             {/* Badges de Origem do Custo */}
                             {prod.costOrigin === 'purchases' ||
                             (prod.purchaseItemId && prod.manualCostOverride === undefined) ? (
-                              <Badge className="bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[9px] px-1.5 py-0 font-normal">
+                              <Badge className="bg-sky-50 text-sky-800 border border-sky-200 text-[9px] px-1.5 py-0 font-normal">
                                 📦 Compras
                               </Badge>
                             ) : null}
-                            <Badge className="bg-slate-800 text-slate-400 border-slate-700 text-[9px] px-1 py-0 font-normal">
+                            <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-[9px] px-1 py-0 font-normal">
                               recolhido
                             </Badge>
                           </div>
                         </div>
 
                         {/* Colunas de Resumo Fiscal/Comercial: Custo/RL, Margem, Qtd, Preço Simulado, Subtotal */}
-                        <div className="flex flex-wrap items-center justify-between lg:justify-end gap-3 sm:gap-4 text-[11px] text-slate-300">
+                        <div className="flex flex-wrap items-center justify-between lg:justify-end gap-3 sm:gap-4 text-[11px] text-slate-700">
                           {/* Custo unitário / RL */}
                           <div className="text-left sm:text-right">
                             <span className="text-[10px] text-slate-500 block">
                               {isProdLiquid ? 'Rec. Líquida' : 'Custo un.'}
                             </span>
-                            <span className="font-semibold text-slate-300">
+                            <span className="font-semibold text-slate-800">
                               {unitCostForDisplay > 0 ? formatBRL(unitCostForDisplay) : '—'}
                             </span>
                           </div>
@@ -1783,7 +1793,7 @@ export default function MarkupPage() {
                           {/* Margem % */}
                           <div className="text-left sm:text-right">
                             <span className="text-[10px] text-slate-500 block">Margem</span>
-                            <span className="font-semibold text-slate-300">
+                            <span className="font-semibold text-slate-800">
                               {marginActiveRegime > 0
                                 ? `${formatNumberBR(marginActiveRegime)}%`
                                 : '—'}
@@ -1793,27 +1803,27 @@ export default function MarkupPage() {
                           {/* Quantidade */}
                           <div className="text-left sm:text-right">
                             <span className="text-[10px] text-slate-500 block">Qtd</span>
-                            <span className="font-bold text-slate-200">
+                            <span className="font-bold text-slate-900">
                               {qtyActiveRegime > 0 ? `${qtyActiveRegime} un.` : '—'}
                             </span>
                           </div>
 
                           {/* Preço de Venda Simulado */}
                           <div className="text-left sm:text-right">
-                            <span className="text-[10px] text-emerald-400/80 block font-sans">
+                            <span className="text-[10px] text-emerald-700 block font-sans">
                               Preço un.
                             </span>
-                            <span className="font-bold text-emerald-400">
+                            <span className="font-bold text-emerald-800">
                               {displaySalePrice > 0 ? formatBRL(displaySalePrice) : '—'}
                             </span>
                           </div>
 
                           {/* Subtotal */}
                           <div className="text-left sm:text-right min-w-[90px]">
-                            <span className="text-[10px] text-emerald-400/80 block font-sans">
+                            <span className="text-[10px] text-emerald-700 block font-sans">
                               Subtotal
                             </span>
-                            <span className="font-bold text-emerald-300">
+                            <span className="font-bold text-emerald-800">
                               {subtotalDisplay > 0 ? formatBRL(subtotalDisplay) : '—'}
                             </span>
                           </div>
@@ -1824,14 +1834,14 @@ export default function MarkupPage() {
                             onClick={(e) => e.stopPropagation()}
                           >
                             {/* Troca de modo na linha compacta */}
-                            <div className="inline-flex rounded-lg bg-slate-900 p-0.5 border border-slate-800 text-[10px]">
+                            <div className="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200 text-[10px]">
                               <button
                                 type="button"
                                 onClick={() => updateMarkupProduct(prod.id, 'mode', 'liquid')}
                                 className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
                                   isProdLiquid
-                                    ? 'bg-emerald-500 text-slate-950 font-bold'
-                                    : 'text-slate-400 hover:text-slate-200'
+                                    ? 'bg-emerald-600 text-white font-bold'
+                                    : 'text-slate-600 hover:text-slate-900'
                                 }`}
                                 title="Mudar modo para Receita Líquida"
                               >
@@ -1842,8 +1852,8 @@ export default function MarkupPage() {
                                 onClick={() => updateMarkupProduct(prod.id, 'mode', 'cost_margin')}
                                 className={`px-2 py-0.5 rounded transition-all cursor-pointer ${
                                   !isProdLiquid
-                                    ? 'bg-emerald-500 text-slate-950 font-bold'
-                                    : 'text-slate-400 hover:text-slate-200'
+                                    ? 'bg-emerald-600 text-white font-bold'
+                                    : 'text-slate-600 hover:text-slate-900'
                                 }`}
                                 title="Mudar modo para Custo + Margem"
                               >
@@ -1855,10 +1865,10 @@ export default function MarkupPage() {
                             <button
                               type="button"
                               onClick={() => toggleMarkupProduct(prod.id)}
-                              className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-300 hover:text-white bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-2 py-1 rounded-md cursor-pointer transition-all shadow-sm"
+                              className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-md cursor-pointer transition-all shadow-sm"
                               title="Expandir camada completa deste produto"
                             >
-                              <ChevronDown className="w-3 h-3 text-emerald-400" />
+                              <ChevronDown className="w-3 h-3 text-emerald-700" />
                               <span>Detalhes</span>
                             </button>
 
@@ -1866,7 +1876,7 @@ export default function MarkupPage() {
                             <button
                               type="button"
                               onClick={() => removeMarkupProduct(prod.id)}
-                              className="p-1 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-rose-500/10 cursor-pointer"
+                              className="p-1 text-slate-400 hover:text-rose-600 transition-colors rounded hover:bg-rose-50 cursor-pointer"
                               title="Excluir produto sem precisar abrir a camada"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1882,10 +1892,10 @@ export default function MarkupPage() {
                 return (
                   <div
                     key={prod.id}
-                    className="bg-slate-950/80 border-2 border-emerald-500/40 rounded-xl p-4 sm:p-5 space-y-3.5 transition-all shadow-xl shadow-emerald-500/5 animate-in fade-in duration-200"
+                    className="bg-white border-2 border-emerald-500/50 rounded-xl p-4 sm:p-5 space-y-3.5 transition-all shadow-md animate-in fade-in duration-200"
                   >
                     {/* Linha superior: Nome do produto, seletor de modo, botão Recolher e lixeira */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-800/80">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200">
                       <div className="flex items-center gap-2 flex-1 flex-wrap">
                         <span className="w-6 h-6 rounded-md bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 inline-flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
                           #{index + 1}
@@ -1900,11 +1910,11 @@ export default function MarkupPage() {
                         {/* Badges de Origem do Custo: Custo via Compras vs Custo Manual */}
                         {prod.costOrigin === 'purchases' ||
                         (prod.purchaseItemId && prod.manualCostOverride === undefined) ? (
-                          <Badge className="bg-sky-500/15 text-sky-300 border border-sky-500/30 text-[10px] font-mono inline-flex items-center gap-1">
+                          <Badge className="bg-sky-50 text-sky-800 border border-sky-200 text-[10px] font-mono inline-flex items-center gap-1">
                             <span>📦 Custo via Compras</span>
                           </Badge>
                         ) : (
-                          <Badge className="bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-mono inline-flex items-center gap-1">
+                          <Badge className="bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-mono inline-flex items-center gap-1">
                             <span>✏️ Custo manual</span>
                           </Badge>
                         )}
@@ -1912,14 +1922,14 @@ export default function MarkupPage() {
 
                       <div className="flex items-center gap-2 self-end sm:self-center">
                         {/* Seletor do modo específico para este produto */}
-                        <div className="inline-flex rounded-lg bg-slate-900 p-0.5 border border-slate-800 text-[11px] font-mono">
+                        <div className="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200 text-[11px] font-mono">
                           <button
                             type="button"
                             onClick={() => updateMarkupProduct(prod.id, 'mode', 'liquid')}
                             className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                               isProdLiquid
-                                ? 'bg-emerald-500 text-slate-950 font-bold'
-                                : 'text-slate-400 hover:text-slate-200'
+                                ? 'bg-emerald-600 text-white font-bold shadow-sm'
+                                : 'text-slate-600 hover:text-slate-900'
                             }`}
                           >
                             Receita Líquida
@@ -1929,8 +1939,8 @@ export default function MarkupPage() {
                             onClick={() => updateMarkupProduct(prod.id, 'mode', 'cost_margin')}
                             className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                               !isProdLiquid
-                                ? 'bg-emerald-500 text-slate-950 font-bold'
-                                : 'text-slate-400 hover:text-slate-200'
+                                ? 'bg-emerald-600 text-white font-bold shadow-sm'
+                                : 'text-slate-600 hover:text-slate-900'
                             }`}
                           >
                             Custo + Margem
@@ -1941,10 +1951,10 @@ export default function MarkupPage() {
                         <button
                           type="button"
                           onClick={() => toggleMarkupProduct(prod.id)}
-                          className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700/80 px-2.5 py-1 rounded-md cursor-pointer transition-all"
+                          className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md cursor-pointer transition-all shadow-sm"
                           title="Recolher camada para linha compacta"
                         >
-                          <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                          <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
                           <span className="hidden sm:inline">Recolher</span>
                         </button>
 
@@ -1952,7 +1962,7 @@ export default function MarkupPage() {
                         <button
                           type="button"
                           onClick={() => removeMarkupProduct(prod.id)}
-                          className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors rounded-lg hover:bg-rose-500/10 cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors rounded-lg hover:bg-rose-50 cursor-pointer"
                           title="Remover produto"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -2027,7 +2037,7 @@ export default function MarkupPage() {
                                         updateMarkupProduct(prod.id, 'cost', purchasesUnitCost)
                                       }
                                     }}
-                                    className="text-sky-400 hover:text-sky-200 underline cursor-pointer"
+                                    className="text-sky-600 hover:text-sky-800 underline cursor-pointer"
                                     title="Restaurar o custo unitário líquido vindo da tabela de compras"
                                   >
                                     ↺ Restaurar custo compras (
@@ -2037,7 +2047,7 @@ export default function MarkupPage() {
                                     )
                                   </button>
                                 ) : (
-                                  <span className="text-slate-400">
+                                  <span className="text-slate-500">
                                     Sincronizado c/ Compras (
                                     {formatBRL(
                                       getPurchaseItemUnitNetCost(matchedPurchaseItem, regime),
@@ -2066,7 +2076,7 @@ export default function MarkupPage() {
 
                       {/* Campo 3: Quantidade Vendida */}
                       <div className="space-y-1">
-                        <label className="text-[11px] text-slate-300 font-semibold">
+                        <label className="text-[11px] text-slate-700 font-semibold">
                           Quantidade vendida
                         </label>
                         {(() => {
@@ -2099,22 +2109,22 @@ export default function MarkupPage() {
                       {/* Campo 4: Preço Resultante e Total (atualizado após Simular) */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
-                          <label className="text-[11px] text-emerald-400 font-semibold">
+                          <label className="text-[11px] text-emerald-800 font-semibold">
                             Preço de venda simulado
                           </label>
                           {/* Chip discreto de Memória de Cálculo junto ao resultado */}
                           <button
                             type="button"
                             onClick={() => setCalculationMemoryProductId(prod.id)}
-                            className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-emerald-400/90 hover:text-emerald-200 transition-colors cursor-pointer group"
+                            className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-emerald-700 hover:text-emerald-900 transition-colors cursor-pointer group"
                             title="Abrir memória de cálculo analítica deste produto"
                           >
-                            <Calculator className="w-2.5 h-2.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                            <Calculator className="w-2.5 h-2.5 text-emerald-700 group-hover:scale-110 transition-transform" />
                             <span>Memória ›</span>
                           </button>
                         </div>
-                        <div className="h-8 px-2.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs font-bold text-emerald-400">
-                          <span className="text-[10px] text-emerald-400/70 font-mono">Un.:</span>
+                        <div className="h-8 px-2.5 rounded-md bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs font-bold text-emerald-800">
+                          <span className="text-[10px] text-emerald-600 font-mono">Un.:</span>
                           <div className="flex items-center gap-1.5">
                             <span>
                               {isMarkupSimulated || (isProdLiquid && prod.desiredNetRevenue > 0)
@@ -2129,10 +2139,10 @@ export default function MarkupPage() {
                           <button
                             type="button"
                             onClick={() => setComparisonModeProductId(prod.id)}
-                            className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-sky-400 hover:text-sky-200 transition-colors cursor-pointer group"
+                            className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-sky-700 hover:text-sky-900 transition-colors cursor-pointer group"
                             title="Comparar com o modo alternativo: 'E se eu tivesse escolhido o outro modo?' (apenas no regime ativo)"
                           >
-                            <ArrowRightLeft className="w-2.5 h-2.5 text-sky-400 group-hover:scale-110 transition-transform" />
+                            <ArrowRightLeft className="w-2.5 h-2.5 text-sky-600 group-hover:scale-110 transition-transform" />
                             <span>Comparar modos ›</span>
                           </button>
                         </div>
@@ -2144,16 +2154,16 @@ export default function MarkupPage() {
                       prod.desiredNetRevenue > 0 &&
                       liquidChain &&
                       !liquidChain.isViable && (
-                        <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-mono flex items-center justify-between gap-2 flex-wrap">
+                        <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-xs font-mono flex items-center justify-between gap-2 flex-wrap">
                           <div className="flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                            <span className="font-semibold text-amber-300">
+                            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                            <span className="font-semibold text-amber-900">
                               Faltam {formatBRL(liquidChain.shortfall)} para LLE positivo
                             </span>
                           </div>
-                          <span className="text-[11px] text-amber-200/80">
+                          <span className="text-[11px] text-amber-800">
                             (LLE projetado:{' '}
-                            <strong className="text-rose-400">{formatBRL(liquidChain.lle)}</strong>{' '}
+                            <strong className="text-rose-600">{formatBRL(liquidChain.lle)}</strong>{' '}
                             · Margem: {formatNumberBR(liquidChain.derivedMarginPct)}%)
                           </span>
                         </div>
@@ -2162,16 +2172,16 @@ export default function MarkupPage() {
                       prod.desiredNetRevenue > 0 &&
                       liquidChain &&
                       liquidChain.isViable && (
-                        <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-emerald-300 text-[11px] font-mono flex items-center justify-between gap-2">
+                        <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-mono flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                             <span>
                               Operação viável (LLE positivo:{' '}
                               <strong>{formatBRL(liquidChain.lle)}</strong> · Margem:{' '}
                               <strong>{formatNumberBR(liquidChain.derivedMarginPct)}%</strong>)
                             </span>
                           </div>
-                          <span className="text-slate-400 text-[10px]">
+                          <span className="text-slate-500 text-[10px]">
                             RBV Gross-up: {formatBRL(liquidChain.rbv)}
                           </span>
                         </div>
@@ -2179,12 +2189,12 @@ export default function MarkupPage() {
 
                     {/* Sub-resultado do produto quando simulado */}
                     {isMarkupSimulated && prod.quantity > 0 && (
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-800/50 text-[11px] font-mono text-slate-400">
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-200 text-[11px] font-mono text-slate-500">
                         <span>
                           Subtotal do produto ({prod.quantity} un. × {formatBRL(prod.salePrice)}):
                         </span>
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-emerald-300">
+                          <span className="font-bold text-emerald-800">
                             {formatBRL(prod.totalRevenue)}
                           </span>
                         </div>
@@ -2192,38 +2202,38 @@ export default function MarkupPage() {
                     )}
 
                     {/* Chip Discreto em Subcamada: Memória de Cálculo do Preço e Comparar Modos */}
-                    <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between flex-wrap gap-2">
+                    <div className="pt-2 border-t border-slate-200 flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <button
                           type="button"
                           onClick={() => setCalculationMemoryProductId(prod.id)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-emerald-500/[0.12] border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/20 hover:border-emerald-300 shadow-sm"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100 shadow-sm"
                           title="Ver memória de cálculo detalhada do preço sugerido (Simples, Presumido e Real)"
                         >
-                          <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+                          <Calculator className="w-3.5 h-3.5 text-emerald-700" />
                           <span className="font-semibold">Memória de Cálculo</span>
-                          <Badge className="bg-emerald-500/25 text-emerald-200 border-0 text-[9px] px-1.5 py-0 font-normal">
+                          <Badge className="bg-emerald-200 text-emerald-900 border-0 text-[9px] px-1.5 py-0 font-normal">
                             {isMarkupSimulated ? formatBRL(prod.salePrice) : 'Ver fórmula'}
                           </Badge>
-                          <ChevronRight className="w-3 h-3 text-emerald-400/80 ml-0.5" />
+                          <ChevronRight className="w-3 h-3 text-emerald-700 ml-0.5" />
                         </button>
 
                         <button
                           type="button"
                           onClick={() => setComparisonModeProductId(prod.id)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-sky-500/[0.12] border-sky-500/40 text-sky-200 hover:bg-sky-500/20 hover:border-sky-300 shadow-sm"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-sky-50 border-sky-300 text-sky-800 hover:bg-sky-100 shadow-sm"
                           title="Comparar tríade com o modo alternativo no regime ativo (E se tivesse escolhido o outro modo?)"
                         >
-                          <ArrowRightLeft className="w-3.5 h-3.5 text-sky-400" />
+                          <ArrowRightLeft className="w-3.5 h-3.5 text-sky-700" />
                           <span className="font-semibold">Comparar modos</span>
-                          <ChevronRight className="w-3 h-3 text-sky-400/80 ml-0.5" />
+                          <ChevronRight className="w-3 h-3 text-sky-700 ml-0.5" />
                         </button>
                       </div>
 
-                      <span className="text-[10px] font-mono text-slate-400">
+                      <span className="text-[10px] font-mono text-slate-500">
                         Regime ativo:{' '}
-                        <strong className="text-orange-400 uppercase">{regime}</strong> · ICMS{' '}
-                        {formatPercentBR(icmsRateMarkup)}
+                        <strong className="text-slate-800 uppercase font-semibold">{regime}</strong>{' '}
+                        · ICMS {formatPercentBR(icmsRateMarkup)}
                         {regime === 'simples' && simplesRbt12 > 0 ? ' (integrado ao DAS)' : ''}
                       </span>
                     </div>
@@ -2252,33 +2262,33 @@ export default function MarkupPage() {
                           rbvActive > 0 ? Math.round(rbvActive * (1 - taxPartL) * 100) / 100 : 0
 
                         return (
-                          <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between flex-wrap gap-2">
+                          <div className="pt-2 border-t border-slate-200 flex items-center justify-between flex-wrap gap-2">
                             <button
                               type="button"
                               onClick={() => setCompositionModalProductId(prod.id)}
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer ${
                                 taxesTotalL > 0
-                                  ? 'bg-emerald-500/[0.18] border-emerald-400/80 text-emerald-100 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-sm shadow-emerald-500/15 ring-1 ring-emerald-500/30'
-                                  : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/50'
+                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100 shadow-sm'
+                                  : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 shadow-sm'
                               }`}
                               title="Abrir camada de Composição dos Tributos deste produto"
                             >
-                              <Receipt className="w-3.5 h-3.5 text-emerald-300" />
+                              <Receipt className="w-3.5 h-3.5 text-emerald-700" />
                               <span className="font-semibold">Composição dos Tributos</span>
                               <Badge
                                 className={`text-[9px] px-1.5 py-0 border-0 font-normal ${
                                   taxesTotalL > 0
-                                    ? 'bg-emerald-500/35 text-emerald-100 font-semibold'
-                                    : 'bg-slate-800 text-slate-400'
+                                    ? 'bg-emerald-200 text-emerald-900 font-semibold'
+                                    : 'bg-slate-100 text-slate-600'
                                 }`}
                               >
                                 {taxesTotalL > 0 ? formatBRL(taxesTotalL) : 'Simular p/ ver'}
                               </Badge>
-                              <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
+                              <ChevronRight className="w-3 h-3 text-emerald-700 ml-0.5" />
                             </button>
 
                             {taxesTotalL > 0 && (
-                              <span className="text-[10px] font-mono text-slate-400">
+                              <span className="text-[10px] font-mono text-slate-500">
                                 Tributos do produto no regime ativo: {formatBRL(taxesTotalL)}
                               </span>
                             )}
@@ -2326,33 +2336,33 @@ export default function MarkupPage() {
                             : 0
 
                         return (
-                          <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between flex-wrap gap-2">
+                          <div className="pt-2 border-t border-slate-200 flex items-center justify-between flex-wrap gap-2">
                             <button
                               type="button"
                               onClick={() => setCompositionModalProductId(prod.id)}
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer ${
                                 totalComp > 0
-                                  ? 'bg-emerald-500/[0.18] border-emerald-400/80 text-emerald-100 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-sm shadow-emerald-500/15 ring-1 ring-emerald-500/30'
-                                  : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/50'
+                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100 shadow-sm'
+                                  : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:border-slate-300 shadow-sm'
                               }`}
                               title="Abrir camada de Composição dos Tributos deste produto"
                             >
-                              <Receipt className="w-3.5 h-3.5 text-emerald-300" />
+                              <Receipt className="w-3.5 h-3.5 text-emerald-700" />
                               <span className="font-semibold">Composição dos Tributos</span>
                               <Badge
                                 className={`text-[9px] px-1.5 py-0 border-0 font-normal ${
                                   taxesTotal > 0
-                                    ? 'bg-emerald-500/35 text-emerald-100 font-semibold'
-                                    : 'bg-slate-800 text-slate-400'
+                                    ? 'bg-emerald-200 text-emerald-900 font-semibold'
+                                    : 'bg-slate-100 text-slate-600'
                                 }`}
                               >
                                 {taxesTotal > 0 ? formatBRL(taxesTotal) : 'Simular p/ ver'}
                               </Badge>
-                              <ChevronRight className="w-3 h-3 text-emerald-300/70 ml-0.5" />
+                              <ChevronRight className="w-3 h-3 text-emerald-700 ml-0.5" />
                             </button>
 
                             {taxesTotal > 0 && (
-                              <span className="text-[10px] font-mono text-slate-400">
+                              <span className="text-[10px] font-mono text-slate-500">
                                 Tributos do produto no regime ativo: {formatBRL(taxesTotal)}
                               </span>
                             )}
@@ -2371,7 +2381,7 @@ export default function MarkupPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => addMarkupProduct('', markupMode)}
-                className="h-8 text-xs bg-slate-950/40 border-slate-800 text-slate-300 hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
+                className="h-8 text-xs bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:text-emerald-700 cursor-pointer shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" />+ Adicionar outro produto
               </Button>
@@ -2380,35 +2390,35 @@ export default function MarkupPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsImportPurchasesDialogOpen(true)}
-                className="h-8 text-xs bg-emerald-500/10 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-200 cursor-pointer font-medium"
+                className="h-8 text-xs bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100 cursor-pointer font-medium shadow-sm"
               >
-                <Boxes className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                <Boxes className="w-3.5 h-3.5 mr-1 text-emerald-700" />
                 Puxar itens da Compra ({totalPurchasesAvailableCount})
               </Button>
             </div>
           </div>
 
           {/* Subsistemas Integrados em Camadas (Situações Especiais da Operação) */}
-          <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
-            <div className="relative overflow-hidden rounded-xl border-2 border-orange-500/70 bg-gradient-to-r from-orange-500/[0.14] via-amber-500/[0.08] to-orange-500/[0.04] p-3 sm:p-4 shadow-lg shadow-orange-500/10 transition-all hover:border-orange-500 hover:shadow-orange-500/20">
+          <div className="pt-3 border-t border-slate-200 space-y-2.5">
+            <div className="relative overflow-hidden rounded-xl border border-amber-300 bg-amber-50/70 p-3 sm:p-4 shadow-sm transition-all hover:border-amber-400">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="flex items-start sm:items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-orange-500/20 border border-orange-500/50 flex items-center justify-center text-orange-400 shadow-sm shrink-0">
-                    <SlidersHorizontal className="w-4 h-4 text-orange-400" />
+                  <div className="w-9 h-9 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 shadow-sm shrink-0">
+                    <SlidersHorizontal className="w-4 h-4 text-amber-700" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-mono uppercase tracking-wider text-orange-300 font-bold">
+                      <span className="text-xs font-mono uppercase tracking-wider text-amber-900 font-bold">
                         Situações Especiais da Operação
                       </span>
                       {(stSubsystem.enabled || interstateSubsystem.enabled) && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-orange-500/20 text-orange-300 border border-orange-500/40">
-                          <Sparkles className="w-2.5 h-2.5" />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-amber-200/80 text-amber-950 border border-amber-400">
+                          <Sparkles className="w-2.5 h-2.5 text-amber-700" />
                           Subsistemas Ativos
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-300 mt-0.5">
+                    <p className="text-[11px] text-slate-600 mt-0.5">
                       Acesse os subsistemas integrados por camadas (ICMS-ST e DIFAL interestadual).
                     </p>
                   </div>
@@ -2422,22 +2432,22 @@ export default function MarkupPage() {
                     onClick={() => setIsStDialogOpen(true)}
                     className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
                       stSubsystem.enabled
-                        ? 'bg-amber-500/20 border-amber-400/70 text-amber-200 hover:bg-amber-500/30 hover:border-amber-400 shadow-sm shadow-amber-500/20'
-                        : 'bg-slate-900/90 border-slate-700/80 text-slate-300 hover:text-white hover:border-orange-500/50 hover:bg-slate-850'
+                        ? 'bg-amber-100 border-amber-400 text-amber-950 hover:bg-amber-200/70 shadow-sm'
+                        : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:border-amber-300 hover:bg-slate-50'
                     }`}
                     title="Abrir camada de Substituição Tributária (ICMS-ST)"
                   >
                     <ShieldAlert
                       className={`w-3.5 h-3.5 ${
-                        stSubsystem.enabled ? 'text-amber-300' : 'text-slate-400'
+                        stSubsystem.enabled ? 'text-amber-700' : 'text-slate-500'
                       }`}
                     />
                     <span className="font-semibold">ICMS-ST</span>
                     <Badge
                       className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
                         stSubsystem.enabled
-                          ? 'bg-amber-500/30 text-amber-200'
-                          : 'bg-slate-800 text-slate-400'
+                          ? 'bg-amber-200 text-amber-900'
+                          : 'bg-slate-100 text-slate-600'
                       }`}
                     >
                       {stSubsystem.enabled
@@ -2455,22 +2465,22 @@ export default function MarkupPage() {
                     onClick={() => setIsInterstateDialogOpen(true)}
                     className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
                       interstateSubsystem.enabled
-                        ? 'bg-blue-500/20 border-blue-400/70 text-blue-200 hover:bg-blue-500/30 hover:border-blue-400 shadow-sm shadow-blue-500/20'
-                        : 'bg-slate-900/90 border-slate-700/80 text-slate-300 hover:text-white hover:border-orange-500/50 hover:bg-slate-850'
+                        ? 'bg-blue-100 border-blue-400 text-blue-950 hover:bg-blue-200/70 shadow-sm'
+                        : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:border-blue-300 hover:bg-slate-50'
                     }`}
                     title="Abrir camada de Operações Interestaduais e DIFAL"
                   >
                     <Compass
                       className={`w-3.5 h-3.5 ${
-                        interstateSubsystem.enabled ? 'text-blue-300' : 'text-slate-400'
+                        interstateSubsystem.enabled ? 'text-blue-700' : 'text-slate-500'
                       }`}
                     />
                     <span className="font-semibold">DIFAL / Interestadual</span>
                     <Badge
                       className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
                         interstateSubsystem.enabled
-                          ? 'bg-blue-500/30 text-blue-200'
-                          : 'bg-slate-800 text-slate-400'
+                          ? 'bg-blue-200 text-blue-900'
+                          : 'bg-slate-100 text-slate-600'
                       }`}
                     >
                       {interstateSubsystem.enabled
@@ -2487,13 +2497,13 @@ export default function MarkupPage() {
 
             {/* Diálogo / Camada Completa: ICMS-ST */}
             <Dialog open={isStDialogOpen} onOpenChange={setIsStDialogOpen}>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-slate-800 p-6 text-slate-100 shadow-2xl">
-                <DialogHeader className="border-b border-slate-800 pb-3">
-                  <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-                    <ShieldAlert className="w-5 h-5 text-amber-400" />
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 p-6 text-slate-900 shadow-xl">
+                <DialogHeader className="border-b border-slate-200 pb-3">
+                  <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <ShieldAlert className="w-5 h-5 text-amber-600" />
                     Substituição Tributária (ICMS-ST) — Calculadora de Markup
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-slate-400">
+                  <DialogDescription className="text-xs text-slate-500">
                     Configure os parâmetros fiscais de ICMS-ST para retenção na saída (empresa
                     substituta) ou segregação no Simples Nacional.
                   </DialogDescription>
@@ -2510,13 +2520,13 @@ export default function MarkupPage() {
 
             {/* Diálogo / Camada Completa: Operações Interestaduais e DIFAL */}
             <Dialog open={isInterstateDialogOpen} onOpenChange={setIsInterstateDialogOpen}>
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-slate-800 p-6 text-slate-100 shadow-2xl">
-                <DialogHeader className="border-b border-slate-800 pb-3">
-                  <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-                    <Compass className="w-5 h-5 text-blue-400" />
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 p-6 text-slate-900 shadow-xl">
+                <DialogHeader className="border-b border-slate-200 pb-3">
+                  <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <Compass className="w-5 h-5 text-blue-600" />
                     Operações Interestaduais e DIFAL — Calculadora de Markup
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-slate-400">
+                  <DialogDescription className="text-xs text-slate-500">
                     Defina rota interestadual (UF origem e destino), alíquotas interestaduais
                     automáticas (4%, 7%, 12%) e partilha de DIFAL na venda.
                   </DialogDescription>
@@ -2587,7 +2597,7 @@ export default function MarkupPage() {
                 if (!open) setCompositionModalProductId(null)
               }}
             >
-              <DialogContent className="max-w-4xl max-h-[88vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+              <DialogContent className="max-w-4xl max-h-[88vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
                 {compositionModalProductId &&
                   (() => {
                     const targetProd = markupProducts.find(
@@ -2597,11 +2607,11 @@ export default function MarkupPage() {
                     return (
                       <div className="space-y-4">
                         <DialogHeader>
-                          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-                            <Receipt className="w-5 h-5 text-emerald-400" />
+                          <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <Receipt className="w-5 h-5 text-emerald-700" />
                             <span>Composição dos Tributos: {targetProd.name || 'Produto'}</span>
                           </DialogTitle>
-                          <DialogDescription className="text-xs text-slate-400">
+                          <DialogDescription className="text-xs text-slate-500">
                             Percentual de cada tributo em relação à Receita Bruta de Venda —
                             decomposição completa no regime ativo e comparativo entre os 3 regimes.
                           </DialogDescription>
