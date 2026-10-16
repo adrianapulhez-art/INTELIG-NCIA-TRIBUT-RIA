@@ -976,22 +976,24 @@ export default function MarkupPage() {
               <button
                 type="button"
                 onClick={() => setRegime('presumido')}
-                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer shadow-sm ${
                   regime === 'presumido'
-                    ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
-                    : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50'
+                    ? 'bg-emerald-50/90 border-emerald-600 ring-2 ring-emerald-500/20 text-slate-950 shadow-md'
+                    : 'bg-white border-slate-300 hover:border-slate-400 hover:bg-slate-50/80 text-slate-900'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-bold font-mono uppercase ${regime === 'presumido' ? 'text-emerald-800' : 'text-slate-900'}`}
+                    className={`text-xs font-extrabold font-mono uppercase tracking-wide ${regime === 'presumido' ? 'text-emerald-900' : 'text-slate-950'}`}
                   >
                     Lucro Presumido
                   </span>
-                  {regime === 'presumido' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                  {regime === 'presumido' && (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  )}
                 </div>
                 <p
-                  className={`text-[11px] mt-1 font-mono ${regime === 'presumido' ? 'text-slate-700 font-medium' : 'text-slate-600'}`}
+                  className={`text-[11px] mt-1.5 font-mono ${regime === 'presumido' ? 'text-slate-800 font-semibold' : 'text-slate-700 font-medium'}`}
                 >
                   PIS 0,65% · COFINS 3,00% (cumulativo)
                 </p>
@@ -1000,22 +1002,24 @@ export default function MarkupPage() {
               <button
                 type="button"
                 onClick={() => setRegime('real')}
-                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer shadow-sm ${
                   regime === 'real'
-                    ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
-                    : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50'
+                    ? 'bg-emerald-50/90 border-emerald-600 ring-2 ring-emerald-500/20 text-slate-950 shadow-md'
+                    : 'bg-white border-slate-300 hover:border-slate-400 hover:bg-slate-50/80 text-slate-900'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-bold font-mono uppercase ${regime === 'real' ? 'text-emerald-800' : 'text-slate-900'}`}
+                    className={`text-xs font-extrabold font-mono uppercase tracking-wide ${regime === 'real' ? 'text-emerald-900' : 'text-slate-950'}`}
                   >
                     Lucro Real
                   </span>
-                  {regime === 'real' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                  {regime === 'real' && (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  )}
                 </div>
                 <p
-                  className={`text-[11px] mt-1 font-mono ${regime === 'real' ? 'text-slate-700 font-medium' : 'text-slate-600'}`}
+                  className={`text-[11px] mt-1.5 font-mono ${regime === 'real' ? 'text-slate-800 font-semibold' : 'text-slate-700 font-medium'}`}
                 >
                   PIS 1,65% · COFINS 7,60% (não cumulativo)
                 </p>
@@ -1024,22 +1028,24 @@ export default function MarkupPage() {
               <button
                 type="button"
                 onClick={() => setRegime('simples')}
-                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer shadow-sm ${
                   regime === 'simples'
-                    ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
-                    : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50'
+                    ? 'bg-emerald-50/90 border-emerald-600 ring-2 ring-emerald-500/20 text-slate-950 shadow-md'
+                    : 'bg-white border-slate-300 hover:border-slate-400 hover:bg-slate-50/80 text-slate-900'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-bold font-mono uppercase ${regime === 'simples' ? 'text-emerald-800' : 'text-slate-900'}`}
+                    className={`text-xs font-extrabold font-mono uppercase tracking-wide ${regime === 'simples' ? 'text-emerald-900' : 'text-slate-950'}`}
                   >
                     Simples Nacional
                   </span>
-                  {regime === 'simples' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                  {regime === 'simples' && (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  )}
                 </div>
                 <p
-                  className={`text-[11px] mt-1 font-mono ${regime === 'simples' ? 'text-slate-700 font-medium' : 'text-slate-600'}`}
+                  className={`text-[11px] mt-1.5 font-mono ${regime === 'simples' ? 'text-slate-800 font-semibold' : 'text-slate-700 font-medium'}`}
                 >
                   Guia única DAS (PIS/COFINS sem destaque avulso)
                 </p>
@@ -1483,13 +1489,14 @@ export default function MarkupPage() {
                   </div>
                 </div>
               )}
-              {/* ICMS Primeiro: Alíquota livre */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold font-mono text-emerald-800 uppercase">
+              {/* ICMS Primeiro: Alíquota livre (Cinza robusto contrastando com Total Despesas Variáveis dark acima) */}
+              <div className="p-3.5 rounded-xl bg-slate-200/90 border-2 border-slate-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-slate-900" />
+                  <span className="text-xs font-extrabold font-mono text-slate-900 uppercase tracking-wide">
                     ICMS
                   </span>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-slate-700 font-medium">
                     (alíquota estadual sobre receita bruta)
                   </span>
                 </div>
@@ -1502,17 +1509,15 @@ export default function MarkupPage() {
                       onFocus={() => setIsIcmsFocused(true)}
                       onChange={handleIcmsChange}
                       onBlur={handleIcmsBlur}
-                      className="pr-7 text-right font-mono text-xs field-input-interactive"
+                      className="pr-7 text-right font-mono text-xs font-bold text-slate-950 bg-white border-slate-300 shadow-inner field-input-interactive"
                     />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-slate-700 pointer-events-none">
                       %
                     </span>
                   </div>
-                  <div className="text-xs font-mono text-slate-600 min-w-[110px] text-right">
+                  <div className="text-xs font-mono text-slate-800 min-w-[110px] text-right font-medium">
                     Fator:{' '}
-                    <span className="text-slate-900 font-semibold">
-                      {formatFactorBR(icmsFactor)}
-                    </span>
+                    <span className="text-slate-950 font-bold">{formatFactorBR(icmsFactor)}</span>
                   </div>
                 </div>
               </div>
@@ -2402,20 +2407,20 @@ export default function MarkupPage() {
 
           {/* Subsistemas Integrados em Camadas (Situações Especiais da Operação) */}
           <div className="pt-3 border-t border-slate-200 space-y-2.5">
-            <div className="relative overflow-hidden rounded-xl border border-amber-300 bg-amber-50/70 p-3 sm:p-4 shadow-sm transition-all hover:border-amber-400">
+            <div className="relative overflow-hidden rounded-xl border border-emerald-300 bg-emerald-50/70 p-3 sm:p-4 shadow-sm transition-all hover:border-emerald-400">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="flex items-start sm:items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-800 shadow-sm shrink-0">
-                    <SlidersHorizontal className="w-4 h-4 text-amber-700" />
+                  <div className="w-9 h-9 rounded-lg bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800 shadow-sm shrink-0">
+                    <SlidersHorizontal className="w-4 h-4 text-emerald-700" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-mono uppercase tracking-wider text-amber-900 font-bold">
+                      <span className="text-xs font-mono uppercase tracking-wider text-emerald-950 font-bold">
                         Situações Especiais da Operação
                       </span>
                       {(stSubsystem.enabled || interstateSubsystem.enabled) && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-amber-200/80 text-amber-950 border border-amber-400">
-                          <Sparkles className="w-2.5 h-2.5 text-amber-700" />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-200/80 text-emerald-950 border border-emerald-400">
+                          <Sparkles className="w-2.5 h-2.5 text-emerald-700" />
                           Subsistemas Ativos
                         </span>
                       )}
@@ -2434,21 +2439,21 @@ export default function MarkupPage() {
                     onClick={() => setIsStDialogOpen(true)}
                     className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
                       stSubsystem.enabled
-                        ? 'bg-amber-100 border-amber-400 text-amber-950 hover:bg-amber-200/70 shadow-sm'
-                        : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:border-amber-300 hover:bg-slate-50'
+                        ? 'bg-emerald-100 border-emerald-400 text-emerald-950 hover:bg-emerald-200/70 shadow-sm'
+                        : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:border-emerald-300 hover:bg-slate-50'
                     }`}
                     title="Abrir camada de Substituição Tributária (ICMS-ST)"
                   >
                     <ShieldAlert
                       className={`w-3.5 h-3.5 ${
-                        stSubsystem.enabled ? 'text-amber-700' : 'text-slate-500'
+                        stSubsystem.enabled ? 'text-emerald-700' : 'text-slate-500'
                       }`}
                     />
                     <span className="font-semibold">ICMS-ST</span>
                     <Badge
                       className={`text-[10px] px-1.5 py-0 border-0 font-normal ${
                         stSubsystem.enabled
-                          ? 'bg-amber-200 text-amber-900'
+                          ? 'bg-emerald-200 text-emerald-900'
                           : 'bg-slate-100 text-slate-600'
                       }`}
                     >
@@ -2784,8 +2789,8 @@ export default function MarkupPage() {
             <div className="space-y-2 pt-1">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-3.5 bg-amber-500 rounded-full" />
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-amber-900 font-bold">
+                  <span className="w-1.5 h-3.5 bg-slate-800 rounded-full" />
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-slate-950 font-extrabold">
                     Preço de venda e receita por produto ({regime.toUpperCase()})
                   </span>
                 </div>
@@ -2809,25 +2814,25 @@ export default function MarkupPage() {
                 </div>
               </div>
 
-              {/* Tabela Frontal: MANTÉM a linha consolidada destacada em âmbar intacta com contraste claro */}
-              <div className="overflow-x-auto rounded-xl border border-amber-300 bg-amber-50/60 shadow-sm">
+              {/* Tabela Frontal: Linha consolidada no mesmo tom de cinza robusto da sessão ICMS */}
+              <div className="overflow-x-auto rounded-xl border-2 border-slate-300 bg-slate-200/90 shadow-sm">
                 <table className="w-full text-xs font-mono">
                   <tbody>
-                    {/* Linha consolidada Grupo 1 (Regime Ativo): Destaque Laranja/Âmbar no tema claro */}
-                    <tr className="bg-amber-100/70 font-bold border-t-2 border-b-2 border-amber-400">
+                    {/* Linha consolidada Grupo 1 (Regime Ativo): Cinza robusto alinhado à sessão ICMS */}
+                    <tr className="font-bold border-t-2 border-b-2 border-slate-400">
                       <td
                         colSpan={4}
-                        className="py-3 px-3 text-left text-amber-950 font-extrabold uppercase tracking-wide border-l-2 border-amber-500"
+                        className="py-3 px-3 text-left text-slate-950 font-extrabold uppercase tracking-wide border-l-4 border-slate-900"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-slate-900 animate-pulse" />
                           <span>Total Consolidado (Soma das receitas)</span>
                         </div>
                       </td>
-                      <td className="py-3 px-3 text-right text-amber-900 font-bold text-sm">
+                      <td className="py-3 px-3 text-right text-slate-950 font-extrabold text-sm">
                         {totalConsolidatedQuantity} un.
                       </td>
-                      <td className="py-3 px-3 text-right text-amber-950 font-black text-base border-r-2 border-amber-400">
+                      <td className="py-3 px-3 text-right text-slate-950 font-black text-base border-r-2 border-slate-400">
                         {formatBRL(totalConsolidatedRevenue)}
                       </td>
                     </tr>
@@ -2844,11 +2849,11 @@ export default function MarkupPage() {
               <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 p-6 text-slate-900 shadow-xl">
                 <DialogHeader className="border-b border-slate-200 pb-3">
                   <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="w-2 h-2 rounded-full bg-slate-900" />
                     <span>
                       Detalhamento por Produto — Preço de Venda e Receita ({regime.toUpperCase()})
                     </span>
-                    <Badge className="bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-mono font-semibold">
+                    <Badge className="bg-slate-100 text-slate-900 border border-slate-300 text-[10px] font-mono font-semibold">
                       {markupProducts.length} itens
                     </Badge>
                   </DialogTitle>
@@ -2916,21 +2921,21 @@ export default function MarkupPage() {
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="border-t-2 border-amber-400 bg-amber-100/70 font-bold">
+                    <tfoot className="border-t-2 border-slate-400 bg-slate-200/90 font-bold">
                       <tr>
                         <td
                           colSpan={4}
-                          className="py-3 px-3 text-left text-amber-950 font-extrabold uppercase tracking-wide border-l-2 border-amber-500"
+                          className="py-3 px-3 text-left text-slate-950 font-extrabold uppercase tracking-wide border-l-4 border-slate-900"
                         >
                           <div className="flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-slate-900 animate-pulse" />
                             <span>Total Consolidado (Soma das receitas)</span>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-right text-amber-900 font-bold text-sm">
+                        <td className="py-3 px-3 text-right text-slate-950 font-extrabold text-sm">
                           {totalConsolidatedQuantity} un.
                         </td>
-                        <td className="py-3 px-3 text-right text-amber-950 font-black text-base border-r-2 border-amber-400">
+                        <td className="py-3 px-3 text-right text-slate-950 font-black text-base border-r-2 border-slate-400">
                           {formatBRL(totalConsolidatedRevenue)}
                         </td>
                       </tr>
