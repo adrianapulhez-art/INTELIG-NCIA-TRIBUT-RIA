@@ -575,41 +575,41 @@ export function MarkupModeComparisonModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto bg-slate-950 border border-slate-800 p-5 sm:p-6 text-slate-100 shadow-2xl">
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto bg-white border border-slate-200 p-5 sm:p-6 text-slate-900 shadow-2xl">
         {/* Cabeçalho */}
-        <DialogHeader className="border-b border-slate-800 pb-3.5 space-y-1.5">
+        <DialogHeader className="border-b border-slate-200 pb-3.5 space-y-1.5">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
                 <ArrowRightLeft className="w-4 h-4" />
               </div>
-              <DialogTitle className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              <DialogTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                 <span>Comparação entre Modos de Precificação</span>
               </DialogTitle>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="bg-orange-500/15 text-orange-300 border border-orange-500/40 text-[11px] font-mono uppercase">
+              <Badge className="bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-mono uppercase">
                 {regimeLabel}
               </Badge>
-              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono text-xs">
+              <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs">
                 {productName}
               </Badge>
             </div>
           </div>
-          <DialogDescription className="text-xs text-slate-400 font-mono">
+          <DialogDescription className="text-xs text-slate-500 font-mono">
             &ldquo;E se eu tivesse escolhido o outro modo?&rdquo; — Compare o resultado do modo
             ativo com o modo alternativo, exclusivamente para o regime{' '}
-            <strong className="text-orange-300">{regimeLabel}</strong>, com base na premissa honesta
+            <strong className="text-amber-800">{regimeLabel}</strong>, com base na premissa honesta
             de convergência de rentabilidade.
           </DialogDescription>
         </DialogHeader>
 
         {/* Aviso de Isolamento por Regime */}
-        <div className="flex items-start gap-2 p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 text-[11px] font-mono text-slate-300">
-          <Info className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700">
+          <Info className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
           <span>
             Esta janela é <strong>estritamente informativa</strong> e limitada ao regime selecionado
-            (<strong className="text-orange-300 uppercase">{currentRegime}</strong>). Ela não altera
+            (<strong className="text-amber-800 uppercase">{currentRegime}</strong>). Ela não altera
             o cálculo ativo, o preço sugerido do card, as DREs ou qualquer estado do sistema. O modo
             selecionado continua governando todas as integrações.
           </span>
@@ -617,31 +617,31 @@ export function MarkupModeComparisonModal({
 
         {/* Motivo honesto caso faltem dados */}
         {!comparison.hasValidData && comparison.invalidReason && (
-          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-mono space-y-1">
-            <div className="flex items-center gap-2 font-bold text-amber-300">
-              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+          <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-mono space-y-1">
+            <div className="flex items-center gap-2 font-bold text-amber-800">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
               <span>Dados insuficientes para cálculo honesto</span>
             </div>
-            <p className="text-slate-300 text-[11px]">{comparison.invalidReason}</p>
+            <p className="text-slate-600 text-[11px]">{comparison.invalidReason}</p>
           </div>
         )}
 
         {/* Cards Lado a Lado: Modo Ativo vs Modo Alternativo */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
           {/* Card 1: Modo Ativo */}
-          <div className="p-4 rounded-2xl bg-gradient-to-b from-emerald-500/[0.08] to-slate-950 border-2 border-emerald-500/50 space-y-3.5 shadow-lg shadow-emerald-500/5">
-            <div className="flex items-center justify-between border-b border-emerald-500/30 pb-2.5">
+          <div className="p-4 rounded-2xl bg-emerald-50/40 border-2 border-emerald-300 space-y-3.5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-emerald-200 pb-2.5">
               <div className="flex items-center gap-2">
                 {activeMode === 'liquid' ? (
-                  <Target className="w-4 h-4 text-emerald-400" />
+                  <Target className="w-4 h-4 text-emerald-700" />
                 ) : (
-                  <Layers className="w-4 h-4 text-sky-400" />
+                  <Layers className="w-4 h-4 text-sky-700" />
                 )}
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-300">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-800">
                   {activeTriad.modeLabel}
                 </span>
               </div>
-              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-[10px] font-mono">
+              <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-mono">
                 Ativo
               </Badge>
             </div>
@@ -649,62 +649,62 @@ export function MarkupModeComparisonModal({
             {/* Tríade do Modo Ativo */}
             <div className="space-y-2.5 text-xs font-mono">
               {/* 1. Âncora Usada */}
-              <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-0.5">
-                <span className="text-[10px] uppercase text-slate-400 block font-semibold">
+              <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-0.5 shadow-xs">
+                <span className="text-[10px] uppercase text-slate-500 block font-semibold">
                   1. Âncora Utilizada
                 </span>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-slate-300 text-[11px]">{activeTriad.anchorLabel}:</span>
-                  <span className="text-sm font-bold text-white">
+                  <span className="text-slate-600 text-[11px]">{activeTriad.anchorLabel}:</span>
+                  <span className="text-sm font-bold text-slate-900">
                     {activeTriad.anchorFormatted}
                   </span>
                 </div>
               </div>
 
               {/* 2. Preço de Venda Resultante */}
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-0.5">
-                <span className="text-[10px] uppercase text-emerald-400 block font-semibold">
+              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-0.5">
+                <span className="text-[10px] uppercase text-emerald-700 block font-semibold">
                   2. Preço de Venda Resultante
                 </span>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-slate-300 text-[11px]">Preço Sugerido (PV):</span>
-                  <span className="text-base font-black text-emerald-400">
+                  <span className="text-slate-600 text-[11px]">Preço Sugerido (PV):</span>
+                  <span className="text-base font-black text-emerald-700">
                     {activeTriad.salePriceFormatted}
                   </span>
                 </div>
               </div>
 
               {/* 3. Margens: Entrada e Líquida Apurada */}
-              <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
-                <span className="text-[10px] uppercase text-slate-400 block font-semibold">
+              <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-1.5 shadow-xs">
+                <span className="text-[10px] uppercase text-slate-500 block font-semibold">
                   3. Margens do Modo
                 </span>
                 {/* Linha A: Margem de Entrada */}
                 {activeTriad.entryMarginFormatted && (
                   <div className="flex items-baseline justify-between text-[11px]">
-                    <span className="text-slate-300">
+                    <span className="text-slate-600">
                       {activeTriad.entryMarginLabel || 'Margem de entrada'}:
                     </span>
-                    <span className="font-bold text-sky-300">
+                    <span className="font-bold text-sky-700">
                       {activeTriad.entryMarginFormatted}
                     </span>
                   </div>
                 )}
                 {/* Linha B: Margem Líquida Apurada (canônica: pós-IRPJ/CSLL sobre RL aditiva) */}
                 <div className="flex items-baseline justify-between text-[11px]">
-                  <span className="text-slate-300 font-medium">Margem líquida apurada:</span>
-                  <span className="text-sm font-bold text-amber-300">
+                  <span className="text-slate-600 font-medium">Margem líquida apurada:</span>
+                  <span className="text-sm font-bold text-amber-800">
                     {activeTriad.netMarginFormatted}
                   </span>
                 </div>
                 {activeTriad.lle !== undefined && (
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-850">
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-200">
                     <span>Lucro Líquido (LLE):</span>
                     <span
                       className={
                         (activeTriad.lle || 0) >= 0
-                          ? 'text-emerald-300 font-bold'
-                          : 'text-rose-400 font-bold'
+                          ? 'text-emerald-700 font-bold'
+                          : 'text-rose-700 font-bold'
                       }
                     >
                       {formatBRL(activeTriad.lle || 0)}
@@ -714,23 +714,23 @@ export function MarkupModeComparisonModal({
               </div>
             </div>
 
-            <p className="text-[10px] text-slate-400 font-mono italic">{activeTriad.notes}</p>
+            <p className="text-[10px] text-slate-500 font-mono italic">{activeTriad.notes}</p>
           </div>
 
           {/* Card 2: Modo Alternativo */}
-          <div className="p-4 rounded-2xl bg-gradient-to-b from-sky-500/[0.08] to-slate-950 border-2 border-sky-500/40 space-y-3.5 shadow-lg shadow-sky-500/5">
-            <div className="flex items-center justify-between border-b border-sky-500/30 pb-2.5">
+          <div className="p-4 rounded-2xl bg-sky-50/40 border-2 border-sky-300 space-y-3.5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-sky-200 pb-2.5">
               <div className="flex items-center gap-2">
                 {activeMode === 'liquid' ? (
-                  <Layers className="w-4 h-4 text-sky-400" />
+                  <Layers className="w-4 h-4 text-sky-700" />
                 ) : (
-                  <Target className="w-4 h-4 text-emerald-400" />
+                  <Target className="w-4 h-4 text-emerald-700" />
                 )}
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-sky-300">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-sky-800">
                   {alternativeTriad?.modeLabel || 'Modo Alternativo'}
                 </span>
               </div>
-              <Badge className="bg-sky-500/15 text-sky-300 border-sky-500/40 text-[10px] font-mono">
+              <Badge className="bg-sky-100 text-sky-800 border border-sky-300 text-[10px] font-mono">
                 Alternativo &ldquo;E se?&rdquo;
               </Badge>
             </div>
@@ -739,64 +739,64 @@ export function MarkupModeComparisonModal({
             {alternativeTriad ? (
               <div className="space-y-2.5 text-xs font-mono">
                 {/* 1. Âncora Usada */}
-                <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-0.5">
-                  <span className="text-[10px] uppercase text-slate-400 block font-semibold">
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-0.5 shadow-xs">
+                  <span className="text-[10px] uppercase text-slate-500 block font-semibold">
                     1. Âncora Alternativa (Premissa Honesta)
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span className="text-slate-300 text-[11px]">
+                    <span className="text-slate-600 text-[11px]">
                       {alternativeTriad.anchorLabel}:
                     </span>
-                    <span className="text-sm font-bold text-white">
+                    <span className="text-sm font-bold text-slate-900">
                       {alternativeTriad.anchorFormatted}
                     </span>
                   </div>
                 </div>
 
                 {/* 2. Preço de Venda Resultante */}
-                <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/30 space-y-0.5">
-                  <span className="text-[10px] uppercase text-sky-300 block font-semibold">
+                <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-200 space-y-0.5">
+                  <span className="text-[10px] uppercase text-sky-700 block font-semibold">
                     2. Preço de Venda Resultante
                   </span>
                   <div className="flex items-baseline justify-between">
-                    <span className="text-slate-300 text-[11px]">Preço Sugerido (PV):</span>
-                    <span className="text-base font-black text-sky-300">
+                    <span className="text-slate-600 text-[11px]">Preço Sugerido (PV):</span>
+                    <span className="text-base font-black text-sky-700">
                       {alternativeTriad.salePriceFormatted}
                     </span>
                   </div>
                 </div>
 
                 {/* 3. Margens: Entrada e Líquida Apurada */}
-                <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
-                  <span className="text-[10px] uppercase text-slate-400 block font-semibold">
+                <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-1.5 shadow-xs">
+                  <span className="text-[10px] uppercase text-slate-500 block font-semibold">
                     3. Margens do Modo
                   </span>
                   {/* Linha A: Margem de Entrada */}
                   {alternativeTriad.entryMarginFormatted && (
                     <div className="flex items-baseline justify-between text-[11px]">
-                      <span className="text-slate-300">
+                      <span className="text-slate-600">
                         {alternativeTriad.entryMarginLabel || 'Margem de entrada'}:
                       </span>
-                      <span className="font-bold text-sky-300">
+                      <span className="font-bold text-sky-700">
                         {alternativeTriad.entryMarginFormatted}
                       </span>
                     </div>
                   )}
                   {/* Linha B: Margem Líquida Apurada (canônica: pós-IRPJ/CSLL sobre RL aditiva) */}
                   <div className="flex items-baseline justify-between text-[11px]">
-                    <span className="text-slate-300 font-medium">Margem líquida apurada:</span>
-                    <span className="text-sm font-bold text-amber-300">
+                    <span className="text-slate-600 font-medium">Margem líquida apurada:</span>
+                    <span className="text-sm font-bold text-amber-800">
                       {alternativeTriad.netMarginFormatted}
                     </span>
                   </div>
                   {alternativeTriad.lle !== undefined && (
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-850">
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-200">
                       <span>Lucro Líquido (LLE):</span>
                       <span
                         className={
                           (alternativeTriad.lle || 0) >= 0
-                            ? 'text-sky-300 font-bold'
-                            : 'text-rose-400 font-bold'
+                            ? 'text-sky-700 font-bold'
+                            : 'text-rose-700 font-bold'
                         }
                       >
                         {formatBRL(alternativeTriad.lle || 0)}
@@ -805,12 +805,12 @@ export function MarkupModeComparisonModal({
                   )}
                 </div>
 
-                <p className="text-[10px] text-slate-400 font-mono italic">
+                <p className="text-[10px] text-slate-500 font-mono italic">
                   {alternativeTriad.notes}
                 </p>
               </div>
             ) : (
-              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs font-mono text-slate-400">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono text-slate-500">
                 Dados insuficientes para apurar o modo alternativo.
               </div>
             )}
@@ -819,64 +819,64 @@ export function MarkupModeComparisonModal({
 
         {/* Tabela de Síntese Comparativa da Tríade */}
         {alternativeTriad && (
-          <div className="rounded-xl border border-slate-800 overflow-hidden font-mono text-xs">
-            <div className="p-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
-              <span className="font-bold text-slate-200 uppercase text-[11px] flex items-center gap-1.5">
-                <Scale className="w-3.5 h-3.5 text-amber-400" />
+          <div className="rounded-xl border border-slate-200 overflow-hidden font-mono text-xs shadow-sm">
+            <div className="p-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <span className="font-bold text-slate-900 uppercase text-[11px] flex items-center gap-1.5">
+                <Scale className="w-3.5 h-3.5 text-amber-600" />
                 Síntese Comparativa da Tríade ({regimeLabel})
               </span>
-              <span className="text-[10px] text-slate-400">Valores unitários</span>
+              <span className="text-[10px] text-slate-500">Valores unitários</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800">
+                <thead className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white text-[11px] border-b border-slate-800">
                   <tr>
-                    <th className="py-2 px-3 font-semibold">Dimensão da Tríade</th>
-                    <th className="py-2 px-3 font-semibold text-emerald-300">
+                    <th className="py-2.5 px-3 font-semibold">Dimensão da Tríade</th>
+                    <th className="py-2.5 px-3 font-semibold text-emerald-300">
                       Modo Ativo (
                       {activeTriad.mode === 'liquid' ? 'Receita Líquida' : 'Custo + Margem'})
                     </th>
-                    <th className="py-2 px-3 font-semibold text-sky-300">
+                    <th className="py-2.5 px-3 font-semibold text-sky-300">
                       Modo Alternativo (
                       {alternativeTriad.mode === 'liquid' ? 'Receita Líquida' : 'Custo + Margem'})
                     </th>
-                    <th className="py-2 px-3 font-semibold text-slate-300 text-center">
+                    <th className="py-2.5 px-3 font-semibold text-slate-200 text-center">
                       Convergência
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 bg-slate-950/60 text-slate-200">
+                <tbody className="divide-y divide-slate-100 bg-white text-slate-900">
                   <tr>
-                    <td className="py-2.5 px-3 font-medium text-slate-400">Âncora adotada</td>
-                    <td className="py-2.5 px-3 font-bold text-white">
+                    <td className="py-2.5 px-3 font-medium text-slate-600">Âncora adotada</td>
+                    <td className="py-2.5 px-3 font-bold text-slate-900">
                       {activeTriad.anchorFormatted}
                     </td>
-                    <td className="py-2.5 px-3 font-bold text-sky-200">
+                    <td className="py-2.5 px-3 font-bold text-sky-800">
                       {alternativeTriad.anchorFormatted}
                     </td>
                     <td className="py-2.5 px-3 text-center">
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-500">
                         {activeMode === 'liquid' ? 'Meta Líquida vs CMV' : 'Custo vs Meta Derivada'}
                       </span>
                     </td>
                   </tr>
                   <tr>
-                    <td className="py-2.5 px-3 font-medium text-slate-400">Preço de Venda (PV)</td>
-                    <td className="py-2.5 px-3 font-black text-emerald-400 text-sm">
+                    <td className="py-2.5 px-3 font-medium text-slate-600">Preço de Venda (PV)</td>
+                    <td className="py-2.5 px-3 font-black text-emerald-700 text-sm">
                       {activeTriad.salePriceFormatted}
                     </td>
-                    <td className="py-2.5 px-3 font-black text-sky-300 text-sm">
+                    <td className="py-2.5 px-3 font-black text-sky-700 text-sm">
                       {alternativeTriad.salePriceFormatted}
                     </td>
                     <td className="py-2.5 px-3 text-center">
                       {activeTriad.salePrice > 0 && alternativeTriad.salePrice > 0 ? (
                         Math.abs(activeTriad.salePrice - alternativeTriad.salePrice) < 0.05 ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
+                          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-bold">
                             <CheckCircle2 className="w-3 h-3" />
                             Exato (100%)
                           </span>
                         ) : (
-                          <span className="text-[10px] text-amber-300 font-mono">
+                          <span className="text-[10px] text-amber-700 font-mono font-bold">
                             Δ{' '}
                             {formatBRL(
                               Math.abs(activeTriad.salePrice - alternativeTriad.salePrice),
@@ -884,22 +884,22 @@ export function MarkupModeComparisonModal({
                           </span>
                         )
                       ) : (
-                        <span className="text-[10px] text-slate-500">—</span>
+                        <span className="text-[10px] text-slate-400">—</span>
                       )}
                     </td>
                   </tr>
                   {/* Linha Margem de Entrada */}
                   {(activeTriad.entryMarginFormatted || alternativeTriad.entryMarginFormatted) && (
                     <tr>
-                      <td className="py-2.5 px-3 font-medium text-slate-400">Margem de entrada</td>
-                      <td className="py-2.5 px-3 font-bold text-sky-300">
+                      <td className="py-2.5 px-3 font-medium text-slate-600">Margem de entrada</td>
+                      <td className="py-2.5 px-3 font-bold text-sky-700">
                         {activeTriad.entryMarginFormatted || '—'}
                       </td>
-                      <td className="py-2.5 px-3 font-bold text-sky-300">
+                      <td className="py-2.5 px-3 font-bold text-sky-700">
                         {alternativeTriad.entryMarginFormatted || '—'}
                       </td>
                       <td className="py-2.5 px-3 text-center">
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-slate-500">
                           {activeMode === 'liquid' ? 'Equivalente real' : 'Informada vs Implícita'}
                         </span>
                       </td>
@@ -907,21 +907,21 @@ export function MarkupModeComparisonModal({
                   )}
                   {/* Linha Margem Líquida Apurada (canônica) */}
                   <tr>
-                    <td className="py-2.5 px-3 font-medium text-slate-400">
+                    <td className="py-2.5 px-3 font-medium text-slate-600">
                       Margem líquida apurada
-                      <span className="block text-[9px] text-slate-500 font-normal">
+                      <span className="block text-[9px] text-slate-400 font-normal">
                         (pós-IRPJ/CSLL sobre RL aditiva)
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 font-bold text-amber-300">
+                    <td className="py-2.5 px-3 font-bold text-amber-700">
                       {activeTriad.netMarginFormatted}
                     </td>
-                    <td className="py-2.5 px-3 font-bold text-amber-300">
+                    <td className="py-2.5 px-3 font-bold text-amber-700">
                       {alternativeTriad.netMarginFormatted}
                     </td>
                     <td className="py-2.5 px-3 text-center">
-                      <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
-                        <Sparkles className="w-3 h-3 text-amber-400" />
+                      <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-bold">
+                        <Sparkles className="w-3 h-3 text-amber-600" />
                         Métrica canônica
                       </span>
                     </td>
@@ -933,9 +933,9 @@ export function MarkupModeComparisonModal({
         )}
 
         {/* Premissa Honesta Explicada */}
-        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] font-mono text-slate-400 space-y-1">
-          <div className="flex items-center gap-1.5 text-slate-200 font-bold">
-            <HelpCircle className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-600 space-y-1">
+          <div className="flex items-center gap-1.5 text-slate-900 font-bold">
+            <HelpCircle className="w-3.5 h-3.5 text-emerald-700" />
             <span>Independência lógica entre os modos de precificação</span>
           </div>
           <p>
@@ -950,14 +950,14 @@ export function MarkupModeComparisonModal({
         </div>
 
         {/* Rodapé com botão de Fechar */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-800 flex-wrap gap-2">
+        <div className="flex items-center justify-between pt-2 border-t border-slate-200 flex-wrap gap-2">
           <span className="text-[10px] font-mono text-slate-500">
             Regime ativo fixado: <strong>{regimeLabel}</strong> · Sistema em conformidade integral
           </span>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="px-4 py-1.5 rounded-lg text-xs font-mono font-semibold bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
+            className="px-4 py-1.5 rounded-lg text-xs font-mono font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
           >
             Fechar janela
           </button>

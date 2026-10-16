@@ -38,11 +38,11 @@ export const RegimeComparisonBarChart: React.FC<RegimeComparisonBarChartProps> =
       : 0
 
   return (
-    <div className="rounded-xl border border-slate-800/80 bg-slate-900/50 p-3 sm:p-3.5 my-2 shadow-inner">
-      <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800/60">
+    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:p-3.5 my-2 shadow-sm">
+      <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200">
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[11px] font-mono font-bold tracking-wide text-slate-300 uppercase">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+          <span className="text-[11px] font-mono font-bold tracking-wide text-slate-900 uppercase">
             Receita Consolidada × Menor Preço
           </span>
         </div>
@@ -83,28 +83,28 @@ export const RegimeComparisonBarChart: React.FC<RegimeComparisonBarChartProps> =
           // Se for orange: tons orange-500 / orange-600. Se não (outra não-vencedora): sky-500 / blue-600.
 
           const barGradientClass = isCheapest
-            ? 'bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.4)]'
+            ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 shadow-sm'
             : isOrange
-              ? 'bg-gradient-to-r from-orange-600 to-orange-500 group-hover:from-orange-500 group-hover:to-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.25)]'
-              : 'bg-gradient-to-r from-blue-600 to-sky-500 group-hover:from-blue-500 group-hover:to-sky-400 shadow-[0_0_8px_rgba(14,165,233,0.25)]'
+              ? 'bg-gradient-to-r from-amber-600 to-amber-500 group-hover:from-amber-500 group-hover:to-amber-400'
+              : 'bg-gradient-to-r from-sky-600 to-sky-500 group-hover:from-sky-500 group-hover:to-sky-400'
 
           const labelColorClass = isCheapest
-            ? 'text-emerald-300 font-bold'
+            ? 'text-emerald-700 font-bold'
             : isOrange
-              ? 'text-orange-300'
-              : 'text-sky-300'
+              ? 'text-amber-700 font-semibold'
+              : 'text-sky-700 font-semibold'
 
           const rowBgClass = isCheapest
-            ? 'bg-emerald-950/30 border border-emerald-500/30 hover:border-emerald-500/50'
+            ? 'bg-emerald-50/70 border border-emerald-200 hover:border-emerald-300'
             : isOrange
-              ? 'hover:bg-orange-950/20 border border-transparent hover:border-orange-500/20'
-              : 'hover:bg-sky-950/20 border border-transparent hover:border-sky-500/20'
+              ? 'hover:bg-amber-50/50 border border-transparent hover:border-amber-200'
+              : 'hover:bg-sky-50/50 border border-transparent hover:border-sky-200'
 
           const tooltipHeaderColorClass = isCheapest
-            ? 'text-emerald-400'
+            ? 'text-emerald-700'
             : isOrange
-              ? 'text-orange-400'
-              : 'text-sky-400'
+              ? 'text-amber-700'
+              : 'text-sky-700'
 
           return (
             <Tooltip key={item.key}>
@@ -121,17 +121,17 @@ export const RegimeComparisonBarChart: React.FC<RegimeComparisonBarChartProps> =
                     </span>
                   </div>
 
-                  {/* Barra de Progresso com Glow no vencedor e cores diferenciadas (laranja e azul) nas demais */}
-                  <div className="relative flex-1 h-5 sm:h-6 bg-slate-950/70 rounded-md overflow-hidden p-0.5 border border-slate-800/80">
+                  {/* Barra de Progresso com fundo neutro claro */}
+                  <div className="relative flex-1 h-5 sm:h-6 bg-slate-200/80 rounded-md overflow-hidden p-0.5 border border-slate-300">
                     {hasVal ? (
                       <div
                         style={{ width: `${pct}%` }}
                         className={`h-full rounded transition-all duration-500 flex items-center justify-end pr-1.5 ${barGradientClass}`}
                       >
-                        {isCheapest && <Sparkles className="w-3 h-3 text-slate-950 shrink-0" />}
+                        {isCheapest && <Sparkles className="w-3 h-3 text-white shrink-0" />}
                       </div>
                     ) : (
-                      <div className="h-full flex items-center px-2 text-[10px] font-mono text-slate-600 italic">
+                      <div className="h-full flex items-center px-2 text-[10px] font-mono text-slate-400 italic">
                         Sem dados
                       </div>
                     )}
@@ -143,9 +143,7 @@ export const RegimeComparisonBarChart: React.FC<RegimeComparisonBarChartProps> =
                       <>
                         <span
                           className={`text-xs font-black ${
-                            isCheapest
-                              ? 'text-emerald-300 drop-shadow-[0_0_6px_rgba(52,211,153,0.35)]'
-                              : 'text-slate-200'
+                            isCheapest ? 'text-emerald-700' : 'text-slate-800'
                           }`}
                         >
                           {formatBRL(val)}
@@ -153,7 +151,7 @@ export const RegimeComparisonBarChart: React.FC<RegimeComparisonBarChartProps> =
 
                         {isCheapest && diffCheapestVsMostExpensive > 0 && (
                           <span
-                            className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap"
+                            className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300 whitespace-nowrap"
                             title={`Economia de ${formatBRL(diffCheapestVsMostExpensive)} em relação ao regime ${mostExpensive.label}`}
                           >
                             <TrendingDown className="w-2.5 h-2.5 shrink-0" />
@@ -165,42 +163,42 @@ export const RegimeComparisonBarChart: React.FC<RegimeComparisonBarChartProps> =
                         )}
                       </>
                     ) : (
-                      <span className="text-xs text-slate-600">—</span>
+                      <span className="text-xs text-slate-400">—</span>
                     )}
                   </div>
                 </div>
               </TooltipTrigger>
               <TooltipContent
                 side="top"
-                className="bg-slate-950 border border-slate-700 text-slate-100 p-2.5 font-mono text-xs shadow-xl max-w-xs space-y-1.5"
+                className="bg-white border border-slate-200 text-slate-900 p-2.5 font-mono text-xs shadow-xl max-w-xs space-y-1.5"
               >
-                <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1">
+                <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-1">
                   <span className={`font-bold ${tooltipHeaderColorClass}`}>{item.label}</span>
-                  <span className="text-[10px] text-slate-400">
+                  <span className="text-[10px] text-slate-500">
                     {validProds.length} {validProds.length === 1 ? 'item' : 'itens'}
                   </span>
                 </div>
-                <div className="flex justify-between gap-3 text-[11px] text-slate-300">
-                  <span className="text-slate-400">Receita Consolidada:</span>
-                  <span className="font-bold text-white">{hasVal ? formatBRL(val) : '—'}</span>
+                <div className="flex justify-between gap-3 text-[11px] text-slate-700">
+                  <span className="text-slate-500">Receita Consolidada:</span>
+                  <span className="font-bold text-slate-900">{hasVal ? formatBRL(val) : '—'}</span>
                 </div>
-                <div className="flex justify-between gap-3 text-[11px] text-slate-300">
-                  <span className="text-slate-400">Preço unitário médio:</span>
-                  <span className="font-bold text-slate-200">
+                <div className="flex justify-between gap-3 text-[11px] text-slate-700">
+                  <span className="text-slate-500">Preço unitário médio:</span>
+                  <span className="font-bold text-slate-900">
                     {avgPrice > 0 ? formatBRL(avgPrice) : '—'}
                   </span>
                 </div>
                 {mostCompetitiveProd && (
-                  <div className="pt-1 border-t border-slate-800/80 text-[10px] text-slate-300">
-                    <span className="text-slate-400 block">Mais competitivo:</span>
-                    <span className="font-semibold text-emerald-300 truncate block">
+                  <div className="pt-1 border-t border-slate-200 text-[10px] text-slate-700">
+                    <span className="text-slate-500 block">Mais competitivo:</span>
+                    <span className="font-semibold text-emerald-700 truncate block">
                       {mostCompetitiveProd.name || 'Produto'} (
                       {formatBRL(mostCompetitiveProd.salePrice)})
                     </span>
                   </div>
                 )}
                 {isCheapest && diffCheapestVsMostExpensive > 0 && (
-                  <div className="pt-1 border-t border-emerald-500/30 text-[10px] text-emerald-300 font-semibold">
+                  <div className="pt-1 border-t border-emerald-200 text-[10px] text-emerald-800 font-semibold">
                     Economia total de {formatBRL(diffCheapestVsMostExpensive)} frente a{' '}
                     {mostExpensive.label}.
                   </div>

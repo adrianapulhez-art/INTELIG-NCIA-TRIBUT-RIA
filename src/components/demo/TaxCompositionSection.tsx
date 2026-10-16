@@ -153,10 +153,10 @@ function computeRegimeTaxes(
 }
 
 const ACCENT_STYLES: Record<string, string> = {
-  icms: 'text-amber-300',
-  federal: 'text-sky-300',
-  das: 'text-violet-300',
-  custom: 'text-slate-300',
+  icms: 'text-amber-800',
+  federal: 'text-sky-800',
+  das: 'text-emerald-800',
+  custom: 'text-slate-700',
 }
 
 export function TaxCompositionSection({
@@ -185,32 +185,32 @@ export function TaxCompositionSection({
   return (
     <div className="space-y-4">
       {/* ===== Bloco do regime ativo: decomposição linha a linha ===== */}
-      <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 space-y-2">
+      <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <div className="w-6 h-6 rounded-md bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
               <Receipt className="w-3.5 h-3.5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-300">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-800">
                   Composição dos Tributos
                 </span>
-                <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono h-5 px-1.5">
+                <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono h-5 px-1.5">
                   {productName || 'Produto'}
                 </Badge>
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500">
                 Percentual de cada tributo em relação à Receita Bruta de Venda (RBV) · Regime:{' '}
-                <strong className="text-orange-400 uppercase">{REGIME_LABELS[regime]}</strong>
+                <strong className="text-slate-800 uppercase">{REGIME_LABELS[regime]}</strong>
               </p>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-[10px] font-mono text-slate-400 block">
+            <span className="text-[10px] font-mono text-slate-500 block">
               Receita bruta de venda (unit.)
             </span>
-            <span className="text-lg font-black text-emerald-400 font-mono">
+            <span className="text-lg font-black text-emerald-700 font-mono">
               {formatBRL(activeResult.rbv)}
             </span>
           </div>
@@ -221,7 +221,7 @@ export function TaxCompositionSection({
             {activeResult.lines.map((line) => (
               <div
                 key={line.key}
-                className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 bg-slate-900/60 p-2 rounded-lg border border-slate-800/80 transition-colors hover:border-slate-700/80"
+                className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 bg-slate-50 p-2 rounded-lg border border-slate-200 transition-colors hover:border-slate-300"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -232,7 +232,7 @@ export function TaxCompositionSection({
                     >
                       {line.label}
                     </span>
-                    <Badge className="bg-slate-900 text-slate-300 border-slate-700 text-[10px] font-mono h-4 px-1.5">
+                    <Badge className="bg-white text-slate-700 border-slate-200 text-[10px] font-mono h-4 px-1.5">
                       {formatPercentBR(line.ratePct)}
                     </Badge>
                   </div>
@@ -243,13 +243,13 @@ export function TaxCompositionSection({
                 <div className="flex items-center gap-3 sm:gap-4 shrink-0">
                   <div className="text-right w-24">
                     <span className="text-[10px] font-mono text-slate-500 block">% da RBV</span>
-                    <span className="text-xs font-mono font-bold text-slate-200">
+                    <span className="text-xs font-mono font-bold text-slate-800">
                       {formatPercentBR(line.pctOfRevenue)}
                     </span>
                   </div>
                   <div className="text-right w-28">
                     <span className="text-[10px] font-mono text-slate-500 block">Valor (R$)</span>
-                    <span className="text-xs font-mono font-bold text-slate-200">
+                    <span className="text-xs font-mono font-bold text-slate-800">
                       {formatBRL(line.value)}
                     </span>
                   </div>
@@ -258,14 +258,14 @@ export function TaxCompositionSection({
             ))}
 
             {/* Total dos tributos */}
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/35 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Percent className="w-4 h-4 text-emerald-400" />
+                <Percent className="w-4 h-4 text-emerald-700" />
                 <div>
-                  <span className="text-xs font-mono font-bold uppercase tracking-wide text-emerald-400 block">
+                  <span className="text-xs font-mono font-bold uppercase tracking-wide text-emerald-800 block">
                     Total de tributos sobre a RBV
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400">
+                  <span className="text-[10px] font-mono text-slate-600">
                     {activeResult.lines.length}{' '}
                     {activeResult.lines.length === 1 ? 'tributo' : 'tributos'} · Regime{' '}
                     {REGIME_LABELS[regime]}
@@ -274,16 +274,14 @@ export function TaxCompositionSection({
               </div>
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <span className="text-[10px] font-mono text-emerald-400/80 block">% da RBV</span>
-                  <span className="text-lg font-black text-emerald-400 font-mono">
+                  <span className="text-[10px] font-mono text-emerald-700 block">% da RBV</span>
+                  <span className="text-lg font-black text-emerald-700 font-mono">
                     {formatPercentBR(activeResult.totalPct)}
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] font-mono text-emerald-400/80 block">
-                    Valor (R$)
-                  </span>
-                  <span className="text-lg font-black text-emerald-400 font-mono">
+                  <span className="text-[10px] font-mono text-emerald-700 block">Valor (R$)</span>
+                  <span className="text-lg font-black text-emerald-700 font-mono">
                     {formatBRL(activeResult.totalValue)}
                   </span>
                 </div>
@@ -291,7 +289,7 @@ export function TaxCompositionSection({
             </div>
           </div>
         ) : (
-          <div className="py-3 px-3 rounded-lg border border-dashed border-slate-800/80 text-[11px] font-mono text-slate-500 text-center bg-slate-950/30">
+          <div className="py-3 px-3 rounded-lg border border-dashed border-slate-200 text-[11px] font-mono text-slate-500 text-center bg-slate-50">
             Nenhum preço simulado ainda. Preencha o custo/margem e clique em "Simular" para ver a
             composição dos tributos.
           </div>
@@ -299,36 +297,36 @@ export function TaxCompositionSection({
       </div>
 
       {/* ===== Comparativo: o mesmo produto nos 3 regimes ===== */}
-      <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-3 space-y-2">
+      <div className="bg-white border border-slate-200 rounded-xl p-3 space-y-2 shadow-sm">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0">
+          <div className="w-6 h-6 rounded-md bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
             <Scale className="w-3.5 h-3.5" />
           </div>
           <div>
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-orange-300">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-800">
               Comparativo por regime
             </span>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500">
               O mesmo produto nos 3 regimes — total de tributos em R$ e % da Receita Bruta de Venda
             </p>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-lg border border-slate-200">
           <table className="w-full text-[11px] font-mono border-collapse">
             <thead>
-              <tr className="border-b border-slate-800">
-                <th className="text-left py-1.5 px-2 text-slate-500 font-normal">Tributo</th>
+              <tr className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white">
+                <th className="text-left py-2 px-2.5 text-slate-300 font-semibold">Tributo</th>
                 {REGIME_ORDER.map((r) => (
                   <th
                     key={r}
-                    className={`text-right py-1.5 px-2 font-bold ${
-                      r === regime ? 'text-emerald-300' : 'text-slate-400'
+                    className={`text-right py-2 px-2.5 font-bold ${
+                      r === regime ? 'text-emerald-300' : 'text-slate-200'
                     }`}
                   >
                     {REGIME_LABELS[r]}
                     {r === regime && (
-                      <span className="block text-[9px] font-normal text-emerald-500/80">
+                      <span className="block text-[9px] font-normal text-emerald-400">
                         regime ativo
                       </span>
                     )}
@@ -336,14 +334,14 @@ export function TaxCompositionSection({
                 ))}
               </tr>
             </thead>
-            <tbody>
-              <tr className="border-b border-slate-800/50">
-                <td className="py-1.5 px-2 text-slate-300">Receita bruta de venda (unit.)</td>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              <tr>
+                <td className="py-1.5 px-2.5 text-slate-700">Receita bruta de venda (unit.)</td>
                 {REGIME_ORDER.map((r) => (
                   <td
                     key={r}
-                    className={`text-right py-1.5 px-2 ${
-                      r === regime ? 'text-emerald-200 font-bold' : 'text-slate-300'
+                    className={`text-right py-1.5 px-2.5 ${
+                      r === regime ? 'text-emerald-700 font-bold' : 'text-slate-800'
                     }`}
                   >
                     {formatBRL(resultsByRegime[r].rbv)}
@@ -353,8 +351,8 @@ export function TaxCompositionSection({
               {resultsByRegime.presumido.lines
                 .filter((l) => l.key === 'icms')
                 .map((l) => (
-                  <tr key={l.key} className="border-b border-slate-800/50">
-                    <td className="py-1.5 px-2 text-amber-300">
+                  <tr key={l.key}>
+                    <td className="py-1.5 px-2.5 text-amber-800 font-medium">
                       ICMS <span className="text-slate-500">({formatPercentBR(l.ratePct)})</span>
                     </td>
                     {REGIME_ORDER.map((r) => {
@@ -362,8 +360,8 @@ export function TaxCompositionSection({
                       return (
                         <td
                           key={r}
-                          className={`text-right py-1.5 px-2 ${
-                            r === regime ? 'text-emerald-200 font-bold' : 'text-slate-300'
+                          className={`text-right py-1.5 px-2.5 ${
+                            r === regime ? 'text-emerald-700 font-bold' : 'text-slate-700'
                           }`}
                         >
                           {line ? formatBRL(line.value) : '—'}
@@ -376,8 +374,8 @@ export function TaxCompositionSection({
                 const refLine = resultsByRegime.presumido.lines.find((l) => l.key === key)
                 if (!refLine) return null
                 return (
-                  <tr key={key} className="border-b border-slate-800/50">
-                    <td className="py-1.5 px-2 text-sky-300">
+                  <tr key={key}>
+                    <td className="py-1.5 px-2.5 text-sky-800 font-medium">
                       {refLine.label}{' '}
                       <span className="text-slate-500">
                         (
@@ -398,8 +396,8 @@ export function TaxCompositionSection({
                       return (
                         <td
                           key={r}
-                          className={`text-right py-1.5 px-2 ${
-                            r === regime ? 'text-emerald-200 font-bold' : 'text-slate-300'
+                          className={`text-right py-1.5 px-2.5 ${
+                            r === regime ? 'text-emerald-700 font-bold' : 'text-slate-700'
                           }`}
                         >
                           {line ? formatBRL(line.value) : '—'}
@@ -409,8 +407,8 @@ export function TaxCompositionSection({
                   </tr>
                 )
               })}
-              <tr className="border-b border-slate-800/50">
-                <td className="py-1.5 px-2 text-violet-300">
+              <tr>
+                <td className="py-1.5 px-2.5 text-emerald-800 font-medium">
                   DAS <span className="text-slate-500">({simplesAnexoLabel})</span>
                 </td>
                 {REGIME_ORDER.map((r) => {
@@ -418,8 +416,8 @@ export function TaxCompositionSection({
                   return (
                     <td
                       key={r}
-                      className={`text-right py-1.5 px-2 ${
-                        r === regime ? 'text-emerald-200 font-bold' : 'text-slate-300'
+                      className={`text-right py-1.5 px-2.5 ${
+                        r === regime ? 'text-emerald-700 font-bold' : 'text-slate-700'
                       }`}
                     >
                       {line ? formatBRL(line.value) : '—'}
@@ -430,8 +428,8 @@ export function TaxCompositionSection({
               {customTaxes.map((tax) => {
                 const key = `custom-${tax.id}`
                 return (
-                  <tr key={key} className="border-b border-slate-800/50">
-                    <td className="py-1.5 px-2 text-slate-300">
+                  <tr key={key}>
+                    <td className="py-1.5 px-2.5 text-slate-700">
                       {tax.name || 'Tributo adicional'}{' '}
                       <span className="text-slate-500">({formatPercentBR(tax.rate)})</span>
                     </td>
@@ -440,8 +438,8 @@ export function TaxCompositionSection({
                       return (
                         <td
                           key={r}
-                          className={`text-right py-1.5 px-2 ${
-                            r === regime ? 'text-emerald-200 font-bold' : 'text-slate-300'
+                          className={`text-right py-1.5 px-2.5 ${
+                            r === regime ? 'text-emerald-700 font-bold' : 'text-slate-700'
                           }`}
                         >
                           {line ? formatBRL(line.value) : '—'}
@@ -451,26 +449,28 @@ export function TaxCompositionSection({
                   </tr>
                 )
               })}
-              <tr className="bg-emerald-500/5">
-                <td className="py-2 px-2 font-bold text-emerald-300">Total de tributos (R$)</td>
+              <tr className="bg-emerald-50/70 border-t border-slate-200">
+                <td className="py-2 px-2.5 font-bold text-emerald-800">Total de tributos (R$)</td>
                 {REGIME_ORDER.map((r) => (
                   <td
                     key={r}
-                    className={`text-right py-2 px-2 font-black ${
-                      r === regime ? 'text-emerald-300' : 'text-slate-200'
+                    className={`text-right py-2 px-2.5 font-black ${
+                      r === regime ? 'text-emerald-800' : 'text-slate-900'
                     }`}
                   >
                     {formatBRL(resultsByRegime[r].totalValue)}
                   </td>
                 ))}
               </tr>
-              <tr className="bg-emerald-500/5">
-                <td className="py-2 px-2 font-bold text-emerald-300">Total de tributos (% RBV)</td>
+              <tr className="bg-emerald-50/70">
+                <td className="py-2 px-2.5 font-bold text-emerald-800">
+                  Total de tributos (% RBV)
+                </td>
                 {REGIME_ORDER.map((r) => (
                   <td
                     key={r}
-                    className={`text-right py-2 px-2 font-black ${
-                      r === regime ? 'text-emerald-300' : 'text-slate-200'
+                    className={`text-right py-2 px-2.5 font-black ${
+                      r === regime ? 'text-emerald-800' : 'text-slate-900'
                     }`}
                   >
                     {formatPercentBR(resultsByRegime[r].totalPct)}
