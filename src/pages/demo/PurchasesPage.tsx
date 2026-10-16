@@ -349,14 +349,14 @@ export default function PurchasesPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-600">
-                      <th className="py-3 px-4 w-12 text-center">#</th>
+                    <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-xs font-semibold text-white">
+                      <th className="py-3 px-4 w-12 text-center rounded-tl-xl">#</th>
                       <th className="py-3 px-4">Nome do Item</th>
                       <th className="py-3 px-4 text-right">Qtd Comprada</th>
                       <th className="py-3 px-4 text-right">Preço Compra / un.</th>
                       <th className="py-3 px-4 text-right">Preço Total</th>
                       <th className="py-3 px-4 text-right">Compras Líquidas</th>
-                      <th className="py-3 px-4 text-center w-36">Ação</th>
+                      <th className="py-3 px-4 text-center w-36 rounded-tr-xl">Ação</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs">
@@ -389,8 +389,8 @@ export default function PurchasesPage() {
                             key={item.id}
                             className="bg-slate-50/50 hover:bg-slate-100/60 transition-colors"
                           >
-                            <td className="py-2.5 px-4 text-center text-slate-400 font-bold text-xs">
-                              <span className="w-5 h-5 rounded bg-white border border-slate-200 inline-flex items-center justify-center text-slate-600 text-[10px]">
+                            <td className="py-2.5 px-4 text-center text-white font-bold text-xs">
+                              <span className="w-5 h-5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 inline-flex items-center justify-center text-white font-semibold text-[10px] shadow-sm">
                                 {idx + 1}
                               </span>
                             </td>
@@ -458,8 +458,8 @@ export default function PurchasesPage() {
                           }}
                           className="hover:bg-slate-50 transition-colors cursor-pointer group"
                         >
-                          <td className="py-3 px-4 text-center text-slate-400 font-bold text-xs">
-                            <span className="w-6 h-6 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto text-slate-700 group-hover:border-emerald-500">
+                          <td className="py-3 px-4 text-center text-white font-bold text-xs">
+                            <span className="w-6 h-6 rounded-md bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 flex items-center justify-center mx-auto text-white font-bold text-xs shadow-sm group-hover:border-emerald-500 transition-colors">
                               {idx + 1}
                             </span>
                           </td>
