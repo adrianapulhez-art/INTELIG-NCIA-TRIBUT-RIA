@@ -254,8 +254,8 @@
   }
 
   body {
-    background-color: #0b0f17;
-    color: #f1f5f9;
+    background-color: #f8fafc;
+    color: #0f172a;
     font-family:
       'Manrope',
       system-ui,
@@ -278,45 +278,33 @@
 .bg-grid-pattern {
   background-size: 40px 40px;
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(148, 163, 184, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
 }
 
 .bg-glow-radial {
-  background: radial-gradient(
-    circle at 50% 20%,
-    rgba(16, 185, 129, 0.12) 0%,
-    rgba(14, 165, 233, 0.05) 35%,
-    transparent 70%
-  );
+  background: radial-gradient(circle at 50% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
 }
 
-/* Atmosfera tom sobre tom em verdes esfumados (estilo Adapta) */
+/* Fundo limpo e suave para tema claro neutro */
 .bg-emerald-smoky-atmosphere {
   background:
-    radial-gradient(
-      ellipse 90% 60% at 50% -10%,
-      rgba(16, 185, 129, 0.22) 0%,
-      rgba(5, 150, 105, 0.1) 35%,
-      transparent 70%
-    ),
-    radial-gradient(circle 600px at 15% 45%, rgba(6, 95, 70, 0.18) 0%, transparent 60%),
-    radial-gradient(circle 700px at 85% 65%, rgba(4, 120, 87, 0.15) 0%, transparent 65%),
-    radial-gradient(circle 500px at 50% 90%, rgba(16, 185, 129, 0.1) 0%, transparent 60%), #050a08;
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(16, 185, 129, 0.06) 0%, transparent 70%),
+    #f8fafc;
 }
 
 .glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #e2e8f0;
 }
 
-/* Padronização visual em laranja para campos de entrada/seleção interativos (acendem com o regime) */
+/* Campos de entrada/seleção interativos — neutros com foco no acento esmeralda */
 .field-input-interactive {
-  background-color: rgba(249, 115, 22, 0.12) !important;
-  border-color: rgba(249, 115, 22, 0.6) !important;
-  color: #ffedd5 !important;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
   transition:
     background-color 200ms ease,
     border-color 200ms ease,
@@ -324,21 +312,21 @@
     color 200ms ease !important;
 }
 .field-input-interactive::placeholder {
-  color: rgba(254, 215, 170, 0.5) !important;
+  color: #94a3b8 !important;
 }
 .field-input-interactive:hover {
-  background-color: rgba(249, 115, 22, 0.16) !important;
-  border-color: rgba(251, 146, 60, 0.85) !important;
+  background-color: #f8fafc !important;
+  border-color: #94a3b8 !important;
 }
 .field-input-interactive:focus,
 .field-input-interactive:focus-visible,
 .field-input-interactive:focus-within {
-  background-color: rgba(249, 115, 22, 0.18) !important;
-  border-color: #f97316 !important;
-  --tw-ring-color: rgba(249, 115, 22, 0.45) !important;
+  background-color: #ffffff !important;
+  border-color: #059669 !important;
+  --tw-ring-color: rgba(5, 150, 105, 0.2) !important;
   box-shadow:
-    0 0 0 1px rgba(249, 115, 22, 0.4),
-    0 0 12px rgba(249, 115, 22, 0.15) !important;
+    0 0 0 1px #059669,
+    0 0 0 3px rgba(5, 150, 105, 0.15) !important;
   outline: none !important;
 }
 @layer utilities {

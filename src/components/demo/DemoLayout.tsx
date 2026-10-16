@@ -150,27 +150,23 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
   ]
 
   return (
-    <div className="min-h-screen bg-[#050a08] text-slate-100 flex flex-col justify-between relative selection:bg-emerald-500/30 selection:text-emerald-300 font-sans overflow-x-hidden">
-      {/* Atmosfera tom sobre tom em verdes esfumados (estilo Adapta) */}
-      <div className="fixed inset-0 pointer-events-none bg-emerald-smoky-atmosphere z-0" />
-      <div className="fixed inset-0 pointer-events-none bg-grid-pattern opacity-25 z-0" />
-
-      {/* Brumas suaves adicionais para profundidade futurista */}
-      <div className="fixed -top-40 left-1/4 w-[600px] h-[400px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none z-0" />
-      <div className="fixed top-1/2 -right-40 w-[500px] h-[500px] bg-teal-600/10 blur-[140px] rounded-full pointer-events-none z-0" />
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between relative selection:bg-emerald-100 selection:text-emerald-900 font-sans overflow-x-hidden">
+      {/* Fundo sutil neutro */}
+      <div className="fixed inset-0 pointer-events-none bg-slate-50 z-0" />
+      <div className="fixed inset-0 pointer-events-none bg-grid-pattern opacity-40 z-0" />
 
       {/* Top Navbar */}
-      <header className="relative z-20 border-b border-emerald-500/20 bg-[#06100d]/85 backdrop-blur-md px-4 sm:px-8 py-3 flex items-center justify-between shadow-lg shadow-black/40">
+      <header className="relative z-20 border-b border-slate-200 bg-white/95 backdrop-blur-md px-4 sm:px-8 py-3 flex items-center justify-between shadow-sm">
         <Link to="/demo" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
-            <span className="font-extrabold text-slate-950 text-sm font-mono">IT</span>
+          <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+            <span className="font-extrabold text-white text-sm font-mono">IT</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-white tracking-tight group-hover:text-emerald-300 transition-colors">
+            <span className="text-sm font-bold text-slate-900 tracking-tight group-hover:text-emerald-600 transition-colors">
               IT — Inteligência Tributária
             </span>
-            <span className="text-[9px] text-emerald-400 font-mono tracking-wider uppercase flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] text-emerald-700 font-medium tracking-wide uppercase flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               Ambiente de Demonstração
             </span>
           </div>
@@ -179,23 +175,23 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
         <div className="flex items-center gap-3">
           {/* Indicador de CENÁRIO ATIVO (multi-cliente) — persistente em pré e pós-reforma */}
           {cenarioAtivo && (
-            <div className="hidden md:flex items-center gap-2 bg-sky-500/10 border border-sky-500/30 rounded-lg px-2.5 py-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
-              <span className="text-[10px] font-mono text-sky-300 max-w-[220px] truncate">
-                Cenário ativo: {cenarioAtivo.cliente} · {cenarioAtivo.nome}
+            <div className="hidden md:flex items-center gap-2 bg-sky-50 border border-sky-200 rounded-lg px-2.5 py-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+              <span className="text-[11px] font-medium text-sky-800 max-w-[220px] truncate">
+                Cenário: {cenarioAtivo.cliente} · {cenarioAtivo.nome}
               </span>
               <button
                 type="button"
                 onClick={handleDesativarCenario}
                 title="Desativar o cenário ativo e zerar as telas"
-                className="text-[10px] font-mono font-bold text-rose-300 hover:text-rose-200 bg-rose-500/10 border border-rose-500/30 rounded px-1.5 py-0.5 cursor-pointer hover:bg-rose-500/20 transition-colors"
+                className="text-[10px] font-bold text-rose-700 hover:text-rose-900 bg-rose-50 border border-rose-200 rounded px-1.5 py-0.5 cursor-pointer hover:bg-rose-100 transition-colors"
               >
                 Desativar
               </button>
             </div>
           )}
           {/* Botões de Desfazer e Refazer (Undo/Redo) */}
-          <div className="flex items-center gap-1 bg-[#091511]/90 border border-emerald-500/20 rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-lg p-0.5">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -204,12 +200,12 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
                   onClick={handleUndo}
                   disabled={!canUndo}
                   aria-label="Desfazer última ação (Ctrl+Z)"
-                  className="text-xs h-7 px-2 text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-500 flex items-center gap-1 cursor-pointer transition-colors"
+                  className="text-xs h-7 px-2 text-slate-600 hover:text-slate-900 hover:bg-white disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-400 flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <Undo2 className="w-3.5 h-3.5" />
                   <span className="hidden xl:inline text-[11px] font-medium">Desfazer</span>
                   {undoCount > 0 && (
-                    <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
                       {undoCount}
                     </span>
                   )}
@@ -217,7 +213,7 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
               </TooltipTrigger>
               <TooltipContent
                 side="bottom"
-                className="text-xs bg-slate-900 border-slate-700 text-slate-200"
+                className="text-xs bg-slate-900 border-slate-700 text-slate-100"
               >
                 <span>Desfazer última ação (Ctrl+Z)</span>
               </TooltipContent>
@@ -231,12 +227,12 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
                   onClick={handleRedo}
                   disabled={!canRedo}
                   aria-label="Refazer ação (Ctrl+Y ou Cmd+Shift+Z)"
-                  className="text-xs h-7 px-2 text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/15 disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-500 flex items-center gap-1 cursor-pointer transition-colors"
+                  className="text-xs h-7 px-2 text-slate-600 hover:text-slate-900 hover:bg-white disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-400 flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <Redo2 className="w-3.5 h-3.5" />
                   <span className="hidden xl:inline text-[11px] font-medium">Refazer</span>
                   {redoCount > 0 && (
-                    <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
                       {redoCount}
                     </span>
                   )}
@@ -244,7 +240,7 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
               </TooltipTrigger>
               <TooltipContent
                 side="bottom"
-                className="text-xs bg-slate-900 border-slate-700 text-slate-200"
+                className="text-xs bg-slate-900 border-slate-700 text-slate-100"
               >
                 <span>Refazer ação (Ctrl+Y / Cmd+Shift+Z)</span>
               </TooltipContent>
@@ -256,30 +252,30 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
             size="sm"
             onClick={resetAll}
             title="Zerar todos os campos e simulações"
-            className="text-xs text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 flex items-center gap-1.5 h-8 cursor-pointer"
+            className="text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5 h-8 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span className="hidden md:inline">Zerar campos</span>
           </Button>
 
           {/* Perfil */}
-          <div className="flex items-center gap-2.5 pl-2 border-l border-slate-800/80">
+          <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
             {user?.avatarUrl ? (
               <img
                 src={user.avatarUrl}
                 alt={displayName}
-                className="w-8 h-8 rounded-full object-cover border border-emerald-500/40 shadow-inner"
+                className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-mono text-xs font-semibold shadow-inner">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-800 font-mono text-xs font-semibold shadow-sm">
                 {userInitials}
               </div>
             )}
             <div className="hidden sm:flex flex-col text-left">
-              <span className="text-xs font-medium text-slate-200 leading-tight">
+              <span className="text-xs font-semibold text-slate-800 leading-tight">
                 {displayName}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono truncate max-w-[160px]">
+              <span className="text-[10px] text-slate-500 font-mono truncate max-w-[160px]">
                 {user?.email}
               </span>
             </div>
@@ -289,7 +285,7 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
             variant="ghost"
             size="sm"
             onClick={handleLogout}
-            className="text-xs text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 flex items-center gap-1.5 h-8 cursor-pointer ml-1"
+            className="text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 flex items-center gap-1.5 h-8 cursor-pointer ml-1"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Sair</span>
@@ -297,26 +293,26 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
         </div>
       </header>
 
-      {/* Barra de Navegação em Pills estilo Adapta (Header escuro com pills arredondadas) */}
-      <div className="relative z-10 pt-6 pb-2 px-4 sm:px-8 max-w-6xl mx-auto w-full text-center">
-        {/* Badge AMBIENTE DE TESTES */}
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border border-emerald-400/40 bg-emerald-500/10 text-emerald-300 font-mono text-xs tracking-wider uppercase shadow-sm mb-4">
-          <Sparkles className="w-3 h-3 text-emerald-400" />
-          <span>AMBIENTE DE TESTES</span>
+      {/* Barra de Navegação em Tabs / Pills neutras com acento esmeralda */}
+      <div className="relative z-10 pt-5 pb-2 px-4 sm:px-8 max-w-6xl mx-auto w-full text-center">
+        {/* Badge AMBIENTE DE DEMONSTRAÇÃO */}
+        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800 font-medium text-xs tracking-wide uppercase shadow-sm mb-3">
+          <Sparkles className="w-3 h-3 text-emerald-600" />
+          <span>Ambiente de Demonstração</span>
         </div>
 
-        {/* Barra de Tabs em Pills com degradê sutil e cantos arredondados estilo Adapta */}
-        <div className="p-1.5 rounded-2xl bg-[#091511]/90 border border-emerald-500/25 backdrop-blur-md inline-flex flex-wrap items-center justify-center gap-1.5 shadow-xl shadow-emerald-950/40 max-w-full">
+        {/* Barra de Tabs em Pills com fundo branco e borda suave */}
+        <div className="p-1.5 rounded-2xl bg-white border border-slate-200 inline-flex flex-wrap items-center justify-center gap-1.5 shadow-sm max-w-full">
           {tabs.map((tab) => {
             const isActive = currentTab === tab.key
             return (
               <button
                 key={tab.key}
                 onClick={() => navigate(tab.path)}
-                className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer ${
                   isActive
-                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30 font-bold scale-[1.02]'
-                    : 'text-slate-300 hover:text-white hover:bg-emerald-500/10'
+                    ? 'bg-emerald-600 text-white shadow-sm font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 {tab.label}
@@ -332,7 +328,7 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 py-5 border-t border-emerald-500/15 bg-[#050e0b]/90 text-center text-xs text-slate-500 font-mono">
+      <footer className="relative z-10 py-5 border-t border-slate-200 bg-white text-center text-xs text-slate-500">
         IT — Inteligência Tributária • Demonstração Interativa integrada
       </footer>
 
