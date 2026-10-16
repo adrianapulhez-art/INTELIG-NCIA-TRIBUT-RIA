@@ -979,19 +979,19 @@ export default function MarkupPage() {
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   regime === 'presumido'
                     ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-bold font-mono uppercase ${regime === 'presumido' ? 'text-emerald-800' : 'text-slate-700'}`}
+                    className={`text-xs font-bold font-mono uppercase ${regime === 'presumido' ? 'text-emerald-800' : 'text-slate-900'}`}
                   >
                     Lucro Presumido
                   </span>
                   {regime === 'presumido' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 </div>
                 <p
-                  className={`text-[11px] mt-1 font-mono ${regime === 'presumido' ? 'text-slate-700 font-medium' : 'text-slate-500'}`}
+                  className={`text-[11px] mt-1 font-mono ${regime === 'presumido' ? 'text-slate-700 font-medium' : 'text-slate-600'}`}
                 >
                   PIS 0,65% · COFINS 3,00% (cumulativo)
                 </p>
@@ -1003,19 +1003,19 @@ export default function MarkupPage() {
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   regime === 'real'
                     ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-bold font-mono uppercase ${regime === 'real' ? 'text-emerald-800' : 'text-slate-700'}`}
+                    className={`text-xs font-bold font-mono uppercase ${regime === 'real' ? 'text-emerald-800' : 'text-slate-900'}`}
                   >
                     Lucro Real
                   </span>
                   {regime === 'real' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 </div>
                 <p
-                  className={`text-[11px] mt-1 font-mono ${regime === 'real' ? 'text-slate-700 font-medium' : 'text-slate-500'}`}
+                  className={`text-[11px] mt-1 font-mono ${regime === 'real' ? 'text-slate-700 font-medium' : 'text-slate-600'}`}
                 >
                   PIS 1,65% · COFINS 7,60% (não cumulativo)
                 </p>
@@ -1027,19 +1027,19 @@ export default function MarkupPage() {
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   regime === 'simples'
                     ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-bold font-mono uppercase ${regime === 'simples' ? 'text-emerald-800' : 'text-slate-700'}`}
+                    className={`text-xs font-bold font-mono uppercase ${regime === 'simples' ? 'text-emerald-800' : 'text-slate-900'}`}
                   >
                     Simples Nacional
                   </span>
                   {regime === 'simples' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 </div>
                 <p
-                  className={`text-[11px] mt-1 font-mono ${regime === 'simples' ? 'text-slate-700 font-medium' : 'text-slate-500'}`}
+                  className={`text-[11px] mt-1 font-mono ${regime === 'simples' ? 'text-slate-700 font-medium' : 'text-slate-600'}`}
                 >
                   Guia única DAS (PIS/COFINS sem destaque avulso)
                 </p>
@@ -1321,7 +1321,7 @@ export default function MarkupPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-3.5 bg-emerald-600 rounded-full" />
-                  <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-800 font-semibold">
+                  <h3 className="text-sm font-bold text-slate-900 tracking-tight font-mono uppercase">
                     Despesas Variáveis de Venda (DV)
                   </h3>
                   <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-mono">
@@ -1339,7 +1339,7 @@ export default function MarkupPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAddDvForm(!showAddDvForm)}
-                className="h-7 text-xs bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:text-emerald-700 cursor-pointer self-start sm:self-center shadow-sm"
+                className="h-7 text-xs bg-[#0d1624] text-white hover:bg-[#162236] border-0 shadow-sm font-semibold cursor-pointer self-start sm:self-center"
               >
                 <Plus className="w-3.5 h-3.5 mr-1" />
                 Adicionar despesa variável
@@ -1411,9 +1411,11 @@ export default function MarkupPage() {
                 />
               ))}
               {/* Linha de Total */}{' '}
-              <div className="px-3.5 py-2.5 bg-emerald-50/60 border-t border-slate-200 flex items-center justify-between text-xs font-bold font-mono">
-                <span className="text-emerald-800 uppercase">Total Despesas Variáveis (Σ DV)</span>
-                <span className="text-emerald-800 text-sm">
+              <div className="px-3.5 py-2.5 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white border-t border-slate-800 flex items-center justify-between text-xs font-bold font-mono">
+                <span className="text-white uppercase font-bold">
+                  Total Despesas Variáveis (Σ DV)
+                </span>
+                <span className="text-white text-sm font-bold">
                   {formatPercentBR(totalVariableExpenseRate)}
                 </span>
               </div>
@@ -2796,11 +2798,11 @@ export default function MarkupPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsProductRevenueDetailsOpen(true)}
-                    className="h-7 text-xs bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100 hover:border-amber-400 font-mono flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    className="h-7 text-xs bg-[#0d1624] text-white hover:bg-[#162236] border-0 shadow-sm font-semibold font-mono flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Layers className="w-3.5 h-3.5 text-amber-700" />
+                    <Layers className="w-3.5 h-3.5 text-slate-300" />
                     <span>Detalhar por produto</span>
-                    <Badge className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] px-1.5 py-0 font-mono font-semibold">
+                    <Badge className="bg-slate-800 text-slate-100 border border-slate-700 text-[10px] px-1.5 py-0 font-mono font-semibold">
                       {markupProducts.length}
                     </Badge>
                   </Button>
@@ -2876,25 +2878,25 @@ export default function MarkupPage() {
                     <tbody className="divide-y divide-slate-100">
                       {markupProducts.map((p, idx) => (
                         <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-2.5 px-3 text-left font-medium text-slate-900">
+                          <td className="py-2.5 px-3 text-left font-medium text-[#0f172a]">
                             <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 text-white font-bold text-[10px] mr-1.5 shadow-sm">
                               #{idx + 1}
                             </span>
                             {p.name || `Produto ${idx + 1}`}
                           </td>
-                          <td className="py-2.5 px-3 text-right text-slate-600 font-medium">
+                          <td className="py-2.5 px-3 text-right text-[#0f172a] font-medium">
                             {p.mode === 'liquid' ? 'Líquida' : 'Custo+Margem'}
                           </td>
-                          <td className="py-2.5 px-3 text-right text-slate-600 font-medium">
+                          <td className="py-2.5 px-3 text-right text-[#0f172a] font-bold">
                             {formatFactorBR(p.completeFactor, 4)}
                           </td>
                           <td className="py-2.5 px-3 text-right font-bold text-emerald-700">
                             {formatBRL(p.salePrice)}
                           </td>
-                          <td className="py-2.5 px-3 text-right text-slate-800 font-medium">
+                          <td className="py-2.5 px-3 text-right text-[#0f172a] font-bold">
                             {p.quantity} un.
                           </td>
-                          <td className="py-2.5 px-3 text-right font-bold text-slate-900">
+                          <td className="py-2.5 px-3 text-right font-bold text-[#0f172a]">
                             {formatBRL(p.totalRevenue)}
                           </td>
                           <td className="py-2.5 px-3 text-center">
@@ -3150,7 +3152,7 @@ export default function MarkupPage() {
                                 </span>
                                 {origProd?.name || pPres.name || `Produto ${idx + 1}`}
                               </td>
-                              <td className="py-2.5 px-3 text-right text-slate-600 font-medium">
+                              <td className="py-2.5 px-3 text-right text-[#0f172a] font-bold">
                                 <span
                                   data-product-id={pPres.id}
                                   title={`P: ${qtyPres} un. | R: ${qtyReal} un. | S: ${qtySimp} un.`}
@@ -3558,7 +3560,7 @@ export default function MarkupPage() {
           <Button
             type="button"
             onClick={() => navigate('/demo/compras')}
-            className="bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 font-medium px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-sm"
+            className="bg-[#0d1624] text-white hover:bg-[#162236] border-0 shadow-sm font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Voltar para Calculadora de Compras</span>
