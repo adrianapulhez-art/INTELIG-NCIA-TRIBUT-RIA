@@ -2646,15 +2646,15 @@ export default function MarkupPage() {
 
           {/* Validação de Alimentação Manual por Regime (Leitura B) */}
           {simulationValidationError && (
-            <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs font-mono flex items-center justify-between gap-3 animate-in fade-in">
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs font-mono flex items-center justify-between gap-3 animate-in fade-in">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                 <span className="font-semibold">{simulationValidationError}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setSimulationValidationError(null)}
-                className="text-rose-300 hover:text-white text-xs underline cursor-pointer"
+                className="text-rose-700 hover:text-rose-950 text-xs underline cursor-pointer"
               >
                 Dispensar
               </button>
@@ -2703,7 +2703,7 @@ export default function MarkupPage() {
                 setSimulationValidationError(null)
                 simulateMarkup()
               }}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 cursor-pointer transition-transform active:scale-95"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer transition-transform active:scale-95"
             >
               <Calculator className="w-4 h-4" />
               Simular
@@ -2713,36 +2713,39 @@ export default function MarkupPage() {
 
         {/* Quadro de Resultados (atualiza SOMENTE ao simular) */}
         {isMarkupSimulated && (
-          <div className="bg-[#0b101b]/90 border border-emerald-500/40 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-7 shadow-sm space-y-5 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold">
+                <span className="text-xs font-mono uppercase tracking-wider text-emerald-800 font-bold">
                   Resultado Consolidado do Markup
                 </span>
-                <Badge className="bg-emerald-500/20 text-emerald-400 border-0 text-[10px] font-mono">
+                <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-semibold">
                   {markupProducts.length} {markupProducts.length === 1 ? 'item' : 'itens'}
                 </Badge>
               </div>
-              <span className="text-xs font-mono text-slate-400">
-                Regime aplicado: <strong className="text-emerald-400 uppercase">{regime}</strong>
+              <span className="text-xs font-mono text-slate-600">
+                Regime aplicado:{' '}
+                <strong className="text-emerald-800 uppercase font-bold">{regime}</strong>
               </span>
             </div>
 
             {/* Totais Consolidados */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 font-mono">
-              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-                <span className="text-[11px] text-slate-400 block mb-1">Fator tributário base</span>
-                <span className="text-lg font-bold text-slate-200">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="text-[11px] text-slate-600 block mb-1 font-medium">
+                  Fator tributário base
+                </span>
+                <span className="text-lg font-bold text-slate-900">
                   {formatFactorBR(simulatedTaxFactorTotal, 5)}
                 </span>
                 <span className="text-[10px] text-slate-500 block mt-1">ICMS + PIS/COFINS</span>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-                <span className="text-[11px] text-slate-400 block mb-1">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="text-[11px] text-slate-600 block mb-1 font-medium">
                   Quantidade total de itens
                 </span>
-                <span className="text-lg font-bold text-slate-200">
+                <span className="text-lg font-bold text-slate-900">
                   {totalConsolidatedQuantity} un.
                 </span>
                 <span className="text-[10px] text-slate-500 block mt-1">
@@ -2750,9 +2753,11 @@ export default function MarkupPage() {
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800">
-                <span className="text-[11px] text-slate-400 block mb-1">Produtos simulados</span>
-                <span className="text-lg font-bold text-slate-200">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="text-[11px] text-slate-600 block mb-1 font-medium">
+                  Produtos simulados
+                </span>
+                <span className="text-lg font-bold text-slate-900">
                   {markupProducts.length} {markupProducts.length === 1 ? 'item' : 'itens'}
                 </span>
                 <span className="text-[10px] text-slate-500 block mt-1">
@@ -2760,14 +2765,14 @@ export default function MarkupPage() {
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                <span className="text-[11px] text-emerald-400 block mb-1 font-semibold">
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+                <span className="text-[11px] text-emerald-800 block mb-1 font-bold">
                   Receita bruta consolidada
                 </span>
-                <span className="text-xl sm:text-2xl font-black text-emerald-400">
+                <span className="text-xl sm:text-2xl font-black text-emerald-700">
                   {formatBRL(totalConsolidatedRevenue)}
                 </span>
-                <span className="text-[10px] text-emerald-400/80 block mt-1">
+                <span className="text-[10px] text-emerald-800/90 block mt-1 font-medium">
                   Alimenta as DREs (Σ produtos)
                 </span>
               </div>
@@ -2778,7 +2783,7 @@ export default function MarkupPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-3.5 bg-amber-500 rounded-full" />
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-amber-200 font-semibold">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-amber-900 font-bold">
                     Preço de venda e receita por produto ({regime.toUpperCase()})
                   </span>
                 </div>
@@ -2791,36 +2796,36 @@ export default function MarkupPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsProductRevenueDetailsOpen(true)}
-                    className="h-7 text-xs bg-amber-500/10 border-amber-500/40 text-amber-200 hover:bg-amber-500/20 hover:border-amber-500 hover:text-white font-mono flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    className="h-7 text-xs bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100 hover:border-amber-400 font-mono flex items-center gap-1.5 cursor-pointer shadow-sm"
                   >
-                    <Layers className="w-3.5 h-3.5 text-amber-400" />
+                    <Layers className="w-3.5 h-3.5 text-amber-700" />
                     <span>Detalhar por produto</span>
-                    <Badge className="bg-amber-500/25 text-amber-300 border border-amber-500/40 text-[10px] px-1.5 py-0 font-mono">
+                    <Badge className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] px-1.5 py-0 font-mono font-semibold">
                       {markupProducts.length}
                     </Badge>
                   </Button>
                 </div>
               </div>
 
-              {/* Tabela Frontal: MANTÉM a linha consolidada destacada em âmbar intacta */}
-              <div className="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-950/70">
+              {/* Tabela Frontal: MANTÉM a linha consolidada destacada em âmbar intacta com contraste claro */}
+              <div className="overflow-x-auto rounded-xl border border-amber-300 bg-amber-50/60 shadow-sm">
                 <table className="w-full text-xs font-mono">
                   <tbody>
-                    {/* Linha consolidada Grupo 1 (Regime Ativo): Destaque Laranja/Âmbar com marcação reforçada */}
-                    <tr className="bg-amber-500/15 font-bold border-t-2 border-b-2 border-amber-500/60 shadow-[inset_0_0_12px_rgba(245,158,11,0.08)]">
+                    {/* Linha consolidada Grupo 1 (Regime Ativo): Destaque Laranja/Âmbar no tema claro */}
+                    <tr className="bg-amber-100/70 font-bold border-t-2 border-b-2 border-amber-400">
                       <td
                         colSpan={4}
-                        className="py-3 px-3 text-left text-amber-200 font-extrabold uppercase tracking-wide border-l-2 border-amber-500"
+                        className="py-3 px-3 text-left text-amber-950 font-extrabold uppercase tracking-wide border-l-2 border-amber-500"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                          <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                           <span>Total Consolidado (Soma das receitas)</span>
                         </div>
                       </td>
-                      <td className="py-3 px-3 text-right text-amber-100 font-bold text-sm">
+                      <td className="py-3 px-3 text-right text-amber-900 font-bold text-sm">
                         {totalConsolidatedQuantity} un.
                       </td>
-                      <td className="py-3 px-3 text-right text-amber-300 font-black text-base drop-shadow-[0_0_6px_rgba(251,191,36,0.35)] border-r-2 border-amber-500/60">
+                      <td className="py-3 px-3 text-right text-amber-950 font-black text-base border-r-2 border-amber-400">
                         {formatBRL(totalConsolidatedRevenue)}
                       </td>
                     </tr>
@@ -2834,24 +2839,24 @@ export default function MarkupPage() {
               open={isProductRevenueDetailsOpen}
               onOpenChange={setIsProductRevenueDetailsOpen}
             >
-              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-slate-800 p-6 text-slate-100 shadow-2xl">
-                <DialogHeader className="border-b border-slate-800 pb-3">
-                  <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 p-6 text-slate-900 shadow-xl">
+                <DialogHeader className="border-b border-slate-200 pb-3">
+                  <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
                     <span>
                       Detalhamento por Produto — Preço de Venda e Receita ({regime.toUpperCase()})
                     </span>
-                    <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/40 text-[10px] font-mono">
+                    <Badge className="bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-mono font-semibold">
                       {markupProducts.length} itens
                     </Badge>
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-slate-400 font-mono">
+                  <DialogDescription className="text-xs text-slate-500 font-mono">
                     Discriminação linha a linha sem média ponderada artificial entre produtos
                     distintos.
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-900/60 my-2">
+                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white my-2 shadow-sm">
                   <table className="w-full text-xs font-mono">
                     <thead>
                       <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white text-right">
@@ -2868,28 +2873,28 @@ export default function MarkupPage() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60">
+                    <tbody className="divide-y divide-slate-100">
                       {markupProducts.map((p, idx) => (
-                        <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="py-2.5 px-3 text-left font-medium text-slate-200">
+                        <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-2.5 px-3 text-left font-medium text-slate-900">
                             <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 text-white font-bold text-[10px] mr-1.5 shadow-sm">
                               #{idx + 1}
                             </span>
                             {p.name || `Produto ${idx + 1}`}
                           </td>
-                          <td className="py-2.5 px-3 text-right text-slate-400">
+                          <td className="py-2.5 px-3 text-right text-slate-600 font-medium">
                             {p.mode === 'liquid' ? 'Líquida' : 'Custo+Margem'}
                           </td>
-                          <td className="py-2.5 px-3 text-right text-slate-400">
+                          <td className="py-2.5 px-3 text-right text-slate-600 font-medium">
                             {formatFactorBR(p.completeFactor, 4)}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-bold text-emerald-400">
+                          <td className="py-2.5 px-3 text-right font-bold text-emerald-700">
                             {formatBRL(p.salePrice)}
                           </td>
-                          <td className="py-2.5 px-3 text-right text-slate-200">
+                          <td className="py-2.5 px-3 text-right text-slate-800 font-medium">
                             {p.quantity} un.
                           </td>
-                          <td className="py-2.5 px-3 text-right font-bold text-slate-100">
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900">
                             {formatBRL(p.totalRevenue)}
                           </td>
                           <td className="py-2.5 px-3 text-center">
@@ -2899,7 +2904,7 @@ export default function MarkupPage() {
                                 setCalculationMemoryProductId(p.id)
                                 setIsProductRevenueDetailsOpen(false)
                               }}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 cursor-pointer transition-colors"
                               title="Ver memória de cálculo detalhada"
                             >
                               <Calculator className="w-2.5 h-2.5" />
@@ -2909,21 +2914,21 @@ export default function MarkupPage() {
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot className="border-t-2 border-amber-500/60 bg-amber-500/15 font-bold">
+                    <tfoot className="border-t-2 border-amber-400 bg-amber-100/70 font-bold">
                       <tr>
                         <td
                           colSpan={4}
-                          className="py-3 px-3 text-left text-amber-200 font-extrabold uppercase tracking-wide border-l-2 border-amber-500"
+                          className="py-3 px-3 text-left text-amber-950 font-extrabold uppercase tracking-wide border-l-2 border-amber-500"
                         >
                           <div className="flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                            <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                             <span>Total Consolidado (Soma das receitas)</span>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-right text-amber-100 font-bold text-sm">
+                        <td className="py-3 px-3 text-right text-amber-900 font-bold text-sm">
                           {totalConsolidatedQuantity} un.
                         </td>
-                        <td className="py-3 px-3 text-right text-amber-300 font-black text-base drop-shadow-[0_0_6px_rgba(251,191,36,0.35)] border-r-2 border-amber-500/60">
+                        <td className="py-3 px-3 text-right text-amber-950 font-black text-base border-r-2 border-amber-400">
                           {formatBRL(totalConsolidatedRevenue)}
                         </td>
                       </tr>
@@ -2937,7 +2942,7 @@ export default function MarkupPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsProductRevenueDetailsOpen(false)}
-                    className="text-xs font-mono bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
+                    className="text-xs font-mono bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50"
                   >
                     Fechar
                   </Button>
@@ -2947,20 +2952,20 @@ export default function MarkupPage() {
 
             {/* Bloco Comparativo Discreto: Preço de Venda Simulado por Regime */}
             {regimeComparison && (
-              <div className="pt-4 mt-2 border-t border-slate-800/80 space-y-3">
+              <div className="pt-4 mt-2 border-t border-slate-200 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-3.5 bg-emerald-400 rounded-full" />
-                    <Scale className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-300">
+                    <span className="w-1.5 h-3.5 bg-emerald-600 rounded-full" />
+                    <Scale className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-900">
                       Preço de venda simulado por regime
                     </h3>
-                    <Badge className="bg-emerald-950/60 text-emerald-400 border-emerald-700/50 text-[10px] font-mono">
+                    <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-semibold">
                       Comparativo simulado
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">
+                    <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
                       Totais consolidados por regime
                     </span>
                     <Button
@@ -2968,19 +2973,19 @@ export default function MarkupPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setIsRegimeComparisonDetailsOpen(true)}
-                      className="h-7 text-xs bg-emerald-500/10 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-500 hover:text-white font-mono flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      className="h-7 text-xs bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-400 font-mono flex items-center gap-1.5 cursor-pointer shadow-sm"
                     >
-                      <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                      <Layers className="w-3.5 h-3.5 text-emerald-700" />
                       <span>Ver comparativo por produto</span>
-                      <Badge className="bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 text-[10px] px-1.5 py-0 font-mono">
+                      <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] px-1.5 py-0 font-mono font-semibold">
                         {regimeComparison.prodsPresumido.length}
                       </Badge>
                     </Button>
                   </div>
                 </div>
 
-                {/* Tabela Frontal: MANTÉM a linha RECEITA CONSOLIDADA (Σ) verde-esmeralda com estilo atual intacto */}
-                <div className="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-950/70">
+                {/* Tabela Frontal: MANTÉM a linha RECEITA CONSOLIDADA (Σ) verde-esmeralda com estilo claro */}
+                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                   <table className="w-full text-xs font-mono">
                     <thead>
                       <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white text-right">
@@ -2997,29 +3002,29 @@ export default function MarkupPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {/* Linha consolidada total Grupo 2 (Comparativo): Destaque Verde-Esmeralda com marcação reforçada */}
-                      <tr className="bg-emerald-500/15 font-bold border-t-2 border-b-2 border-emerald-500/60 shadow-[inset_0_0_12px_rgba(16,185,129,0.08)]">
-                        <td className="py-3 px-3 text-left text-emerald-200 font-extrabold uppercase tracking-wide border-l-2 border-emerald-400">
+                      {/* Linha consolidada total Grupo 2 (Comparativo): Destaque Verde-Esmeralda no tema claro */}
+                      <tr className="bg-emerald-50 font-bold border-t-2 border-b-2 border-emerald-300">
+                        <td className="py-3 px-3 text-left text-emerald-950 font-extrabold uppercase tracking-wide border-l-2 border-emerald-600">
                           <div className="flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
                             <span>Receita Consolidada (Σ)</span>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-right text-emerald-100 font-bold text-sm">
+                        <td className="py-3 px-3 text-right text-emerald-900 font-bold text-sm">
                           {totalConsolidatedQuantity} un.
                         </td>
-                        <td className="py-3 px-3 text-right text-emerald-300 font-black text-sm drop-shadow-[0_0_6px_rgba(52,211,153,0.35)]">
+                        <td className="py-3 px-3 text-right text-emerald-800 font-black text-sm">
                           {formatBRL(regimeComparison.totalRevPresumido)}
                         </td>
-                        <td className="py-3 px-3 text-right text-emerald-300 font-black text-sm drop-shadow-[0_0_6px_rgba(52,211,153,0.35)]">
+                        <td className="py-3 px-3 text-right text-emerald-800 font-black text-sm">
                           {formatBRL(regimeComparison.totalRevReal)}
                         </td>
-                        <td className="py-3 px-3 text-right text-emerald-300 font-black text-sm drop-shadow-[0_0_6px_rgba(52,211,153,0.35)]">
+                        <td className="py-3 px-3 text-right text-emerald-800 font-black text-sm">
                           {regimeComparison.totalRevSimples !== null
                             ? formatBRL(regimeComparison.totalRevSimples)
                             : '—'}
                         </td>
-                        <td className="py-3 px-3 text-center text-emerald-300 font-semibold text-[11px] border-r-2 border-emerald-500/60">
+                        <td className="py-3 px-3 text-center text-emerald-800 font-semibold text-[11px] border-r-2 border-emerald-400">
                           Soma por regime
                         </td>
                       </tr>
@@ -3028,8 +3033,8 @@ export default function MarkupPage() {
                 </div>
 
                 {!regimeComparison.hasSimplesData && (
-                  <div className="flex items-start gap-1.5 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300/90 text-[11px] font-mono">
-                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                  <div className="flex items-start gap-1.5 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-mono">
+                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
                     <span>
                       {simplesIsInicioAtividade
                         ? 'Empresa em início de atividade: receitas mensais não preenchidas. O Simples Nacional está usando a alíquota da 1ª faixa como fallback (4,00%).'
@@ -3046,16 +3051,16 @@ export default function MarkupPage() {
                 open={isRegimeComparisonDetailsOpen}
                 onOpenChange={setIsRegimeComparisonDetailsOpen}
               >
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-slate-800 p-6 text-slate-100 shadow-2xl">
-                  <DialogHeader className="border-b border-slate-800 pb-3">
-                    <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-                      <Scale className="w-4 h-4 text-emerald-400" />
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 p-6 text-slate-900 shadow-xl">
+                  <DialogHeader className="border-b border-slate-200 pb-3">
+                    <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                      <Scale className="w-4 h-4 text-emerald-700" />
                       <span>Comparativo de Preço de Venda Simulado por Regime — Linha a Linha</span>
-                      <Badge className="bg-emerald-950/60 text-emerald-400 border-emerald-700/50 text-[10px] font-mono">
+                      <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-semibold">
                         {regimeComparison.prodsPresumido.length} itens
                       </Badge>
                     </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-400 font-mono">
+                    <DialogDescription className="text-xs text-slate-500 font-mono">
                       Comparação detalhada do preço unitário e faturamento total por produto em cada
                       regime tributário.
                     </DialogDescription>
@@ -3085,7 +3090,7 @@ export default function MarkupPage() {
                     ]}
                   />
 
-                  <div className="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-900/60 my-2">
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white my-2 shadow-sm">
                     <table className="w-full text-xs font-mono">
                       <thead>
                         <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white text-right">
@@ -3104,7 +3109,7 @@ export default function MarkupPage() {
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800/60">
+                      <tbody className="divide-y divide-slate-100">
                         {regimeComparison.prodsPresumido.map((pPres, idx) => {
                           const pReal = regimeComparison.prodsReal.find((x) => x.id === pPres.id)
                           const pSimp = regimeComparison.prodsSimples?.find(
@@ -3138,14 +3143,14 @@ export default function MarkupPage() {
                           const best = validCand[0]
 
                           return (
-                            <tr key={pPres.id} className="hover:bg-slate-800/40 transition-colors">
-                              <td className="py-2.5 px-3 text-left font-medium text-slate-200">
+                            <tr key={pPres.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="py-2.5 px-3 text-left font-medium text-slate-900">
                                 <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 text-white font-bold text-[10px] mr-1.5 shadow-sm">
                                   #{idx + 1}
                                 </span>
                                 {origProd?.name || pPres.name || `Produto ${idx + 1}`}
                               </td>
-                              <td className="py-2.5 px-3 text-right text-slate-400">
+                              <td className="py-2.5 px-3 text-right text-slate-600 font-medium">
                                 <span
                                   data-product-id={pPres.id}
                                   title={`P: ${qtyPres} un. | R: ${qtyReal} un. | S: ${qtySimp} un.`}
@@ -3154,7 +3159,7 @@ export default function MarkupPage() {
                                 </span>
                               </td>
                               <td className="py-2.5 px-3 text-right">
-                                <span className="font-bold text-slate-100">
+                                <span className="font-bold text-slate-900">
                                   {formatBRL(pPres.salePrice)}
                                 </span>
                                 <span className="text-[10px] text-slate-500 block">
@@ -3164,7 +3169,7 @@ export default function MarkupPage() {
                                 </span>
                               </td>
                               <td className="py-2.5 px-3 text-right">
-                                <span className="font-bold text-slate-100">
+                                <span className="font-bold text-slate-900">
                                   {pReal ? formatBRL(pReal.salePrice) : '—'}
                                 </span>
                                 {pReal && (
@@ -3179,11 +3184,11 @@ export default function MarkupPage() {
                                 {pSimp ? (
                                   <>
                                     <div className="flex items-center justify-end gap-1">
-                                      <span className="font-bold text-slate-100">
+                                      <span className="font-bold text-slate-900">
                                         {formatBRL(pSimp.salePrice)}
                                       </span>
                                       {regimeComparison.isFallbackRbt12 && (
-                                        <Badge className="bg-amber-500/20 text-amber-300 border-0 text-[8px] px-1 py-0 font-normal">
+                                        <Badge className="bg-amber-100 text-amber-900 border border-amber-300 text-[8px] px-1 py-0 font-medium">
                                           1ª faixa
                                         </Badge>
                                       )}
@@ -3195,17 +3200,17 @@ export default function MarkupPage() {
                                     </span>
                                   </>
                                 ) : (
-                                  <span className="text-slate-500">—</span>
+                                  <span className="text-slate-400">—</span>
                                 )}
                               </td>
                               <td className="py-2.5 px-3 text-center">
                                 {best ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                    <Sparkles className="w-2.5 h-2.5" />
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300">
+                                    <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
                                     {best.regime} ({formatBRL(best.price)})
                                   </span>
                                 ) : (
-                                  <span className="text-slate-500">—</span>
+                                  <span className="text-slate-400">—</span>
                                 )}
                               </td>
                               <td className="py-2.5 px-3 text-center">
@@ -3215,7 +3220,7 @@ export default function MarkupPage() {
                                     setCalculationMemoryProductId(pPres.id)
                                     setIsRegimeComparisonDetailsOpen(false)
                                   }}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 cursor-pointer"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 cursor-pointer transition-colors"
                                   title="Ver memória de cálculo deste produto nos 3 regimes"
                                 >
                                   <Calculator className="w-2.5 h-2.5" />
@@ -3226,29 +3231,29 @@ export default function MarkupPage() {
                           )
                         })}{' '}
                       </tbody>
-                      <tfoot className="border-t-2 border-emerald-500/60 bg-emerald-500/15 font-bold">
+                      <tfoot className="border-t-2 border-emerald-300 bg-emerald-50 font-bold">
                         <tr>
-                          <td className="py-3 px-3 text-left text-emerald-200 font-extrabold uppercase tracking-wide border-l-2 border-emerald-400">
+                          <td className="py-3 px-3 text-left text-emerald-950 font-extrabold uppercase tracking-wide border-l-2 border-emerald-600">
                             <div className="flex items-center gap-2">
-                              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                              <span className="inline-block w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
                               <span>Receita Consolidada (Σ)</span>
                             </div>
                           </td>
-                          <td className="py-3 px-3 text-right text-emerald-100 font-bold text-sm">
+                          <td className="py-3 px-3 text-right text-emerald-900 font-bold text-sm">
                             {totalConsolidatedQuantity} un.
                           </td>
-                          <td className="py-3 px-3 text-right text-emerald-300 font-black text-sm drop-shadow-[0_0_6px_rgba(52,211,153,0.35)]">
+                          <td className="py-3 px-3 text-right text-emerald-800 font-black text-sm">
                             {formatBRL(regimeComparison.totalRevPresumido)}
                           </td>
-                          <td className="py-3 px-3 text-right text-emerald-300 font-black text-sm drop-shadow-[0_0_6px_rgba(52,211,153,0.35)]">
+                          <td className="py-3 px-3 text-right text-emerald-800 font-black text-sm">
                             {formatBRL(regimeComparison.totalRevReal)}
                           </td>
-                          <td className="py-3 px-3 text-right text-emerald-300 font-black text-sm drop-shadow-[0_0_6px_rgba(52,211,153,0.35)]">
+                          <td className="py-3 px-3 text-right text-emerald-800 font-black text-sm">
                             {regimeComparison.totalRevSimples !== null
                               ? formatBRL(regimeComparison.totalRevSimples)
                               : '—'}
                           </td>
-                          <td className="py-3 px-3 text-center text-emerald-300 font-semibold text-[11px] border-r-2 border-emerald-500/60">
+                          <td className="py-3 px-3 text-center text-emerald-800 font-semibold text-[11px] border-r-2 border-emerald-400">
                             Soma por regime
                           </td>
                         </tr>
@@ -3262,7 +3267,7 @@ export default function MarkupPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setIsRegimeComparisonDetailsOpen(false)}
-                      className="text-xs font-mono bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
+                      className="text-xs font-mono bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50"
                     >
                       Fechar
                     </Button>
@@ -3276,17 +3281,17 @@ export default function MarkupPage() {
               open={isMarketComparisonModalOpen}
               onOpenChange={setIsMarketComparisonModalOpen}
             >
-              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-slate-800 p-6 text-slate-100 shadow-2xl">
-                <DialogHeader className="border-b border-slate-800 pb-3">
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 p-6 text-slate-900 shadow-xl">
+                <DialogHeader className="border-b border-slate-200 pb-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-700">
                       <TrendingUp className="w-4 h-4" />
                     </div>
                     <div>
-                      <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                      <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                         Comparação por Preço de Mercado (Fluxo A)
                       </DialogTitle>
-                      <DialogDescription className="text-xs text-slate-400">
+                      <DialogDescription className="text-xs text-slate-500">
                         Um único preço de venda como âncora comum alimenta os três regimes,
                         mostrando o lucro resultante de cada um conforme os custos líquidos e
                         tributos apurados.
@@ -3297,12 +3302,12 @@ export default function MarkupPage() {
 
                 <div className="space-y-4 py-3">
                   {/* Entrada do Preço de Mercado Âncora */}
-                  <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <label className="text-xs font-bold text-slate-200 font-mono">
+                      <label className="text-xs font-bold text-slate-900 font-mono">
                         Preço de Venda de Mercado (Âncora Única)
                       </label>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-slate-500">
                         Digite o preço praticado pela concorrência ou alvo de mercado.
                       </p>
                     </div>
@@ -3336,7 +3341,7 @@ export default function MarkupPage() {
                           setMarketAnchorPrice(parsed)
                         }}
                         placeholder="0,00"
-                        className="pl-8 text-right font-mono text-xs h-9 field-input-interactive font-bold text-amber-300"
+                        className="pl-8 text-right font-mono text-xs h-9 bg-white border border-slate-200 text-slate-900 font-bold focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
                       />
                     </div>
                   </div>
@@ -3345,55 +3350,55 @@ export default function MarkupPage() {
                   {marketFlowAComparison && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       {/* Cartão Presumido */}
-                      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                          <span className="text-xs font-bold font-mono text-orange-400">
+                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <span className="text-xs font-bold font-mono text-amber-800">
                             Lucro Presumido
                           </span>
-                          <Badge className="bg-orange-500/15 text-orange-300 border-0 text-[10px]">
+                          <Badge className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px]">
                             {formatPercentBR(marketFlowAComparison.presumido.taxRate)}
                           </Badge>
                         </div>
                         <div className="space-y-1 text-xs font-mono">
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-slate-600">
                             <span>Preço de Venda:</span>
-                            <span className="text-slate-200">
+                            <span className="text-slate-900 font-medium">
                               {formatBRL(marketFlowAComparison.anchorPrice)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-slate-600">
                             <span>Custo Líquido:</span>
-                            <span className="text-slate-200">
+                            <span className="text-slate-900 font-medium">
                               {formatBRL(marketFlowAComparison.presumido.cost)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-slate-600">
                             <span>Tributos s/ Venda:</span>
-                            <span className="text-rose-400">
+                            <span className="text-rose-600 font-medium">
                               -{formatBRL(marketFlowAComparison.presumido.taxesValue)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-slate-600">
                             <span>Receita Líquida:</span>
-                            <span className="text-slate-200">
+                            <span className="text-slate-900 font-medium">
                               {formatBRL(marketFlowAComparison.presumido.netRevenue)}
                             </span>
                           </div>
-                          <div className="pt-2 border-t border-slate-800/80 flex justify-between font-bold">
-                            <span className="text-slate-200">Lucro Líquido (LLE):</span>
+                          <div className="pt-2 border-t border-slate-200 flex justify-between font-bold">
+                            <span className="text-slate-900">Lucro Líquido (LLE):</span>
                             <span
                               className={
                                 marketFlowAComparison.presumido.lle >= 0
-                                  ? 'text-emerald-400'
-                                  : 'text-rose-400'
+                                  ? 'text-emerald-700'
+                                  : 'text-rose-600'
                               }
                             >
                               {formatBRL(marketFlowAComparison.presumido.lle)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-[11px] text-slate-400">
+                          <div className="flex justify-between text-[11px] text-slate-600">
                             <span>Margem Líquida:</span>
-                            <span className="font-semibold text-slate-200">
+                            <span className="font-semibold text-slate-900">
                               {formatNumberBR(marketFlowAComparison.presumido.marginPct)}%
                             </span>
                           </div>
@@ -3401,55 +3406,55 @@ export default function MarkupPage() {
                       </div>
 
                       {/* Cartão Lucro Real */}
-                      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                          <span className="text-xs font-bold font-mono text-sky-400">
+                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <span className="text-xs font-bold font-mono text-sky-800">
                             Lucro Real
                           </span>
-                          <Badge className="bg-sky-500/15 text-sky-300 border-0 text-[10px]">
+                          <Badge className="bg-sky-100 text-sky-900 border border-sky-300 text-[10px]">
                             {formatPercentBR(marketFlowAComparison.real.taxRate)}
                           </Badge>
                         </div>
                         <div className="space-y-1 text-xs font-mono">
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-slate-600">
                             <span>Preço de Venda:</span>
-                            <span className="text-slate-200">
+                            <span className="text-slate-900 font-medium">
                               {formatBRL(marketFlowAComparison.anchorPrice)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-slate-600">
                             <span>Custo Líquido:</span>
-                            <span className="text-slate-200">
+                            <span className="text-slate-900 font-medium">
                               {formatBRL(marketFlowAComparison.real.cost)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-slate-600">
                             <span>Tributos s/ Venda:</span>
-                            <span className="text-rose-400">
+                            <span className="text-rose-600 font-medium">
                               -{formatBRL(marketFlowAComparison.real.taxesValue)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-slate-600">
                             <span>Receita Líquida:</span>
-                            <span className="text-slate-200">
+                            <span className="text-slate-900 font-medium">
                               {formatBRL(marketFlowAComparison.real.netRevenue)}
                             </span>
                           </div>
-                          <div className="pt-2 border-t border-slate-800/80 flex justify-between font-bold">
-                            <span className="text-slate-200">Lucro Líquido (LLE):</span>
+                          <div className="pt-2 border-t border-slate-200 flex justify-between font-bold">
+                            <span className="text-slate-900">Lucro Líquido (LLE):</span>
                             <span
                               className={
                                 marketFlowAComparison.real.lle >= 0
-                                  ? 'text-emerald-400'
-                                  : 'text-rose-400'
+                                  ? 'text-emerald-700'
+                                  : 'text-rose-600'
                               }
                             >
                               {formatBRL(marketFlowAComparison.real.lle)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-[11px] text-slate-400">
+                          <div className="flex justify-between text-[11px] text-slate-600">
                             <span>Margem Líquida:</span>
-                            <span className="font-semibold text-slate-200">
+                            <span className="font-semibold text-slate-900">
                               {formatNumberBR(marketFlowAComparison.real.marginPct)}%
                             </span>
                           </div>
@@ -3457,55 +3462,55 @@ export default function MarkupPage() {
                       </div>
 
                       {/* Cartão Simples Nacional */}
-                      <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                          <span className="text-xs font-bold font-mono text-emerald-400">
+                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <span className="text-xs font-bold font-mono text-emerald-800">
                             Simples Nacional
                           </span>
-                          <Badge className="bg-emerald-500/15 text-emerald-300 border-0 text-[10px]">
+                          <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px]">
                             {formatPercentBR(marketFlowAComparison.simples.taxRate)}
                           </Badge>
                         </div>
                         <div className="space-y-1 text-xs font-mono">
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-slate-600">
                             <span>Preço de Venda:</span>
-                            <span className="text-slate-200">
+                            <span className="text-slate-900 font-medium">
                               {formatBRL(marketFlowAComparison.anchorPrice)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-slate-600">
                             <span>Custo Líquido:</span>
-                            <span className="text-slate-200">
+                            <span className="text-slate-900 font-medium">
                               {formatBRL(marketFlowAComparison.simples.cost)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-slate-600">
                             <span>Tributos (DAS):</span>
-                            <span className="text-rose-400">
+                            <span className="text-rose-600 font-medium">
                               -{formatBRL(marketFlowAComparison.simples.taxesValue)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-slate-400">
+                          <div className="flex justify-between text-slate-600">
                             <span>Receita Líquida:</span>
-                            <span className="text-slate-200">
+                            <span className="text-slate-900 font-medium">
                               {formatBRL(marketFlowAComparison.simples.netRevenue)}
                             </span>
                           </div>
-                          <div className="pt-2 border-t border-slate-800/80 flex justify-between font-bold">
-                            <span className="text-slate-200">Lucro Líquido (LLE):</span>
+                          <div className="pt-2 border-t border-slate-200 flex justify-between font-bold">
+                            <span className="text-slate-900">Lucro Líquido (LLE):</span>
                             <span
                               className={
                                 marketFlowAComparison.simples.lle >= 0
-                                  ? 'text-emerald-400'
-                                  : 'text-rose-400'
+                                  ? 'text-emerald-700'
+                                  : 'text-rose-600'
                               }
                             >
                               {formatBRL(marketFlowAComparison.simples.lle)}
                             </span>
                           </div>
-                          <div className="flex justify-between text-[11px] text-slate-400">
+                          <div className="flex justify-between text-[11px] text-slate-600">
                             <span>Margem Líquida:</span>
-                            <span className="font-semibold text-slate-200">
+                            <span className="font-semibold text-slate-900">
                               {formatNumberBR(marketFlowAComparison.simples.marginPct)}%
                             </span>
                           </div>
@@ -3521,7 +3526,7 @@ export default function MarkupPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsMarketComparisonModalOpen(false)}
-                    className="text-xs font-mono bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
+                    className="text-xs font-mono bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50"
                   >
                     Fechar
                   </Button>
@@ -3529,7 +3534,7 @@ export default function MarkupPage() {
               </DialogContent>
             </Dialog>
 
-            <p className="text-xs text-slate-400 font-mono">
+            <p className="text-xs text-slate-600 font-mono">
               💡 A receita consolidada ({formatBRL(totalConsolidatedRevenue)}) alimenta
               automaticamente as páginas de <strong>DRE Simples Nacional</strong>,{' '}
               <strong>Lucro Presumido</strong>, <strong>Lucro Real</strong> e{' '}
@@ -3553,7 +3558,7 @@ export default function MarkupPage() {
           <Button
             type="button"
             onClick={() => navigate('/demo/compras')}
-            className="bg-[#0f172a]/90 text-slate-300 border border-slate-700/80 hover:border-emerald-500/40 hover:text-white hover:bg-slate-800/80 font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-sm"
+            className="bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-900 font-medium px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-sm"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Voltar para Calculadora de Compras</span>
@@ -3570,7 +3575,7 @@ export default function MarkupPage() {
                 navigate('/demo/dre-presumido')
               }
             }}
-            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
           >
             <span>Ir para a DRE</span>
             <ArrowRight className="w-4 h-4" />
