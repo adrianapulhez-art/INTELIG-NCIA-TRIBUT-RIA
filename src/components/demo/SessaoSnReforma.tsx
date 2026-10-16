@@ -378,9 +378,20 @@ export function SessaoSnSection({
           : 0
 
       // --- SN HÍBRIDO: motor Art. 12 chancelado
+      const perfilFornecedorSN = {
+        anexo: perfil.anexo,
+        faixa: perfil.faixa,
+        efetivaPct: perfil.efetivaPct,
+        icmsFracPct: perfil.icmsFracPct,
+      }
       const cellHib = computeCellArt12Item(
         item,
-        { ...cfgBase, compradorRegime: adquirente, fornecedorRegime: 'simples_hibrido' },
+        {
+          ...cfgBase,
+          compradorRegime: adquirente,
+          fornecedorRegime: 'simples_hibrido',
+          perfilFornecedorSN,
+        },
         row,
       )
 
@@ -484,7 +495,7 @@ export function SessaoSnSection({
                     : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
                 }`}
               >
-                Tabela Oficial Completa (Anexos I a V · 6 Faixas) [Default]
+                Tabela Oficial Completa (Anexos I a V · 6 Faixas) [padrão]
               </button>
               <button
                 type="button"
@@ -702,7 +713,7 @@ export function SessaoSnSection({
                       }`}
                     >
                       {statusLegalTabela === 'OFICIAL'
-                        ? 'FONTE OFICIAL CHANCELADA'
+                        ? 'PERCENTUAL COM RESPALDO EM LEI (LC 123/2006 · Anexo I)'
                         : 'PENDENTE DE CONFIRMAÇÃO'}
                     </span>
                     <span className="text-[9px] font-mono text-slate-300">
@@ -795,7 +806,7 @@ export function SessaoSnSection({
                     : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
                 }`}
               >
-                Bruta (LC 123 art. 3º §12º) [Default]
+                Bruta (LC 123 art. 3º §12º) [padrão]
               </button>
               <button
                 type="button"

@@ -1135,12 +1135,11 @@ export function calcularSessaoSN(
   let irpjCsllCppPct = 0
 
   if (origem === 'nota') {
-    // Modo NOTA: percentuais digitados diretamente da nota (art. 23, §2º da LC 123)
     icmsPct = perfil.icmsNotaPct
     cbsPct = perfil.cbsNotaPct
     ibsPct = perfil.ibsNotaPct
-    efetivaPct = perfil.efetivaPct || roundHalfUp(icmsPct + cbsPct + ibsPct, 4)
-    irpjCsllCppPct = Math.max(0, roundHalfUp(efetivaPct - (icmsPct + cbsPct + ibsPct), 4))
+    efetivaPct = roundHalfUp(icmsPct + cbsPct + ibsPct, 4)
+    irpjCsllCppPct = Math.max(0, roundHalfUp(100 - efetivaPct, 4))
   } else {
     // Modo TABELA (estimativa oficial da tabela Faixa × Exercício)
     // Parcela de cada tributo = efetiva × fração

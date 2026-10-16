@@ -554,7 +554,14 @@ export function CmvArt12Module() {
   // CÁLCULO POR ITEM (CEO, 27/09): memória Art. 12 completa para CADA item com valor.
   // A memória vive DENTRO dos cards de repasse (espelho) — não mais na página geral.
   const celulasPorItem = useMemo(
-    () => computeCellsPorItem(itensOrigem, config, row),
+    () =>
+      computeCellsPorItem(
+        itensOrigem,
+        config.perfilFornecedorSN
+          ? config
+          : { ...config, perfilFornecedorSN: config.perfilFornecedorSN },
+        row,
+      ),
     [itensOrigem, config, row],
   )
 

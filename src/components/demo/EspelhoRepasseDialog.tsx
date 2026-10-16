@@ -695,6 +695,7 @@ export function EspelhoRepasseDialog({
                             ...cfg,
                             compradorRegime: abertoPleno.comprador,
                             fornecedorRegime: abertoPleno.fornecedor,
+                            perfilFornecedorSN: cfg.perfilFornecedorSN,
                           },
                           row,
                         ),
@@ -725,6 +726,7 @@ export function EspelhoRepasseDialog({
                   ...cfg,
                   compradorRegime: linha.comprador,
                   fornecedorRegime: fornecedor,
+                  perfilFornecedorSN: cfg.perfilFornecedorSN,
                 }
                 const celulasItens = (celulasPorItem || []).map(({ item }) => ({
                   item,
