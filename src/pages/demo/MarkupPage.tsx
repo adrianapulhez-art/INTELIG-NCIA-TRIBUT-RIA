@@ -1748,7 +1748,7 @@ export default function MarkupPage() {
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 font-mono text-xs">
                         {/* Identificação: #, Nome, Tag de modo e badge recolhido */}
                         <div className="flex items-center gap-2.5 flex-1 min-w-[220px]">
-                          <span className="w-5 h-5 rounded bg-slate-900 border border-slate-800 inline-flex items-center justify-center text-slate-400 text-[10px] font-bold shrink-0">
+                          <span className="w-6 h-6 rounded-md bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 inline-flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
                             #{index + 1}
                           </span>
                           <div className="flex items-center gap-2 flex-wrap min-w-0">
@@ -1887,7 +1887,7 @@ export default function MarkupPage() {
                     {/* Linha superior: Nome do produto, seletor de modo, botão Recolher e lixeira */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-800/80">
                       <div className="flex items-center gap-2 flex-1 flex-wrap">
-                        <span className="text-xs font-mono text-emerald-400 font-bold shrink-0">
+                        <span className="w-6 h-6 rounded-md bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 inline-flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
                           #{index + 1}
                         </span>
                         <Input
@@ -2844,20 +2844,16 @@ export default function MarkupPage() {
                 <div className="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-900/60 my-2">
                   <table className="w-full text-xs font-mono">
                     <thead>
-                      <tr className="border-b border-slate-800 bg-slate-950/80 text-slate-400 text-right">
-                        <th className="py-2.5 px-3 text-left font-semibold text-slate-300">
+                      <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white text-right">
+                        <th className="py-2.5 px-3 text-left font-semibold text-white rounded-tl-xl">
                           Produto
                         </th>
-                        <th className="py-2.5 px-3 font-semibold text-slate-300">Modo</th>
-                        <th className="py-2.5 px-3 font-semibold text-slate-300">Fator Comp.</th>
-                        <th className="py-2.5 px-3 font-semibold text-emerald-400">
-                          Preço de Venda
-                        </th>
-                        <th className="py-2.5 px-3 font-semibold text-slate-300">Qtd.</th>
-                        <th className="py-2.5 px-3 font-semibold text-emerald-300">
-                          Receita Bruta
-                        </th>
-                        <th className="py-2.5 px-3 text-center font-semibold text-slate-300">
+                        <th className="py-2.5 px-3 font-semibold text-white">Modo</th>
+                        <th className="py-2.5 px-3 font-semibold text-white">Fator Comp.</th>
+                        <th className="py-2.5 px-3 font-semibold text-white">Preço de Venda</th>
+                        <th className="py-2.5 px-3 font-semibold text-white">Qtd.</th>
+                        <th className="py-2.5 px-3 font-semibold text-white">Receita Bruta</th>
+                        <th className="py-2.5 px-3 text-center font-semibold text-white rounded-tr-xl">
                           Memória
                         </th>
                       </tr>
@@ -2866,7 +2862,9 @@ export default function MarkupPage() {
                       {markupProducts.map((p, idx) => (
                         <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
                           <td className="py-2.5 px-3 text-left font-medium text-slate-200">
-                            <span className="text-slate-500 font-bold mr-1.5">#{idx + 1}</span>
+                            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 text-white font-bold text-[10px] mr-1.5 shadow-sm">
+                              #{idx + 1}
+                            </span>
                             {p.name || `Produto ${idx + 1}`}
                           </td>
                           <td className="py-2.5 px-3 text-right text-slate-400">
@@ -2975,19 +2973,15 @@ export default function MarkupPage() {
                 <div className="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-950/70">
                   <table className="w-full text-xs font-mono">
                     <thead>
-                      <tr className="border-b border-slate-800 bg-slate-900/60 text-slate-400 text-right">
-                        <th className="py-2.5 px-3 text-left font-semibold text-slate-300">
+                      <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white text-right">
+                        <th className="py-2.5 px-3 text-left font-semibold text-white rounded-tl-xl">
                           Operação
                         </th>
-                        <th className="py-2.5 px-3 font-semibold text-slate-300">Qtd.</th>
-                        <th className="py-2.5 px-3 font-semibold text-slate-200">
-                          Lucro Presumido
-                        </th>
-                        <th className="py-2.5 px-3 font-semibold text-slate-200">Lucro Real</th>
-                        <th className="py-2.5 px-3 font-semibold text-slate-200">
-                          Simples Nacional
-                        </th>
-                        <th className="py-2.5 px-3 text-center font-semibold text-emerald-400">
+                        <th className="py-2.5 px-3 font-semibold text-white">Qtd.</th>
+                        <th className="py-2.5 px-3 font-semibold text-white">Lucro Presumido</th>
+                        <th className="py-2.5 px-3 font-semibold text-white">Lucro Real</th>
+                        <th className="py-2.5 px-3 font-semibold text-white">Simples Nacional</th>
+                        <th className="py-2.5 px-3 text-center font-semibold text-white rounded-tr-xl">
                           Status
                         </th>
                       </tr>
@@ -3084,22 +3078,18 @@ export default function MarkupPage() {
                   <div className="overflow-x-auto rounded-xl border border-slate-800/80 bg-slate-900/60 my-2">
                     <table className="w-full text-xs font-mono">
                       <thead>
-                        <tr className="border-b border-slate-800 bg-slate-950/80 text-slate-400 text-right">
-                          <th className="py-2.5 px-3 text-left font-semibold text-slate-300">
+                        <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white text-right">
+                          <th className="py-2.5 px-3 text-left font-semibold text-white rounded-tl-xl">
                             Produto
                           </th>
-                          <th className="py-2.5 px-3 font-semibold text-slate-300">Qtd.</th>
-                          <th className="py-2.5 px-3 font-semibold text-slate-200">
-                            Lucro Presumido
-                          </th>
-                          <th className="py-2.5 px-3 font-semibold text-slate-200">Lucro Real</th>
-                          <th className="py-2.5 px-3 font-semibold text-slate-200">
-                            Simples Nacional
-                          </th>
-                          <th className="py-2.5 px-3 text-center font-semibold text-emerald-400">
+                          <th className="py-2.5 px-3 font-semibold text-white">Qtd.</th>
+                          <th className="py-2.5 px-3 font-semibold text-white">Lucro Presumido</th>
+                          <th className="py-2.5 px-3 font-semibold text-white">Lucro Real</th>
+                          <th className="py-2.5 px-3 font-semibold text-white">Simples Nacional</th>
+                          <th className="py-2.5 px-3 text-center font-semibold text-white">
                             Menor Preço
                           </th>
-                          <th className="py-2.5 px-3 text-center font-semibold text-slate-300">
+                          <th className="py-2.5 px-3 text-center font-semibold text-white rounded-tr-xl">
                             Memória
                           </th>
                         </tr>
@@ -3140,7 +3130,9 @@ export default function MarkupPage() {
                           return (
                             <tr key={pPres.id} className="hover:bg-slate-800/40 transition-colors">
                               <td className="py-2.5 px-3 text-left font-medium text-slate-200">
-                                <span className="text-slate-500 font-bold mr-1.5">#{idx + 1}</span>
+                                <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 text-white font-bold text-[10px] mr-1.5 shadow-sm">
+                                  #{idx + 1}
+                                </span>
                                 {origProd?.name || pPres.name || `Produto ${idx + 1}`}
                               </td>
                               <td className="py-2.5 px-3 text-right text-slate-400">
