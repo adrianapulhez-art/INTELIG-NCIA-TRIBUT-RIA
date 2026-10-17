@@ -783,7 +783,7 @@ export function CmvArt12Module() {
               Fornecedor
             </label>
             <div className="grid grid-cols-2 gap-1">
-              {(['presumido', 'real', 'simples', 'simples_hibrido'] as RegimeId[]).map((rg) => {
+              {(['presumido', 'real'] as const).map((rg) => {
                 const ativo = config.fornecedorRegime === rg
                 return (
                   <button
