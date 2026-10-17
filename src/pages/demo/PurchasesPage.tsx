@@ -519,6 +519,43 @@ export default function PurchasesPage() {
                       )
                     })}
                   </tbody>
+                  {/* Linha de Total / Fecho de Tabela em Faixa Navy com Letra Branca (Padrão Chancelado) */}
+                  <tfoot className="border-t-2 border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-xs font-mono font-bold text-white">
+                    <tr>
+                      <td
+                        colSpan={2}
+                        className="py-3 px-4 text-left font-bold text-white uppercase tracking-wider"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                          <span>Total das Compras (Σ)</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right font-bold text-white">
+                        {totalPurchasesQuantity} un.
+                      </td>
+                      <td className="py-3 px-4 text-right text-slate-300 font-normal">—</td>
+                      <td className="py-3 px-4 text-right font-bold text-white text-sm">
+                        {formatBRL(
+                          purchasesItems.reduce(
+                            (acc, it) => acc + calculatePurchaseItemGrossTotal(it),
+                            0,
+                          ),
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right font-bold text-emerald-400 text-sm">
+                        {formatBRL(
+                          purchasesItems.reduce(
+                            (acc, it) => acc + calculatePurchaseItemNetPurchases(it, regime),
+                            0,
+                          ),
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center text-slate-400 text-[11px] font-normal">
+                        {purchasesItems.length} {purchasesItems.length === 1 ? 'item' : 'itens'}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
 

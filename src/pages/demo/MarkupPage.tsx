@@ -1868,14 +1868,14 @@ export default function MarkupPage() {
                               </button>
                             </div>
 
-                            {/* Botão Expandir / Detalhes — estilo cinza robusto chancelado */}
+                            {/* Botão Expandir / Detalhes — TESTE VISUAL Adri (Frente 1: preto sólido, lettering branca) */}
                             <button
                               type="button"
                               onClick={() => toggleMarkupProduct(prod.id)}
-                              className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-900 hover:text-slate-950 bg-slate-200/90 hover:bg-slate-300 border-2 border-slate-300 px-2 py-1 rounded-md cursor-pointer transition-all shadow-xs font-bold"
+                              className="inline-flex items-center gap-1 text-[10px] font-mono text-white hover:text-white bg-slate-950 hover:bg-black border border-black px-2 py-1 rounded-md cursor-pointer transition-all shadow-sm font-bold"
                               title="Expandir camada completa deste produto"
                             >
-                              <ChevronDown className="w-3 h-3 text-slate-700" />
+                              <ChevronDown className="w-3 h-3 text-white" />
                               <span>Detalhes</span>
                             </button>
 
@@ -1954,14 +1954,14 @@ export default function MarkupPage() {
                           </button>
                         </div>
 
-                        {/* Botão de Recolher Camada — estilo cinza robusto chancelado (bg-slate-200 com borda slate-300, texto escuro quase preto) */}
+                        {/* Botão de Recolher Camada — TESTE VISUAL Adri (Frente 1: preto sólido, lettering branca) */}
                         <button
                           type="button"
                           onClick={() => toggleMarkupProduct(prod.id)}
-                          className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-900 hover:text-slate-950 bg-slate-200/90 hover:bg-slate-300 border-2 border-slate-300 px-2.5 py-1 rounded-md cursor-pointer transition-all shadow-xs font-bold"
+                          className="inline-flex items-center gap-1 text-[11px] font-mono text-white hover:text-white bg-slate-950 hover:bg-black border border-black px-2.5 py-1 rounded-md cursor-pointer transition-all shadow-sm font-bold"
                           title="Recolher camada para linha compacta"
                         >
-                          <ChevronUp className="w-3.5 h-3.5 text-slate-700" />
+                          <ChevronUp className="w-3.5 h-3.5 text-white" />
                           <span className="hidden sm:inline">Recolher</span>
                         </button>
 
