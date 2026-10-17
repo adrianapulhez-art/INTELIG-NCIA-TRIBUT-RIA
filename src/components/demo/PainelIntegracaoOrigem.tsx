@@ -7,10 +7,10 @@ import { type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 
 const CLASSE_STYLE: Record<string, string> = {
-  A: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',
-  B: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
-  C: 'bg-slate-500/15 text-slate-400 border-slate-500/40',
-  '—': 'bg-slate-800 text-slate-500 border-slate-700',
+  A: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  B: 'bg-amber-100 text-amber-800 border-amber-300',
+  C: 'bg-slate-100 text-slate-700 border-slate-300',
+  '—': 'bg-slate-100 text-slate-500 border-slate-200',
 }
 
 /**
@@ -36,24 +36,26 @@ export function PainelIntegracaoOrigem({
   const totalQtd = itensComValor.reduce((a, i) => a + (i.quantity || 0), 0)
 
   return (
-    <div className="rounded-xl border border-sky-500/40 bg-sky-500/[0.05] p-4 space-y-3">
+    <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Layers className="w-5 h-5 text-sky-400" />
-        <span className="text-xs font-mono font-black uppercase tracking-wider text-sky-300">
+        <div className="w-7 h-7 rounded-lg bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800 shrink-0">
+          <Layers className="w-4 h-4" />
+        </div>
+        <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-950">
           Integração de base com sistema pré-reforma
         </span>
         {temOrigem ? (
-          <Badge className="text-[9px] bg-emerald-500/15 text-emerald-300 border-emerald-500/40 font-mono">
+          <Badge className="text-[10px] bg-emerald-100 text-emerald-800 border-emerald-300 font-mono">
             <Link2 className="w-3 h-3 mr-1" /> Vínculo automático ativo — {itensComValor.length}{' '}
             item{itensComValor.length === 1 ? '' : 's'} na célula
           </Badge>
         ) : (
-          <Badge className="text-[9px] bg-amber-500/15 text-amber-300 border-amber-500/40 font-mono">
+          <Badge className="text-[10px] bg-amber-100 text-amber-800 border-amber-300 font-mono">
             Origem zerada — célula zerada
           </Badge>
         )}
       </div>
-      <p className="text-[10px] font-mono text-slate-400 leading-relaxed">
+      <p className="text-xs text-slate-600 leading-relaxed font-mono">
         A célula fornecedor × comprador × repasse calcula sobre os itens da Calculadora de Compras —
         automaticamente, pela mesma fonte que o botão "Zerar campos" limpa. Zero lá, zero aqui;
         alimentado lá, alimentado aqui. Selecione por relevância — classe A concentra o valor (curva
@@ -61,27 +63,28 @@ export function PainelIntegracaoOrigem({
       </p>
 
       {/* Portas de origem */}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => navigate('/demo/compras')}
           title="Abrir a Calculadora de Compras para lançar os itens"
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-mono font-bold bg-sky-500 text-slate-950 border border-sky-400 cursor-pointer hover:bg-sky-400 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold bg-emerald-600 text-white border border-emerald-600 cursor-pointer hover:bg-emerald-700 shadow-xs transition-colors"
         >
-          <ShoppingBasket className="w-3 h-3" /> Calculadora de Compras
+          <ShoppingBasket className="w-3.5 h-3.5" /> Calculadora de Compras
         </button>
         <span
           title="Importação na próxima fase"
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-mono font-bold bg-slate-950 text-slate-500 border border-slate-800 cursor-not-allowed opacity-60"
+          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-mono font-medium bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
         >
-          Despesas Operacionais <span className="text-[8px] font-normal">— próxima fase</span>
+          Despesas Operacionais{' '}
+          <span className="text-[10px] text-slate-400 font-normal">— próxima fase</span>
         </span>
       </div>
 
       {/* Visualização dos itens da origem (vínculo automático — sem importação manual) */}
       {itensComValor.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-amber-500/40 bg-amber-500/[0.04] p-3 space-y-2">
-          <p className="text-[10px] font-mono text-amber-300 leading-relaxed">
+        <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/80 p-3.5 space-y-2">
+          <p className="text-xs font-mono text-amber-900 leading-relaxed">
             Nenhum item com valor na Calculadora de Compras — a célula está ZERADA (regra: zero na
             origem, zero na célula). Lance itens lá, ou carregue o caso exemplo: ele ESCREVE os
             itens na Compras, e os dois lados ficam iguais de verdade.
@@ -89,76 +92,80 @@ export function PainelIntegracaoOrigem({
           <Button
             size="sm"
             onClick={onCarregarExemplo}
-            className="h-7 text-[10px] font-mono font-bold bg-sky-500 text-slate-950 hover:bg-sky-400 cursor-pointer"
+            className="h-8 text-xs font-mono font-bold bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer shadow-xs"
           >
-            <Sparkles className="w-3 h-3 mr-1" /> Carregar caso exemplo (escreve na Compras)
+            <Sparkles className="w-3.5 h-3.5 mr-1.5" /> Carregar caso exemplo (escreve na Compras)
           </Button>
         </div>
       ) : (
-        <div className="rounded-lg border border-slate-800 overflow-x-auto">
-          <table className="w-full text-[10px] font-mono">
+        <div className="rounded-xl border border-slate-200 bg-white overflow-x-auto shadow-2xs">
+          <table className="w-full text-xs font-mono">
             <thead>
-              <tr className="bg-slate-950/70 text-slate-400">
-                <th className="text-left px-2 py-1.5 font-bold">Item</th>
-                <th className="text-right px-2 py-1.5 font-bold">Qtd</th>
-                <th className="text-right px-2 py-1.5 font-bold">Mercadoria</th>
-                <th className="text-right px-2 py-1.5 font-bold">Frete</th>
-                <th className="text-right px-2 py-1.5 font-bold">ICMS</th>
-                <th className="text-right px-2 py-1.5 font-bold">IPI</th>
-                <th className="text-center px-2 py-1.5 font-bold">ABC</th>
-                <th className="text-right px-2 py-1.5 font-bold">Valor da nota</th>
+              <tr className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white">
+                <th className="text-left px-3 py-2 font-bold rounded-tl-xl">Item</th>
+                <th className="text-right px-3 py-2 font-bold">Qtd</th>
+                <th className="text-right px-3 py-2 font-bold">Mercadoria</th>
+                <th className="text-right px-3 py-2 font-bold">Frete</th>
+                <th className="text-right px-3 py-2 font-bold">ICMS</th>
+                <th className="text-right px-3 py-2 font-bold">IPI</th>
+                <th className="text-center px-3 py-2 font-bold">ABC</th>
+                <th className="text-right px-3 py-2 font-bold rounded-tr-xl">Valor da nota</th>
               </tr>
             </thead>
             <tbody>
               {itensOrigem.map((i) => (
                 <tr
                   key={i.id}
-                  className={`border-t border-slate-800/70 ${i.valorNota <= 0 ? 'opacity-40' : ''}`}
+                  className={`border-t border-slate-200 hover:bg-slate-50 transition-colors ${i.valorNota <= 0 ? 'opacity-40' : ''}`}
                 >
-                  <td className="px-2 py-1.5 text-slate-200 max-w-[180px] truncate" title={i.name}>
+                  <td
+                    className="px-3 py-2 text-slate-900 max-w-[180px] truncate font-medium"
+                    title={i.name}
+                  >
                     {i.name || '—'}
                   </td>
-                  <td className="px-2 py-1.5 text-right text-slate-300">
+                  <td className="px-3 py-2 text-right text-slate-700">
                     {formatNumberBR(i.quantity, 0)}
                   </td>
-                  <td className="px-2 py-1.5 text-right text-slate-300">
+                  <td className="px-3 py-2 text-right text-slate-700">
                     {formatBRL(i.merchandiseValue)}
                   </td>
-                  <td className="px-2 py-1.5 text-right text-slate-300">
+                  <td className="px-3 py-2 text-right text-slate-700">
                     {formatBRL(i.freightValue)}
                   </td>
-                  <td className="px-2 py-1.5 text-right text-slate-400">
+                  <td className="px-3 py-2 text-right text-slate-600">
                     {formatNumberBR(i.icmsRate)}%
                   </td>
-                  <td className="px-2 py-1.5 text-right text-slate-400">
+                  <td className="px-3 py-2 text-right text-slate-600">
                     {formatNumberBR(i.ipiRate)}%
                   </td>
-                  <td className="px-2 py-1.5 text-center">
+                  <td className="px-3 py-2 text-center">
                     <span
-                      className={`inline-block px-1.5 py-0.5 rounded border text-[9px] font-bold ${CLASSE_STYLE[i.classe]}`}
+                      className={`inline-block px-1.5 py-0.5 rounded border text-[10px] font-bold ${CLASSE_STYLE[i.classe]}`}
                       title={`${formatNumberBR(i.abcPct)}% do valor total`}
                     >
                       {i.classe}
                     </span>
                   </td>
-                  <td className="px-2 py-1.5 text-right text-slate-100 font-bold">
+                  <td className="px-3 py-2 text-right text-slate-900 font-bold">
                     {formatBRL(i.valorNota)}
                   </td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t border-slate-700 bg-slate-950/50 text-slate-300">
-                <td className="px-2 py-1.5 font-bold" colSpan={1}>
+              <tr className="border-t-2 border-slate-300 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white">
+                <td className="px-3 py-2 font-bold" colSpan={1}>
                   Origem ativa ({itensComValor.length})
                 </td>
-                <td className="px-2 py-1.5 text-right font-bold">{formatNumberBR(totalQtd, 0)}</td>
-                <td className="px-2 py-1.5 text-right font-bold" colSpan={4}>
-                  <span className="inline-flex items-center gap-1 text-slate-400">
-                    <BarChart3 className="w-3 h-3" /> a célula recalcula sozinha sobre estes itens
+                <td className="px-3 py-2 text-right font-bold">{formatNumberBR(totalQtd, 0)}</td>
+                <td className="px-3 py-2 text-right font-bold" colSpan={4}>
+                  <span className="inline-flex items-center gap-1 text-slate-300 text-[11px]">
+                    <BarChart3 className="w-3.5 h-3.5" /> a célula recalcula sozinha sobre estes
+                    itens
                   </span>
                 </td>
-                <td className="px-2 py-1.5 text-right font-bold text-sky-300">
+                <td className="px-3 py-2 text-right font-bold text-emerald-400">
                   {formatBRL(totalNota)}
                 </td>
                 <td />
@@ -168,8 +175,8 @@ export function PainelIntegracaoOrigem({
         </div>
       )}
       {itensComValor.length > 0 && (
-        <div className="flex items-center gap-2 text-[10px] font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/40 rounded-lg p-2.5">
-          <Link2 className="w-4 h-4 shrink-0 text-emerald-400" />
+        <div className="flex items-center gap-2 text-xs font-mono text-emerald-900 bg-emerald-100/70 border border-emerald-300 rounded-xl p-3">
+          <Link2 className="w-4 h-4 shrink-0 text-emerald-700" />
           <span>
             Vínculo automático: todos os resultados (memórias, matriz, réguas, espelho, notas)
             derivam destes itens. Zerar a Compras zera a célula — salvar o cenário preserva o

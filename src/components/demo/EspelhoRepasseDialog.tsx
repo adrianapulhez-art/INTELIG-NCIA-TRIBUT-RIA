@@ -77,26 +77,24 @@ function CardMemoriaCanonicalEspelho({
   badgeExtra?: React.ReactNode
 }) {
   const corCls = {
-    emerald: 'border-emerald-500/45 bg-emerald-500/[0.05]',
-    violet: 'border-violet-500/45 bg-violet-500/[0.05]',
-    orange: 'border-orange-500/45 bg-orange-500/[0.06]',
-    sky: 'border-sky-400/70 bg-sky-500/[0.16]',
+    emerald: 'border-emerald-200 bg-emerald-50/50',
+    violet: 'border-slate-200 bg-white shadow-2xs',
+    orange: 'border-slate-200 bg-white shadow-2xs',
+    sky: 'border-emerald-200 bg-emerald-50/40 shadow-2xs',
   }[cor]
   const tituloCls = {
-    emerald: 'text-emerald-300',
-    violet: 'text-violet-300',
-    orange: 'text-orange-300',
-    sky: 'text-sky-200',
+    emerald: 'text-emerald-950 font-bold',
+    violet: 'text-slate-900 font-bold',
+    orange: 'text-slate-900 font-bold',
+    sky: 'text-emerald-950 font-bold',
   }[cor]
 
   return (
     <div
-      className={`w-full min-w-0 rounded-xl border p-3 space-y-1.5 flex flex-col justify-between ${corCls}`}
+      className={`w-full min-w-0 rounded-2xl border p-3.5 space-y-2 flex flex-col justify-between ${corCls}`}
     >
-      <div className="flex items-start justify-between gap-1 pb-1 border-b border-slate-800/80">
-        <span
-          className={`text-[10px] font-mono font-black uppercase leading-tight block ${tituloCls}`}
-        >
+      <div className="flex items-start justify-between gap-1 pb-1.5 border-b border-slate-200">
+        <span className={`text-xs font-mono uppercase leading-tight block ${tituloCls}`}>
           {titulo}
         </span>
         {badgeExtra}
@@ -105,37 +103,37 @@ function CardMemoriaCanonicalEspelho({
         {linhas.map((l, i) => (
           <div
             key={`${l.label}-${i}`}
-            className={`flex items-start justify-between gap-2 px-2 py-1 rounded-lg border ${
+            className={`flex items-start justify-between gap-2 px-2.5 py-1.5 rounded-lg border ${
               l.destaque
-                ? cor === 'emerald'
-                  ? 'bg-emerald-500/10 border-emerald-500/40'
-                  : cor === 'violet'
-                    ? 'bg-violet-500/10 border-violet-500/40'
-                    : cor === 'sky'
-                      ? 'bg-sky-500/25 border-sky-400/60'
-                      : 'bg-orange-500/10 border-orange-500/40'
-                : 'bg-slate-950/50 border-slate-800/60'
+                ? 'bg-emerald-100/80 border-emerald-300'
+                : 'bg-slate-50/70 border-slate-200'
             }`}
           >
             <div className="min-w-0">
-              <span className="text-[10px] font-mono text-slate-200 block leading-tight">
+              <span
+                className={`text-xs font-mono block leading-tight ${l.destaque ? 'font-bold text-emerald-950' : 'text-slate-800'}`}
+              >
                 {l.label}
               </span>
               {l.formula && (
-                <span className="text-[9px] font-mono text-slate-500 block break-words leading-tight mt-0.5">
+                <span className="text-[10px] font-mono text-slate-500 block break-words leading-tight mt-0.5">
                   {l.formula}
                 </span>
               )}
               {l.fundamento && (
-                <span className="text-[8px] font-mono text-sky-400/80 block break-words leading-tight mt-0.5">
+                <span className="text-[9px] font-mono text-emerald-700 block break-words leading-tight mt-0.5">
                   [{l.fundamento}]
                 </span>
               )}
             </div>
             <div className="text-right shrink-0">
               <span
-                className={`text-[10px] font-mono font-bold block ${
-                  l.valor < 0 ? 'text-emerald-300' : l.destaque ? 'text-white' : 'text-slate-100'
+                className={`text-xs font-mono font-bold block ${
+                  l.valor < 0
+                    ? 'text-emerald-700'
+                    : l.destaque
+                      ? 'text-emerald-900 font-black'
+                      : 'text-slate-900'
                 }`}
               >
                 {formatBRL(l.valor)}
@@ -182,30 +180,30 @@ function CardPrincipalCenario({
     <button
       type="button"
       onClick={onAbrir}
-      className={`rounded-xl border p-3 text-left cursor-pointer transition-colors space-y-2 ${
+      className={`rounded-2xl border p-3.5 text-left cursor-pointer transition-all space-y-2.5 ${
         isMenor
-          ? 'border-emerald-400/70 bg-emerald-500/[0.06] ring-1 ring-emerald-400/50 hover:bg-emerald-500/10'
-          : 'border-slate-700/70 bg-slate-900/40 hover:bg-slate-900/70'
+          ? 'border-emerald-600 bg-emerald-50/70 ring-1 ring-emerald-500 hover:bg-emerald-50 shadow-xs'
+          : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
       }`}
     >
-      <div className="flex items-center justify-between gap-1">
-        <span className="text-[12px] font-mono font-black uppercase text-white">
+      <div className="flex items-center justify-between gap-1 pb-1 border-b border-slate-200">
+        <span className="text-xs font-mono font-bold uppercase text-slate-900">
           {REGIME_LABEL[comprador]} × {REGIME_LABEL[fornecedor]}
         </span>
         {isMenor && (
-          <span className="text-[8px] font-mono font-bold text-emerald-300 border border-emerald-500/50 rounded px-1">
+          <span className="text-[9px] font-mono font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 rounded px-1.5 py-0.5">
             MENOR
           </span>
         )}
       </div>
-      <div className="space-y-1">
-        <div className="text-[9px] font-mono font-bold uppercase text-emerald-300">
+      <div className="space-y-0.5">
+        <div className="text-[10px] font-mono font-bold uppercase text-emerald-800">
           {repasseTxt}
         </div>
-        <div className="text-[9px] font-mono uppercase text-slate-300">
+        <div className="text-[10px] font-mono uppercase text-slate-600">
           ADQUIRENTE: {REGIME_NOME[comprador]}
         </div>
-        <div className="text-[9px] font-mono uppercase text-slate-300">
+        <div className="text-[10px] font-mono uppercase text-slate-600">
           FORNECEDOR: {REGIME_NOME[fornecedor]}
         </div>
       </div>
@@ -214,22 +212,22 @@ function CardPrincipalCenario({
         {exibidos.map(({ item, cell: ci }) => (
           <div
             key={item.id}
-            className="flex items-center justify-between rounded-md bg-orange-500/10 border border-orange-500/40 px-2 py-1"
+            className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1.5"
           >
-            <span className="text-[9px] font-mono font-bold uppercase text-orange-400 truncate max-w-[45%]">
+            <span className="text-[10px] font-mono font-bold uppercase text-slate-800 truncate max-w-[45%]">
               {item.name || 'Item'}
             </span>
             <div className="text-right shrink-0">
-              <span className="text-[10px] font-black text-orange-300 font-mono block leading-tight">
+              <span className="text-xs font-black text-slate-900 font-mono block leading-tight">
                 {formatBRL(ci.exercicio.unitario)}/un
               </span>
               <span
-                className={`text-[9px] font-mono ${
+                className={`text-[10px] font-mono font-semibold ${
                   ci.deltaPct > 0
-                    ? 'text-rose-300'
+                    ? 'text-rose-700'
                     : ci.deltaPct < 0
-                      ? 'text-emerald-300'
-                      : 'text-slate-400'
+                      ? 'text-emerald-700'
+                      : 'text-slate-500'
                 }`}
               >
                 {ci.deltaPct > 0 ? '+' : ''}
@@ -239,18 +237,18 @@ function CardPrincipalCenario({
           </div>
         ))}
         {restantes > 0 && (
-          <div className="text-[9px] font-mono text-slate-500">
+          <div className="text-[10px] font-mono text-slate-500">
             +{restantes} item{restantes === 1 ? '' : 's'} dentro — cálculo por item na camada
             interna
           </div>
         )}
         {celulasItens.length === 0 && (
-          <div className="text-[9px] font-mono text-slate-500">
+          <div className="text-[10px] font-mono text-slate-500">
             Nenhum item com valor na Calculadora de Compras
           </div>
         )}
       </div>
-      <div className="text-[9px] font-mono text-slate-500 text-center">
+      <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
         Clique para abrir os 6 cards do cenário
       </div>
     </button>
@@ -363,32 +361,34 @@ export function EspelhoRepasseDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-emerald-400" />
-            <span>
-              {isCompradorSn ? (
-                <>
-                  Espelho dos cálculos — Cenário Único (chancelado) · Sem repasse · Exercício{' '}
-                  {exercicio}
-                </>
-              ) : (
-                <>
-                  Espelho dos cálculos — {REPASSE_TITULO[mode]}
-                  {repassePct} · Exercício {exercicio}
-                </>
-              )}
-            </span>
-          </DialogTitle>
-          <DialogDescription className="text-xs text-slate-400">
+          <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Calculator className="w-5 h-5 text-emerald-600" />
+              <span>
+                {isCompradorSn ? (
+                  <>
+                    Espelho dos cálculos — Cenário Único (chancelado) · Sem repasse · Exercício{' '}
+                    {exercicio}
+                  </>
+                ) : (
+                  <>
+                    Espelho dos cálculos — {REPASSE_TITULO[mode]}
+                    {repassePct} · Exercício {exercicio}
+                  </>
+                )}
+              </span>
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-xs text-slate-500">
             {isCompradorSn ? (
               <>
                 Memória de cálculo aberta linha a linha (Cards 01, 02 e 03) para o adquirente{' '}
-                <strong className="text-slate-200">
+                <strong className="text-slate-800">
                   {REGIME_NOME[baseConfig.compradorRegime]}
                 </strong>{' '}
-                comprando de fornecedores <strong className="text-slate-200">LP ou LR</strong>.
+                comprando de fornecedores <strong className="text-slate-800">LP ou LR</strong>.
                 Cenário único chancelado pela Adri, sem composição de repasse. Fundamentação legal
                 explícita entre colchetes.
               </>
@@ -407,12 +407,12 @@ export function EspelhoRepasseDialog({
           /* ======================================================================= */
           <div className="space-y-4">
             {/* Seletor do fornecedor pleno (LP ou LR) */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-slate-400 uppercase">
+                <span className="text-xs font-mono font-bold text-slate-700 uppercase">
                   Fornecedor da operação:
                 </span>
-                <div className="flex gap-1.5">
+                <div className="flex gap-2">
                   {(['presumido', 'real'] as const).map((forn) => {
                     const isAtivo = (fornecedorSnAberto || 'presumido') === forn
                     const cel = celulasSnPorFornecedor[forn]
@@ -423,8 +423,8 @@ export function EspelhoRepasseDialog({
                         onClick={() => setFornecedorSnAberto(forn)}
                         className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold cursor-pointer transition-all ${
                           isAtivo
-                            ? 'border-emerald-400 bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/50'
-                            : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:bg-slate-800'
+                            ? 'border-emerald-600 bg-emerald-600 text-white shadow-xs'
+                            : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
                         }`}
                       >
                         {REGIME_LABEL[forn]} ({REGIME_NOME[forn]}) ·{' '}
@@ -437,29 +437,35 @@ export function EspelhoRepasseDialog({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
+                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded border border-emerald-300 bg-emerald-100 text-emerald-800">
                   Cenário Único (chancelado)
                 </span>
-                <span className="text-[9px] font-mono text-slate-400">
-                  Sem repasse (LC 123/2006)
-                </span>
+                <span className="text-xs font-mono text-slate-500">Sem repasse (LC 123/2006)</span>
               </div>
             </div>
 
             {/* Identificação da Operação */}
-            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/[0.05] p-3 space-y-1">
-              <div className="text-[12px] font-mono font-black uppercase text-white">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3.5 space-y-1">
+              <div className="text-xs font-mono font-bold uppercase text-slate-900">
                 OPERAÇÃO ANALISADA: ADQUIRENTE: {REGIME_NOME[baseConfig.compradorRegime]} /
                 FORNECEDOR: {REGIME_NOME[fornecedorSnAberto || 'presumido']}
               </div>
-              <div className="text-[10px] font-mono text-emerald-300 uppercase">
+              <div className="text-[11px] font-mono font-bold text-emerald-800 uppercase">
                 CENÁRIO ÚNICO (CHANCELADO) · EXERCÍCIO {exercicio}
               </div>
-              <div className="text-[10px] font-mono text-slate-300">
-                HOJE: {formatBRL(celulaSnAtiva.hoje.custoUnitario)}/un → 2027:{' '}
-                {formatBRL(celulaSnAtiva.exercicio2027.custoUnitario)}/un ·{' '}
-                {celulaSnAtiva.deltaPct >= 0 ? '+' : ''}
-                {formatNumberBR(celulaSnAtiva.deltaPct)}% vs HOJE
+              <div className="text-xs font-mono text-slate-700">
+                HOJE: <strong>{formatBRL(celulaSnAtiva.hoje.custoUnitario)}/un</strong> → 2027:{' '}
+                <strong>{formatBRL(celulaSnAtiva.exercicio2027.custoUnitario)}/un</strong> ·{' '}
+                <span
+                  className={
+                    celulaSnAtiva.deltaPct > 0
+                      ? 'text-rose-700 font-bold'
+                      : 'text-emerald-700 font-bold'
+                  }
+                >
+                  {celulaSnAtiva.deltaPct >= 0 ? '+' : ''}
+                  {formatNumberBR(celulaSnAtiva.deltaPct)}% vs HOJE
+                </span>
                 {adquirenteSnRegime === 'simples' &&
                   ' · NOTA CHEIA SEM CRÉDITO (ART. 13 §1º LC 123/2006)'}
                 {adquirenteSnRegime === 'simples_hibrido' &&
@@ -474,7 +480,7 @@ export function EspelhoRepasseDialog({
                 titulo={`${celulaSnAtiva.card01.numero} — ${celulaSnAtiva.card01.titulo}`}
                 cor={celulaSnAtiva.card01.cor}
                 badgeExtra={
-                  <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                  <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
                     HOJE 2026
                   </span>
                 }
@@ -492,7 +498,7 @@ export function EspelhoRepasseDialog({
                 titulo={`${celulaSnAtiva.card02.numero} — ${celulaSnAtiva.card02.titulo}`}
                 cor={celulaSnAtiva.card02.cor}
                 badgeExtra={
-                  <span className="text-[9px] font-mono font-bold text-violet-300 bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/30">
+                  <span className="text-[10px] font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
                     FORNECEDOR 2027
                   </span>
                 }
@@ -511,10 +517,10 @@ export function EspelhoRepasseDialog({
                 cor={celulaSnAtiva.card03.cor}
                 badgeExtra={
                   <span
-                    className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
                       celulaSnAtiva.deltaPct > 0
-                        ? 'text-rose-300 bg-rose-500/10 border-rose-500/30'
-                        : 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30'
+                        ? 'text-rose-800 bg-rose-100 border-rose-300'
+                        : 'text-emerald-800 bg-emerald-100 border-emerald-300'
                     }`}
                   >
                     {celulaSnAtiva.deltaPct > 0 ? '+' : ''}
@@ -542,7 +548,7 @@ export function EspelhoRepasseDialog({
                 size="sm"
                 variant="outline"
                 onClick={() => setCenarioAberto(null)}
-                className="border-slate-700 text-slate-300 hover:bg-slate-800 cursor-pointer h-7"
+                className="border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer h-8 text-xs font-mono font-bold"
               >
                 <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Voltar aos cenários
               </Button>
@@ -552,9 +558,9 @@ export function EspelhoRepasseDialog({
                   onClick={() =>
                     onAbrirCelula(abertoPleno.comprador, abertoPleno.fornecedor, abertoPleno.cell)
                   }
-                  className="inline-flex items-center gap-1 rounded-md border border-orange-500/40 bg-orange-500/10 px-2 py-1 text-[9px] font-mono font-bold text-orange-300 hover:bg-orange-500/20 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600 bg-emerald-50 px-2.5 py-1 text-xs font-mono font-bold text-emerald-800 hover:bg-emerald-100 cursor-pointer shadow-2xs"
                 >
-                  <Calculator className="w-3 h-3" /> Memória + base legal
+                  <Calculator className="w-3.5 h-3.5" /> Memória + base legal
                 </button>
                 {row && (
                   <NotaCelulaTrigger
@@ -572,25 +578,33 @@ export function EspelhoRepasseDialog({
             </div>
             {/* IDENTIFICAÇÃO DA OPERAÇÃO (checagem da CEO, 28/09) — antes dos itens,
                 exatamente a combinação do card externo clicado */}
-            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/[0.05] p-3 space-y-1">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3.5 space-y-1">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-[12px] font-mono font-black uppercase text-white">
+                <div className="text-xs font-mono font-bold uppercase text-slate-900">
                   OPERAÇÃO ANALISADA: ADQUIRENTE: {nomeRegime(abertoPleno.comprador)} / FORNECEDOR:{' '}
                   {nomeRegime(abertoPleno.fornecedor)}
                 </div>
                 {abertoPleno.comprador === 'real' && abertoPleno.fornecedor === 'real' && (
-                  <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded border border-emerald-500/50 bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40">
+                  <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded border border-emerald-300 bg-emerald-100 text-emerald-800">
                     Célula Neutra (chancelada)
                   </span>
                 )}
               </div>
-              <div className="text-[10px] font-mono text-emerald-300 uppercase">
+              <div className="text-xs font-mono font-bold text-emerald-800 uppercase">
                 {repasseTxt} · Exercício {exercicio}
               </div>
-              <div className="text-[10px] font-mono text-slate-300">
-                Custo líquido {formatBRL(abertoPleno.cell.exercicio.unitario)}/un ·{' '}
-                {abertoPleno.cell.deltaPct > 0 ? '+' : ''}
-                {formatNumberBR(abertoPleno.cell.deltaPct)}% vs HOJE
+              <div className="text-xs font-mono text-slate-700">
+                Custo líquido <strong>{formatBRL(abertoPleno.cell.exercicio.unitario)}/un</strong> ·{' '}
+                <span
+                  className={
+                    abertoPleno.cell.deltaPct > 0
+                      ? 'text-rose-700 font-bold'
+                      : 'text-emerald-700 font-bold'
+                  }
+                >
+                  {abertoPleno.cell.deltaPct > 0 ? '+' : ''}
+                  {formatNumberBR(abertoPleno.cell.deltaPct)}% vs HOJE
+                </span>
                 {abertoPleno.cell.exercicio.unitario === menorPleno && ' · MENOR CUSTO DO CENÁRIO'}
                 {abertoPleno.comprador === 'real' &&
                   abertoPleno.fornecedor === 'real' &&
@@ -602,24 +616,24 @@ export function EspelhoRepasseDialog({
             {abertoPleno.comprador === 'real' && abertoPleno.fornecedor === 'real' ? (
               <div className="space-y-3">
                 {/* Contraste didático vs LR × LP visível na mesma tela */}
-                <div className="rounded-lg border border-sky-500/40 bg-sky-950/40 p-2.5 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sky-300 font-bold uppercase text-[10px]">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-emerald-900 font-bold uppercase text-[10px]">
                       Contraste Didático na Mesma Tela:
                     </span>
-                    <span className="text-slate-200 text-[11px]">
+                    <span className="text-slate-800 text-xs">
                       <strong>LR × LR</strong>: custo{' '}
                       {formatBRL(celulaLrXLr.exercicio2027.custoUnitario)}/un (Δ 0,00% · Célula
                       Neutra)
                     </span>
-                    <span className="text-slate-500">vs</span>
-                    <span className="text-rose-300 text-[11px]">
+                    <span className="text-slate-400">vs</span>
+                    <span className="text-rose-700 text-xs font-bold">
                       <strong>LR × LP</strong>: custo{' '}
                       {formatBRL(celulaLrXLr.contrasteLp.custoUnitario)}/un (+
                       {formatNumberBR(celulaLrXLr.contrasteLp.deltaPct)}%)
                     </span>
                   </div>
-                  <div className="text-[9px] text-slate-400">
+                  <div className="text-[10px] text-slate-600">
                     Na compra de LP, o LR sofre repasse com alíquota maior sem crédito pleno
                     (+6,17%). Na compra de LR, a célula é 100% neutra (0,00%).
                   </div>
@@ -632,7 +646,7 @@ export function EspelhoRepasseDialog({
                     titulo={`${celulaLrXLr.card01.numero} — ${celulaLrXLr.card01.titulo}`}
                     cor={celulaLrXLr.card01.cor}
                     badgeExtra={
-                      <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                      <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
                         HOJE 2026
                       </span>
                     }
@@ -650,7 +664,7 @@ export function EspelhoRepasseDialog({
                     titulo={`${celulaLrXLr.card02.numero} — ${celulaLrXLr.card02.titulo}`}
                     cor={celulaLrXLr.card02.cor}
                     badgeExtra={
-                      <span className="text-[9px] font-mono font-bold text-violet-300 bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/30">
+                      <span className="text-[10px] font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
                         FORNECEDOR 2027
                       </span>
                     }
@@ -668,7 +682,7 @@ export function EspelhoRepasseDialog({
                     titulo={`${celulaLrXLr.card03.numero} — ${celulaLrXLr.card03.titulo}`}
                     cor={celulaLrXLr.card03.cor}
                     badgeExtra={
-                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border text-emerald-300 bg-emerald-500/10 border-emerald-500/30">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border text-emerald-800 bg-emerald-100 border-emerald-300">
                         0,00% (Neutra)
                       </span>
                     }
@@ -719,7 +733,7 @@ export function EspelhoRepasseDialog({
           /* ======================================================================= */
           /* COMPRADOR PLENO — CAMADA 1: GRID DOS 4 CARDS PRINCIPAIS                 */
           /* ======================================================================= */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {celulasPlenas.map((linha) =>
               linha.cells.map(({ fornecedor, fi }) => {
                 const cfgComb = {
@@ -748,7 +762,7 @@ export function EspelhoRepasseDialog({
                       onAbrir={() => setCenarioAberto({ ci: linha.ci, fi })}
                     />
                     {linha.comprador === 'real' && fornecedor === 'real' && (
-                      <div className="mt-1 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-[8px] font-mono text-emerald-300 text-center">
+                      <div className="mt-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-[10px] font-mono text-emerald-800 text-center font-bold">
                         LR × LR · Δ 0,00% · Célula Neutra (chancelada)
                       </div>
                     )}
@@ -759,14 +773,14 @@ export function EspelhoRepasseDialog({
           </div>
         )}
 
-        <p className="text-[10px] font-mono text-slate-500">
+        <p className="text-xs font-mono text-slate-500 pt-2 border-t border-slate-200">
           LP = Lucro Presumido · LR = Lucro Real. Para adquirentes do Simples Nacional (SN puro e SN
           híbrido), o espelho exibe o cenário único chancelado pela Adri, sem composição de repasse,
           com fundamentação legal expressa (art. 13 §1º LC 123/2006; art. 23 LC 123/2006; art. 41 LC
           214/2025). As operações com fornecedor SN vivem na Sessão SN com regras próprias de
           repartição do DAS.
         </p>
-      </DialogContent>
+      </DialogContent>{' '}
     </Dialog>
   )
 }

@@ -83,47 +83,45 @@ function LinhaSN({
   const isPct = line.label.startsWith('(i)') && line.value < 100 && line.label.includes('efetiva')
   return (
     <div
-      className={`flex items-start justify-between gap-2 px-2 py-1 rounded-lg border ${
-        line.destaque
-          ? 'bg-emerald-500/10 border-emerald-500/40'
-          : 'bg-slate-950/50 border-slate-800/60'
+      className={`flex items-start justify-between gap-2 px-2.5 py-1.5 rounded-lg border ${
+        line.destaque ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-slate-200'
       }`}
     >
       <div className="min-w-0">
         <span
-          className={`text-[10px] font-mono font-semibold block leading-tight ${
-            line.destaque ? 'text-emerald-300' : 'text-slate-200'
+          className={`text-xs font-mono font-semibold block leading-tight ${
+            line.destaque ? 'text-emerald-800 font-bold' : 'text-slate-800'
           }`}
         >
           {line.label}
         </span>
         {line.formula && (
-          <span className="text-[9px] font-mono text-slate-500 leading-tight block break-words">
+          <span className="text-[10px] font-mono text-slate-500 leading-tight block break-words">
             {line.formula}
           </span>
         )}
         {line.fundamento && (
-          <span className="text-[8px] font-mono text-sky-400/80 block mt-0.5">
+          <span className="text-[9px] font-mono text-emerald-700 block mt-0.5">
             {line.fundamento}
           </span>
         )}
       </div>
       <div className="text-right shrink-0">
         <span
-          className={`text-[10px] font-mono font-bold block ${
+          className={`text-xs font-mono font-bold block ${
             line.value < 0
-              ? 'text-emerald-300'
+              ? 'text-emerald-700'
               : line.destaque
-                ? 'text-emerald-300'
+                ? 'text-emerald-800'
                 : line.value > 0
-                  ? 'text-slate-100'
+                  ? 'text-slate-900'
                   : 'text-slate-500'
           }`}
         >
           {isPct ? `${formatNumberBR(line.value)}%` : formatBRL(line.value)}
         </span>
         {line.value6 !== undefined && Math.abs(line.value6 - line.value) > 0.000001 && (
-          <span className="text-[8px] font-mono text-slate-500 block leading-none">
+          <span className="text-[9px] font-mono text-slate-500 block leading-none">
             {fmt6(line.value6)}
           </span>
         )}
@@ -157,75 +155,74 @@ function CardMemoriaCanonical({
   badgeExtra?: React.ReactNode
 }) {
   const corCls = {
-    emerald: 'border-emerald-500/45 bg-emerald-500/[0.05]',
-    violet: 'border-violet-500/45 bg-violet-500/[0.05]',
-    orange: 'border-orange-500/45 bg-orange-500/[0.06]',
-    sky: 'border-sky-400/70 bg-sky-500/[0.16]',
+    emerald: 'border-emerald-300 bg-emerald-50/50',
+    violet: 'border-slate-200 bg-white shadow-2xs',
+    orange: 'border-slate-200 bg-white shadow-2xs',
+    sky: 'border-emerald-200 bg-emerald-50/40 shadow-2xs',
   }[cor]
   const tituloCls = {
-    emerald: 'text-emerald-300',
-    violet: 'text-violet-300',
-    orange: 'text-orange-300',
-    sky: 'text-sky-200',
+    emerald: 'text-emerald-900',
+    violet: 'text-slate-900',
+    orange: 'text-slate-900',
+    sky: 'text-emerald-950',
   }[cor]
 
   return (
     <div
-      className={`w-full min-w-0 rounded-xl border p-3 space-y-1 flex flex-col justify-between ${corCls}`}
+      className={`w-full min-w-0 rounded-2xl border p-3.5 space-y-1.5 flex flex-col justify-between ${corCls}`}
     >
-      <div className="flex items-start justify-between gap-1">
-        <span
-          className={`text-[10px] font-mono font-black uppercase leading-tight block ${tituloCls}`}
-        >
+      <div className="flex items-start justify-between gap-1 pb-1.5 border-b border-slate-200">
+        <span className={`text-xs font-mono font-bold uppercase leading-tight block ${tituloCls}`}>
           {titulo}
         </span>
         {badgeExtra}
       </div>
-      {linhas.map((l, i) => (
-        <div
-          key={`${l.label}-${i}`}
-          className={`flex items-start justify-between gap-2 px-2 py-1 rounded-lg border ${
-            l.destaque
-              ? cor === 'emerald'
-                ? 'bg-emerald-500/10 border-emerald-500/40'
-                : cor === 'violet'
-                  ? 'bg-violet-500/10 border-violet-500/40'
-                  : cor === 'sky'
-                    ? 'bg-sky-500/25 border-sky-400/60'
-                    : 'bg-orange-500/10 border-orange-500/40'
-              : 'bg-slate-950/50 border-slate-800/60'
-          }`}
-        >
-          <div className="min-w-0">
-            <span className="text-[10px] font-mono text-slate-200 block leading-tight">
-              {l.label}
-            </span>
-            {l.formula && (
-              <span className="text-[9px] font-mono text-slate-500 block break-words leading-tight">
-                {l.formula}
+      <div className="space-y-1">
+        {linhas.map((l, i) => (
+          <div
+            key={`${l.label}-${i}`}
+            className={`flex items-start justify-between gap-2 px-2.5 py-1.5 rounded-lg border ${
+              l.destaque
+                ? 'bg-emerald-100 border-emerald-300 shadow-2xs'
+                : 'bg-white border-slate-200'
+            }`}
+          >
+            <div className="min-w-0">
+              <span
+                className={`text-xs font-mono block leading-tight ${l.destaque ? 'font-bold text-emerald-950' : 'text-slate-800'}`}
+              >
+                {l.label}
               </span>
-            )}
-          </div>
-          <div className="text-right shrink-0">
-            <span
-              className={`text-[10px] font-mono font-bold block ${
-                l.value < 0 ? 'text-emerald-300' : l.destaque ? 'text-white' : 'text-slate-100'
-              }`}
-            >
-              {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
-            </span>
-            {l.value6 !== undefined && Math.abs(l.value6 - l.value) > 0.000001 && (
-              <span className="text-[8px] font-mono text-slate-500 block leading-none">
-                {fmt6(l.value6)}
+              {l.formula && (
+                <span className="text-[10px] font-mono text-slate-500 block break-words leading-tight mt-0.5">
+                  {l.formula}
+                </span>
+              )}
+            </div>
+            <div className="text-right shrink-0">
+              <span
+                className={`text-xs font-mono font-bold block ${
+                  l.value < 0
+                    ? 'text-emerald-700'
+                    : l.destaque
+                      ? 'text-emerald-900 font-black'
+                      : 'text-slate-900'
+                }`}
+              >
+                {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
               </span>
-            )}
+              {l.value6 !== undefined && Math.abs(l.value6 - l.value) > 0.000001 && (
+                <span className="text-[9px] font-mono text-slate-500 block leading-none">
+                  {fmt6(l.value6)}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
-
 /* ------------------------------------------------------------------ */
 /* SEÇÃO ORQUESTRADORA — 12 combinações SN × adquirentes               */
 /* ------------------------------------------------------------------ */
@@ -426,22 +423,31 @@ export function SessaoSnSection({
   return (
     <div
       id="sessao-sn"
-      className="rounded-xl border border-violet-500/40 bg-violet-500/[0.04] p-4 space-y-3"
+      className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4"
     >
       {/* Cabeçalho */}
-      <div className="space-y-0.5">
+      <div className="space-y-1 pb-3 border-b border-slate-200">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Percent className="w-5 h-5 text-violet-400" />
-            <span className="text-xs font-mono font-black uppercase tracking-wider text-violet-300">
-              Sessão SN na Reforma — tratamento diferenciado para optantes
-            </span>
+          <div className="flex items-center gap-3 border-l-4 border-emerald-500 pl-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+              <Percent className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-base font-bold text-slate-900 tracking-tight block">
+                Sessão SN na Reforma — tratamento diferenciado para optantes
+              </span>
+              <p className="text-xs text-slate-500">
+                Todas as operações com Simples Nacional — LC 123/2006, art. 23, §§1º–2º (redação LC
+                214/2025) · por item da Calculadora de Compras (nunca média) · motor próprio com
+                memória em 6 decimais; zonas do Art. 12 consolidado intactas.
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setManualAberto(true)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-violet-500/40 bg-violet-950/60 px-2 py-0.5 text-[10px] font-mono font-bold text-violet-200 hover:bg-violet-900/60 hover:text-white hover:border-violet-400 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-mono font-bold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer shadow-2xs"
               title="Abrir Manual de Utilização Didático do Contador"
             >
               <span>📘</span>
@@ -454,45 +460,40 @@ export function SessaoSnSection({
             />
           </div>
         </div>
-        <p className="text-[10px] font-mono text-slate-400">
-          Todas as operações com Simples Nacional — LC 123/2006, art. 23, §§1º–2º (redação LC
-          214/2025) · por item da Calculadora de Compras (nunca média) · motor próprio com memória
-          em 6 decimais; zonas do Art. 12 consolidado intactas.
-        </p>
       </div>
 
       {semOrigem ? (
-        <p className="text-[10px] font-mono text-slate-400">
+        <p className="text-xs font-mono text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200">
           Nenhum item com valor na Calculadora de Compras — lance os itens para calcular a parcela
           creditável do adquirente (art. 23 da LC 123/2006).
         </p>
       ) : (
         <>
           {/* 1 — Contexto: alíquota efetiva INFORMADA com ORIGEM ROTULADA */}
-          <div className="rounded-xl border border-sky-500/40 bg-sky-500/[0.05] p-3 space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[11px] font-mono font-black uppercase text-sky-300 block">
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-l-4 border-emerald-500 pl-2">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-900 block">
                 1 · Contexto da operação — alíquota efetiva do fornecedor
               </span>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-sky-400/40 bg-sky-950/60 text-sky-200">
+              <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-800">
                 Origem ativa:{' '}
-                <span className="text-emerald-300 uppercase">
+                <span className="text-emerald-900 uppercase font-black">
                   {origem === 'nota' ? 'da nota' : 'estimativa da tabela'}
                 </span>
               </span>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setOrigem('tabela')
                   atualizarTabela(anexoId, faixaNum, rbt12, Number(exercicio) || 2027)
                 }}
-                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
                   origem === 'tabela'
-                    ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                    : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 Tabela Oficial Completa (Anexos I a V · 6 Faixas) [padrão]
@@ -500,10 +501,10 @@ export function SessaoSnSection({
               <button
                 type="button"
                 onClick={() => setOrigem('nota')}
-                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
                   origem === 'nota'
-                    ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                    : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 Preencher pelo percentual da NOTA (art. 23, §2º)
@@ -511,60 +512,66 @@ export function SessaoSnSection({
             </div>
 
             {origem === 'nota' ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-[9px] font-mono text-slate-400 uppercase">
+                    <label className="text-xs font-mono font-semibold text-slate-700 uppercase">
                       % ICMS da nota
                     </label>
-                    <span className="text-[8px] font-mono text-emerald-400">da nota</span>
+                    <span className="text-[10px] font-mono font-bold text-emerald-700">
+                      da nota
+                    </span>
                   </div>
                   <Input
                     type="number"
                     step="0.0001"
                     value={icmsNotaPct}
                     onChange={(e) => setIcmsNotaPct(Number(e.target.value) || 0)}
-                    className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
+                    className="h-8 bg-white border-slate-300 text-xs font-mono text-slate-900 focus-visible:ring-emerald-500"
                   />
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-[9px] font-mono text-slate-400 uppercase">
+                    <label className="text-xs font-mono font-semibold text-slate-700 uppercase">
                       % CBS da nota
                     </label>
-                    <span className="text-[8px] font-mono text-emerald-400">da nota</span>
+                    <span className="text-[10px] font-mono font-bold text-emerald-700">
+                      da nota
+                    </span>
                   </div>
                   <Input
                     type="number"
                     step="0.0001"
                     value={cbsNotaPct}
                     onChange={(e) => setCbsNotaPct(Number(e.target.value) || 0)}
-                    className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
+                    className="h-8 bg-white border-slate-300 text-xs font-mono text-slate-900 focus-visible:ring-emerald-500"
                   />
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-[9px] font-mono text-slate-400 uppercase">
+                    <label className="text-xs font-mono font-semibold text-slate-700 uppercase">
                       % IBS da nota
                     </label>
-                    <span className="text-[8px] font-mono text-emerald-400">da nota</span>
+                    <span className="text-[10px] font-mono font-bold text-emerald-700">
+                      da nota
+                    </span>
                   </div>
                   <Input
                     type="number"
                     step="0.0001"
                     value={ibsNotaPct}
                     onChange={(e) => setIbsNotaPct(Number(e.target.value) || 0)}
-                    className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
+                    className="h-8 bg-white border-slate-300 text-xs font-mono text-slate-900 focus-visible:ring-emerald-500"
                   />
                 </div>
-                <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/[0.06] px-2 py-1.5 flex flex-col justify-center">
-                  <span className="text-[8px] font-mono text-slate-400 uppercase block">
+                <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-2.5 flex flex-col justify-center">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase block font-bold">
                     Origem
                   </span>
-                  <span className="text-[10px] font-mono font-bold text-emerald-300">
+                  <span className="text-xs font-mono font-bold text-emerald-900">
                     DOCUMENTO FISCAL (da nota)
                   </span>
-                  <span className="text-[8px] font-mono text-emerald-400/80 block">
+                  <span className="text-[10px] font-mono text-emerald-700 block">
                     LC 123/2006, art. 23, §2º campo próprio
                   </span>
                 </div>
@@ -572,10 +579,10 @@ export function SessaoSnSection({
             ) : (
               <div className="space-y-3">
                 {/* Seletores rápidos de Anexo e Faixa (atendimento à Adri) */}
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                   {/* Seletor do Anexo (I a V) */}
                   <div className="sm:col-span-4 space-y-1">
-                    <label className="text-[9px] font-mono text-slate-400 uppercase block font-bold">
+                    <label className="text-xs font-mono text-slate-700 uppercase block font-bold">
                       Anexo do Simples Nacional
                     </label>
                     <select
@@ -585,7 +592,7 @@ export function SessaoSnSection({
                         setAnexoId(novoAnexo)
                         atualizarTabela(novoAnexo, faixaNum, rbt12, Number(exercicio) || 2027)
                       }}
-                      className="w-full h-8 px-2 rounded bg-slate-950/90 border border-slate-700/80 text-xs font-mono text-slate-200 cursor-pointer focus:border-sky-400 focus:outline-none"
+                      className="w-full h-8 px-2.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 cursor-pointer focus:border-emerald-500 focus:outline-none"
                     >
                       <option value="anexo1">Anexo I — Comércio / Bens</option>
                       <option value="anexo2">Anexo II — Indústria (com IPI)</option>
@@ -599,7 +606,7 @@ export function SessaoSnSection({
 
                   {/* Seletor da Faixa (1ª a 6ª) */}
                   <div className="sm:col-span-4 space-y-1">
-                    <label className="text-[9px] font-mono text-slate-400 uppercase block font-bold">
+                    <label className="text-xs font-mono text-slate-700 uppercase block font-bold">
                       Faixa da Receita Bruta (RBT12)
                     </label>
                     <select
@@ -618,7 +625,7 @@ export function SessaoSnSection({
                         setRbt12(novoRbt)
                         atualizarTabela(anexoId, novaFaixa, novoRbt, Number(exercicio) || 2027)
                       }}
-                      className="w-full h-8 px-2 rounded bg-slate-950/90 border border-slate-700/80 text-xs font-mono text-slate-200 cursor-pointer focus:border-sky-400 focus:outline-none"
+                      className="w-full h-8 px-2.5 rounded-lg bg-white border border-slate-300 text-xs font-mono text-slate-900 cursor-pointer focus:border-emerald-500 focus:outline-none"
                     >
                       <option value={1}>1ª faixa (Até R$ 180.000,00)</option>
                       <option value={2}>2ª faixa (R$ 180.000,01 a R$ 360.000,00)</option>
@@ -634,10 +641,12 @@ export function SessaoSnSection({
                   {/* RBT12 em R$ */}
                   <div className="sm:col-span-4 space-y-1">
                     <div className="flex items-center justify-between">
-                      <label className="text-[9px] font-mono text-slate-400 uppercase block font-bold">
+                      <label className="text-xs font-mono text-slate-700 uppercase block font-bold">
                         RBT12 do Fornecedor (R$)
                       </label>
-                      <span className="text-[8px] font-mono text-sky-400">fórmula PGDAS</span>
+                      <span className="text-[10px] font-mono text-emerald-700 font-bold">
+                        fórmula PGDAS
+                      </span>
                     </div>
                     <Input
                       type="number"
@@ -648,79 +657,85 @@ export function SessaoSnSection({
                         setRbt12(val)
                         atualizarTabela(anexoId, faixaNum, val, Number(exercicio) || 2027)
                       }}
-                      className="h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
+                      className="h-8 bg-white border-slate-300 text-xs font-mono text-slate-900 focus-visible:ring-emerald-500"
                     />
                   </div>
                 </div>
 
                 {/* Exibição detalhada das alíquotas e frações calculadas */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-mono text-slate-400 uppercase block">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                  <div className="space-y-1 p-2 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[10px] font-mono font-bold text-slate-600 uppercase block">
                       Alíquota Efetiva Total
                     </label>
-                    <div className="h-8 px-2 flex items-center justify-between bg-slate-950/70 border border-sky-600/50 rounded text-xs font-mono font-bold text-sky-300">
+                    <div className="h-7 px-1.5 flex items-center justify-between text-xs font-mono font-bold text-emerald-800">
                       <span>{formatNumberBR(efetivaPct, 2)}%</span>
-                      <span className="text-[8px] text-slate-400">RBT12 deduzido</span>
+                      <span className="text-[9px] text-slate-500 font-normal">RBT12 deduzido</span>
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-mono text-slate-400 uppercase block">
+                  <div className="space-y-1 p-2 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[10px] font-mono font-bold text-slate-600 uppercase block">
                       ICMS / ISS ({formatNumberBR(icmsFracPct, 2)}%)
                     </label>
-                    <div className="h-8 px-2 flex items-center justify-between bg-slate-950/70 border border-slate-700/60 rounded text-xs font-mono text-slate-200">
+                    <div className="h-7 px-1.5 flex items-center justify-between text-xs font-mono font-bold text-slate-900">
                       <span>{formatNumberBR((efetivaPct * icmsFracPct) / 100, 4)}%</span>
-                      <span className="text-[8px] text-slate-400">parcela creditável</span>
+                      <span className="text-[9px] text-emerald-700 font-normal">
+                        parcela creditável
+                      </span>
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-mono text-slate-400 uppercase block">
+                  <div className="space-y-1 p-2 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[10px] font-mono font-bold text-slate-600 uppercase block">
                       CBS ({formatNumberBR(cbsFracPct, 2)}%)
                     </label>
-                    <div className="h-8 px-2 flex items-center justify-between bg-slate-950/70 border border-slate-700/60 rounded text-xs font-mono text-slate-200">
+                    <div className="h-7 px-1.5 flex items-center justify-between text-xs font-mono font-bold text-slate-900">
                       <span>{formatNumberBR((efetivaPct * cbsFracPct) / 100, 4)}%</span>
-                      <span className="text-[8px] text-slate-400">parcela creditável</span>
+                      <span className="text-[9px] text-emerald-700 font-normal">
+                        parcela creditável
+                      </span>
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-mono text-slate-400 uppercase block">
+                  <div className="space-y-1 p-2 rounded-lg bg-white border border-slate-200">
+                    <label className="text-[10px] font-mono font-bold text-slate-600 uppercase block">
                       IBS ({formatNumberBR(ibsFracPct, 2)}%)
                     </label>
-                    <div className="h-8 px-2 flex items-center justify-between bg-slate-950/70 border border-slate-700/60 rounded text-xs font-mono text-slate-200">
+                    <div className="h-7 px-1.5 flex items-center justify-between text-xs font-mono font-bold text-slate-900">
                       <span>{formatNumberBR((efetivaPct * ibsFracPct) / 100, 4)}%</span>
-                      <span className="text-[8px] text-slate-400">parcela creditável</span>
+                      <span className="text-[9px] text-emerald-700 font-normal">
+                        parcela creditável
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Badge explicativo com o status legal transparente */}
                 <div
-                  className={`rounded-lg border px-2.5 py-1.5 flex flex-wrap items-center justify-between gap-2 ${
+                  className={`rounded-xl border px-3 py-2 flex flex-wrap items-center justify-between gap-2 ${
                     statusLegalTabela === 'OFICIAL'
-                      ? 'border-sky-500/40 bg-sky-500/[0.06]'
-                      : 'border-amber-500/40 bg-amber-500/[0.06]'
+                      ? 'border-emerald-200 bg-emerald-50/70'
+                      : 'border-amber-200 bg-amber-50'
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     <span
-                      className={`text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded border ${
+                      className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded border ${
                         statusLegalTabela === 'OFICIAL'
-                          ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-300'
-                          : 'border-amber-500/40 bg-amber-500/20 text-amber-300'
+                          ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
+                          : 'border-amber-300 bg-amber-100 text-amber-800'
                       }`}
                     >
                       {statusLegalTabela === 'OFICIAL'
                         ? 'PERCENTUAL COM RESPALDO EM LEI (LC 123/2006 · Anexo I)'
                         : 'PENDENTE DE CONFIRMAÇÃO'}
                     </span>
-                    <span className="text-[9px] font-mono text-slate-300">
+                    <span className="text-xs font-mono text-slate-700">
                       {anexoNome} · {faixaNome} · Exercício {exercicio}
                     </span>
                   </div>
-                  <span className="text-[9px] font-mono text-emerald-300 font-bold">
+                  <span className="text-xs font-mono text-emerald-900 font-bold">
                     Parcela creditável derivada:{' '}
                     {formatNumberBR(
                       (efetivaPct * (icmsFracPct + cbsFracPct + ibsFracPct)) / 100,
@@ -732,7 +747,7 @@ export function SessaoSnSection({
 
                 {/* Nota de rodapé da Adri quando pendente de confirmação ou particularidade do anexo */}
                 {notaFonteTabela && (
-                  <p className="text-[9px] font-mono text-slate-400 italic">
+                  <p className="text-[11px] font-mono text-slate-500 italic">
                     ℹ️ Fundamento / Nota da Casa: {notaFonteTabela}
                   </p>
                 )}
@@ -741,21 +756,25 @@ export function SessaoSnSection({
           </div>
 
           {/* 2 — A combinação: fornecedor × adquirente (+ seletor da base do DAS) */}
-          <div className="rounded-xl border border-violet-500/40 bg-violet-500/[0.05] p-3 space-y-2">
-            <span className="text-[11px] font-mono font-black uppercase text-violet-300 block">
-              2 · A combinação — fornecedor SN × adquirente
-            </span>
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+            <div className="border-l-4 border-emerald-500 pl-2">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-900 block">
+                2 · A combinação — fornecedor SN × adquirente
+              </span>
+            </div>
 
             {/* Fornecedor */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[9px] font-mono text-slate-500 uppercase w-20">Fornecedor</span>
+              <span className="text-xs font-mono font-bold text-slate-700 uppercase w-24">
+                Fornecedor
+              </span>
               <button
                 type="button"
                 onClick={() => setFornecedorSN('puro')}
-                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
                   fornecedorSN === 'puro'
-                    ? 'bg-violet-500 text-slate-950 border-violet-400'
-                    : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 SN puro (DAS por dentro)
@@ -763,10 +782,10 @@ export function SessaoSnSection({
               <button
                 type="button"
                 onClick={() => setFornecedorSN('hibrido')}
-                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
                   fornecedorSN === 'hibrido'
-                    ? 'bg-violet-500 text-slate-950 border-violet-400'
-                    : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 SN híbrido (regime regular IBS/CBS)
@@ -775,16 +794,18 @@ export function SessaoSnSection({
 
             {/* Adquirente */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[9px] font-mono text-slate-500 uppercase w-20">Adquirente</span>
+              <span className="text-xs font-mono font-bold text-slate-700 uppercase w-24">
+                Adquirente
+              </span>
               {ADQUIRENTES.map((a) => (
                 <button
                   key={a.id}
                   type="button"
                   onClick={() => setAdquirente(a.id)}
-                  className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
                     adquirente === a.id
-                      ? 'bg-orange-500 text-slate-950 border-orange-400'
-                      : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
                   {a.label}
@@ -794,16 +815,16 @@ export function SessaoSnSection({
 
             {/* Base do DAS (Res. CGSN 190/2026) */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[9px] font-mono text-slate-500 uppercase w-20">
+              <span className="text-xs font-mono font-bold text-slate-700 uppercase w-24">
                 Base do DAS
               </span>
               <button
                 type="button"
                 onClick={() => setBaseDoDas('bruta')}
-                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
                   baseDoDas === 'bruta'
-                    ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                    : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 Bruta (LC 123 art. 3º §12º) [padrão]
@@ -811,15 +832,15 @@ export function SessaoSnSection({
               <button
                 type="button"
                 onClick={() => setBaseDoDas('liquida')}
-                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
                   baseDoDas === 'liquida'
-                    ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                    : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 Líquida do ICMS da nota (art. 25 §1º II)
               </button>
-              <span className="text-[8px] font-mono text-slate-400">
+              <span className="text-[10px] font-mono text-slate-500">
                 (Res. CGSN 190/2026 pendente)
               </span>
             </div>
@@ -827,7 +848,9 @@ export function SessaoSnSection({
             {/* Repasse — SÓ quando o fornecedor reprecifica (híbrido) */}
             {fornecedorSN === 'hibrido' ? (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[9px] font-mono text-slate-500 uppercase w-20">Repasse</span>
+                <span className="text-xs font-mono font-bold text-slate-700 uppercase w-24">
+                  Repasse
+                </span>
                 {[
                   { m: 'integral' as RepasseMode, l: 'Integral' },
                   { m: 'parcial' as RepasseMode, l: `Parcial ${formatNumberBR(repassePct)}%` },
@@ -837,10 +860,10 @@ export function SessaoSnSection({
                     key={m}
                     type="button"
                     onClick={() => setRepasse(m)}
-                    className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
                       repasse === m
-                        ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                        : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
                     {l}
@@ -853,13 +876,13 @@ export function SessaoSnSection({
                     onChange={(e) =>
                       setRepassePct(Math.max(0, Math.min(100, Number(e.target.value) || 0)))
                     }
-                    className="w-20 h-7 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
+                    className="w-20 h-8 bg-white border-slate-300 text-xs font-mono text-slate-900 focus-visible:ring-emerald-500"
                   />
                 )}
               </div>
             ) : (
-              <div className="flex items-start gap-2 text-[10px] font-mono text-slate-400 bg-slate-950/50 border border-slate-800/60 rounded-lg p-2">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-500" />
+              <div className="flex items-start gap-2 text-xs font-mono text-slate-600 bg-white border border-slate-200 rounded-xl p-2.5">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-slate-400" />
                 <span>
                   Repasse não se aplica — fornecedor SN puro não reprecifica por destaque: tributos
                   por dentro do DAS, nota congelada (LC 123/2006).
@@ -872,16 +895,17 @@ export function SessaoSnSection({
               size="sm"
               variant="outline"
               onClick={() => setComparadorAberto(true)}
-              className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer h-7 text-[10px] self-start"
+              className="border-emerald-600 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 cursor-pointer h-8 text-xs font-mono font-bold self-start shadow-xs"
             >
-              <ArrowLeftRight className="w-3 h-3 mr-1" /> Comparar fornecedores SN puro × híbrido
+              <ArrowLeftRight className="w-3.5 h-3.5 mr-1.5" /> Comparar fornecedores SN puro ×
+              híbrido
             </Button>
           </div>
 
           {/* 3 — Camada 1: resumo por item (ABC, nunca média) COM os dois fornecedores */}
-          <div className="rounded-xl border border-orange-500/45 bg-orange-500/[0.06] p-3 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-mono font-black uppercase text-orange-300">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-2xs">
+            <div className="flex items-center justify-between gap-2 border-l-4 border-emerald-500 pl-2">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-900">
                 3 · Custo líquido do adquirente — {nomeAdquirente(adquirente)} · Exercício{' '}
                 {exercicio} (Consome Parcela Creditável)
               </span>
@@ -889,24 +913,25 @@ export function SessaoSnSection({
                 size="sm"
                 variant="outline"
                 onClick={() => setDetalheAberto((o) => !o)}
-                className="border-violet-500/40 text-violet-300 hover:bg-violet-500/10 cursor-pointer h-7 text-[10px]"
+                className="border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer h-8 text-xs font-mono font-bold"
               >
                 {detalheAberto ? (
                   <>
-                    <ArrowDown className="w-3 h-3 mr-1" /> Fechar detalhe
+                    <ArrowDown className="w-3.5 h-3.5 mr-1" /> Fechar detalhe
                   </>
                 ) : (
                   <>
-                    <Calculator className="w-3 h-3 mr-1" /> Abrir detalhe por item
+                    <Calculator className="w-3.5 h-3.5 mr-1" /> Abrir detalhe por item
                   </>
                 )}
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {exibidos.map((res, i) => {
                 const sel = fornecedorSN === 'puro' ? res.puro : res.hibrido
                 const selLabel = fornecedorSN === 'puro' ? 'SN puro' : 'SN híbrido'
+                const ativo = i === idxItem && detalheAberto
                 return (
                   <button
                     key={res.item.id}
@@ -915,28 +940,28 @@ export function SessaoSnSection({
                       setIdxItem(i)
                       setDetalheAberto(true)
                     }}
-                    className={`rounded-lg border px-2 py-1.5 text-left cursor-pointer ${
-                      i === idxItem && detalheAberto
-                        ? 'bg-orange-500/10 border-orange-500/40'
-                        : 'bg-slate-950/50 border-slate-800/60 hover:bg-slate-900'
+                    className={`rounded-xl border p-3 text-left cursor-pointer transition-all ${
+                      ativo
+                        ? 'bg-emerald-50/80 border-emerald-600 ring-1 ring-emerald-500 shadow-xs'
+                        : 'bg-slate-50/60 border-slate-200 hover:bg-white hover:border-slate-300'
                     }`}
                   >
-                    <span className="text-[9px] font-mono font-bold uppercase text-orange-300 truncate block max-w-full">
+                    <span className="text-xs font-mono font-bold uppercase text-slate-900 truncate block max-w-full">
                       {res.item.name || 'Item'}
                     </span>
-                    <span className="text-[9px] font-mono font-bold uppercase text-violet-300 block leading-tight">
+                    <span className="text-[10px] font-mono font-bold uppercase text-emerald-800 block leading-tight mt-0.5">
                       {selLabel}
                     </span>
-                    <span className="text-[11px] font-black text-orange-200 font-mono block leading-tight mt-0.5">
+                    <span className="text-sm font-black text-slate-900 font-mono block leading-tight mt-1">
                       {formatBRL(sel.unitario)}/un
                     </span>
                     <span
-                      className={`text-[9px] font-mono ${
+                      className={`text-[10px] font-mono font-bold mt-0.5 block ${
                         sel.deltaPct > 0
-                          ? 'text-rose-300'
+                          ? 'text-rose-700'
                           : sel.deltaPct < 0
-                            ? 'text-emerald-300'
-                            : 'text-slate-400'
+                            ? 'text-emerald-700'
+                            : 'text-slate-500'
                       }`}
                     >
                       {sel.deltaPct > 0 ? '+' : ''}

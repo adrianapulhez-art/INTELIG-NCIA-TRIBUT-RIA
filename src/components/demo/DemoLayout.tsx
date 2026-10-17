@@ -144,7 +144,7 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
     { key: 'dre-real', label: 'DRE Lucro Real', path: '/demo/dre-real' },
     { key: 'simples', label: 'DRE Simples Nacional', path: '/demo/simples' },
     { key: 'dashboard', label: 'Dashboard', path: '/demo/dashboard' },
-    { key: 'reforma', label: 'Reforma Tributária', path: '/demo/reforma' },
+    { key: 'reforma', label: 'Calculadora de Compras - Pós EC 132', path: '/demo/reforma' },
     { key: 'clientes', label: 'Clientes', path: '/demo/clientes' },
     { key: 'manual', label: 'Manual', path: '/demo/manual' },
   ]

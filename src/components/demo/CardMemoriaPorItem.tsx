@@ -30,15 +30,15 @@ const REPASSE_TITULO: Record<RepasseMode, string> = {
 
 function LinhaCard({ line }: { line: MemoryLineArt }) {
   return (
-    <div className="flex items-start justify-between gap-2 text-[10px] font-mono">
+    <div className="flex items-start justify-between gap-2 text-xs font-mono py-0.5">
       <div className="min-w-0">
-        <span className="text-slate-200">{line.label}</span>
+        <span className="text-slate-800">{line.label}</span>
         {line.formula && (
-          <span className="text-slate-500 block break-words text-[9px]">{line.formula}</span>
+          <span className="text-slate-500 block break-words text-[10px]">{line.formula}</span>
         )}
       </div>
       <span
-        className={`shrink-0 font-bold ${line.value < 0 ? 'text-emerald-300' : 'text-slate-100'}`}
+        className={`shrink-0 font-bold ${line.value < 0 ? 'text-emerald-700' : 'text-slate-900'}`}
       >
         {line.kind === 'nota' && line.value === 0 ? '—' : formatBRL(line.value)}
       </span>
@@ -84,17 +84,17 @@ export function CardMemoriaPorItem({
           : 'SN híbrido'
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Layers className="w-5 h-5 text-emerald-400" />
-        <span className="text-xs font-mono font-black uppercase tracking-wider text-emerald-300">
+      <div className="flex flex-wrap items-center gap-2 border-l-4 border-emerald-500 pl-2.5">
+        <Layers className="w-5 h-5 text-emerald-600" />
+        <span className="text-sm font-mono font-bold uppercase tracking-wider text-slate-900">
           Memória por item — {repasseTxt} · Exercício {exercicio}
         </span>
       </div>
       {/* IDENTIFICAÇÃO DA OPERAÇÃO (checagem da CEO, 28/09) — antes dos itens, a
           combinação exata que está sendo analisada: adquirente × fornecedor × repasse */}
       {mostrarIdentidade === true && (
-        <div className="rounded-lg border border-sky-500/40 bg-sky-500/[0.06] px-3 py-2">
-          <span className="text-[11px] font-mono font-black uppercase text-sky-300">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 px-3.5 py-2">
+          <span className="text-xs font-mono font-bold uppercase text-emerald-950">
             OPERAÇÃO ANALISADA: ADQUIRENTE: {nomeRegime(cfg.compradorRegime)} / FORNECEDOR:{' '}
             {nomeRegime(cfg.fornecedorRegime)} · {repasseTxt}
           </span>
@@ -106,11 +106,11 @@ export function CardMemoriaPorItem({
       {cfg.fornecedorRegime === 'simples' &&
         cfg.compradorRegime !== 'simples' &&
         cfg.compradorRegime !== 'simples_hibrido' && (
-          <div className="rounded-lg border border-amber-500/45 bg-amber-500/[0.07] px-3 py-2">
-            <span className="text-[10px] font-mono font-bold uppercase text-amber-300 block">
+          <div className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5">
+            <span className="text-xs font-mono font-bold uppercase text-amber-900 block">
               Pendência fiscal — crédito proporcional do adquirente (art. 23 da LC 123/2006)
             </span>
-            <span className="text-[9px] font-mono text-slate-300 block mt-0.5 leading-relaxed">
+            <span className="text-[11px] font-mono text-amber-800 block mt-0.5 leading-relaxed">
               LC 123/2006, art. 23, §1º (redação LC 214/2025): adquirente no regime regular tem
               crédito "em montante equivalente ao cobrado por meio desse regime único" — §2º: a
               alíquota (percentuais de ICMS/IBS/CBS dos Anexos I a V da faixa do fornecedor) será
@@ -123,14 +123,14 @@ export function CardMemoriaPorItem({
       {celulasPorItem.map(({ item, cell }, idx) => (
         <div
           key={item.id}
-          className="rounded-xl border border-emerald-500/30 bg-slate-900/40 p-4 space-y-3"
+          className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 space-y-3.5 shadow-2xs"
         >
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
-            <span className="text-sm font-black font-mono text-white uppercase tracking-wide">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+            <span className="text-sm font-bold font-mono text-slate-900 uppercase tracking-wide">
               Item {String(idx + 1).padStart(2, '0')} · {item.name || '—'}
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono text-slate-400">
+              <span className="text-xs font-mono text-slate-600">
                 {formatNumberBR(item.quantity, 0)} un. · {formatBRL(item.merchandiseValue)} + frete{' '}
                 {formatBRL(item.freightValue)}
               </span>
@@ -139,25 +139,25 @@ export function CardMemoriaPorItem({
                   size="sm"
                   variant="outline"
                   onClick={() => onAbrirMemoriaItem(item, cell)}
-                  className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer h-6 text-[10px]"
+                  className="border-emerald-600 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 cursor-pointer h-7 text-xs font-mono font-bold shadow-2xs"
                 >
-                  <Calculator className="w-3 h-3 mr-1" /> Memória do item
+                  <Calculator className="w-3.5 h-3.5 mr-1" /> Memória do item
                 </Button>
               )}
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {/* 1º — Custo de aquisição para o ADQUIRENTE (comprador) — HOJE */}
-            <div className="rounded-xl border border-sky-500/45 bg-sky-500/[0.05] p-3 space-y-1.5">
-              <div className="space-y-0.5">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3.5 space-y-2">
+              <div className="space-y-0.5 pb-1 border-b border-slate-200">
                 <div className="flex items-center gap-1.5">
-                  <Wallet className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                  <span className="text-[11px] font-black font-mono uppercase tracking-wide text-sky-300 leading-tight">
+                  <Wallet className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span className="text-xs font-bold font-mono uppercase tracking-wide text-slate-900 leading-tight">
                     1º Custo de Aquisição para o ADQUIRENTE (COMPRADOR) -{' '}
                     {nomeRegime(cfg.compradorRegime)}
                   </span>
                 </div>
-                <div className="text-[9px] font-mono text-slate-400 uppercase">
+                <div className="text-[10px] font-mono text-slate-500 uppercase">
                   Sistema pré-reforma · HOJE · base integrada à Calculadora de Compras
                 </div>
               </div>
@@ -165,31 +165,33 @@ export function CardMemoriaPorItem({
                   Mercadorias → Frete → IPI → ICMS fragmentado → créditos → Compras Líquidas
                   → Custo Unitário Líquido. Bloco 1 (elementos) + bloco 2 (exclusões e fecho)
                   — TODAS as linhas do motor, sem esconder crédito nenhum. */}
-              {cell.hoje.lines.map((l) => (
-                <LinhaCard key={l.key} line={l} />
-              ))}
-              <div className="flex items-center justify-between rounded-md bg-sky-500/10 border border-sky-500/40 px-2 py-1">
-                <span className="text-[9px] font-mono font-bold uppercase text-sky-400">
+              <div className="space-y-1">
+                {cell.hoje.lines.map((l) => (
+                  <LinhaCard key={l.key} line={l} />
+                ))}
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 mt-2">
+                <span className="text-xs font-mono font-bold uppercase text-emerald-900">
                   Custo unitário HOJE
                 </span>
-                <span className="text-[11px] font-black text-sky-300 font-mono">
+                <span className="text-xs font-black text-emerald-800 font-mono">
                   {formatBRL(cell.hoje.unitario)}/un
                 </span>
               </div>
             </div>
             {/* 2º — Formação do preço pelo FORNECEDOR — exercício */}
-            <div className="rounded-xl border border-emerald-500/45 bg-emerald-500/[0.05] p-3 space-y-1.5">
-              <div className="space-y-0.5">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/30 p-3.5 space-y-2">
+              <div className="space-y-0.5 pb-1 border-b border-slate-200">
                 <div className="flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="text-[11px] font-black font-mono uppercase tracking-wide text-emerald-300 leading-tight">
+                  <Building2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span className="text-xs font-bold font-mono uppercase tracking-wide text-emerald-950 leading-tight">
                     2º Formação do Preço pelo FORNECEDOR -{' '}
                     {cfg.fornecedorRegime === 'simples_hibrido'
                       ? 'SN híbrido (regime regular IBS/CBS)'
                       : nomeRegime(cfg.fornecedorRegime)}
                   </span>
                 </div>
-                <div className="text-[9px] font-mono text-slate-400 uppercase">
+                <div className="text-[10px] font-mono text-slate-500 uppercase">
                   {cfg.fornecedorRegime === 'simples'
                     ? `Exercício ${exercicio} · lógica do SN: DAS por dentro, sem destaque · repasse não se aplica (nota congelada)`
                     : `Exercício ${exercicio} · ${repasseTxt} · regime do cenário simulado`}
@@ -197,83 +199,87 @@ export function CardMemoriaPorItem({
               </div>
               {/* Fornecedor SN puro: a memória segue a ORDEM NATURAL do motor —
                   receita bruta → alíquota efetiva → partilha → DAS por dentro → preço da nota */}
-              {cfg.fornecedorRegime === 'simples' ? (
-                <>
-                  {cell.exercicio.lines
-                    .filter(
-                      (l) => l.bloco === 1 && l.label !== 'MEMORIA_BLOCO1' && l.key !== 'cbsibs',
-                    )
-                    .map((l) => (
-                      <LinhaCard key={l.key} line={l} />
-                    ))}
-                  <div className="flex items-center justify-between rounded-md bg-emerald-500/10 border border-emerald-500/40 px-2 py-1">
-                    <span className="text-[9px] font-mono font-bold uppercase text-emerald-400">
-                      Preço da nota (congelado)
-                    </span>
-                    <span className="text-[11px] font-black text-emerald-300 font-mono">
-                      {formatBRL(cell.exercicio.bruto)}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {cell.exercicio.lines
-                    .filter(
-                      (l) =>
-                        l.bloco === 1 &&
-                        l.label !== 'MEMORIA_BLOCO1' &&
-                        l.subtotal !== 'preco_nota',
-                    )
-                    .map((l) => (
-                      <LinhaCard key={l.key} line={l} />
-                    ))}
-                  <div className="flex items-center justify-between rounded-md bg-emerald-500/10 border border-emerald-500/40 px-2 py-1">
-                    <span className="text-[9px] font-mono font-bold uppercase text-emerald-400">
-                      Base limpa {exercicio}
-                    </span>
-                    <span className="text-[11px] font-black text-emerald-300 font-mono">
-                      {cell.exercicio.baseLimpa !== null
-                        ? formatBRL(cell.exercicio.baseLimpa)
-                        : '—'}
-                    </span>
-                  </div>
-                  {cell.exercicio.lines
-                    .filter((l) => l.subtotal === 'preco_nota')
-                    .map((l) => (
-                      <LinhaCard key={l.key} line={l} />
-                    ))}
-                </>
-              )}
+              <div className="space-y-1">
+                {cfg.fornecedorRegime === 'simples' ? (
+                  <>
+                    {cell.exercicio.lines
+                      .filter(
+                        (l) => l.bloco === 1 && l.label !== 'MEMORIA_BLOCO1' && l.key !== 'cbsibs',
+                      )
+                      .map((l) => (
+                        <LinhaCard key={l.key} line={l} />
+                      ))}
+                    <div className="flex items-center justify-between rounded-xl bg-white border border-slate-200 px-3 py-1.5 mt-2">
+                      <span className="text-xs font-mono font-bold uppercase text-slate-800">
+                        Preço da nota (congelado)
+                      </span>
+                      <span className="text-xs font-black text-slate-900 font-mono">
+                        {formatBRL(cell.exercicio.bruto)}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {cell.exercicio.lines
+                      .filter(
+                        (l) =>
+                          l.bloco === 1 &&
+                          l.label !== 'MEMORIA_BLOCO1' &&
+                          l.subtotal !== 'preco_nota',
+                      )
+                      .map((l) => (
+                        <LinhaCard key={l.key} line={l} />
+                      ))}
+                    <div className="flex items-center justify-between rounded-xl bg-white border border-slate-200 px-3 py-1.5 mt-2">
+                      <span className="text-xs font-mono font-bold uppercase text-slate-800">
+                        Base limpa {exercicio}
+                      </span>
+                      <span className="text-xs font-black text-slate-900 font-mono">
+                        {cell.exercicio.baseLimpa !== null
+                          ? formatBRL(cell.exercicio.baseLimpa)
+                          : '—'}
+                      </span>
+                    </div>
+                    {cell.exercicio.lines
+                      .filter((l) => l.subtotal === 'preco_nota')
+                      .map((l) => (
+                        <LinhaCard key={l.key} line={l} />
+                      ))}
+                  </>
+                )}
+              </div>
             </div>
             {/* 3º — Formação do CUSTO pelo ADQUIRENTE (comprador) — exercício */}
-            <div className="rounded-xl border border-orange-500/45 bg-orange-500/[0.05] p-3 space-y-1.5">
-              <div className="space-y-0.5">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3.5 space-y-2">
+              <div className="space-y-0.5 pb-1 border-b border-slate-200">
                 <div className="flex items-center gap-1.5">
-                  <ShoppingCart className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                  <span className="text-[11px] font-black font-mono uppercase tracking-wide text-orange-300 leading-tight">
+                  <ShoppingCart className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span className="text-xs font-bold font-mono uppercase tracking-wide text-slate-900 leading-tight">
                     3º Formação do CUSTO pelo ADQUIRENTE (COMPRADOR) -{' '}
                     {nomeRegime(cfg.compradorRegime)}
                   </span>
                 </div>
-                <div className="text-[9px] font-mono text-slate-400 uppercase">
+                <div className="text-[10px] font-mono text-slate-500 uppercase">
                   Exercício {exercicio} · {repasseTxt} · regime do cenário simulado
                 </div>
               </div>
-              {cell.exercicio.lines
-                .filter((l) => l.bloco === 2)
-                .map((l) => (
-                  <LinhaCard key={l.key} line={l} />
-                ))}
-              <div className="flex items-center justify-between rounded-md bg-orange-500/10 border border-orange-500/40 px-2 py-1">
-                <span className="text-[9px] font-mono font-bold uppercase text-orange-400">
+              <div className="space-y-1">
+                {cell.exercicio.lines
+                  .filter((l) => l.bloco === 2)
+                  .map((l) => (
+                    <LinhaCard key={l.key} line={l} />
+                  ))}
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-white border border-slate-200 px-3 py-1.5 mt-2">
+                <span className="text-xs font-mono font-bold uppercase text-slate-800">
                   Custo unitário {exercicio}
                 </span>
                 <div className="text-right">
-                  <span className="text-[11px] font-black text-orange-300 font-mono block leading-tight">
+                  <span className="text-xs font-black text-slate-900 font-mono block leading-tight">
                     {formatBRL(cell.exercicio.unitario)}/un
                   </span>
                   <span
-                    className={`text-[9px] font-mono ${cell.deltaPct > 0 ? 'text-rose-300' : cell.deltaPct < 0 ? 'text-emerald-300' : 'text-slate-400'}`}
+                    className={`text-[10px] font-mono font-bold ${cell.deltaPct > 0 ? 'text-rose-700' : cell.deltaPct < 0 ? 'text-emerald-700' : 'text-slate-500'}`}
                   >
                     {cell.deltaPct > 0 ? '+' : ''}
                     {formatNumberBR(cell.deltaPct)}% VS HOJE
@@ -285,7 +291,7 @@ export function CardMemoriaPorItem({
         </div>
       ))}
       {ocultarRodape === true ? null : (
-        <p className="text-[10px] font-mono text-slate-500">
+        <p className="text-xs font-mono text-slate-500">
           Cada item tem sua própria memória Art. 12 completa — nunca média entre produtos (máxima da
           casa). Os 3 blocos usam o MESMO cenário de repasse selecionado — ao mudar o cenário, todos
           os itens recalculam juntos.

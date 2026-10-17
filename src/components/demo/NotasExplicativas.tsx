@@ -44,14 +44,12 @@ const REPASSE_NOME: Record<RepasseMode, string> = {
 }
 
 function Par({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[11px] font-mono text-slate-300 leading-relaxed text-justify">{children}</p>
-  )
+  return <p className="text-xs font-mono text-slate-700 leading-relaxed text-justify">{children}</p>
 }
 
 function TituloNota({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-sky-300">
+    <div className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-900 border-l-3 border-emerald-500 pl-2">
       {children}
     </div>
   )
@@ -59,9 +57,9 @@ function TituloNota({ children }: { children: React.ReactNode }) {
 
 function LinhaRelato({ label, valor }: { label: string; valor: string }) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-950/60 border border-slate-800/70 px-2 py-1">
-      <span className="text-[10px] font-mono text-slate-400">{label}</span>
-      <span className="text-[10px] font-mono font-bold text-slate-100">{valor}</span>
+    <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1.5">
+      <span className="text-xs font-mono text-slate-600">{label}</span>
+      <span className="text-xs font-mono font-bold text-slate-900">{valor}</span>
     </div>
   )
 }
@@ -78,19 +76,19 @@ function TabelaMemoria({
   linhas: { label: string; valor: string; destaque?: boolean }[]
 }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-2 space-y-0.5">
+    <div className="rounded-xl border border-slate-200 bg-white p-2.5 space-y-1 shadow-2xs">
       {linhas.map((l, i) => (
         <div
           key={i}
-          className={`flex items-center justify-between gap-2 px-1.5 py-0.5 rounded ${l.destaque ? 'bg-orange-500/10 border border-orange-500/40' : ''}`}
+          className={`flex items-center justify-between gap-2 px-2 py-1 rounded-md ${l.destaque ? 'bg-emerald-50 border border-emerald-300' : 'hover:bg-slate-50'}`}
         >
           <span
-            className={`text-[10px] font-mono ${l.destaque ? 'font-bold text-orange-300' : 'text-slate-400'}`}
+            className={`text-xs font-mono ${l.destaque ? 'font-bold text-emerald-950' : 'text-slate-700'}`}
           >
             {l.label}
           </span>
           <span
-            className={`text-[10px] font-mono ${l.destaque ? 'font-black text-orange-300' : 'font-bold text-slate-100'}`}
+            className={`text-xs font-mono ${l.destaque ? 'font-black text-emerald-800' : 'font-bold text-slate-900'}`}
           >
             {l.valor}
           </span>
@@ -174,7 +172,7 @@ export function NotaExplicativaCelula({
 
   return (
     <div className="space-y-3">
-      <div className="text-[11px] font-mono font-black uppercase text-orange-300">
+      <div className="text-xs font-mono font-bold uppercase text-slate-900 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5">
         ADQUIRENTE {nomeC.toUpperCase()} × FORNECEDOR {nomeF.toUpperCase()} · Exercício {exercicio}{' '}
         · {repasseTxt2}
       </div>
@@ -409,20 +407,22 @@ export function NotaCelulaTrigger({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-1 text-[9px] font-mono font-bold text-sky-300 hover:bg-sky-500/20 cursor-pointer"
+        className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-600 bg-emerald-50 px-2.5 py-1 text-xs font-mono font-bold text-emerald-800 hover:bg-emerald-100 cursor-pointer shadow-2xs"
       >
-        <FileText className="w-3 h-3" /> Notas explicativas
+        <FileText className="w-3.5 h-3.5 text-emerald-700" /> Notas explicativas
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-sky-500/30 text-slate-100 p-6">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-sky-400" />
-              <span>
-                Nota explicativa — {REGIME_NOME[comprador]} × {REGIME_NOME[fornecedor]}
-              </span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
+            <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
+              <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-600" />
+                <span>
+                  Nota explicativa — {REGIME_NOME[comprador]} × {REGIME_NOME[fornecedor]}
+                </span>
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-slate-500">
               Relatório da situação deste card · Exercício {exercicio} · CBS{' '}
               {formatNumberBR(row.cbsRate)}% · IBS {formatNumberBR(row.ibsRate)}% · ICMS{' '}
               {formatNumberBR(row.icmsPct)}% da alíquota
@@ -500,7 +500,9 @@ export function NotaExplicativaBloco({
 
   return (
     <div className="space-y-3">
-      <div className="text-[11px] font-mono font-black uppercase text-orange-300">{titulo}</div>
+      <div className="text-xs font-mono font-bold uppercase text-slate-900 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5">
+        {titulo}
+      </div>
 
       {bloco === 1 ? (
         <>
@@ -693,13 +695,15 @@ export function NotaExplicativaCardDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-sky-500/30 text-slate-100 p-6">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-            <FileText className="w-5 h-5 text-sky-400" />
-            <span>Nota explicativa — {titulo}</span>
-          </DialogTitle>
-          <DialogDescription className="text-xs text-slate-400">
+          <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-emerald-600" />
+              <span>Nota explicativa — {titulo}</span>
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-xs text-slate-500">
             Relatório da situação deste card · Exercício {exercicio} · CBS{' '}
             {formatNumberBR(row.cbsRate)}% · IBS {formatNumberBR(row.ibsRate)}% · ICMS{' '}
             {formatNumberBR(row.icmsPct)}% da alíquota
@@ -728,9 +732,9 @@ export function BotaoNotaCard({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full inline-flex items-center justify-center gap-1 rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-1.5 text-[10px] font-mono font-bold text-sky-300 hover:bg-sky-500/20 cursor-pointer"
+      className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-mono font-bold text-emerald-800 hover:bg-emerald-100 cursor-pointer shadow-2xs transition-colors"
     >
-      <FileText className="w-3 h-3" /> Notas explicativas
+      <FileText className="w-3.5 h-3.5 text-emerald-700" /> Notas explicativas
     </button>
   )
 }

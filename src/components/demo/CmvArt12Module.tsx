@@ -71,7 +71,7 @@ const BLOCO_TITULOS: Record<number, string> = {
 /** Badge de dispositivo legal. */
 function ArtBadge({ dispositivo }: { dispositivo: string }) {
   return (
-    <span className="inline-flex items-center rounded border border-sky-500/40 bg-sky-500/10 px-1.5 py-0.5 text-[9px] font-mono font-bold text-sky-300">
+    <span className="inline-flex items-center rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-mono font-bold text-emerald-800">
       {dispositivo}
     </span>
   )
@@ -83,17 +83,17 @@ function ValidadeBadge({ fundamento }: { fundamento?: Fundamento }) {
   const map: Record<Fundamento['validade'], { label: string; cls: string }> = {
     integral: {
       label: 'vigência integral',
-      cls: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
+      cls: 'border-emerald-200 bg-emerald-50 text-emerald-800',
     },
     condicionada: {
       label: 'validade condicionada',
-      cls: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
+      cls: 'border-amber-200 bg-amber-50 text-amber-800',
     },
     pendente: {
       label: 'pendente de definição',
-      cls: 'border-rose-500/40 bg-rose-500/10 text-rose-300',
+      cls: 'border-rose-200 bg-rose-50 text-rose-800',
     },
-    nao_aplicavel: { label: 'não aplicável', cls: 'border-slate-700 bg-slate-800 text-slate-400' },
+    nao_aplicavel: { label: 'não aplicável', cls: 'border-slate-200 bg-slate-100 text-slate-600' },
   }
   const v = map[fundamento.validade]
   return (
@@ -141,26 +141,26 @@ function SideColumnArt({
   return (
     <div className="flex-1 min-w-[320px] space-y-2">
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-300">
+        <span className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-700">
           {title}
         </span>
-        <span className="flex-1 h-px bg-slate-700/60" />
+        <span className="flex-1 h-px bg-slate-200" />
       </div>
       {blocos.map((bloco) => {
         const forn = bloco === 1
         return (
           <div
             key={bloco}
-            className={`rounded-xl border p-3 space-y-1.5 ${forn ? 'border-emerald-500/40 bg-emerald-500/[0.05]' : 'border-orange-500/45 bg-orange-500/[0.06]'}`}
+            className={`rounded-xl border p-3 space-y-1.5 ${forn ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200 bg-white'}`}
           >
             <div className="flex items-center gap-1.5">
               <span
-                className={`text-[10px] font-mono font-black uppercase tracking-wider ${forn ? 'text-emerald-300' : 'text-orange-300'}`}
+                className={`text-[10px] font-mono font-black uppercase tracking-wider ${forn ? 'text-emerald-800' : 'text-slate-800'}`}
               >
                 {BLOCO_TITULOS[bloco] || `BLOCO ${bloco}`}
               </span>
-              <span className={`flex-1 h-px ${forn ? 'bg-emerald-500/25' : 'bg-orange-500/25'}`} />
-              <Badge className="text-[9px] bg-slate-800 text-slate-300 border-slate-700 font-mono">
+              <span className={`flex-1 h-px ${forn ? 'bg-emerald-200' : 'bg-slate-200'}`} />
+              <Badge className="text-[9px] bg-slate-100 text-slate-700 border-slate-200 font-mono">
                 {side.lines.filter((l) => l.bloco === bloco).length} linhas
               </Badge>
             </div>
@@ -173,7 +173,7 @@ function SideColumnArt({
                       <button
                         type="button"
                         onClick={() => onOpenBloco(side, bloco)}
-                        className={`w-full inline-flex items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[10px] font-mono font-bold cursor-pointer ${forn ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20' : 'border-orange-500/40 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20'}`}
+                        className={`w-full inline-flex items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[10px] font-mono font-bold cursor-pointer transition-colors ${forn ? 'border-emerald-300 bg-emerald-100 text-emerald-900 hover:bg-emerald-200' : 'border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200'}`}
                       >
                         <Calculator className="w-3 h-3" /> Memória + base legal
                       </button>
@@ -196,12 +196,12 @@ function SideColumnArt({
                 ) : (
                   <div
                     key={line.key}
-                    className={`rounded-lg px-2.5 py-1.5 space-y-1 ${line.subtotal ? (forn ? 'bg-emerald-500/10 border border-emerald-500/40' : 'bg-orange-500/10 border border-orange-500/40') : 'bg-slate-950/50 border border-slate-800/60'}`}
+                    className={`rounded-lg px-2.5 py-1.5 space-y-1 ${line.subtotal ? (forn ? 'bg-emerald-100/70 border border-emerald-300' : 'bg-slate-100 border border-slate-300') : 'bg-slate-50 border border-slate-200'}`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <span
-                          className={`text-[11px] font-mono font-semibold block ${line.kind === 'bruto' ? 'text-slate-100' : line.kind === 'credito' ? 'text-emerald-300' : line.kind === 'debito' ? 'text-amber-300' : 'text-slate-200'}`}
+                          className={`text-[11px] font-mono font-semibold block ${line.kind === 'bruto' ? 'text-slate-900' : line.kind === 'credito' ? 'text-emerald-700' : line.kind === 'debito' ? 'text-amber-800' : 'text-slate-800'}`}
                         >
                           {line.label}
                         </span>
@@ -212,7 +212,7 @@ function SideColumnArt({
                         )}
                       </div>
                       <span
-                        className={`text-[11px] font-mono font-bold shrink-0 ${line.value < 0 ? 'text-emerald-300' : line.subtotal ? 'text-white' : 'text-slate-100'}`}
+                        className={`text-[11px] font-mono font-bold shrink-0 ${line.value < 0 ? 'text-emerald-700' : line.subtotal ? 'text-slate-900' : 'text-slate-800'}`}
                       >
                         {line.kind === 'nota' && line.value === 0 ? '—' : formatBRL(line.value)}
                       </span>
@@ -221,7 +221,7 @@ function SideColumnArt({
                       <button
                         type="button"
                         onClick={() => onOpenLine(line)}
-                        className="text-[9px] font-mono text-sky-400 hover:text-sky-300 underline underline-offset-2 cursor-pointer"
+                        className="text-[9px] font-mono text-emerald-700 hover:text-emerald-800 font-bold underline underline-offset-2 cursor-pointer"
                       >
                         Abrir derivação
                       </button>
@@ -232,11 +232,11 @@ function SideColumnArt({
           </div>
         )
       })}
-      <div className="flex items-center justify-between rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-1.5">
-        <span className="text-[10px] font-mono font-bold uppercase text-orange-300">
+      <div className="flex items-center justify-between rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 shadow-xs">
+        <span className="text-[10px] font-mono font-bold uppercase text-emerald-900">
           {title.includes('HOJE') ? 'Custo unitário HOJE' : 'Custo unitário no exercício'}
         </span>
-        <span className="text-sm font-black font-mono text-orange-300">
+        <span className="text-sm font-black font-mono text-emerald-800">
           {formatBRL(side.unitario)}/un
         </span>
       </div>
@@ -261,13 +261,15 @@ function CellMemoryDialogArt({
   const [lineMemory, setLineMemory] = useState<{ line: MemoryLineArt; label: string } | null>(null)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+      <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-emerald-400" />
-            <span>Memória Art. 12 — {cellLabel}</span>
-          </DialogTitle>
-          <DialogDescription className="text-xs text-slate-400">
+          <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Calculator className="w-5 h-5 text-emerald-600" />
+              <span>Memória Art. 12 — {cellLabel}</span>
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-xs text-slate-500">
             Exercício {row.exercicio} · CBS {formatNumberBR(row.cbsRate)}% · IBS{' '}
             {formatNumberBR(row.ibsRate)}% · ICMS {formatNumberBR(row.icmsPct)}% da alíquota · Base
             limpa = Bruto − ICMS − IPI − PIS/COFINS (art. 12, caput + §2º, I, II e V) · CBS/IBS por
@@ -288,7 +290,7 @@ function CellMemoryDialogArt({
             }
           />
         </div>
-        <div className="text-[10px] font-mono text-slate-500 border-t border-slate-800 pt-2">
+        <div className="text-[10px] font-mono text-slate-500 border-t border-slate-200 pt-2">
           Nota legal (cabeçalho do módulo): LC 214/2025, art. 12, caput (valor da operação), §1º, IV
           (frete na base) e §2º, I, II e V (IBS/CBS, IPI, ICMS/ISS e PIS/COFINS fora da base —
           vigência 2026–2032). Crédito do adquirente: art. 47, §2º.
@@ -322,43 +324,45 @@ function LineMemoryDialog({
   const passos = line.passos || []
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-emerald-400" />
-            <span>{lineLabel}</span>
-          </DialogTitle>
-          <DialogDescription className="text-xs text-slate-400">{contexto}</DialogDescription>
+          <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Calculator className="w-5 h-5 text-emerald-600" />
+              <span>{lineLabel}</span>
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-xs text-slate-500">{contexto}</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-mono font-bold text-slate-200">{line.label}</span>
-              <span className="text-[11px] font-mono font-bold text-emerald-300">
+              <span className="text-[11px] font-mono font-bold text-slate-900">{line.label}</span>
+              <span className="text-[11px] font-mono font-bold text-emerald-700">
                 {formatBRL(line.value)}
               </span>
             </div>
             {line.formula && (
-              <div className="text-[10px] font-mono text-slate-400 mt-1">{line.formula}</div>
+              <div className="text-[10px] font-mono text-slate-500 mt-1">{line.formula}</div>
             )}
           </div>
           {passos.map((p) => (
             <div
               key={p.ordem}
-              className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5 space-y-1"
+              className="rounded-lg border border-slate-200 bg-white p-2.5 space-y-1 shadow-2xs"
             >
               <div className="flex items-start gap-2">
-                <span className="text-[10px] font-mono font-black text-emerald-400 shrink-0">
+                <span className="text-[10px] font-mono font-black text-emerald-700 shrink-0">
                   {p.ordem}.
                 </span>
                 <div className="min-w-0 space-y-0.5">
-                  <div className="text-[11px] font-mono font-semibold text-slate-200">
+                  <div className="text-[11px] font-mono font-semibold text-slate-900">
                     {p.descricao}
                   </div>
-                  <div className="text-[10px] font-mono text-slate-400 break-words">
+                  <div className="text-[10px] font-mono text-slate-600 break-words">
                     {p.expressao}
                   </div>
-                  <div className="text-[11px] font-mono font-bold text-emerald-300 break-words">
+                  <div className="text-[11px] font-mono font-bold text-emerald-700 break-words">
                     = {p.resultado}
                   </div>
                   {p.fundamento && (
@@ -370,14 +374,16 @@ function LineMemoryDialog({
               </div>
             </div>
           ))}
-          <div className="rounded-lg border border-sky-500/40 bg-sky-500/[0.06] p-2.5 space-y-1">
-            <div className="text-[10px] font-mono font-bold uppercase text-sky-300">Base legal</div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-2.5 space-y-1">
+            <div className="text-[10px] font-mono font-bold uppercase text-emerald-900">
+              Base legal
+            </div>
             <div className="flex items-center gap-1.5 flex-wrap">
               <ArtBadge dispositivo={line.fundamento?.dispositivo || '—'} />
               <ValidadeBadge fundamento={line.fundamento} />
             </div>
             {line.fundamento?.efeito && (
-              <div className="text-[10px] font-mono text-slate-300 break-words">
+              <div className="text-[10px] font-mono text-slate-700 break-words">
                 {line.fundamento.efeito}
               </div>
             )}
@@ -414,40 +420,42 @@ function BlocoMemoryDialog({
   )
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-emerald-400" />
-            <span>Memória + base legal — {blocoLabel}</span>
-          </DialogTitle>
-          <DialogDescription className="text-xs text-slate-400">{contexto}</DialogDescription>
+          <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Calculator className="w-5 h-5 text-emerald-600" />
+              <span>Memória + base legal — {blocoLabel}</span>
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-xs text-slate-500">{contexto}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           {linhas.map((line) => (
             <div key={line.key} className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-mono font-bold text-slate-200">{line.label}</span>
-                <span className="text-[11px] font-mono font-bold text-emerald-300 shrink-0">
+                <span className="text-[11px] font-mono font-bold text-slate-900">{line.label}</span>
+                <span className="text-[11px] font-mono font-bold text-emerald-700 shrink-0">
                   {line.kind === 'nota' && line.value === 0 ? '—' : formatBRL(line.value)}
                 </span>
               </div>
               {(line.passos || []).map((p) => (
                 <div
                   key={p.ordem}
-                  className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5 space-y-1"
+                  className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 space-y-1"
                 >
                   <div className="flex items-start gap-2">
-                    <span className="text-[10px] font-mono font-black text-emerald-400 shrink-0">
+                    <span className="text-[10px] font-mono font-black text-emerald-700 shrink-0">
                       {p.ordem}.
                     </span>
                     <div className="min-w-0 space-y-0.5">
-                      <div className="text-[11px] font-mono font-semibold text-slate-200">
+                      <div className="text-[11px] font-mono font-semibold text-slate-900">
                         {p.descricao}
                       </div>
-                      <div className="text-[10px] font-mono text-slate-400 break-words">
+                      <div className="text-[10px] font-mono text-slate-600 break-words">
                         {p.expressao}
                       </div>
-                      <div className="text-[11px] font-mono font-bold text-emerald-300 break-words">
+                      <div className="text-[11px] font-mono font-bold text-emerald-700 break-words">
                         = {p.resultado}
                       </div>
                       {p.fundamento && (
@@ -459,8 +467,8 @@ function BlocoMemoryDialog({
                   </div>
                 </div>
               ))}
-              <div className="rounded-lg border border-sky-500/40 bg-sky-500/[0.06] p-2.5 space-y-1">
-                <div className="text-[10px] font-mono font-bold uppercase text-sky-300">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-2.5 space-y-1">
+                <div className="text-[10px] font-mono font-bold uppercase text-emerald-900">
                   Base legal
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -468,7 +476,7 @@ function BlocoMemoryDialog({
                   <ValidadeBadge fundamento={line.fundamento} />
                 </div>
                 {line.fundamento?.efeito && (
-                  <div className="text-[10px] font-mono text-slate-300 break-words">
+                  <div className="text-[10px] font-mono text-slate-700 break-words">
                     {line.fundamento.efeito}
                   </div>
                 )}
@@ -582,15 +590,17 @@ export function CmvArt12Module() {
   return (
     <div className="space-y-4">
       {/* ================= Cabeçalho + seletor de exercício ================= */}
-      <div className="rounded-xl border border-emerald-500/25 bg-slate-900/50 p-4 space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <CalendarClock className="w-5 h-5 text-emerald-400" />
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200">
+          <div className="flex items-center gap-3 border-l-4 border-emerald-500 pl-2.5">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+              <CalendarClock className="w-5 h-5" />
+            </div>
             <div>
-              <h3 className="text-sm font-bold text-white">
+              <h3 className="text-base font-bold text-slate-900 tracking-tight">
                 CMV por Exercício — conforme o Art. 12 (LC 214/2025)
               </h3>
-              <p className="text-[10px] font-mono text-slate-400">
+              <p className="text-xs text-slate-500">
                 Base limpa: Bruto − ICMS − IPI − PIS/COFINS (caput + §2º, I, II e V) · Frete na base
                 (§1º, IV) · CBS/IBS por fora · Crédito = débito destacado (art. 47, §2º)
               </p>
@@ -601,15 +611,16 @@ export function CmvArt12Module() {
               size="sm"
               variant="outline"
               onClick={() => setConfig(CONFIG_PADRAO_ART12)}
-              className="border-slate-700 text-slate-300 hover:bg-slate-800 cursor-pointer"
+              className="h-8 text-xs bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 cursor-pointer shadow-xs"
             >
               <RotateCcw className="w-3.5 h-3.5 mr-1" /> Restaurar
             </Button>
           </div>
         </div>
+
         {/* Nota legal do cabeçalho */}
-        <div className="text-[10px] font-mono text-slate-400 bg-slate-950/60 border border-slate-800 rounded-lg p-2.5 leading-relaxed">
-          <ShieldAlert className="w-3.5 h-3.5 text-sky-400 inline mr-1 -mt-0.5" />
+        <div className="text-[11px] font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3 leading-relaxed">
+          <ShieldAlert className="w-3.5 h-3.5 text-emerald-700 inline mr-1.5 -mt-0.5" />
           Fundamento: LC 214/2025, art. 12, caput — base = valor da operação; §1º, IV — frete
           integra a base; §2º, I — IBS/CBS fora; §2º, II — IPI fora (todos os exercícios); §2º, V —
           ICMS/ISS/PIS/COFINS fora, vigência expressa 01/01/2026 a 31/12/2032. Frações do ICMS:
@@ -618,69 +629,82 @@ export function CmvArt12Module() {
           documento e não depende de evento posterior): fora da base — art. 12, §2º, III. Devolução
           e cancelamento: base da operação original — art. 12, §7º. PIS/COFINS embutidos sobre base
           sem ICMS: tese do século (STJ RE 1.188.403; STF Tema 1098). PENDENTE DE DEFINIÇÃO: se
-          CBS/IBS integram a base do ICMS na transição — simule as duas teses no seletor acima.
+          CBS/IBS integram a base do ICMS na transição — simule as duas teses no seletor abaixo.
         </div>
+
         {/* Seletor de exercícios */}
-        <div className="flex flex-wrap gap-1.5">
-          {EXERCICIOS.map((ex) => {
-            const r = CRONOGRAMA_ART12.find((rr) => rr.exercicio === ex)!
-            return (
-              <button
-                key={ex}
-                type="button"
-                onClick={() => setExercicio(ex)}
-                className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
-                  exercicio === ex
-                    ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                    : r.pendente
-                      ? 'bg-slate-950 text-rose-300 border-rose-500/40 hover:bg-rose-500/10'
-                      : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
-                }`}
-              >
-                {ex}
-                {r.pendente ? ' *' : ''}
-              </button>
-            )
-          })}
-        </div>
-        {/* Seletor de tese (base do ICMS na transição) */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-mono text-slate-500 uppercase">
-            Base do ICMS na transição:
+        <div className="space-y-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 block">
+            Exercício de Transição (Cronograma Oficial)
           </span>
-          <div className="flex gap-1">
-            {(
-              [
-                { v: 'fisco', label: 'Tese do Fisco' },
-                { v: 'contribuinte', label: 'Tese do Contribuinte (PLP 16/25)' },
-              ] as const
-            ).map((t) => (
-              <button
-                key={t.v}
-                type="button"
-                onClick={() => setConfig((c) => ({ ...c, baseIcmsTransicao: t.v }))}
-                className={`px-2 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
-                  config.baseIcmsTransicao === t.v
-                    ? 'bg-sky-500 text-slate-950 border-sky-400'
-                    : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-slate-50 border border-slate-200">
+            {EXERCICIOS.map((ex) => {
+              const r = CRONOGRAMA_ART12.find((rr) => rr.exercicio === ex)!
+              const ativo = exercicio === ex
+              return (
+                <button
+                  key={ex}
+                  type="button"
+                  onClick={() => setExercicio(ex)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                    ativo
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : r.pendente
+                        ? 'text-rose-700 hover:bg-rose-50 border border-rose-200'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                  }`}
+                >
+                  {ex}
+                  {r.pendente ? ' *' : ''}
+                </button>
+              )
+            })}
           </div>
         </div>
-        <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
-          <ShieldCheck className="w-4 h-4 shrink-0 text-sky-400" />
-          <span>
-            {config.baseIcmsTransicao === 'fisco'
-              ? 'ICMS por dentro sobre operação + CBS + IBS (lacuna normativa) — nota maior. Cadeia plena fecha igual; muda o custo do comprador SN.'
-              : 'ICMS sobre a operação sem CBS/IBS (PLP 16/25) — nota menor. Cadeia plena fecha igual; muda o custo do comprador SN.'}
-          </span>
+
+        {/* Seletor de tese (base do ICMS na transição) */}
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Base do ICMS na transição:
+            </span>
+            <div className="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200 gap-1">
+              {(
+                [
+                  { v: 'fisco', label: 'Tese do Fisco' },
+                  { v: 'contribuinte', label: 'Tese do Contribuinte (PLP 16/25)' },
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.v}
+                  type="button"
+                  onClick={() => setConfig((c) => ({ ...c, baseIcmsTransicao: t.v }))}
+                  className={`px-3 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                    config.baseIcmsTransicao === t.v
+                      ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-200">
+            <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-600" />
+            <span>
+              {config.baseIcmsTransicao === 'fisco'
+                ? 'ICMS por dentro sobre operação + CBS + IBS (lacuna normativa) — nota maior. Cadeia plena fecha igual; muda o custo do comprador SN.'
+                : 'ICMS sobre a operação sem CBS/IBS (PLP 16/25) — nota menor. Cadeia plena fecha igual; muda o custo do comprador SN.'}
+            </span>
+          </div>
         </div>
+
         {/* CBS EDITÁVEL (decisão da CEO, 04/10) — só 2027/2028; 2026 é cravado em lei (art. 342) */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-mono text-slate-500 uppercase">Alíquota da CBS:</span>
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Alíquota da CBS:
+          </span>
           {cbsEditavelAqui ? (
             <>
               <Input
@@ -692,17 +716,17 @@ export function CmvArt12Module() {
                   const v = Number(e.target.value)
                   setCbsOverride(Number.isFinite(v) && v > 0 ? v : undefined)
                 }}
-                className="w-24 h-7 text-[11px] font-mono bg-slate-950 border-slate-700 text-slate-100"
+                className="w-24 h-8 text-xs font-mono bg-white border-slate-300 text-slate-900 focus-visible:ring-emerald-500"
               />
-              <span className="text-[10px] font-mono">%</span>
-              <span className="inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-mono font-bold border-amber-500/40 bg-amber-500/10 text-amber-300">
+              <span className="text-xs font-mono font-bold text-slate-700">%</span>
+              <span className="inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-mono font-bold border-amber-300 bg-amber-50 text-amber-800">
                 ESTIMADA — pendente de fixação (Senado, art. 349)
               </span>
               {cbsOverride !== undefined && cbsOverride !== CBS_DEFAULT && (
                 <button
                   type="button"
                   onClick={() => setCbsOverride(undefined)}
-                  className="text-[9px] font-mono text-sky-400 hover:text-sky-300 underline underline-offset-2 cursor-pointer"
+                  className="text-xs font-medium text-emerald-700 hover:text-emerald-900 underline underline-offset-2 cursor-pointer ml-1"
                 >
                   voltar ao padrão 8,8%
                 </button>
@@ -710,13 +734,14 @@ export function CmvArt12Module() {
             </>
           ) : (
             <>
-              <span className="text-[11px] font-mono font-bold text-slate-100">{row.cbsRate}%</span>
-              <span className="inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-mono font-bold border-emerald-500/40 bg-emerald-500/10 text-emerald-300">
+              <span className="text-sm font-mono font-bold text-slate-900">{row.cbsRate}%</span>
+              <span className="inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-mono font-bold border-emerald-200 bg-emerald-50 text-emerald-800">
                 CRAVADA EM LEI (art. 342)
               </span>
             </>
           )}
         </div>
+
         {/* INTEGRAÇÃO DE BASE COM SISTEMA PRÉ-REFORMA — vínculo automático com a Compras */}
         <PainelIntegracaoOrigem
           itensOrigem={itensOrigem}
@@ -724,8 +749,8 @@ export function CmvArt12Module() {
           onCarregarExemplo={carregarCasoExemplo}
         />
         {!origemIntegrada && (
-          <div className="flex items-start gap-2 text-[10px] font-mono text-amber-300 bg-amber-500/[0.06] border border-amber-500/40 rounded-lg p-2.5">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+          <div className="flex items-start gap-2 text-xs font-mono text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
             <span>
               Célula ZERADA — nenhum item com valor na Calculadora de Compras (regra: zero na
               origem, zero na célula). Lance itens na Compras ou use "Carregar caso exemplo" no
@@ -734,116 +759,142 @@ export function CmvArt12Module() {
           </div>
         )}
         {row.pendente && (
-          <div className="flex items-start gap-2 text-[11px] font-mono text-rose-300 bg-rose-500/10 border border-rose-500/40 rounded-lg p-2.5">
-            <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 text-xs font-mono text-rose-800 bg-rose-50 border border-rose-200 rounded-xl p-3">
+            <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
             <span>{row.pendente}</span>
           </div>
         )}
       </div>
 
       {/* ================= Configuração da célula ================= */}
-      <div className="rounded-xl border border-slate-700/70 bg-slate-900/40 p-4 space-y-3">
-        <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-          Célula: fornecedor × comprador × repasse
-        </span>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-          <div className="space-y-1">
-            <label className="text-[9px] font-mono text-slate-500 uppercase">Fornecedor</label>
-            <div className="flex gap-1">
-              {(['presumido', 'real', 'simples', 'simples_hibrido'] as RegimeId[]).map((rg) => (
-                <button
-                  key={rg}
-                  type="button"
-                  onClick={() => setConfig((c) => ({ ...c, fornecedorRegime: rg }))}
-                  className={`flex-1 px-2 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
-                    config.fornecedorRegime === rg
-                      ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                      : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
-                  }`}
-                >
-                  {REGIME_LABEL[rg]}
-                </button>
-              ))}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="border-l-4 border-emerald-500 pl-2.5">
+          <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+            Célula: fornecedor × comprador × repasse
+          </h4>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Selecione o regime e perfil de cada parte para projetar o impacto do exercício
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <label className="text-xs font-bold font-mono text-slate-600 uppercase block">
+              Fornecedor
+            </label>
+            <div className="grid grid-cols-2 gap-1">
+              {(['presumido', 'real', 'simples', 'simples_hibrido'] as RegimeId[]).map((rg) => {
+                const ativo = config.fornecedorRegime === rg
+                return (
+                  <button
+                    key={rg}
+                    type="button"
+                    onClick={() => setConfig((c) => ({ ...c, fornecedorRegime: rg }))}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
+                      ativo
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    {REGIME_LABEL[rg]}
+                  </button>
+                )
+              })}
             </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-[9px] font-mono text-slate-500 uppercase">
+
+          <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <label className="text-xs font-bold font-mono text-slate-600 uppercase block">
               Perfil fornecedor
             </label>
-            <div className="flex gap-1">
-              {(['comercio', 'industria'] as const).map((pf) => (
-                <button
-                  key={pf}
-                  type="button"
-                  onClick={() => setConfig((c) => ({ ...c, fornecedorPerfil: pf }))}
-                  className={`flex-1 px-2 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
-                    config.fornecedorPerfil === pf
-                      ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                      : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
-                  }`}
-                >
-                  {pf === 'comercio' ? 'Comércio' : 'Indústria'}
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-1">
+              {(['comercio', 'industria'] as const).map((pf) => {
+                const ativo = config.fornecedorPerfil === pf
+                return (
+                  <button
+                    key={pf}
+                    type="button"
+                    onClick={() => setConfig((c) => ({ ...c, fornecedorPerfil: pf }))}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
+                      ativo
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    {pf === 'comercio' ? 'Comércio' : 'Indústria'}
+                  </button>
+                )
+              })}
             </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-[9px] font-mono text-slate-500 uppercase">Comprador</label>
-            <div className="flex gap-1">
-              {(['presumido', 'real', 'simples', 'simples_hibrido'] as RegimeId[]).map((rg) => (
-                <button
-                  key={rg}
-                  type="button"
-                  onClick={() => setConfig((c) => ({ ...c, compradorRegime: rg }))}
-                  className={`flex-1 px-2 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
-                    config.compradorRegime === rg
-                      ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                      : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
-                  }`}
-                >
-                  {REGIME_LABEL[rg]}
-                </button>
-              ))}
+
+          <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <label className="text-xs font-bold font-mono text-slate-600 uppercase block">
+              Comprador
+            </label>
+            <div className="grid grid-cols-2 gap-1">
+              {(['presumido', 'real', 'simples', 'simples_hibrido'] as RegimeId[]).map((rg) => {
+                const ativo = config.compradorRegime === rg
+                return (
+                  <button
+                    key={rg}
+                    type="button"
+                    onClick={() => setConfig((c) => ({ ...c, compradorRegime: rg }))}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
+                      ativo
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    {REGIME_LABEL[rg]}
+                  </button>
+                )
+              })}
             </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-[9px] font-mono text-slate-500 uppercase">
+
+          <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <label className="text-xs font-bold font-mono text-slate-600 uppercase block">
               Perfil comprador
             </label>
-            <div className="flex gap-1">
-              {(['comercio', 'industria'] as const).map((pf) => (
-                <button
-                  key={pf}
-                  type="button"
-                  onClick={() => setConfig((c) => ({ ...c, compradorPerfil: pf }))}
-                  className={`flex-1 px-2 py-1 rounded text-[10px] font-mono font-bold cursor-pointer border ${
-                    config.compradorPerfil === pf
-                      ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                      : 'bg-slate-950 text-slate-400 border-slate-700 hover:bg-slate-800'
-                  }`}
-                >
-                  {pf === 'comercio' ? 'Comércio' : 'Indústria'}
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-1">
+              {(['comercio', 'industria'] as const).map((pf) => {
+                const ativo = config.compradorPerfil === pf
+                return (
+                  <button
+                    key={pf}
+                    type="button"
+                    onClick={() => setConfig((c) => ({ ...c, compradorPerfil: pf }))}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
+                      ativo
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    {pf === 'comercio' ? 'Comércio' : 'Indústria'}
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
+
         {/* Réguas de repasse / Cenário Único Chancelado:
             Quando o comprador é Simples Nacional (puro ou híbrido), as réguas de repasse
             (Integral/Parcial/Sem repasse) são ocultadas e é indicado "Cenário Único Chancelado",
             pois nas regras do SN e LC 123/2006 não há composição de repasse nessas células. */}
         {config.compradorRegime === 'simples' || config.compradorRegime === 'simples_hibrido' ? (
-          <div className="rounded-lg border border-emerald-500/50 bg-emerald-500/[0.08] p-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-4 flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase text-emerald-300">
+                <span className="text-sm font-mono font-bold uppercase text-emerald-900">
                   Cenário Único (chancelado)
                 </span>
-                <span className="text-[9px] font-mono font-semibold text-emerald-400/90 border border-emerald-500/40 rounded px-1.5 py-0.5">
+                <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 rounded px-2 py-0.5">
                   Sem repasse (LC 123/2006)
                 </span>
               </div>
-              <p className="text-[10px] font-mono text-slate-400">
+              <p className="text-xs font-mono text-slate-600">
                 Adquirente {REGIME_LABEL_FULL[config.compradorRegime]}: custo fiscal apurado em
                 cenário único (art. 13 §1º LC 123/2006; art. 41 LC 214/2025). Valores de repasse
                 parcial ou sem repasse não são chancelados para optantes do Simples.
@@ -852,7 +903,7 @@ export function CmvArt12Module() {
             <Button
               size="sm"
               onClick={() => setEspelhoModal({ open: true, mode: 'integral' })}
-              className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-mono font-bold text-xs cursor-pointer h-7"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-bold text-xs cursor-pointer h-8 shadow-xs"
             >
               <Calculator className="w-3.5 h-3.5 mr-1" />
               Abrir Espelho (Cards 01, 02 e 03)
@@ -860,56 +911,64 @@ export function CmvArt12Module() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {reguas.map(({ mode, cell }) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => {
-                    setConfig((c) => ({ ...c, repasse: mode }))
-                    setEspelhoModal({ open: true, mode })
-                  }}
-                  className={`p-2.5 rounded-lg border text-left cursor-pointer transition-colors ${
-                    config.repasse === mode
-                      ? 'border-emerald-400 bg-emerald-500/10'
-                      : 'border-slate-700 bg-slate-950/50 hover:bg-slate-900'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold uppercase text-slate-300">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {reguas.map(({ mode, cell }) => {
+                const ativo = config.repasse === mode
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      setConfig((c) => ({ ...c, repasse: mode }))
+                      setEspelhoModal({ open: true, mode })
+                    }}
+                    className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
+                      ativo
+                        ? 'border-emerald-600 bg-emerald-50/70 ring-1 ring-emerald-500 shadow-xs'
+                        : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-bold uppercase text-slate-900">
+                        {mode === 'integral'
+                          ? 'Repasse integral'
+                          : mode === 'parcial'
+                            ? `Parcial ${formatNumberBR(config.repassePct)}%`
+                            : 'Sem repasse'}
+                      </span>
+                      <span
+                        className={`text-xs font-mono font-black ${
+                          cell.deltaPct <= -0.5
+                            ? 'text-emerald-700'
+                            : cell.deltaPct < 0.5
+                              ? 'text-amber-700'
+                              : 'text-rose-700'
+                        }`}
+                      >
+                        {cell.deltaPct > 0 ? '+' : ''}
+                        {formatNumberBR(cell.deltaPct)}%
+                      </span>
+                    </div>
+                    <div className="text-xs font-mono text-slate-600 mt-1">
+                      <strong className="text-slate-900">
+                        {formatBRL(cell.exercicio.unitario)}/un
+                      </strong>{' '}
+                      ·{' '}
                       {mode === 'integral'
-                        ? 'Repasse integral'
+                        ? 'cadeia neutra — Fisco abre mão'
                         : mode === 'parcial'
-                          ? `Parcial ${formatNumberBR(config.repassePct)}%`
-                          : 'Sem repasse'}
-                    </span>
-                    <span
-                      className={`text-xs font-mono font-black ${
-                        cell.deltaPct <= -0.5
-                          ? 'text-emerald-400'
-                          : cell.deltaPct < 0.5
-                            ? 'text-amber-400'
-                            : 'text-rose-400'
-                      }`}
-                    >
-                      {cell.deltaPct > 0 ? '+' : ''}
-                      {formatNumberBR(cell.deltaPct)}%
-                    </span>
-                  </div>
-                  <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-                    {formatBRL(cell.exercicio.unitario)}/un ·{' '}
-                    {mode === 'integral'
-                      ? 'cadeia neutra — Fisco abre mão'
-                      : mode === 'parcial'
-                        ? 'dividido — fornecedor e comprador'
-                        : 'comprador absorve (escada)'}
-                  </div>
-                </button>
-              ))}
+                          ? 'dividido — fornecedor e comprador'
+                          : 'comprador absorve (escada)'}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
             {config.repasse === 'parcial' && (
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-slate-500">Fração repassada:</span>
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-xs font-mono font-semibold text-slate-600">
+                  Fração repassada:
+                </span>
                 <Input
                   type="number"
                   value={config.repassePct}
@@ -919,20 +978,21 @@ export function CmvArt12Module() {
                       repassePct: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
                     }))
                   }
-                  className="w-24 h-8 bg-slate-950/70 border-slate-700/60 text-xs font-mono text-slate-200"
+                  className="w-24 h-8 bg-white border-slate-300 text-xs font-mono text-slate-900 focus-visible:ring-emerald-500"
                 />
-                <span className="text-[10px] font-mono text-slate-500">%</span>
+                <span className="text-xs font-mono font-bold text-slate-600">%</span>
               </div>
             )}
           </>
         )}
+
         {/* ZFM */}
-        <label className="flex items-center gap-2 text-[10px] font-mono text-slate-400 cursor-pointer">
+        <label className="flex items-center gap-2 text-xs font-mono text-slate-700 cursor-pointer pt-1">
           <input
             type="checkbox"
             checked={config.zfm}
             onChange={(e) => setConfig((c) => ({ ...c, zfm: e.target.checked }))}
-            className="accent-emerald-500"
+            className="w-4 h-4 accent-emerald-600 rounded"
           />
           Fornecedor industrial na Zona Franca de Manaus (mantém IPI — ADCT, art. 92-B)
         </label>
