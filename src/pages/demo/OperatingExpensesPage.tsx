@@ -208,18 +208,18 @@ export default function OperatingExpensesPage() {
         />
 
         {/* Card Principal */}
-        <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-7 shadow-sm space-y-6">
           {/* Cabeçalho do Card */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-emerald-500/15">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0 shadow-xs">
                 <Receipt className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                   Tabela Específica de Despesas e Receitas Operacionais
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Estrutura contábil após o Lucro Bruto: Lucro Bruto (−) Despesas Operacionais (+)
                   Receitas Operacionais (=) LAIR.
                 </p>
@@ -232,10 +232,10 @@ export default function OperatingExpensesPage() {
                 type="button"
                 size="sm"
                 onClick={() => setIsSaveScenarioModalOpen(true)}
-                className="h-8 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20 cursor-pointer gap-1.5"
+                className="h-8 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs cursor-pointer gap-1.5"
                 title="Gravar cenário de despesas e receitas por cliente do escritório"
               >
-                <Save className="w-3.5 h-3.5 text-slate-950" />
+                <Save className="w-3.5 h-3.5 text-white" />
                 <span>Gravar Cenário</span>
               </Button>
 
@@ -244,7 +244,7 @@ export default function OperatingExpensesPage() {
                 variant="outline"
                 size="sm"
                 onClick={resetAll}
-                className="h-8 text-xs bg-slate-950/40 border-slate-800 text-slate-400 hover:text-rose-300 hover:border-rose-500/30 cursor-pointer"
+                className="h-8 text-xs bg-white border-slate-300 text-slate-600 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50/50 cursor-pointer"
                 title="Limpar todos os campos desta página"
               >
                 <RotateCcw className="w-3.5 h-3.5 mr-1" />
@@ -256,24 +256,24 @@ export default function OperatingExpensesPage() {
           {/* Painel de Resumo / Cards de Totais Operacionais */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Total Despesas */}
-            <div className="p-4 rounded-2xl bg-slate-950/70 border border-rose-500/30 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                <span className="flex items-center gap-1 text-rose-400 font-semibold">
+            <div className="p-4 rounded-2xl bg-rose-50/40 border border-rose-200 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-xs font-mono text-slate-500">
+                <span className="flex items-center gap-1 text-rose-700 font-semibold">
                   <TrendingDown className="w-3.5 h-3.5" />
                   Total Despesas Operacionais
                 </span>
                 <span className="text-[11px] text-slate-500">{operatingExpenses.length} itens</span>
               </div>
               <div className="mt-2">
-                <div className="text-xl sm:text-2xl font-black font-mono text-rose-400">
+                <div className="text-xl sm:text-2xl font-black font-mono text-rose-700">
                   {formatBRL(totalOperatingExpenses)}
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+                <div className="text-[11px] text-slate-600 mt-1 flex items-center justify-between">
                   <span>Dedução do Lucro Bruto (−)</span>
                   <button
                     type="button"
                     onClick={() => handleOpenAddExpense('small')}
-                    className="text-[10px] text-rose-300 hover:text-rose-200 underline font-mono cursor-pointer"
+                    className="text-[10px] text-rose-700 hover:text-rose-900 underline font-mono cursor-pointer font-semibold"
                   >
                     + lançar
                   </button>
@@ -282,24 +282,24 @@ export default function OperatingExpensesPage() {
             </div>
 
             {/* Total Receitas */}
-            <div className="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/30 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+            <div className="p-4 rounded-2xl bg-emerald-50/40 border border-emerald-200 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-xs font-mono text-slate-500">
+                <span className="flex items-center gap-1 text-emerald-700 font-semibold">
                   <TrendingUp className="w-3.5 h-3.5" />
                   Total Receitas Operacionais
                 </span>
                 <span className="text-[11px] text-slate-500">{operatingRevenues.length} itens</span>
               </div>
               <div className="mt-2">
-                <div className="text-xl sm:text-2xl font-black font-mono text-emerald-400">
+                <div className="text-xl sm:text-2xl font-black font-mono text-emerald-700">
                   {formatBRL(totalOperatingRevenues)}
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+                <div className="text-[11px] text-slate-600 mt-1 flex items-center justify-between">
                   <span>Acréscimo ao Lucro Bruto (+)</span>
                   <button
                     type="button"
                     onClick={() => handleOpenAddRevenue('small')}
-                    className="text-[10px] text-emerald-300 hover:text-emerald-200 underline font-mono cursor-pointer"
+                    className="text-[10px] text-emerald-700 hover:text-emerald-900 underline font-mono cursor-pointer font-semibold"
                   >
                     + lançar
                   </button>
@@ -308,10 +308,10 @@ export default function OperatingExpensesPage() {
             </div>
 
             {/* Resultado Operacional Líquido */}
-            <div className="p-4 rounded-2xl bg-slate-950/70 border border-orange-500/30 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-xs font-mono text-slate-400">
-                <span className="flex items-center gap-1 text-orange-400 font-semibold">
-                  <Scale className="w-3.5 h-3.5" />
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-xs font-mono text-slate-500">
+                <span className="flex items-center gap-1 text-slate-800 font-semibold">
+                  <Scale className="w-3.5 h-3.5 text-slate-600" />
                   Resultado Operacional Líquido
                 </span>
                 <span className="text-[11px] text-slate-500">Receitas − Despesas</span>
@@ -319,12 +319,12 @@ export default function OperatingExpensesPage() {
               <div className="mt-2">
                 <div
                   className={`text-xl sm:text-2xl font-black font-mono ${
-                    netOperatingResult >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                    netOperatingResult >= 0 ? 'text-emerald-700' : 'text-rose-700'
                   }`}
                 >
                   {formatBRL(netOperatingResult)}
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
                   <span>Impacto líquido direto no LAIR</span>
                 </div>
               </div>
@@ -334,15 +334,15 @@ export default function OperatingExpensesPage() {
           {/* TABELA 1: DESPESAS OPERACIONAIS (Frontal Enxuta com Discriminação em Badge) */}
           <div className="space-y-3 pt-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-rose-500/10 flex items-center justify-center text-rose-400">
+              <div className="flex items-center gap-2.5 border-l-4 border-emerald-500 pl-2.5">
+                <div className="w-6 h-6 rounded-md bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600">
                   <TrendingDown className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900">
                     Despesas Operacionais ({operatingExpenses.length})
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-mono">
+                  <p className="text-[11px] text-slate-500 font-mono">
                     Discriminações contábeis definidas na camada oculta ao adicionar
                   </p>
                 </div>
@@ -354,60 +354,62 @@ export default function OperatingExpensesPage() {
                 <button
                   type="button"
                   onClick={() => setIsPayrollModalOpen(true)}
-                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-mono transition-all cursor-pointer shadow-sm ${
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-mono transition-all cursor-pointer shadow-xs ${
                     hasPayrollValues
-                      ? 'bg-emerald-500/[0.18] border-emerald-400/80 text-emerald-100 hover:bg-emerald-500/25 hover:border-emerald-300 shadow-emerald-500/15 ring-1 ring-emerald-500/30'
-                      : 'bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/50'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100 hover:border-emerald-400'
+                      : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
                   }`}
                   title="Abrir camada compacta de edição de Folha de Salários, Pró-labore e Encargos Patronais"
                 >
-                  <Users className="w-4 h-4 text-emerald-300" />
-                  <span className="font-semibold">Folha & Pró-labore</span>
+                  <Users className="w-4 h-4 text-emerald-600" />
+                  <span className="font-semibold text-slate-800">Folha & Pró-labore</span>
                   <Badge
-                    className={`text-[10px] px-1.5 py-0 border-0 font-semibold ${
+                    className={`text-[10px] px-1.5 py-0 border font-semibold ${
                       hasPayrollValues
-                        ? 'bg-emerald-500/35 text-emerald-100'
-                        : 'bg-slate-800 text-slate-400'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        : 'bg-slate-100 text-slate-600 border-slate-200'
                     }`}
                   >
                     {hasPayrollValues
                       ? formatBRL(payrollResult.totalLaborExpense)
                       : 'Não preenchido'}
                   </Badge>
-                  <ChevronRight className="w-3.5 h-3.5 text-emerald-300/70" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                 </button>
 
-                {/* Botão + Adicionar Despesa (Destaque em Vermelho/Rosa conforme print) */}
+                {/* Botão + Adicionar Despesa (Destaque em Vermelho/Rosa suave com contraste claro) */}
                 <button
                   type="button"
                   onClick={() => handleOpenAddExpense('small')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-rose-500/60 bg-rose-950/40 hover:bg-rose-900/50 text-rose-100 hover:text-white hover:border-rose-400 font-bold text-xs sm:text-sm shadow-md shadow-rose-950/40 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-800 hover:border-rose-300 font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
                   title="Adicionar despesa operacional"
                 >
-                  <TrendingDown className="w-4 h-4 text-rose-300" />
+                  <TrendingDown className="w-4 h-4 text-rose-600" />
                   <span>+ Despesa</span>
-                  <Badge className="text-[10px] px-2 py-0.5 border-0 font-bold bg-rose-500/30 text-rose-200 rounded-full">
+                  <Badge className="text-[10px] px-2 py-0.5 border border-rose-200 font-bold bg-white text-rose-800 rounded-full">
                     {operatingExpenses.length}
                   </Badge>
-                  <ChevronRight className="w-3.5 h-3.5 text-rose-300/70" />
+                  <ChevronRight className="w-3.5 h-3.5 text-rose-400" />
                 </button>
               </div>
             </div>
 
             {/* Tabela Frontal Enxuta de Despesas */}
-            <div className="rounded-2xl border border-rose-500/25 bg-slate-950/70 shadow-lg overflow-hidden">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-800 bg-slate-900/80 text-[11px] font-mono uppercase tracking-wider text-slate-400">
-                      <th className="py-2.5 px-3 font-semibold w-10 text-center">#</th>
-                      <th className="py-2.5 px-3 font-semibold">Descrição da Despesa</th>
-                      <th className="py-2.5 px-3 font-semibold w-52">Discriminação / Tipo</th>
-                      <th className="py-2.5 px-3 font-semibold text-right w-44">Valor (R$)</th>
-                      <th className="py-2.5 px-3 font-semibold text-center w-16">Ação</th>
+                    <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-xs font-semibold text-white">
+                      <th className="py-3 px-3 font-semibold w-12 text-center rounded-tl-xl">#</th>
+                      <th className="py-3 px-3 font-semibold">Descrição da Despesa</th>
+                      <th className="py-3 px-3 font-semibold w-56">Discriminação / Tipo</th>
+                      <th className="py-3 px-3 font-semibold text-right w-48">Valor (R$)</th>
+                      <th className="py-3 px-3 font-semibold text-center w-16 rounded-tr-xl">
+                        Ação
+                      </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+                  <tbody className="divide-y divide-slate-100 font-mono text-xs">
                     {operatingExpenses.length === 0 ? (
                       <tr>
                         <td
@@ -419,7 +421,7 @@ export default function OperatingExpensesPage() {
                             type="button"
                             size="sm"
                             onClick={() => handleOpenAddExpense('small')}
-                            className="h-7 text-xs bg-orange-500/20 text-orange-300 border border-orange-500/40 hover:bg-orange-500/30 cursor-pointer font-bold"
+                            className="h-7 text-xs bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 cursor-pointer font-bold"
                           >
                             <Plus className="w-3.5 h-3.5 mr-1" />
                             Abrir Camada e Inserir Despesa
@@ -430,8 +432,12 @@ export default function OperatingExpensesPage() {
                       operatingExpenses.map((item, idx) => {
                         const catMeta = EXPENSE_CATEGORY_LABELS[item.category || 'administrativas']
                         return (
-                          <tr key={item.id} className="hover:bg-slate-900/40 transition-colors">
-                            <td className="py-2.5 px-3 text-center text-slate-500">{idx + 1}</td>
+                          <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="w-5 h-5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 inline-flex items-center justify-center text-white font-semibold text-[10px] shadow-xs">
+                                {idx + 1}
+                              </span>
+                            </td>
                             {/* Descrição rápida editável na frente */}
                             <td className="py-2 px-3">
                               <Input
@@ -441,7 +447,7 @@ export default function OperatingExpensesPage() {
                                   updateOperatingExpense(item.id, 'description', e.target.value)
                                 }
                                 placeholder="Descrição da despesa..."
-                                className="h-8 text-xs bg-slate-900/90 border-slate-700 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-slate-100 placeholder:text-slate-600 font-sans"
+                                className="h-8 text-xs bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 placeholder:text-slate-400 font-sans"
                               />
                             </td>
                             {/* Discriminação contábil exibida como chip informativo com badge */}
@@ -454,10 +460,10 @@ export default function OperatingExpensesPage() {
                                 </Badge>
                               </div>
                             </td>
-                            {/* Valor monetário com campo laranja interativo */}
+                            {/* Valor monetário com campo interativo */}
                             <td className="py-2 px-3 text-right">
                               <div className="relative inline-block w-full">
-                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
                                   R$
                                 </span>
                                 <Input
@@ -472,7 +478,7 @@ export default function OperatingExpensesPage() {
                                     )
                                   }
                                   placeholder="0,00"
-                                  className="h-8 text-xs pl-8 text-right bg-slate-900/90 border-orange-500/50 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 text-orange-200 font-bold"
+                                  className="h-8 text-xs pl-8 text-right bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 font-bold"
                                 />
                               </div>
                             </td>
@@ -483,7 +489,7 @@ export default function OperatingExpensesPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => removeOperatingExpense(item.id)}
-                                className="h-7 w-7 p-0 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                                className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
                                 title="Remover despesa"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -495,15 +501,24 @@ export default function OperatingExpensesPage() {
                     )}
                   </tbody>
                   {operatingExpenses.length > 0 && (
-                    <tfoot>
-                      <tr className="border-t-2 border-slate-800 bg-slate-900/95 font-mono text-xs">
-                        <td colSpan={3} className="py-3 px-3 font-bold text-slate-300 text-right">
-                          Total de Despesas Operacionais:
+                    <tfoot className="border-t-2 border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-xs font-mono font-bold text-white">
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="py-3 px-4 font-bold text-white text-left uppercase tracking-wider"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-rose-400" />
+                            <span>Total de Despesas Operacionais (Σ)</span>
+                          </div>
                         </td>
-                        <td className="py-3 px-3 text-right font-black text-rose-400 text-sm">
+                        <td className="py-3 px-3 text-right font-black text-rose-300 text-sm">
                           {formatBRL(totalOperatingExpenses)}
                         </td>
-                        <td></td>
+                        <td className="py-3 px-3 text-center text-slate-400 text-[11px] font-normal">
+                          {operatingExpenses.length}{' '}
+                          {operatingExpenses.length === 1 ? 'item' : 'itens'}
+                        </td>
                       </tr>
                     </tfoot>
                   )}
@@ -515,52 +530,54 @@ export default function OperatingExpensesPage() {
           {/* TABELA 2: RECEITAS OPERACIONAIS (Frontal Enxuta com Discriminação em Badge) */}
           <div className="space-y-3 pt-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+              <div className="flex items-center gap-2.5 border-l-4 border-emerald-500 pl-2.5">
+                <div className="w-6 h-6 rounded-md bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
                   <TrendingUp className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-200">
+                  <h3 className="text-sm font-bold text-slate-900">
                     Receitas Operacionais ({operatingRevenues.length})
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-mono">
+                  <p className="text-[11px] text-slate-500 font-mono">
                     Discriminações contábeis definidas na camada oculta ao adicionar
                   </p>
                 </div>
               </div>
 
-              {/* Botão + Adicionar Receita (Destaque em Verde conforme print) */}
+              {/* Botão + Adicionar Receita (Destaque em Verde suave com contraste claro) */}
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => handleOpenAddRevenue('small')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-500/60 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-100 hover:text-white hover:border-emerald-400 font-bold text-xs sm:text-sm shadow-md shadow-emerald-950/40 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 hover:border-emerald-300 font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer"
                   title="Adicionar receita operacional"
                 >
-                  <TrendingUp className="w-4 h-4 text-emerald-300" />
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
                   <span>+ Receita</span>
-                  <Badge className="text-[10px] px-2 py-0.5 border-0 font-bold bg-emerald-500/30 text-emerald-200 rounded-full">
+                  <Badge className="text-[10px] px-2 py-0.5 border border-emerald-200 font-bold bg-white text-emerald-800 rounded-full">
                     {operatingRevenues.length}
                   </Badge>
-                  <ChevronRight className="w-3.5 h-3.5 text-emerald-300/70" />
+                  <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />
                 </button>
               </div>
             </div>
 
             {/* Tabela Frontal Enxuta de Receitas */}
-            <div className="rounded-2xl border border-emerald-500/25 bg-slate-950/70 shadow-lg overflow-hidden">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-800 bg-slate-900/80 text-[11px] font-mono uppercase tracking-wider text-slate-400">
-                      <th className="py-2.5 px-3 font-semibold w-10 text-center">#</th>
-                      <th className="py-2.5 px-3 font-semibold">Descrição da Receita</th>
-                      <th className="py-2.5 px-3 font-semibold w-52">Discriminação / Tipo</th>
-                      <th className="py-2.5 px-3 font-semibold text-right w-44">Valor (R$)</th>
-                      <th className="py-2.5 px-3 font-semibold text-center w-16">Ação</th>
+                    <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-xs font-semibold text-white">
+                      <th className="py-3 px-3 font-semibold w-12 text-center rounded-tl-xl">#</th>
+                      <th className="py-3 px-3 font-semibold">Descrição da Receita</th>
+                      <th className="py-3 px-3 font-semibold w-56">Discriminação / Tipo</th>
+                      <th className="py-3 px-3 font-semibold text-right w-48">Valor (R$)</th>
+                      <th className="py-3 px-3 font-semibold text-center w-16 rounded-tr-xl">
+                        Ação
+                      </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+                  <tbody className="divide-y divide-slate-100 font-mono text-xs">
                     {operatingRevenues.length === 0 ? (
                       <tr>
                         <td
@@ -572,7 +589,7 @@ export default function OperatingExpensesPage() {
                             type="button"
                             size="sm"
                             onClick={() => handleOpenAddRevenue('small')}
-                            className="h-7 text-xs bg-orange-500/20 text-orange-300 border border-orange-500/40 hover:bg-orange-500/30 cursor-pointer font-bold"
+                            className="h-7 text-xs bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 cursor-pointer font-bold"
                           >
                             <Plus className="w-3.5 h-3.5 mr-1" />
                             Abrir Camada e Inserir Receita
@@ -583,8 +600,12 @@ export default function OperatingExpensesPage() {
                       operatingRevenues.map((item, idx) => {
                         const catMeta = REVENUE_CATEGORY_LABELS[item.category || 'outras']
                         return (
-                          <tr key={item.id} className="hover:bg-slate-900/40 transition-colors">
-                            <td className="py-2.5 px-3 text-center text-slate-500">{idx + 1}</td>
+                          <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="w-5 h-5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 inline-flex items-center justify-center text-white font-semibold text-[10px] shadow-xs">
+                                {idx + 1}
+                              </span>
+                            </td>
                             {/* Descrição rápida */}
                             <td className="py-2 px-3">
                               <Input
@@ -594,7 +615,7 @@ export default function OperatingExpensesPage() {
                                   updateOperatingRevenue(item.id, 'description', e.target.value)
                                 }
                                 placeholder="Descrição da receita..."
-                                className="h-8 text-xs bg-slate-900/90 border-slate-700 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-slate-100 placeholder:text-slate-600 font-sans"
+                                className="h-8 text-xs bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 placeholder:text-slate-400 font-sans"
                               />
                             </td>
                             {/* Discriminação contábil em badge */}
@@ -607,10 +628,10 @@ export default function OperatingExpensesPage() {
                                 </Badge>
                               </div>
                             </td>
-                            {/* Valor monetário com campo laranja interativo */}
+                            {/* Valor monetário com campo interativo */}
                             <td className="py-2 px-3 text-right">
                               <div className="relative inline-block w-full">
-                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
                                   R$
                                 </span>
                                 <Input
@@ -625,7 +646,7 @@ export default function OperatingExpensesPage() {
                                     )
                                   }
                                   placeholder="0,00"
-                                  className="h-8 text-xs pl-8 text-right bg-slate-900/90 border-orange-500/50 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 text-orange-200 font-bold"
+                                  className="h-8 text-xs pl-8 text-right bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 font-bold"
                                 />
                               </div>
                             </td>
@@ -636,7 +657,7 @@ export default function OperatingExpensesPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => removeOperatingRevenue(item.id)}
-                                className="h-7 w-7 p-0 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                                className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
                                 title="Remover receita"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -648,15 +669,24 @@ export default function OperatingExpensesPage() {
                     )}
                   </tbody>
                   {operatingRevenues.length > 0 && (
-                    <tfoot>
-                      <tr className="border-t-2 border-slate-800 bg-slate-900/95 font-mono text-xs">
-                        <td colSpan={3} className="py-3 px-3 font-bold text-slate-300 text-right">
-                          Total de Receitas Operacionais:
+                    <tfoot className="border-t-2 border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-xs font-mono font-bold text-white">
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="py-3 px-4 font-bold text-white text-left uppercase tracking-wider"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                            <span>Total de Receitas Operacionais (Σ)</span>
+                          </div>
                         </td>
                         <td className="py-3 px-3 text-right font-black text-emerald-400 text-sm">
                           {formatBRL(totalOperatingRevenues)}
                         </td>
-                        <td></td>
+                        <td className="py-3 px-3 text-center text-slate-400 text-[11px] font-normal">
+                          {operatingRevenues.length}{' '}
+                          {operatingRevenues.length === 1 ? 'item' : 'itens'}
+                        </td>
                       </tr>
                     </tfoot>
                   )}
@@ -666,13 +696,13 @@ export default function OperatingExpensesPage() {
           </div>
 
           {/* Botões de Navegação Inferiores */}
-          <div className="pt-4 border-t border-emerald-500/15 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => navigate('/demo/markup')}
-              className="text-xs bg-slate-900/80 border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 cursor-pointer w-full sm:w-auto"
+              className="text-xs bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border-slate-700 text-white hover:bg-slate-800 hover:border-slate-600 cursor-pointer w-full sm:w-auto font-medium"
             >
               <ArrowLeft className="w-3.5 h-3.5 mr-1" />
               Voltar: Calculadora de Markup
@@ -683,7 +713,7 @@ export default function OperatingExpensesPage() {
                 type="button"
                 size="sm"
                 onClick={() => navigate('/demo/dre-presumido')}
-                className="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20 cursor-pointer"
+                className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs cursor-pointer"
               >
                 <span>Avançar para DRE Lucro Presumido</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -704,20 +734,20 @@ export default function OperatingExpensesPage() {
       {/* CAMADA OCULTA 1: ADICIONAR DESPESA COM DISCRIMINAÇÃO E EXEMPLOS PRONTOS */}
       {/* ===================================================================== */}
       <Dialog open={isAddExpenseModalOpen} onOpenChange={setIsAddExpenseModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-[#07130f] border border-rose-500/40 text-slate-100 shadow-2xl p-5 sm:p-7">
-          <DialogHeader className="border-b border-rose-500/20 pb-3">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 shadow-xl p-5 sm:p-7">
+          <DialogHeader className="border-b border-slate-200 pb-3">
             <div className="flex items-center justify-between gap-3 pr-6">
-              <DialogTitle className="text-base sm:text-lg font-bold text-white flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+              <DialogTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">
                   <TrendingDown className="w-4 h-4" />
                 </div>
                 <span>Adicionar Despesa Operacional</span>
               </DialogTitle>
-              <Badge className="bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[11px] font-mono">
+              <Badge className="bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-mono">
                 Dedução (−)
               </Badge>
             </div>
-            <DialogDescription className="text-xs text-slate-400">
+            <DialogDescription className="text-xs text-slate-500">
               Escolha a discriminação contábil da despesa ou insira com 1 clique a partir dos
               exemplos prontos para empresas de pequeno, médio ou grande porte.
             </DialogDescription>
@@ -726,22 +756,22 @@ export default function OperatingExpensesPage() {
           <div className="space-y-6 pt-3">
             {/* Feedback de inserção rápida */}
             {expenseSuccessFeedback && (
-              <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-mono flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>{expenseSuccessFeedback}</span>
               </div>
             )}
 
             {/* SEÇÃO A: MODELOS PRONTOS POR PORTE (1-CLIQUE) */}
-            <div className="space-y-3 bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+            <div className="space-y-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-orange-400" />
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-800">
                     Exemplos Prontos do Dia a Dia Empresarial
                   </span>
                 </div>
-                <span className="text-[11px] text-slate-400 font-sans">
+                <span className="text-[11px] text-slate-500 font-sans">
                   Clique para preencher ou inserir diretamente
                 </span>
               </div>
@@ -753,15 +783,15 @@ export default function OperatingExpensesPage() {
                   onClick={() => setExpenseCompanySize('small')}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     expenseCompanySize === 'small'
-                      ? 'bg-orange-500/20 border-orange-500/80 text-orange-100 shadow-sm shadow-orange-500/20 ring-1 ring-orange-500/40'
-                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs ring-1 ring-emerald-400'
+                      : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 font-bold text-xs">
-                    <Building2 className="w-3.5 h-3.5 text-orange-400" />
+                    <Building2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Pequeno Porte</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">ME / EPP</div>
+                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">ME / EPP</div>
                 </button>
 
                 <button
@@ -769,15 +799,15 @@ export default function OperatingExpensesPage() {
                   onClick={() => setExpenseCompanySize('medium')}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     expenseCompanySize === 'medium'
-                      ? 'bg-orange-500/20 border-orange-500/80 text-orange-100 shadow-sm shadow-orange-500/20 ring-1 ring-orange-500/40'
-                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs ring-1 ring-emerald-400'
+                      : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 font-bold text-xs">
-                    <Building className="w-3.5 h-3.5 text-orange-400" />
+                    <Building className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Médio Porte</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">Média Empresa</div>
+                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">Média Empresa</div>
                 </button>
 
                 <button
@@ -785,22 +815,22 @@ export default function OperatingExpensesPage() {
                   onClick={() => setExpenseCompanySize('large')}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     expenseCompanySize === 'large'
-                      ? 'bg-orange-500/20 border-orange-500/80 text-orange-100 shadow-sm shadow-orange-500/20 ring-1 ring-orange-500/40'
-                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs ring-1 ring-emerald-400'
+                      : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 font-bold text-xs">
-                    <Landmark className="w-3.5 h-3.5 text-orange-400" />
+                    <Landmark className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Grande Porte</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">
                     Corporativo / S.A.
                   </div>
                 </button>
               </div>
 
               {/* Descrição do Porte Ativo */}
-              <p className="text-[11px] text-slate-400 font-mono">
+              <p className="text-[11px] text-slate-500 font-mono">
                 {COMPANY_SIZE_LABELS[expenseCompanySize].description}
               </p>
 
@@ -811,10 +841,10 @@ export default function OperatingExpensesPage() {
                   return (
                     <div
                       key={preset.id}
-                      className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-orange-500/50 transition-all flex flex-col justify-between gap-1.5 group"
+                      className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 transition-all flex flex-col justify-between gap-1.5 group shadow-xs"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-200 group-hover:text-orange-200">
+                        <span className="text-xs font-semibold text-slate-800 group-hover:text-emerald-800">
                           {preset.label}
                         </span>
                         <Badge
@@ -824,17 +854,17 @@ export default function OperatingExpensesPage() {
                         </Badge>
                       </div>
 
-                      <p className="text-[10px] text-slate-400 line-clamp-1">{preset.hint}</p>
+                      <p className="text-[10px] text-slate-500 line-clamp-1">{preset.hint}</p>
 
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-800/60 font-mono text-xs">
-                        <span className="text-rose-400 font-bold">
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 font-mono text-xs">
+                        <span className="text-rose-700 font-bold">
                           {formatBRL(preset.suggestedValue)}
                         </span>
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
                             onClick={() => handleSelectExpensePreset(preset, false)}
-                            className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
+                            className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200"
                             title="Preencher campos abaixo para personalizar"
                           >
                             Preencher
@@ -842,7 +872,7 @@ export default function OperatingExpensesPage() {
                           <button
                             type="button"
                             onClick={() => handleSelectExpensePreset(preset, true)}
-                            className="text-[10px] px-2 py-0.5 rounded bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold transition-colors cursor-pointer flex items-center gap-0.5"
+                            className="text-[10px] px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors cursor-pointer flex items-center gap-0.5"
                             title="Inserir na tabela com 1 clique"
                           >
                             <Plus className="w-2.5 h-2.5" />
@@ -857,10 +887,10 @@ export default function OperatingExpensesPage() {
             </div>
 
             {/* SEÇÃO B: DISCRIMINAÇÃO E FORMULÁRIO MANUAL */}
-            <div className="space-y-4 bg-slate-950/70 border border-rose-500/30 rounded-2xl p-4">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                <Tag className="w-4 h-4 text-rose-400" />
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+            <div className="space-y-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                <Tag className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-800">
                   Discriminação Contábil e Valores
                 </span>
               </div>
@@ -868,29 +898,29 @@ export default function OperatingExpensesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Campo 1: Descrição */}
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="text-[11px] font-mono text-slate-300 font-semibold flex items-center gap-1">
+                  <label className="text-[11px] font-mono text-slate-700 font-semibold flex items-center gap-1">
                     <span>Descrição da Despesa</span>
-                    <span className="text-rose-400">*</span>
+                    <span className="text-rose-600">*</span>
                   </label>
                   <Input
                     type="text"
                     value={expenseDescription}
                     onChange={(e) => setExpenseDescription(e.target.value)}
                     placeholder="Ex.: Aluguel do ponto, Energia elétrica, Honorários contábeis..."
-                    className="h-9 text-xs bg-slate-900 border-slate-700 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-slate-100 placeholder:text-slate-600 font-sans"
+                    className="h-9 text-xs bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 placeholder:text-slate-400 font-sans"
                   />
                 </div>
 
                 {/* Campo 2: Discriminação / Categoria Contábil */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-slate-300 font-semibold flex items-center gap-1">
-                    <Layers className="w-3.5 h-3.5 text-orange-400" />
+                  <label className="text-[11px] font-mono text-slate-700 font-semibold flex items-center gap-1">
+                    <Layers className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Discriminação / Categoria</span>
                   </label>
                   <select
                     value={expenseCategory}
                     onChange={(e) => setExpenseCategory(e.target.value as OperatingExpenseCategory)}
-                    className="h-9 w-full text-xs bg-slate-900 border border-slate-700 rounded-md px-3 text-slate-100 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 font-sans cursor-pointer"
+                    className="h-9 w-full text-xs bg-white border border-slate-300 rounded-md px-3 text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans cursor-pointer"
                   >
                     <option value="vendas">
                       Despesas com Vendas (comissões, fretes, marketing)
@@ -905,14 +935,14 @@ export default function OperatingExpensesPage() {
                   </select>
                 </div>
 
-                {/* Campo 3: Valor (R$) com digitação em laranja */}
+                {/* Campo 3: Valor (R$) */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-slate-300 font-semibold flex items-center gap-1">
-                    <DollarSign className="w-3.5 h-3.5 text-orange-400" />
+                  <label className="text-[11px] font-mono text-slate-700 font-semibold flex items-center gap-1">
+                    <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Valor da Despesa (R$)</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-mono">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-mono">
                       R$
                     </span>
                     <Input
@@ -921,27 +951,27 @@ export default function OperatingExpensesPage() {
                       value={expenseValueStr}
                       onChange={(e) => setExpenseValueStr(e.target.value)}
                       placeholder="0,00"
-                      className="h-9 text-xs pl-8 text-right bg-slate-900 border-orange-500/70 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 text-orange-200 font-bold font-mono"
+                      className="h-9 text-xs pl-8 text-right bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 font-bold font-mono"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Dica de dedutibilidade fiscal */}
-              <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/25 text-[11px] font-mono text-orange-200 flex items-start gap-2">
-                <Info className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700 flex items-start gap-2">
+                <Info className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Tratamento Fiscal:</strong> Despesas operacionais necessárias e
-                  comprovadas deduzem o LAIR contábil em todos os regimes e servem de base para a
-                  apuração do Lucro Real e cálculo do LALUR.
+                  <strong className="text-slate-900">Tratamento Fiscal:</strong> Despesas
+                  operacionais necessárias e comprovadas deduzem o LAIR contábil em todos os regimes
+                  e servem de base para a apuração do Lucro Real e cálculo do LALUR.
                 </span>
               </div>
 
               {/* Ação principal de adicionar logo após o formulário curto */}
-              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
-                <span className="text-xs font-mono text-slate-400">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+                <span className="text-xs font-mono text-slate-600">
                   Lançadas no momento:{' '}
-                  <strong className="text-white">{operatingExpenses.length}</strong>
+                  <strong className="text-slate-900">{operatingExpenses.length}</strong>
                 </span>
 
                 <div className="flex items-center gap-2">
@@ -950,7 +980,7 @@ export default function OperatingExpensesPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsAddExpenseModalOpen(false)}
-                    className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white cursor-pointer"
+                    className="text-xs bg-white border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
                   >
                     Fechar
                   </Button>
@@ -958,7 +988,7 @@ export default function OperatingExpensesPage() {
                     type="button"
                     size="sm"
                     onClick={handleSaveCustomExpense}
-                    className="text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold shadow-md shadow-rose-600/30 cursor-pointer px-4"
+                    className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs cursor-pointer px-4"
                   >
                     <Plus className="w-3.5 h-3.5 mr-1" />
                     Adicionar Despesa
@@ -973,20 +1003,20 @@ export default function OperatingExpensesPage() {
       {/* CAMADA OCULTA 2: ADICIONAR RECEITA COM DISCRIMINAÇÃO E EXEMPLOS PRONTOS */}
       {/* ===================================================================== */}
       <Dialog open={isAddRevenueModalOpen} onOpenChange={setIsAddRevenueModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-[#07130f] border border-emerald-500/40 text-slate-100 shadow-2xl p-5 sm:p-7">
-          <DialogHeader className="border-b border-emerald-500/20 pb-3">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 shadow-xl p-5 sm:p-7">
+          <DialogHeader className="border-b border-slate-200 pb-3">
             <div className="flex items-center justify-between gap-3 pr-6">
-              <DialogTitle className="text-base sm:text-lg font-bold text-white flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+              <DialogTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
                   <TrendingUp className="w-4 h-4" />
                 </div>
                 <span>Adicionar Receita Operacional</span>
               </DialogTitle>
-              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-mono">
+              <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-mono">
                 Acréscimo (+)
               </Badge>
             </div>
-            <DialogDescription className="text-xs text-slate-400">
+            <DialogDescription className="text-xs text-slate-500">
               Escolha a discriminação contábil da receita ou insira com 1 clique a partir dos
               exemplos prontos para empresas de pequeno, médio ou grande porte.
             </DialogDescription>
@@ -995,22 +1025,22 @@ export default function OperatingExpensesPage() {
           <div className="space-y-6 pt-3">
             {/* Feedback de inserção rápida */}
             {revenueSuccessFeedback && (
-              <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-mono flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>{revenueSuccessFeedback}</span>
               </div>
             )}
 
             {/* SEÇÃO A: MODELOS PRONTOS POR PORTE (1-CLIQUE) */}
-            <div className="space-y-3 bg-slate-950/70 border border-slate-800/90 rounded-2xl p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+            <div className="space-y-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-800">
                     Exemplos Prontos do Dia a Dia Empresarial
                   </span>
                 </div>
-                <span className="text-[11px] text-slate-400 font-sans">
+                <span className="text-[11px] text-slate-500 font-sans">
                   Clique para preencher ou inserir diretamente
                 </span>
               </div>
@@ -1022,15 +1052,15 @@ export default function OperatingExpensesPage() {
                   onClick={() => setRevenueCompanySize('small')}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     revenueCompanySize === 'small'
-                      ? 'bg-emerald-500/20 border-emerald-500/80 text-emerald-100 shadow-sm shadow-emerald-500/20 ring-1 ring-emerald-500/40'
-                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs ring-1 ring-emerald-400'
+                      : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 font-bold text-xs">
-                    <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <Building2 className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Pequeno Porte</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">ME / EPP</div>
+                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">ME / EPP</div>
                 </button>
 
                 <button
@@ -1038,15 +1068,15 @@ export default function OperatingExpensesPage() {
                   onClick={() => setRevenueCompanySize('medium')}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     revenueCompanySize === 'medium'
-                      ? 'bg-emerald-500/20 border-emerald-500/80 text-emerald-100 shadow-sm shadow-emerald-500/20 ring-1 ring-emerald-500/40'
-                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs ring-1 ring-emerald-400'
+                      : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 font-bold text-xs">
-                    <Building className="w-3.5 h-3.5 text-emerald-400" />
+                    <Building className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Médio Porte</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">Média Empresa</div>
+                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">Média Empresa</div>
                 </button>
 
                 <button
@@ -1054,22 +1084,22 @@ export default function OperatingExpensesPage() {
                   onClick={() => setRevenueCompanySize('large')}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     revenueCompanySize === 'large'
-                      ? 'bg-emerald-500/20 border-emerald-500/80 text-emerald-100 shadow-sm shadow-emerald-500/20 ring-1 ring-emerald-500/40'
-                      : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs ring-1 ring-emerald-400'
+                      : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 font-bold text-xs">
-                    <Landmark className="w-3.5 h-3.5 text-emerald-400" />
+                    <Landmark className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Grande Porte</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">
                     Corporativo / S.A.
                   </div>
                 </button>
               </div>
 
               {/* Descrição do Porte Ativo */}
-              <p className="text-[11px] text-slate-400 font-mono">
+              <p className="text-[11px] text-slate-500 font-mono">
                 {COMPANY_SIZE_LABELS[revenueCompanySize].description}
               </p>
 
@@ -1080,10 +1110,10 @@ export default function OperatingExpensesPage() {
                   return (
                     <div
                       key={preset.id}
-                      className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 transition-all flex flex-col justify-between gap-1.5 group"
+                      className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 transition-all flex flex-col justify-between gap-1.5 group shadow-xs"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-200 group-hover:text-emerald-200">
+                        <span className="text-xs font-semibold text-slate-800 group-hover:text-emerald-800">
                           {preset.label}
                         </span>
                         <Badge
@@ -1093,17 +1123,17 @@ export default function OperatingExpensesPage() {
                         </Badge>
                       </div>
 
-                      <p className="text-[10px] text-slate-400 line-clamp-1">{preset.hint}</p>
+                      <p className="text-[10px] text-slate-500 line-clamp-1">{preset.hint}</p>
 
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-800/60 font-mono text-xs">
-                        <span className="text-emerald-400 font-bold">
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 font-mono text-xs">
+                        <span className="text-emerald-700 font-bold">
                           {formatBRL(preset.suggestedValue)}
                         </span>
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
                             onClick={() => handleSelectRevenuePreset(preset, false)}
-                            className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors cursor-pointer"
+                            className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200"
                             title="Preencher campos abaixo para personalizar"
                           >
                             Preencher
@@ -1111,7 +1141,7 @@ export default function OperatingExpensesPage() {
                           <button
                             type="button"
                             onClick={() => handleSelectRevenuePreset(preset, true)}
-                            className="text-[10px] px-2 py-0.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition-colors cursor-pointer flex items-center gap-0.5"
+                            className="text-[10px] px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors cursor-pointer flex items-center gap-0.5"
                             title="Inserir na tabela com 1 clique"
                           >
                             <Plus className="w-2.5 h-2.5" />
@@ -1126,10 +1156,10 @@ export default function OperatingExpensesPage() {
             </div>
 
             {/* SEÇÃO B: DISCRIMINAÇÃO E FORMULÁRIO MANUAL */}
-            <div className="space-y-4 bg-slate-950/70 border border-emerald-500/30 rounded-2xl p-4">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
-                <Tag className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+            <div className="space-y-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                <Tag className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-800">
                   Discriminação Contábil e Valores
                 </span>
               </div>
@@ -1137,29 +1167,29 @@ export default function OperatingExpensesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Campo 1: Descrição */}
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="text-[11px] font-mono text-slate-300 font-semibold flex items-center gap-1">
+                  <label className="text-[11px] font-mono text-slate-700 font-semibold flex items-center gap-1">
                     <span>Descrição da Receita</span>
-                    <span className="text-emerald-400">*</span>
+                    <span className="text-emerald-600">*</span>
                   </label>
                   <Input
                     type="text"
                     value={revenueDescription}
                     onChange={(e) => setRevenueDescription(e.target.value)}
                     placeholder="Ex.: Rendimento de aplicação financeira, Aluguel de espaço ocioso..."
-                    className="h-9 text-xs bg-slate-900 border-slate-700 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-slate-100 placeholder:text-slate-600 font-sans"
+                    className="h-9 text-xs bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 placeholder:text-slate-400 font-sans"
                   />
                 </div>
 
                 {/* Campo 2: Discriminação / Categoria Contábil */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-slate-300 font-semibold flex items-center gap-1">
-                    <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                  <label className="text-[11px] font-mono text-slate-700 font-semibold flex items-center gap-1">
+                    <Layers className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Discriminação / Categoria</span>
                   </label>
                   <select
                     value={revenueCategory}
                     onChange={(e) => setRevenueCategory(e.target.value as OperatingRevenueCategory)}
-                    className="h-9 w-full text-xs bg-slate-900 border border-slate-700 rounded-md px-3 text-slate-100 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 font-sans cursor-pointer"
+                    className="h-9 w-full text-xs bg-white border border-slate-300 rounded-md px-3 text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans cursor-pointer"
                   >
                     <option value="financeiras">
                       Receitas Financeiras (aplicações em CDB/LCI, juros ativos, descontos obtidos)
@@ -1171,14 +1201,14 @@ export default function OperatingExpensesPage() {
                   </select>
                 </div>
 
-                {/* Campo 3: Valor (R$) com digitação em laranja */}
+                {/* Campo 3: Valor (R$) */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-slate-300 font-semibold flex items-center gap-1">
-                    <DollarSign className="w-3.5 h-3.5 text-orange-400" />
+                  <label className="text-[11px] font-mono text-slate-700 font-semibold flex items-center gap-1">
+                    <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Valor da Receita (R$)</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-mono">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-mono">
                       R$
                     </span>
                     <Input
@@ -1187,28 +1217,28 @@ export default function OperatingExpensesPage() {
                       value={revenueValueStr}
                       onChange={(e) => setRevenueValueStr(e.target.value)}
                       placeholder="0,00"
-                      className="h-9 text-xs pl-8 text-right bg-slate-900 border-orange-500/70 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 text-orange-200 font-bold font-mono"
+                      className="h-9 text-xs pl-8 text-right bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 font-bold font-mono"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Dica de tributabilidade fiscal */}
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-mono text-emerald-200 flex items-start gap-2">
-                <Info className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700 flex items-start gap-2">
+                <Info className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Tratamento Fiscal:</strong> Receitas operacionais e financeiras acrescem o
-                  Lucro Bruto para cálculo do LAIR contábil. No Lucro Presumido, receitas
-                  financeiras são somadas integralmente à base de IRPJ/CSLL (100%), e no Lucro Real
-                  compõem o resultado líquido apurado.
+                  <strong className="text-slate-900">Tratamento Fiscal:</strong> Receitas
+                  operacionais e financeiras acrescem o Lucro Bruto para cálculo do LAIR contábil.
+                  No Lucro Presumido, receitas financeiras são somadas integralmente à base de
+                  IRPJ/CSLL (100%), e no Lucro Real compõem o resultado líquido apurado.
                 </span>
               </div>
 
               {/* Ação principal de adicionar logo após o formulário curto */}
-              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
-                <span className="text-xs font-mono text-slate-400">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+                <span className="text-xs font-mono text-slate-600">
                   Lançadas no momento:{' '}
-                  <strong className="text-white">{operatingRevenues.length}</strong>
+                  <strong className="text-slate-900">{operatingRevenues.length}</strong>
                 </span>
 
                 <div className="flex items-center gap-2">
@@ -1217,7 +1247,7 @@ export default function OperatingExpensesPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsAddRevenueModalOpen(false)}
-                    className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white cursor-pointer"
+                    className="text-xs bg-white border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
                   >
                     Fechar
                   </Button>
@@ -1225,7 +1255,7 @@ export default function OperatingExpensesPage() {
                     type="button"
                     size="sm"
                     onClick={handleSaveCustomRevenue}
-                    className="text-xs bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-600/30 cursor-pointer px-4"
+                    className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs cursor-pointer px-4"
                   >
                     <Plus className="w-3.5 h-3.5 mr-1" />
                     Adicionar Receita
@@ -1240,11 +1270,11 @@ export default function OperatingExpensesPage() {
       {/* SUBCAMADA MODAL: FOLHA DE SALÁRIOS, PRÓ-LABORE E ENCARGOS PATRONAIS */}
       {/* ===================================================================== */}
       <Dialog open={isPayrollModalOpen} onOpenChange={setIsPayrollModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#07130f] border border-emerald-500/40 text-slate-100 shadow-2xl p-5 sm:p-7">
-          <DialogHeader className="border-b border-emerald-500/20 pb-3">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 shadow-xl p-5 sm:p-7">
+          <DialogHeader className="border-b border-slate-200 pb-3">
             <div className="flex items-center justify-between gap-3 pr-6">
-              <DialogTitle className="text-base sm:text-lg font-bold text-white flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+              <DialogTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
                   <Users className="w-4 h-4" />
                 </div>
                 <span>Folha de Pagamento, Pró-labore e Encargos Patronais</span>
@@ -1252,14 +1282,14 @@ export default function OperatingExpensesPage() {
               <Badge
                 className={`text-[11px] font-mono ${
                   hasPayrollValues
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                    : 'bg-slate-800 text-slate-400 border border-slate-700'
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-slate-100 text-slate-600 border border-slate-200'
                 }`}
               >
                 {hasPayrollValues ? 'Valores Ativos' : 'Não preenchido'}
               </Badge>
             </div>
-            <DialogDescription className="text-xs text-slate-400">
+            <DialogDescription className="text-xs text-slate-500">
               Ajuste aqui a folha de salários mensal, o pró-labore dos sócios e as alíquotas de
               encargos patronais (INSS 20%, RAT e Terceiros). Os dados alimentam diretamente os
               encargos nas DREs e o Fator R do Simples Nacional.
@@ -1283,10 +1313,10 @@ export default function OperatingExpensesPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-slate-800">
-            <span className="text-xs font-mono text-slate-400">
+          <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+            <span className="text-xs font-mono text-slate-600">
               Total Pessoal + Encargos:{' '}
-              <strong className="text-emerald-400 font-bold">
+              <strong className="text-emerald-700 font-bold">
                 {formatBRL(payrollResult.totalLaborExpense)}
               </strong>
             </span>
@@ -1294,7 +1324,7 @@ export default function OperatingExpensesPage() {
               type="button"
               size="sm"
               onClick={() => setIsPayrollModalOpen(false)}
-              className="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20 cursor-pointer"
+              className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs cursor-pointer"
             >
               Concluir
             </Button>

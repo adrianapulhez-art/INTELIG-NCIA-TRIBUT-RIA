@@ -52,22 +52,22 @@ export const EXPENSE_CATEGORY_LABELS: Record<
   vendas: {
     label: 'Despesas com Vendas',
     short: 'Vendas',
-    badgeClass: 'bg-rose-500/15 border-rose-500/30 text-rose-300',
+    badgeClass: 'bg-rose-50 border-rose-200 text-rose-700',
   },
   administrativas: {
     label: 'Despesas Administrativas',
     short: 'Administrativa',
-    badgeClass: 'bg-blue-500/15 border-blue-500/30 text-blue-300',
+    badgeClass: 'bg-blue-50 border-blue-200 text-blue-700',
   },
   financeiras: {
     label: 'Despesas Financeiras',
     short: 'Financeira',
-    badgeClass: 'bg-amber-500/15 border-amber-500/30 text-amber-300',
+    badgeClass: 'bg-amber-50 border-amber-200 text-amber-800',
   },
   outras: {
     label: 'Outras Despesas Operacionais',
     short: 'Outras',
-    badgeClass: 'bg-purple-500/15 border-purple-500/30 text-purple-300',
+    badgeClass: 'bg-purple-50 border-purple-200 text-purple-700',
   },
 }
 
@@ -78,12 +78,12 @@ export const REVENUE_CATEGORY_LABELS: Record<
   financeiras: {
     label: 'Receitas Financeiras',
     short: 'Financeira',
-    badgeClass: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300',
+    badgeClass: 'bg-emerald-50 border-emerald-200 text-emerald-700',
   },
   outras: {
     label: 'Outras Receitas Operacionais',
     short: 'Outras Operacionais',
-    badgeClass: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300',
+    badgeClass: 'bg-cyan-50 border-cyan-200 text-cyan-800',
   },
 }
 
