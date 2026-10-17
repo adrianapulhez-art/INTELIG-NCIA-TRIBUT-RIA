@@ -930,11 +930,11 @@ export default function MarkupPage() {
                 <label className="text-xs font-semibold text-slate-700">
                   Regime tributário da empresa (alíquotas automáticas)
                 </label>
-                {/* Sinalização de fluxo na UI, discreta e em camadas */}
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-[11px] font-mono">
+                {/* Sinalização de fluxo na UI, discreta e em camadas — unificada em verde-esmeralda */}
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50/80 border border-emerald-200 text-[11px] font-mono shadow-xs">
                   {markupMode === 'liquid' ? (
                     <span
-                      className="inline-flex items-center gap-1 text-emerald-700 font-medium cursor-help"
+                      className="inline-flex items-center gap-1 text-emerald-800 font-medium cursor-help"
                       title="Fluxo B: a receita líquida desejada alimenta apenas o markup e a DRE deste regime, sem propagação para os demais."
                     >
                       <Target className="w-3 h-3 text-emerald-600" />
@@ -942,32 +942,32 @@ export default function MarkupPage() {
                     </span>
                   ) : (
                     <span
-                      className="inline-flex items-center gap-1 text-sky-700 font-medium cursor-help"
+                      className="inline-flex items-center gap-1 text-emerald-800 font-medium cursor-help"
                       title="Fluxo Custo + Margem: baseada na composição do CMV ou compras líquidas."
                     >
-                      <Layers className="w-3 h-3 text-sky-600" />
+                      <Layers className="w-3 h-3 text-emerald-600" />
                       <span>Custo + Margem</span>
                     </span>
                   )}
                 </div>
 
-                {/* Botão em camada padrão "Memória ›" para Fluxo A: Comparação por Preço de Mercado */}
+                {/* Botão em camada padrão "Memória ›" para Fluxo A: Comparação por Preço de Mercado — unificado em verde-esmeralda */}
                 <button
                   type="button"
                   onClick={() => setIsMarketComparisonModalOpen(true)}
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 hover:text-amber-900 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 hover:text-emerald-950 hover:border-emerald-400 transition-colors cursor-pointer shadow-xs"
                   title="Fluxo A: testar um único preço de venda de mercado como âncora nos 3 regimes"
                 >
-                  <TrendingUp className="w-3 h-3 text-amber-600" />
+                  <TrendingUp className="w-3 h-3 text-emerald-600" />
                   <span>Comparação por preço de mercado (Fluxo A) ›</span>
                 </button>
               </div>
 
               <Badge
                 variant="outline"
-                className="text-[11px] font-mono border-emerald-300 text-emerald-700 bg-emerald-50 px-2 py-0.5 inline-flex items-center gap-1.5 font-normal shadow-sm"
+                className="text-[11px] font-mono border-emerald-300 text-emerald-800 bg-emerald-50 px-2.5 py-0.5 inline-flex items-center gap-1.5 font-normal shadow-xs"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
                 Sincronizado globalmente
               </Badge>
             </div>
@@ -976,24 +976,24 @@ export default function MarkupPage() {
               <button
                 type="button"
                 onClick={() => setRegime('presumido')}
-                className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer shadow-sm ${
+                className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer shadow-sm ${
                   regime === 'presumido'
-                    ? 'bg-emerald-50/90 border-emerald-600 ring-2 ring-emerald-500/20 text-slate-950 shadow-md'
-                    : 'bg-white border-slate-300 hover:border-slate-400 hover:bg-slate-50/80 text-slate-900'
+                    ? 'bg-emerald-100/70 border-emerald-600 ring-2 ring-emerald-500/30 text-slate-950 shadow-md'
+                    : 'bg-white border-slate-300 hover:border-emerald-400 hover:bg-emerald-50/30 text-slate-900'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-extrabold font-mono uppercase tracking-wide ${regime === 'presumido' ? 'text-emerald-900' : 'text-slate-950'}`}
+                    className={`text-xs font-black font-mono uppercase tracking-wider ${regime === 'presumido' ? 'text-emerald-950' : 'text-slate-950'}`}
                   >
                     Lucro Presumido
                   </span>
                   {regime === 'presumido' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
                   )}
                 </div>
                 <p
-                  className={`text-[11px] mt-1.5 font-mono ${regime === 'presumido' ? 'text-slate-800 font-semibold' : 'text-slate-700 font-medium'}`}
+                  className={`text-[11px] mt-1.5 font-mono ${regime === 'presumido' ? 'text-slate-900 font-semibold' : 'text-slate-700 font-medium'}`}
                 >
                   PIS 0,65% · COFINS 3,00% (cumulativo)
                 </p>
@@ -1002,24 +1002,24 @@ export default function MarkupPage() {
               <button
                 type="button"
                 onClick={() => setRegime('real')}
-                className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer shadow-sm ${
+                className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer shadow-sm ${
                   regime === 'real'
-                    ? 'bg-emerald-50/90 border-emerald-600 ring-2 ring-emerald-500/20 text-slate-950 shadow-md'
-                    : 'bg-white border-slate-300 hover:border-slate-400 hover:bg-slate-50/80 text-slate-900'
+                    ? 'bg-emerald-100/70 border-emerald-600 ring-2 ring-emerald-500/30 text-slate-950 shadow-md'
+                    : 'bg-white border-slate-300 hover:border-emerald-400 hover:bg-emerald-50/30 text-slate-900'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-extrabold font-mono uppercase tracking-wide ${regime === 'real' ? 'text-emerald-900' : 'text-slate-950'}`}
+                    className={`text-xs font-black font-mono uppercase tracking-wider ${regime === 'real' ? 'text-emerald-950' : 'text-slate-950'}`}
                   >
                     Lucro Real
                   </span>
                   {regime === 'real' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
                   )}
                 </div>
                 <p
-                  className={`text-[11px] mt-1.5 font-mono ${regime === 'real' ? 'text-slate-800 font-semibold' : 'text-slate-700 font-medium'}`}
+                  className={`text-[11px] mt-1.5 font-mono ${regime === 'real' ? 'text-slate-900 font-semibold' : 'text-slate-700 font-medium'}`}
                 >
                   PIS 1,65% · COFINS 7,60% (não cumulativo)
                 </p>
@@ -1028,24 +1028,24 @@ export default function MarkupPage() {
               <button
                 type="button"
                 onClick={() => setRegime('simples')}
-                className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer shadow-sm ${
+                className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer shadow-sm ${
                   regime === 'simples'
-                    ? 'bg-emerald-50/90 border-emerald-600 ring-2 ring-emerald-500/20 text-slate-950 shadow-md'
-                    : 'bg-white border-slate-300 hover:border-slate-400 hover:bg-slate-50/80 text-slate-900'
+                    ? 'bg-emerald-100/70 border-emerald-600 ring-2 ring-emerald-500/30 text-slate-950 shadow-md'
+                    : 'bg-white border-slate-300 hover:border-emerald-400 hover:bg-emerald-50/30 text-slate-900'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-extrabold font-mono uppercase tracking-wide ${regime === 'simples' ? 'text-emerald-900' : 'text-slate-950'}`}
+                    className={`text-xs font-black font-mono uppercase tracking-wider ${regime === 'simples' ? 'text-emerald-950' : 'text-slate-950'}`}
                   >
                     Simples Nacional
                   </span>
                   {regime === 'simples' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
                   )}
                 </div>
                 <p
-                  className={`text-[11px] mt-1.5 font-mono ${regime === 'simples' ? 'text-slate-800 font-semibold' : 'text-slate-700 font-medium'}`}
+                  className={`text-[11px] mt-1.5 font-mono ${regime === 'simples' ? 'text-slate-900 font-semibold' : 'text-slate-700 font-medium'}`}
                 >
                   Guia única DAS (PIS/COFINS sem destaque avulso)
                 </p>
@@ -1660,7 +1660,7 @@ export default function MarkupPage() {
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
                       !allProductsCollapsed
                         ? 'text-slate-400 cursor-not-allowed'
-                        : 'text-slate-700 hover:text-emerald-700 hover:bg-slate-50 cursor-pointer'
+                        : 'text-slate-800 hover:text-slate-950 hover:bg-slate-100 cursor-pointer'
                     }`}
                     title="No modo acordeão (01 por vez): expande a camada do primeiro produto"
                   >
@@ -1675,7 +1675,7 @@ export default function MarkupPage() {
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
                       allProductsCollapsed
                         ? 'text-slate-400 cursor-not-allowed'
-                        : 'text-slate-700 hover:text-emerald-700 hover:bg-slate-50 cursor-pointer'
+                        : 'text-slate-800 hover:text-slate-950 hover:bg-slate-100 cursor-pointer'
                     }`}
                     title="Recolher todas as camadas para linhas-resumo compactas"
                   >
@@ -1868,14 +1868,14 @@ export default function MarkupPage() {
                               </button>
                             </div>
 
-                            {/* Botão Expandir / Detalhes */}
+                            {/* Botão Expandir / Detalhes — estilo cinza robusto chancelado */}
                             <button
                               type="button"
                               onClick={() => toggleMarkupProduct(prod.id)}
-                              className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-md cursor-pointer transition-all shadow-sm"
+                              className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-900 hover:text-slate-950 bg-slate-200/90 hover:bg-slate-300 border-2 border-slate-300 px-2 py-1 rounded-md cursor-pointer transition-all shadow-xs font-bold"
                               title="Expandir camada completa deste produto"
                             >
-                              <ChevronDown className="w-3 h-3 text-emerald-700" />
+                              <ChevronDown className="w-3 h-3 text-slate-700" />
                               <span>Detalhes</span>
                             </button>
 
@@ -1954,14 +1954,14 @@ export default function MarkupPage() {
                           </button>
                         </div>
 
-                        {/* Botão de Recolher Camada */}
+                        {/* Botão de Recolher Camada — estilo cinza robusto chancelado (bg-slate-200 com borda slate-300, texto escuro quase preto) */}
                         <button
                           type="button"
                           onClick={() => toggleMarkupProduct(prod.id)}
-                          className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md cursor-pointer transition-all shadow-sm"
+                          className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-900 hover:text-slate-950 bg-slate-200/90 hover:bg-slate-300 border-2 border-slate-300 px-2.5 py-1 rounded-md cursor-pointer transition-all shadow-xs font-bold"
                           title="Recolher camada para linha compacta"
                         >
-                          <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
+                          <ChevronUp className="w-3.5 h-3.5 text-slate-700" />
                           <span className="hidden sm:inline">Recolher</span>
                         </button>
 
