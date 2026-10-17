@@ -175,9 +175,9 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
         <div className="flex items-center gap-3">
           {/* Indicador de CENÁRIO ATIVO (multi-cliente) — persistente em pré e pós-reforma */}
           {cenarioAtivo && (
-            <div className="hidden md:flex items-center gap-2 bg-sky-50 border border-sky-200 rounded-lg px-2.5 py-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-              <span className="text-[11px] font-medium text-sky-800 max-w-[220px] truncate">
+            <div className="hidden md:flex items-center gap-2 bg-emerald-50 border border-emerald-300 rounded-lg px-2.5 py-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+              <span className="text-[11px] font-medium text-emerald-950 max-w-[220px] truncate">
                 Cenário: {cenarioAtivo.cliente} · {cenarioAtivo.nome}
               </span>
               <button

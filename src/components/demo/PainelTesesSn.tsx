@@ -26,17 +26,17 @@ export function PainelTesesSn({
   const { bruta, liquida } = comparativoBases
 
   return (
-    <div className="rounded-xl border border-violet-500/40 bg-slate-950/70 p-3.5 space-y-3">
+    <div className="rounded-2xl border border-amber-300 bg-amber-50/50 p-4 space-y-3.5 shadow-2xs">
       {/* Cabeçalho */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
-        <div className="space-y-0.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-2.5">
+        <div className="space-y-0.5 border-l-4 border-amber-500 pl-2.5">
           <div className="flex items-center gap-2">
-            <Scale className="w-4 h-4 text-violet-400" />
-            <span className="text-[11px] font-mono font-black uppercase tracking-wider text-violet-300">
+            <Scale className="w-4 h-4 text-amber-700" />
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-950">
               Pendências de Regulamentação — Res. CGSN 190/2026
             </span>
           </div>
-          <p className="text-[9px] font-mono text-slate-400 leading-tight">
+          <p className="text-[10px] font-mono text-slate-600 leading-tight">
             Teses tributárias abertas para a apropriação de créditos de optantes do Simples Nacional
             na Reforma Tributária (LC 123/2006 arts. 23 e 25 × LC 214/2025).
           </p>
@@ -48,114 +48,114 @@ export function PainelTesesSn({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Tese A: Base Bruta */}
         <div
-          className={`rounded-lg border p-3 space-y-2 transition-all cursor-pointer ${
+          className={`rounded-xl border-2 p-3.5 space-y-2 transition-all cursor-pointer shadow-2xs ${
             baseAtual === 'bruta'
-              ? 'bg-violet-500/10 border-violet-400/80 ring-1 ring-violet-500/40'
-              : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
+              ? 'bg-emerald-50 border-emerald-600'
+              : 'bg-white border-slate-300 hover:border-slate-400'
           }`}
           onClick={() => onAlternarBase('bruta')}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-bold uppercase text-violet-200">
-              Tese A · Base do DAS Bruta (Default IT)
+            <span className="text-xs font-mono font-bold uppercase text-slate-900">
+              Tese A · Base do DAS Bruta [Padrão]
             </span>
             {baseAtual === 'bruta' && (
-              <span className="text-[9px] font-mono font-bold bg-violet-500 text-slate-950 px-1.5 py-0.5 rounded flex items-center gap-1">
+              <span className="text-[9px] font-mono font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" /> Em uso
               </span>
             )}
           </div>
-          <p className="text-[9px] font-mono text-slate-400 leading-tight">
+          <p className="text-[10px] font-mono text-slate-600 leading-tight">
             Incidência da alíquota efetiva sobre a receita bruta total da nota (LC 123/2006, art.
             3º, §12º), sem abatimento do ICMS destacado.
           </p>
-          <div className="space-y-1 bg-slate-950/60 p-2 rounded border border-slate-800/80 text-[10px] font-mono">
+          <div className="space-y-1 bg-white p-2.5 rounded-lg border border-slate-200 text-xs font-mono">
             <div className="flex justify-between">
-              <span className="text-slate-400">Base do DAS:</span>
-              <span className="text-slate-200 font-bold">{formatBRL(bruta.base)}</span>
+              <span className="text-slate-600">Base do DAS:</span>
+              <span className="text-slate-900 font-bold">{formatBRL(bruta.base)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">DAS Devido (4,00%):</span>
-              <span className="text-slate-200 font-bold">{formatBRL(bruta.das)}</span>
+              <span className="text-slate-600">DAS Devido (4,00%):</span>
+              <span className="text-slate-900 font-bold">{formatBRL(bruta.das)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-emerald-400 font-bold">Crédito LP 2027 (1,98%):</span>
-              <span className="text-emerald-300 font-bold">{formatBRL(bruta.creditoTotal)}</span>
+              <span className="text-emerald-800 font-bold">Crédito LP 2027 (1,98%):</span>
+              <span className="text-emerald-700 font-bold">{formatBRL(bruta.creditoTotal)}</span>
             </div>
-            <div className="flex justify-between border-t border-slate-800 pt-1">
-              <span className="text-slate-300 font-bold">Custo Unitário Líquido:</span>
-              <span className="text-violet-300 font-bold">{formatBRL(bruta.custoUnitario)}/un</span>
+            <div className="flex justify-between border-t border-slate-200 pt-1">
+              <span className="text-slate-900 font-bold">Custo Unitário Líquido:</span>
+              <span className="text-slate-900 font-black">{formatBRL(bruta.custoUnitario)}/un</span>
             </div>
           </div>
-          <div className="text-[8px] font-mono text-slate-500">
+          <div className="text-[9px] font-mono text-slate-500">
             Fundamento: LC 123/2006, art. 3º, §12º + art. 23, §1º.
           </div>
         </div>
 
         {/* Tese B: Base Líquida */}
         <div
-          className={`rounded-lg border p-3 space-y-2 transition-all cursor-pointer ${
+          className={`rounded-xl border-2 p-3.5 space-y-2 transition-all cursor-pointer shadow-2xs ${
             baseAtual === 'liquida'
-              ? 'bg-violet-500/10 border-violet-400/80 ring-1 ring-violet-500/40'
-              : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
+              ? 'bg-emerald-50 border-emerald-600'
+              : 'bg-white border-slate-300 hover:border-slate-400'
           }`}
           onClick={() => onAlternarBase('liquida')}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-bold uppercase text-violet-200">
+            <span className="text-xs font-mono font-bold uppercase text-slate-900">
               Tese B · Base Líquida da Fração ICMS
             </span>
             {baseAtual === 'liquida' && (
-              <span className="text-[9px] font-mono font-bold bg-violet-500 text-slate-950 px-1.5 py-0.5 rounded flex items-center gap-1">
+              <span className="text-[9px] font-mono font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" /> Em uso
               </span>
             )}
           </div>
-          <p className="text-[9px] font-mono text-slate-400 leading-tight">
+          <p className="text-[10px] font-mono text-slate-600 leading-tight">
             Dedução do ICMS cobrado do adquirente (art. 25, §1º, II da LC 123) com base na fração do
             anexo informada no documento fiscal ({formatNumberBR(resultado.icmsPct, 2)}%).
           </p>
-          <div className="space-y-1 bg-slate-950/60 p-2 rounded border border-slate-800/80 text-[10px] font-mono">
+          <div className="space-y-1 bg-white p-2.5 rounded-lg border border-slate-200 text-xs font-mono">
             <div className="flex justify-between">
-              <span className="text-slate-400">Dedução ICMS nota:</span>
-              <span className="text-rose-300 font-bold">-{formatBRL(liquida.deducaoIcms)}</span>
+              <span className="text-slate-600">Dedução ICMS nota:</span>
+              <span className="text-rose-700 font-bold">-{formatBRL(liquida.deducaoIcms)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Base Líquida apurada:</span>
-              <span className="text-slate-200 font-bold">{formatBRL(liquida.base)}</span>
+              <span className="text-slate-600">Base Líquida apurada:</span>
+              <span className="text-slate-900 font-bold">{formatBRL(liquida.base)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">DAS Devido (4,00%):</span>
-              <span className="text-slate-200 font-bold">{formatBRL(liquida.das)}</span>
+              <span className="text-slate-600">DAS Devido (4,00%):</span>
+              <span className="text-slate-900 font-bold">{formatBRL(liquida.das)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-emerald-400 font-bold">Crédito LP 2027 (1,98%):</span>
-              <span className="text-emerald-300 font-bold">{formatBRL(liquida.creditoTotal)}</span>
+              <span className="text-emerald-800 font-bold">Crédito LP 2027 (1,98%):</span>
+              <span className="text-emerald-700 font-bold">{formatBRL(liquida.creditoTotal)}</span>
             </div>
-            <div className="flex justify-between border-t border-slate-800 pt-1">
-              <span className="text-slate-300 font-bold">Custo Unitário Líquido:</span>
-              <span className="text-violet-300 font-bold">
+            <div className="flex justify-between border-t border-slate-200 pt-1">
+              <span className="text-slate-900 font-bold">Custo Unitário Líquido:</span>
+              <span className="text-slate-900 font-black">
                 {formatBRL(liquida.custoUnitario)}/un
               </span>
             </div>
           </div>
-          <div className="text-[8px] font-mono text-slate-500">
+          <div className="text-[9px] font-mono text-slate-500">
             Fundamento: LC 123/2006, art. 25, §1º, II + Res. CGSN 190/2026.
           </div>
         </div>
       </div>
 
       {/* Nota de honestidade da IT */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-violet-950/30 border border-violet-500/20 text-[9px] font-mono text-slate-400">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white border border-amber-300 text-[10px] font-mono text-slate-700 shadow-2xs">
         <div>
-          <span className="text-violet-300 font-bold">
+          <span className="text-slate-900 font-bold">
             Decomposição do "montante equivalente" (art. 23):
           </span>{' '}
           A IT adota transparentemente a Tese A (R$ {formatBRL(bruta.creditoTotal)} de crédito) como
           padrão, permitindo alternância imediata para a Tese B (R${' '}
           {formatBRL(liquida.creditoTotal)}).
         </div>
-        <span className="text-slate-500 shrink-0">
+        <span className="text-slate-600 shrink-0 font-bold">
           Δ no crédito: {formatBRL(Math.abs(bruta.creditoTotal - liquida.creditoTotal))}
         </span>
       </div>

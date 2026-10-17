@@ -79,12 +79,12 @@ export const ItAssistantWidget: React.FC = () => {
         type="button"
         onClick={() => setOpen(true)}
         title="Assistente IT — tirar dúvidas sobre o Manual"
-        className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full bg-emerald-500 text-slate-950 font-bold text-xs shadow-xl shadow-emerald-950/50 hover:bg-emerald-400 transition-all duration-200 cursor-pointer"
+        className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-full bg-emerald-600 text-white font-bold text-xs shadow-xl shadow-emerald-950/30 hover:bg-emerald-500 transition-all duration-200 cursor-pointer"
       >
         <img
           src={assistantAvatar}
           alt="Assistente IT"
-          className="w-8 h-8 rounded-full object-cover border border-emerald-300/60 shadow-sm"
+          className="w-8 h-8 rounded-full object-cover border border-emerald-200 shadow-sm"
         />
         <span>Assistente IT</span>
       </button>
@@ -92,17 +92,17 @@ export const ItAssistantWidget: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] sm:w-96 max-h-[70vh] flex flex-col rounded-2xl border border-emerald-500/30 bg-[#06100d]/97 backdrop-blur-md shadow-2xl shadow-emerald-950/60 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-emerald-500/20 bg-[#091511]/90">
-        <div className="flex items-center gap-2">
+    <div className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] sm:w-96 max-h-[70vh] flex flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden font-sans">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50/80">
+        <div className="flex items-center gap-2.5">
           <img
             src={assistantAvatar}
             alt="Assistente IT"
-            className="w-7 h-7 rounded-full object-cover border border-emerald-400/50 shadow-inner"
+            className="w-7 h-7 rounded-full object-cover border border-emerald-200 shadow-sm"
           />
           <div className="flex flex-col">
-            <span className="text-xs font-bold text-white">Assistente IT</span>
-            <span className="text-[9px] text-emerald-400 font-mono">
+            <span className="text-xs font-bold text-slate-900">Assistente IT</span>
+            <span className="text-[10px] text-emerald-800 font-mono font-medium">
               Base: Manual da Calculadora Markup
             </span>
           </div>
@@ -111,15 +111,18 @@ export const ItAssistantWidget: React.FC = () => {
           type="button"
           onClick={() => setOpen(false)}
           aria-label="Fechar assistente"
-          className="text-slate-400 hover:text-white cursor-pointer"
+          className="text-slate-400 hover:text-slate-700 cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 min-h-[240px]">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto p-3.5 space-y-3 min-h-[240px] bg-white"
+      >
         {messages.length === 0 && (
-          <div className="text-xs text-slate-400 leading-relaxed p-2">
+          <div className="text-xs text-slate-600 leading-relaxed p-2.5 rounded-xl bg-slate-50 border border-slate-200">
             Olá! Sou o Assistente IT. Pergunte sobre a Calculadora Markup — fluxo, modos, regimes,
             Memória de Cálculo, DREs e integrações. Estou lendo a página em que você está para
             responder com contexto.
@@ -130,8 +133,8 @@ export const ItAssistantWidget: React.FC = () => {
             <div
               className={`max-w-[85%] rounded-2xl px-3 py-2 ${
                 m.role === 'user'
-                  ? 'bg-emerald-500/20 border border-emerald-500/30 text-slate-100'
-                  : 'bg-[#091511] border border-slate-700/60 text-slate-200'
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'bg-slate-50 border border-slate-200 text-slate-800 shadow-2xs'
               }`}
             >
               {m.role === 'user' ? (
@@ -144,14 +147,14 @@ export const ItAssistantWidget: React.FC = () => {
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-2xl px-3 py-2 bg-[#091511] border border-slate-700/60">
-              <span className="text-xs text-slate-400 font-mono">Consultando o manual…</span>
+            <div className="max-w-[85%] rounded-2xl px-3 py-2 bg-slate-50 border border-slate-200 shadow-2xs">
+              <span className="text-xs text-slate-500 font-mono">Consultando o manual…</span>
             </div>
           </div>
         )}
       </div>
 
-      <div className="p-3 border-t border-emerald-500/20 bg-[#091511]/90 flex items-center gap-2">
+      <div className="p-3 border-t border-slate-200 bg-slate-50 flex items-center gap-2">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -162,13 +165,13 @@ export const ItAssistantWidget: React.FC = () => {
             }
           }}
           placeholder="Pergunte ao Assistente IT…"
-          className="flex-1 bg-[#020605] border-emerald-500/25 text-xs text-slate-200 placeholder:text-slate-500"
+          className="flex-1 bg-white border-slate-300 text-xs text-slate-900 placeholder:text-slate-400 focus-visible:ring-emerald-500"
         />
         <Button
           size="sm"
           onClick={ask}
           disabled={loading || !input.trim()}
-          className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer"
+          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer"
         >
           <Send className="w-3.5 h-3.5" />
         </Button>

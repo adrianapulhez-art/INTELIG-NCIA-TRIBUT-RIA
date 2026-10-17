@@ -183,7 +183,7 @@ export function NotaExplicativaCelula({
         <Par>
           {snF ? (
             <>
-              A nota do fornecedor do Simples Nacional é <b className="text-slate-100">congelada</b>{' '}
+              A nota do fornecedor do Simples Nacional é <b className="text-slate-900">congelada</b>{' '}
               (LC 123/2006): o Simples recolhe por dentro do DAS, sem destaque de tributo na nota.
               Não há reprecificação a analisar — o preço dele não se altera com a Reforma, e não há
               CBS/IBS destacados para o adquirente recuperar. Quem define o resultado desta
@@ -193,8 +193,8 @@ export function NotaExplicativaCelula({
             <>
               O fornecedor do SN híbrido optou pelo regime regular de IBS/CBS (LC 214/2025, art.
               41): mantém a nota no valor de hoje (congelada) e destaca CBS e IBS por fora —{' '}
-              <b className="text-slate-100">{formatBRL(cbsV)}</b> e{' '}
-              <b className="text-slate-100">{formatBRL(ibsV)}</b> sobre a base sem ICMS (premissa
+              <b className="text-slate-900">{formatBRL(cbsV)}</b> e{' '}
+              <b className="text-slate-900">{formatBRL(ibsV)}</b> sobre a base sem ICMS (premissa
               IT, pendente de regulamentação). O líquido dele fica preservado e o destaque gera
               crédito ao adquirente em regime regular (art. 47).
             </>
@@ -260,7 +260,7 @@ export function NotaExplicativaCelula({
         {plenoF && (
           <Par>
             Com {repasseTxt}, o preço de venda passa a{' '}
-            <b className="text-slate-100">{formatBRL(brutoEx)}</b> —{' '}
+            <b className="text-slate-900">{formatBRL(brutoEx)}</b> —{' '}
             {repasse === 'integral'
               ? 'o líquido do fornecedor fica idêntico ao de antes: o bruto sobe porque CBS/IBS entram por fora, e a margem dele fica preservada. É a tendência estrutural ao aumento dos preços: quem vende recompõe o líquido mínimo que auferia.'
               : repasse === 'parcial'
@@ -518,7 +518,7 @@ export function NotaExplicativaBloco({
               214/2025, art. 12): CBS {formatBRL(cbsV)} e IBS {formatBRL(ibsV)} sobre a base limpa.
               Como o ICMS incide por dentro do preço, invertemos o cálculo através da divisão pelo
               fator: BC ICMS = base líquida + CBS + IBS ÷ (1 − 18%). Com {repasseTxt}, o preço de
-              venda resultante é <b className="text-slate-100">{formatBRL(brutoNota)}</b>.
+              venda resultante é <b className="text-slate-900">{formatBRL(brutoNota)}</b>.
             </Par>
             <TabelaMemoria
               linhas={[
@@ -574,8 +574,8 @@ export function NotaExplicativaBloco({
               O custo do adquirente sofre mudança do sistema anterior para o atual, e a análise
               precisa olhar a perspectiva do regime tributário dele. Abaixo, a composição do custo
               no sistema pré-reforma e no pós-reforma, com os números deste card. Com {repasseTxt},
-              o custo líquido unitário vai de <b className="text-slate-100">{formatBRL(hojeU)}</b>{' '}
-              para <b className="text-slate-100">{formatBRL(novoU)}/un</b> ({d > 0 ? '+' : ''}
+              o custo líquido unitário vai de <b className="text-slate-900">{formatBRL(hojeU)}</b>{' '}
+              para <b className="text-slate-900">{formatBRL(novoU)}/un</b> ({d > 0 ? '+' : ''}
               {formatNumberBR(d)}%).
             </Par>
             <TabelaMemoria

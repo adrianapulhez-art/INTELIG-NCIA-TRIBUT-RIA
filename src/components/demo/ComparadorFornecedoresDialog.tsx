@@ -35,26 +35,22 @@ function LinhaComp({
 }) {
   return (
     <div
-      className={`flex items-center justify-between gap-2 px-2 py-1 rounded-lg border ${
-        destaque
-          ? cor === 'laranja'
-            ? 'bg-orange-500/[0.08] border-orange-500/40'
-            : 'bg-slate-950/60 border-slate-700/60'
-          : 'bg-slate-950/50 border-slate-800/60'
+      className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border ${
+        destaque ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50/70 border-slate-200'
       }`}
     >
       <span
-        className={`text-[10px] font-mono ${destaque ? 'font-bold text-slate-100' : 'text-slate-300'}`}
+        className={`text-[11px] font-mono ${destaque ? 'font-bold text-slate-900' : 'text-slate-700'}`}
       >
         {label}
       </span>
       <span
         className={`text-[11px] font-mono font-bold shrink-0 ${
           cor === 'verde'
-            ? 'text-emerald-300'
-            : cor === 'laranja'
-              ? 'text-orange-200'
-              : 'text-slate-100'
+            ? 'text-emerald-700'
+            : destaque
+              ? 'text-emerald-900 font-black'
+              : 'text-slate-900'
         }`}
       >
         {value}
@@ -80,52 +76,53 @@ function ColunaFornecedor({
 }) {
   const badgeCls =
     corBadge === 'violeta'
-      ? 'text-violet-300 border-violet-500/50 bg-violet-500/10'
-      : 'text-emerald-300 border-emerald-500/50 bg-emerald-500/10'
+      ? 'text-slate-800 border-slate-300 bg-slate-100'
+      : 'text-emerald-800 border-emerald-300 bg-emerald-100'
   return (
     <div
-      className={`flex-1 min-w-[280px] rounded-xl border p-3 space-y-1.5 ${
+      className={`flex-1 min-w-[280px] rounded-2xl border p-4 space-y-2 ${
         corBadge === 'violeta'
-          ? 'border-violet-500/45 bg-violet-500/[0.05]'
-          : 'border-emerald-500/45 bg-emerald-500/[0.05]'
+          ? 'border-slate-200 bg-white shadow-2xs'
+          : 'border-emerald-300 bg-emerald-50/40 shadow-2xs'
       }`}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-200">
         <span
-          className={`text-[11px] font-mono font-black uppercase leading-tight ${
-            corBadge === 'violeta' ? 'text-violet-300' : 'text-emerald-300'
+          className={`text-xs font-mono font-bold uppercase leading-tight ${
+            corBadge === 'violeta' ? 'text-slate-900' : 'text-emerald-950'
           }`}
         >
           {titulo}
         </span>
         <span
-          className={`text-[8px] font-mono font-bold rounded px-1.5 py-0.5 border shrink-0 ${badgeCls}`}
+          className={`text-[9px] font-mono font-bold rounded px-2 py-0.5 border shrink-0 ${badgeCls}`}
         >
           {badge}
         </span>
       </div>
-      <p className="text-[9px] font-mono text-slate-400 leading-relaxed">{regra}</p>
-      <LinhaComp label="Preço da nota do fornecedor" value={formatBRL(lado.precoNota)} />
-      <LinhaComp
-        label={`(−) ${lado.creditoLabel}`}
-        value={`-${formatBRL(lado.credito)}`}
-        cor="verde"
-      />
-      <LinhaComp
-        label="Custo líquido unitário"
-        value={`${formatBRL(lado.unitario)}/un · ${lado.deltaPct > 0 ? '+' : ''}${formatNumberBR(lado.deltaPct)}% vs HOJE`}
-        destaque
-        cor="laranja"
-      />
-      <LinhaComp
-        label={`Estoque reajustado (base ${formatBRL(estoqueBase)})`}
-        value={formatBRL(lado.estoque)}
-      />
-      <div className="flex items-center justify-between px-2 py-1 rounded-lg bg-violet-500/10 border border-violet-500/40">
-        <span className="text-[9px] font-mono font-bold text-violet-300 uppercase">
+      <p className="text-[10px] font-mono text-slate-600 leading-relaxed">{regra}</p>
+      <div className="space-y-1">
+        <LinhaComp label="Preço da nota do fornecedor" value={formatBRL(lado.precoNota)} />
+        <LinhaComp
+          label={`(−) ${lado.creditoLabel}`}
+          value={`-${formatBRL(lado.credito)}`}
+          cor="verde"
+        />
+        <LinhaComp
+          label="Custo líquido unitário"
+          value={`${formatBRL(lado.unitario)}/un · ${lado.deltaPct > 0 ? '+' : ''}${formatNumberBR(lado.deltaPct)}% vs HOJE`}
+          destaque
+        />
+        <LinhaComp
+          label={`Estoque reajustado (base ${formatBRL(estoqueBase)})`}
+          value={formatBRL(lado.estoque)}
+        />
+      </div>
+      <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+        <span className="text-[10px] font-mono font-bold text-slate-700 uppercase">
           Gap de negociação vs célula plena
         </span>
-        <span className="text-[11px] font-black font-mono text-violet-300">
+        <span className="text-xs font-bold font-mono text-slate-900">
           {lado.gap > 0 ? '+' : ''}
           {formatBRL(lado.gap)}/un
         </span>
@@ -173,23 +170,25 @@ export function ComparadorFornecedoresDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 text-slate-100 p-6">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-            <ArrowLeftRight className="w-5 h-5 text-emerald-400" />
-            <span>
-              Comparação de fornecedores SN —{' '}
-              {adquirente === 'presumido'
-                ? 'Lucro Presumido'
-                : adquirente === 'real'
-                  ? 'Lucro Real'
-                  : adquirente === 'simples'
-                    ? 'Simples Nacional'
-                    : 'SN híbrido'}{' '}
-              · Exercício {exercicio}
-            </span>
-          </DialogTitle>
-          <DialogDescription className="text-xs text-slate-400">
+          <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <ArrowLeftRight className="w-5 h-5 text-emerald-600" />
+              <span>
+                Comparação de fornecedores SN —{' '}
+                {adquirente === 'presumido'
+                  ? 'Lucro Presumido'
+                  : adquirente === 'real'
+                    ? 'Lucro Real'
+                    : adquirente === 'simples'
+                      ? 'Simples Nacional'
+                      : 'SN híbrido'}{' '}
+                · Exercício {exercicio}
+              </span>
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-xs text-slate-500">
             Os dois caminhos do Simples Nacional lado a lado — mesmo adquirente, mesmo item, mesma
             Calculadora de Compras. Nenhum número novo: os dois lados saem dos motores já
             chancelados.
@@ -197,11 +196,11 @@ export function ComparadorFornecedoresDialog({
         </DialogHeader>
 
         {comparacoes.length === 0 ? (
-          <p className="text-[10px] font-mono text-slate-400">
+          <p className="text-xs font-mono text-slate-500">
             Nenhum item com valor na Calculadora de Compras.
           </p>
         ) : (
-          <>
+          <div className="space-y-4">
             {/* As duas colunas */}
             <div className="flex flex-col lg:flex-row gap-3 items-stretch">
               <ColunaFornecedor
@@ -223,60 +222,60 @@ export function ComparadorFornecedoresDialog({
             </div>
 
             {/* VEREDITO — 3 quadros */}
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/[0.06] p-3 space-y-2">
-              <span className="text-[11px] font-mono font-black uppercase text-amber-300 block">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+              <span className="text-xs font-mono font-bold uppercase text-slate-900 block">
                 ⇄ Leitura da comparação — quem custa menos para o adquirente
               </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div className="rounded-lg border border-slate-800/60 bg-slate-950/50 p-2.5">
-                  <span className="text-[8px] font-mono text-slate-500 uppercase block">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase block">
                     Por unidade ({comando.item.name || 'item'})
                   </span>
                   <span
-                    className={`text-[13px] font-black font-mono ${puroVence ? 'text-emerald-300' : 'text-rose-300'}`}
+                    className={`text-sm font-black font-mono block mt-1 ${puroVence ? 'text-emerald-700' : 'text-rose-700'}`}
                   >
                     {puroVence ? 'SN puro ' : 'SN híbrido '}
                     {formatBRL(Math.abs(comando.diffUnitario))}
                   </span>
-                  <span className="text-[8px] font-mono text-slate-500 block mt-0.5">
+                  <span className="text-[10px] font-mono text-slate-500 block mt-1 leading-tight">
                     {puroVence
                       ? 'o crédito proporcional do art. 23 supera o congelamento da nota'
                       : 'o crédito integral do regime regular supera o crédito proporcional'}
                   </span>
                 </div>
-                <div className="rounded-lg border border-slate-800/60 bg-slate-950/50 p-2.5">
-                  <span className="text-[8px] font-mono text-slate-500 uppercase block">
+                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase block">
                     Impacto no estoque (carteira)
                   </span>
                   <span
-                    className={`text-[13px] font-black font-mono ${diffTotalEstoque < 0 ? 'text-emerald-300' : 'text-rose-300'}`}
+                    className={`text-sm font-black font-mono block mt-1 ${diffTotalEstoque < 0 ? 'text-emerald-700' : 'text-rose-700'}`}
                   >
                     {diffTotalEstoque < 0 ? 'SN puro −' : 'SN puro +'}
                     {formatBRL(Math.abs(diffTotalEstoque))}
                   </span>
-                  <span className="text-[8px] font-mono text-slate-500 block mt-0.5">
+                  <span className="text-[10px] font-mono text-slate-500 block mt-1 leading-tight">
                     {formatBRL(comando.puro.estoque)} (puro) × {formatBRL(comando.hibrido.estoque)}{' '}
                     (híbrido) — mesma compra
                   </span>
                 </div>
-                <div className="rounded-lg border border-slate-800/60 bg-slate-950/50 p-2.5">
-                  <span className="text-[8px] font-mono text-slate-500 uppercase block">
+                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase block">
                     Risco / contrapartida
                   </span>
-                  <span className="text-[13px] font-black font-mono text-slate-200">
+                  <span className="text-sm font-bold font-mono text-slate-900 block mt-1">
                     Híbrido = cadeia neutra
                   </span>
-                  <span className="text-[8px] font-mono text-slate-500 block mt-0.5">
+                  <span className="text-[10px] font-mono text-slate-500 block mt-1 leading-tight">
                     custo estável 2027–2032 · puro depende da faixa do fornecedor no mês
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Nota de honestidade */}
-            <div className="flex items-start gap-2 text-[9px] font-mono text-slate-500">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
-              <span>
+            {/* Nota de honestidade — semântica real de pendência de tese / art. 23 */}
+            <div className="flex items-start gap-2.5 text-xs font-mono text-amber-900 bg-amber-50 border border-amber-300 rounded-xl p-3">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+              <span className="leading-relaxed">
                 Percentuais do crédito dependem da faixa do fornecedor no mês da operação (art. 23,
                 §2º — alíquota informada no documento fiscal). Comparação calculada com o mesmo item
                 e o mesmo exercício — mudou a seleção, muda a comparação. Itens adicionais da
@@ -284,7 +283,7 @@ export function ComparadorFornecedoresDialog({
                 (nunca média).
               </span>
             </div>
-          </>
+          </div>
         )}
       </DialogContent>
     </Dialog>

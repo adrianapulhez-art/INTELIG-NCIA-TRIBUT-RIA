@@ -69,21 +69,21 @@ function parseInline(text: string): React.ReactNode[] {
     } else if (biVal1 !== undefined || biVal2 !== undefined) {
       const val = biVal1 ?? biVal2 ?? ''
       nodes.push(
-        <strong key={`bi-${matchIndex}`} className="font-semibold italic text-emerald-100">
+        <strong key={`bi-${matchIndex}`} className="font-semibold italic text-emerald-950">
           {val}
         </strong>,
       )
     } else if (boldVal1 !== undefined || boldVal2 !== undefined) {
       const val = boldVal1 ?? boldVal2 ?? ''
       nodes.push(
-        <strong key={`b-${matchIndex}`} className="font-semibold text-emerald-200">
+        <strong key={`b-${matchIndex}`} className="font-semibold text-slate-900">
           {val}
         </strong>,
       )
     } else if (itVal1 !== undefined || itVal2 !== undefined) {
       const val = itVal1 ?? itVal2 ?? ''
       nodes.push(
-        <em key={`i-${matchIndex}`} className="italic text-slate-200">
+        <em key={`i-${matchIndex}`} className="italic text-slate-700">
           {val}
         </em>,
       )
@@ -264,7 +264,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
   if (!content) return null
 
   return (
-    <div className={`space-y-2 text-slate-200 leading-relaxed ${className}`}>
+    <div className={`space-y-2 text-slate-800 leading-relaxed ${className}`}>
       {blocks.map((block, idx) => {
         switch (block.type) {
           case 'h': {
@@ -273,7 +273,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
               return (
                 <h2
                   key={idx}
-                  className="text-sm font-bold text-white tracking-tight pt-1 pb-0.5 border-b border-emerald-500/20"
+                  className="text-sm font-bold text-slate-900 tracking-tight pt-1 pb-0.5 border-b border-emerald-200"
                 >
                   {parseInline(block.content || '')}
                 </h2>
@@ -283,14 +283,14 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
               return (
                 <h3
                   key={idx}
-                  className="text-xs sm:text-sm font-bold text-emerald-300 tracking-tight pt-1"
+                  className="text-xs sm:text-sm font-bold text-emerald-800 tracking-tight pt-1"
                 >
                   {parseInline(block.content || '')}
                 </h3>
               )
             }
             return (
-              <h4 key={idx} className="text-xs font-semibold text-emerald-400 pt-0.5">
+              <h4 key={idx} className="text-xs font-semibold text-emerald-700 pt-0.5">
                 {parseInline(block.content || '')}
               </h4>
             )
@@ -300,7 +300,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
             return (
               <blockquote
                 key={idx}
-                className="pl-3 py-1 my-1 border-l-2 border-emerald-400/60 bg-emerald-950/20 rounded-r text-xs text-slate-300 italic"
+                className="pl-3 py-1 my-1 border-l-2 border-emerald-500 bg-emerald-50 rounded-r text-xs text-slate-700 italic"
               >
                 {parseInline(block.content || '')}
               </blockquote>
@@ -310,8 +310,11 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
             return (
               <ul key={idx} className="my-1.5 space-y-1 pl-1">
                 {block.items?.map((item, itemIdx) => (
-                  <li key={itemIdx} className="flex items-start gap-2 text-xs sm:text-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 shrink-0 shadow-sm shadow-emerald-400/50" />
+                  <li
+                    key={itemIdx}
+                    className="flex items-start gap-2 text-xs sm:text-sm text-slate-700"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-2 shrink-0" />
                     <span className="flex-1">{parseInline(item)}</span>
                   </li>
                 ))}
@@ -322,8 +325,11 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
             return (
               <ol key={idx} className="my-1.5 space-y-1 pl-1">
                 {block.items?.map((item, itemIdx) => (
-                  <li key={itemIdx} className="flex items-start gap-2 text-xs sm:text-sm">
-                    <span className="text-[11px] font-mono font-bold text-emerald-400 mt-0.5 shrink-0 min-w-[1.2rem]">
+                  <li
+                    key={itemIdx}
+                    className="flex items-start gap-2 text-xs sm:text-sm text-slate-700"
+                  >
+                    <span className="text-[11px] font-mono font-bold text-emerald-700 mt-0.5 shrink-0 min-w-[1.2rem]">
                       {itemIdx + 1}.
                     </span>
                     <span className="flex-1">{parseInline(item)}</span>
@@ -336,10 +342,10 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
             return (
               <div
                 key={idx}
-                className="my-2 rounded-lg bg-[#020605] border border-emerald-500/25 p-2.5 overflow-x-auto text-[11px] font-mono text-emerald-300 shadow-inner"
+                className="my-2 rounded-lg bg-slate-900 border border-slate-700 p-2.5 overflow-x-auto text-[11px] font-mono text-slate-100 shadow-inner"
               >
                 {block.language && (
-                  <div className="text-[9px] uppercase tracking-wider text-emerald-500/60 pb-1 mb-1 border-b border-emerald-500/15">
+                  <div className="text-[9px] uppercase tracking-wider text-slate-400 pb-1 mb-1 border-b border-slate-700">
                     {block.language}
                   </div>
                 )}
@@ -350,7 +356,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
           case 'p':
           default:
             return (
-              <p key={idx} className="text-xs sm:text-sm leading-relaxed">
+              <p key={idx} className="text-xs sm:text-sm leading-relaxed text-slate-700">
                 {parseInline(block.content || '')}
               </p>
             )
