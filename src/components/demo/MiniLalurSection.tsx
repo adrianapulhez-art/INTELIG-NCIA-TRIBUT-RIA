@@ -101,20 +101,20 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
   const netLalurAdjustment = totalAdditions - totalExclusions
 
   return (
-    <div className="space-y-4 pt-3 border-t border-slate-800/80">
+    <div className="space-y-4 pt-4 border-t border-slate-200">
       {/* Topo: Título, subtítulo e Botões de Adicionar Lançamento */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
+        <div className="border-l-4 border-emerald-500 pl-2.5">
           <div className="flex items-center gap-2">
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-100 flex items-center gap-1.5">
-              <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4 text-emerald-600" />
               Mini-LALUR — Adições e Exclusões do Lucro Real
             </h3>
-            <Badge className="bg-slate-900 text-slate-400 border-slate-700 text-[10px] font-mono h-4 px-1.5">
+            <Badge className="bg-slate-100 text-slate-700 border-slate-200 text-[10px] font-mono h-4 px-1.5">
               {entries.length} {entries.length === 1 ? 'lançamento' : 'lançamentos'}
             </Badge>
           </div>
-          <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+          <p className="text-[11px] text-slate-500 font-mono mt-0.5">
             Ajustes fiscais individuais à base contábil para apuração do IRPJ (15% + 10%) e CSLL
             (9%).
           </p>
@@ -128,29 +128,28 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
             size="sm"
             onClick={() => setShowExamples((prev) => !prev)}
             aria-expanded={showExamples}
-            className={`h-7 text-xs font-mono transition-all cursor-pointer ${
+            className={`h-8 text-xs font-mono transition-all cursor-pointer ${
               showExamples
-                ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 hover:border-amber-400'
-                : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-slate-100 hover:border-slate-700'
+                ? 'bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100 hover:border-amber-400'
+                : 'bg-slate-200/90 border-slate-300 text-slate-900 font-bold hover:bg-slate-300'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-400" />
+            <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-600" />
             {showExamples ? 'Ocultar exemplos' : 'Ver simulações prontas'}
             {showExamples ? (
-              <ChevronUp className="w-3 h-3 ml-1 text-slate-400" />
+              <ChevronUp className="w-3 h-3 ml-1 text-slate-600" />
             ) : (
-              <ChevronDown className="w-3 h-3 ml-1 text-slate-400" />
+              <ChevronDown className="w-3 h-3 ml-1 text-slate-600" />
             )}
           </Button>
 
           <Button
             type="button"
-            variant="outline"
             size="sm"
             onClick={() => onAddEntry('Nova adição fiscal', 0, 'addition')}
-            className="h-7 text-xs bg-emerald-500/10 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-400 cursor-pointer transition-all"
+            className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer transition-all shadow-xs"
           >
-            <Plus className="w-3.5 h-3.5 mr-1 text-emerald-400" />+ Adição
+            <Plus className="w-3.5 h-3.5 mr-1 text-white" />+ Adição
           </Button>
 
           <Button
@@ -158,25 +157,25 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
             variant="outline"
             size="sm"
             onClick={() => onAddEntry('Nova exclusão fiscal', 0, 'exclusion')}
-            className="h-7 text-xs bg-cyan-500/10 border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400 cursor-pointer transition-all"
+            className="h-8 text-xs bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white border-slate-700 hover:bg-slate-800 cursor-pointer transition-all shadow-xs"
           >
-            <Plus className="w-3.5 h-3.5 mr-1 text-cyan-400" />+ Exclusão
+            <Plus className="w-3.5 h-3.5 mr-1 text-white" />+ Exclusão
           </Button>
         </div>
       </div>
 
       {/* Chips de Exemplos Prontos do LALUR para 1-clique (visíveis apenas sob demanda do usuário) */}
       {showExamples && (
-        <div className="p-3 rounded-2xl bg-slate-950/60 border border-amber-500/20 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="p-3.5 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-mono text-amber-300/90 font-medium">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <div className="flex items-center gap-1.5 text-[11px] font-mono text-amber-900 font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
               <span>Exemplos prontos para simulação (clique para lançar):</span>
             </div>
             <button
               type="button"
               onClick={() => setShowExamples(false)}
-              className="text-[10px] font-mono text-slate-400 hover:text-slate-200 underline cursor-pointer"
+              className="text-[10px] font-mono text-slate-500 hover:text-slate-800 underline cursor-pointer"
             >
               Fechar exemplos
             </button>
@@ -193,18 +192,18 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
                   title={`${ex.hint} · Sugestão: ${formatBRL(ex.suggestedValue)}`}
                   className={`group inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all border cursor-pointer active:scale-95 ${
                     isAdd
-                      ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-400'
-                      : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-400'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100 hover:border-emerald-400'
+                      : 'bg-slate-50 border-slate-300 text-slate-800 hover:bg-slate-100 hover:border-slate-400'
                   }`}
                 >
                   {isAdd ? (
-                    <ArrowUpRight className="w-3 h-3 text-emerald-400 shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    <ArrowUpRight className="w-3 h-3 text-emerald-600 shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                   ) : (
-                    <ArrowDownRight className="w-3 h-3 text-cyan-400 shrink-0 group-hover:translate-x-0.5 group-hover:translate-y-0.5 transition-transform" />
+                    <ArrowDownRight className="w-3 h-3 text-slate-600 shrink-0 group-hover:translate-x-0.5 group-hover:translate-y-0.5 transition-transform" />
                   )}
                   <span className="font-semibold">{isAdd ? '+ Adição:' : '− Exclusão:'}</span>
                   <span>{ex.label}</span>
-                  <span className="text-[10px] opacity-70 ml-0.5">
+                  <span className="text-[10px] text-slate-500 ml-0.5 font-bold">
                     ({formatBRL(ex.suggestedValue)})
                   </span>
                 </button>
@@ -223,9 +222,7 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
               <div
                 key={entry.id}
                 className={`flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 rounded-xl border transition-colors ${
-                  isAdd
-                    ? 'bg-emerald-950/15 border-emerald-500/25'
-                    : 'bg-cyan-950/15 border-cyan-500/25'
+                  isAdd ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200'
                 }`}
               >
                 {/* Seletor de Tipo (Adição ou Exclusão) */}
@@ -235,8 +232,8 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
                     onClick={() => onUpdateEntry(entry.id, 'type', 'addition')}
                     className={`px-2 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer ${
                       isAdd
-                        ? 'bg-emerald-500/25 border border-emerald-500/60 text-emerald-300 shadow-sm'
-                        : 'bg-slate-900/60 border border-slate-800 text-slate-500 hover:text-slate-300'
+                        ? 'bg-emerald-600 border border-emerald-700 text-white shadow-xs'
+                        : 'bg-white border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                     title="Adição: soma à base tributável"
                   >
@@ -249,8 +246,8 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
                     onClick={() => onUpdateEntry(entry.id, 'type', 'exclusion')}
                     className={`px-2 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer ${
                       !isAdd
-                        ? 'bg-cyan-500/25 border border-cyan-500/60 text-cyan-300 shadow-sm'
-                        : 'bg-slate-900/60 border border-slate-800 text-slate-500 hover:text-slate-300'
+                        ? 'bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 text-white shadow-xs'
+                        : 'bg-white border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                     title="Exclusão: deduz da base tributável"
                   >
@@ -265,13 +262,13 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
                   value={entry.description}
                   onChange={(e) => onUpdateEntry(entry.id, 'description', e.target.value)}
                   placeholder="Descrição do lançamento LALUR"
-                  className="flex-1 bg-slate-900/90 border-orange-500/50 text-orange-50 text-xs font-mono focus:border-orange-500 focus-visible:ring-orange-500/30"
+                  className="flex-1 bg-white border-slate-300 text-slate-900 text-xs font-mono focus:border-emerald-600 focus-visible:ring-emerald-500/20"
                 />
 
                 {/* Campo de Valor com Digitação Blindada (parseBRNumber determinístico) */}
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="relative w-36 sm:w-44">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                       R$
                     </span>
                     <Input
@@ -284,8 +281,8 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
                         e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
                       }}
                       placeholder="0,00"
-                      className={`pl-8 text-right bg-slate-900/90 border-slate-800 text-xs font-mono font-bold ${
-                        isAdd ? 'text-emerald-300' : 'text-cyan-300'
+                      className={`pl-8 text-right bg-white border-slate-300 text-xs font-mono font-bold ${
+                        isAdd ? 'text-emerald-700' : 'text-slate-800'
                       }`}
                     />
                   </div>
@@ -293,7 +290,7 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => onRemoveEntry(entry.id)}
-                    className="p-2 text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
+                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                     title="Remover lançamento"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -304,44 +301,44 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
           })}
         </div>
       ) : (
-        <div className="py-4 px-3 rounded-xl border border-dashed border-slate-800/90 text-center space-y-1 bg-slate-950/40">
-          <p className="text-xs font-mono text-slate-400">
+        <div className="py-5 px-3 rounded-xl border border-dashed border-slate-300 text-center space-y-1 bg-slate-50/60">
+          <p className="text-xs font-mono text-slate-600 font-medium">
             Nenhum lançamento de LALUR cadastrado no momento.
           </p>
           <p className="text-[11px] font-mono text-slate-500">
-            Clique em <strong className="text-emerald-400">+ Adição</strong>,{' '}
-            <strong className="text-cyan-400">+ Exclusão</strong> ou em{' '}
-            <strong className="text-amber-400">Ver simulações prontas</strong> para abrir exemplos
+            Clique em <strong className="text-emerald-700">+ Adição</strong>,{' '}
+            <strong className="text-slate-800">+ Exclusão</strong> ou em{' '}
+            <strong className="text-amber-700">Ver simulações prontas</strong> para abrir exemplos
             de lançamento.
           </p>
         </div>
       )}
 
       {/* Painel de Totais Consolidados Visíveis */}
-      <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs shadow-inner">
+      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs shadow-xs">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-slate-400">Total de Adições (+):</span>
-            <strong className="text-emerald-400 font-bold">{formatBRL(totalAdditions)}</strong>
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-slate-600">Total de Adições (+):</span>
+            <strong className="text-emerald-700 font-bold">{formatBRL(totalAdditions)}</strong>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-cyan-400" />
-            <span className="text-slate-400">Total de Exclusões (−):</span>
-            <strong className="text-cyan-400 font-bold">{formatBRL(totalExclusions)}</strong>
+            <span className="w-2 h-2 rounded-full bg-slate-700" />
+            <span className="text-slate-600">Total de Exclusões (−):</span>
+            <strong className="text-slate-900 font-bold">{formatBRL(totalExclusions)}</strong>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
-          <span className="text-slate-400 text-[11px]">Ajuste Líquido LALUR:</span>
+        <div className="flex items-center gap-2 self-start sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200">
+          <span className="text-slate-500 text-[11px]">Ajuste Líquido LALUR:</span>
           <span
             className={`font-bold text-xs px-2 py-0.5 rounded border ${
               netLalurAdjustment > 0
-                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
                 : netLalurAdjustment < 0
-                  ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300'
-                  : 'bg-slate-900 border-slate-800 text-slate-400'
+                  ? 'bg-slate-100 border-slate-300 text-slate-800'
+                  : 'bg-white border-slate-200 text-slate-600'
             }`}
           >
             {netLalurAdjustment > 0 ? '+' : ''}

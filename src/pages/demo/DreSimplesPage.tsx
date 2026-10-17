@@ -401,29 +401,29 @@ export default function DreSimplesPage() {
         )}
 
         {/* Cabeçalho */}
-        <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
-          <div className="flex items-center justify-between pb-2 border-b border-emerald-500/15">
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-7 shadow-sm space-y-6">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0 shadow-xs">
                 <Calculator className="w-5 h-5" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+              <div className="border-l-4 border-emerald-500 pl-2.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                     Demonstração do Resultado do Exercício
                   </h2>
                   <Badge
                     variant="outline"
-                    className="text-[11px] font-mono border-emerald-500/40 text-emerald-400 bg-emerald-500/5 px-2 py-0.5 inline-flex items-center gap-1.5 font-normal shadow-sm"
+                    className="text-[11px] font-mono border-emerald-300 text-emerald-800 bg-emerald-50 px-2 py-0.5 inline-flex items-center gap-1.5 font-semibold shadow-xs"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Sincronizado globalmente
                   </Badge>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 uppercase">
                     LC 123/2006
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500 font-mono mt-0.5">
                   Parâmetros de faturamento, RBT12, Fator R e repartição de tributos da guia DAS.
                 </p>
               </div>
@@ -431,38 +431,38 @@ export default function DreSimplesPage() {
           </div>
 
           {/* Faixa Verde: Conectado às calculadoras */}
-          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
-            <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-              <LinkIcon className="w-4 h-4" />
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+            <div className="flex items-center gap-2 text-emerald-800 font-semibold">
+              <LinkIcon className="w-4 h-4 text-emerald-600" />
               <span>
                 Conectado às calculadoras — valores e quantidades importados automaticamente
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-slate-300">
+            <div className="flex flex-wrap items-center gap-4 text-slate-700">
               <div>
                 Quantidade:{' '}
-                <strong className="text-emerald-400">
+                <strong className="text-emerald-800">
                   {qty} un. ({quantitySourceLabel})
                 </strong>
               </div>
               <div>
                 Receita Consolidada:{' '}
-                <strong className="text-emerald-400">{formatBRL(activeGrossRevenue)}</strong>
+                <strong className="text-emerald-800">{formatBRL(activeGrossRevenue)}</strong>
               </div>
               <div>
                 CMV Consolidado:{' '}
-                <strong className="text-emerald-400">{formatBRL(consolidatedCMV)}</strong>
+                <strong className="text-emerald-800">{formatBRL(consolidatedCMV)}</strong>
               </div>
             </div>
           </div>
 
           {/* SELETOR DE ANEXO DO SIMPLES NACIONAL */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">
+            <div className="flex items-center justify-between border-l-4 border-emerald-500 pl-2.5">
+              <label className="text-xs font-bold text-slate-900 uppercase font-mono">
                 Selecione o Anexo do Simples Nacional (LC 123/2006)
               </label>
-              <span className="text-[11px] text-slate-400 font-mono">
+              <span className="text-[11px] text-slate-500 font-mono font-semibold">
                 5 anexos oficiais disponíveis
               </span>
             </div>
@@ -476,21 +476,23 @@ export default function DreSimplesPage() {
                     key={key}
                     type="button"
                     onClick={() => setSimplesAnexo(key)}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-emerald-500/10 border-emerald-500 text-emerald-300 shadow-sm ring-1 ring-emerald-500/30'
-                        : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                        ? 'bg-emerald-50 border-emerald-600 text-slate-900 shadow-xs'
+                        : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold font-mono text-white">{anexo.nome}</span>
-                      {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
+                      <span className="text-xs font-bold font-mono uppercase text-slate-900">
+                        {anexo.nome}
+                      </span>
+                      {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 leading-snug">
+                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-snug font-mono">
                       {anexo.descricao}
                     </p>
                     {anexo.sujeitoFatorR && (
-                      <span className="inline-block mt-1.5 text-[10px] font-mono text-cyan-400 bg-cyan-950/50 border border-cyan-800/60 px-1.5 py-0.5 rounded">
+                      <span className="inline-block mt-1.5 text-[10px] font-mono font-bold text-cyan-800 bg-cyan-50 border border-cyan-300 px-1.5 py-0.5 rounded">
                         Fator R aplicável
                       </span>
                     )}
@@ -501,15 +503,15 @@ export default function DreSimplesPage() {
           </div>
 
           {/* SEÇÃO FATOR R AUTOMÁTICO (PARA SERVIÇOS) */}
-          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-mono font-bold uppercase text-slate-200">
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-mono font-bold uppercase text-slate-900">
                   Fator R automático (Serviços: Anexo III × Anexo V)
                 </span>
               </div>
-              <span className="text-[11px] font-mono text-slate-400">
+              <span className="text-[11px] font-mono text-slate-500 font-semibold">
                 Fator R = Folha 12m ÷ RBT12 (Corte legal: 28,00%)
               </span>
             </div>
@@ -518,17 +520,17 @@ export default function DreSimplesPage() {
               {/* Campo RBT12 */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-300 block">
+                  <label className="text-xs font-bold text-slate-700 block">
                     RBT12 (Receita Bruta 12 meses)
                   </label>
                   {simplesIsInicioAtividade && (
-                    <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                    <span className="text-[10px] text-emerald-700 font-mono font-semibold">
                       · automático
                     </span>
                   )}
                 </div>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -558,8 +560,8 @@ export default function DreSimplesPage() {
                     }}
                     className={`pl-9 font-mono text-xs ${
                       simplesIsInicioAtividade
-                        ? 'bg-slate-950/80 border-slate-800 text-slate-400 font-bold cursor-not-allowed'
-                        : 'field-input-interactive'
+                        ? 'bg-slate-100 border-slate-300 text-slate-700 font-bold cursor-not-allowed'
+                        : 'bg-white border-slate-300 text-slate-900 font-bold focus:border-emerald-600'
                     }`}
                   />
                 </div>
@@ -572,11 +574,11 @@ export default function DreSimplesPage() {
 
               {/* Campo Folha de Pagamento 12m */}
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300 block">
+                <label className="text-xs font-bold text-slate-700 block">
                   Folha de Salários 12 meses (FS12)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -593,7 +595,7 @@ export default function DreSimplesPage() {
                       setIsPayrollFocused(false)
                       handlePayrollBlur(e)
                     }}
-                    className="pl-9 font-mono text-xs field-input-interactive"
+                    className="pl-9 font-mono text-xs bg-white border-slate-300 text-slate-900 font-bold focus:border-emerald-600"
                   />
                 </div>
                 <span className="text-[10px] text-slate-500 font-mono">
@@ -603,45 +605,45 @@ export default function DreSimplesPage() {
 
               {/* Fator R Calculado */}
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-300 block">
-                  Fator R calculado
-                </label>
+                <label className="text-xs font-bold text-slate-700 block">Fator R calculado</label>
                 <div
-                  className={`h-9 px-3 rounded-md border flex items-center justify-between font-mono text-xs font-bold ${
+                  className={`h-9 px-3 rounded-lg border flex items-center justify-between font-mono text-xs font-bold shadow-xs ${
                     fatorRResult.isElegibleAnexo3
-                      ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
-                      : 'bg-amber-500/10 border-amber-500/40 text-amber-300'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                      : 'bg-amber-50 border-amber-300 text-amber-900'
                   }`}
                 >
                   <span>Fator R:</span>
-                  <span className="text-sm">{fatorRResult.fatorRPercent.toFixed(2)}%</span>
+                  <span className="text-sm font-black">
+                    {fatorRResult.fatorRPercent.toFixed(2)}%
+                  </span>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono">
+                <span className="text-[10px] text-slate-500 font-mono font-semibold">
                   {fatorRResult.isElegibleAnexo3 ? '≥ 28% → Anexo III' : '< 28% → Anexo V'}
                 </span>
               </div>
             </div>
 
             {/* TOGGLE E FORMULÁRIO DE INÍCIO DE ATIVIDADE (LC 123/2006, art. 3º, § 9º) */}
-            <div className="pt-3 border-t border-slate-800/80 space-y-3">
+            <div className="pt-3 border-t border-slate-200 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <label className="flex items-center gap-2.5 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={simplesIsInicioAtividade}
                     onChange={(e) => setSimplesIsInicioAtividade(e.target.checked)}
-                    className="w-4 h-4 rounded border-orange-500/50 bg-slate-900 text-orange-500 focus:ring-orange-500/40 cursor-pointer accent-orange-500"
+                    className="w-4 h-4 rounded border-slate-300 bg-white text-emerald-600 focus:ring-emerald-500/40 cursor-pointer accent-emerald-600"
                   />
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold font-mono text-slate-200">
+                    <span className="text-xs font-bold font-mono text-slate-900">
                       Empresa em início de atividade
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 font-semibold">
                       LC 123/2006, art. 3º, § 9º
                     </span>
                   </div>
                 </label>
-                <span className="text-[11px] text-slate-400 font-mono">
+                <span className="text-[11px] text-slate-500 font-mono">
                   {simplesIsInicioAtividade
                     ? 'RBT12 calculada pela proporcionalidade mensal'
                     : 'Ative se a empresa tiver menos de 13 meses de atividade'}
@@ -649,13 +651,13 @@ export default function DreSimplesPage() {
               </div>
 
               {simplesIsInicioAtividade && (
-                <div className="p-4 rounded-xl bg-slate-900/60 border border-emerald-500/40 space-y-3.5 animate-in fade-in duration-200">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
-                    <div>
-                      <span className="text-xs font-mono font-bold uppercase text-emerald-400 block">
+                <div className="p-4 rounded-2xl bg-white border border-emerald-200 space-y-3.5 shadow-xs animate-in fade-in duration-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+                    <div className="border-l-4 border-emerald-500 pl-2">
+                      <span className="text-xs font-mono font-bold uppercase text-slate-900 block">
                         Receita Bruta dos Meses Decorridos
                       </span>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-slate-500 font-mono">
                         Informe o faturamento de cada mês de operação para gerar a RBT12
                         proporcional oficial.
                       </p>
@@ -669,9 +671,9 @@ export default function DreSimplesPage() {
                           size="sm"
                           onClick={handleApplyMarkupRevenueToCurrentMonth}
                           title={`Preencher Mês ${simplesMonthlyRevenues.length} com ${formatBRL(activeGrossRevenue)} apurado no Markup`}
-                          className="h-7 text-xs bg-emerald-500/10 border-emerald-500/40 hover:bg-emerald-500/20 text-emerald-300 hover:text-emerald-200 cursor-pointer"
+                          className="h-8 text-xs bg-emerald-50 border-emerald-300 hover:bg-emerald-100 text-emerald-800 font-bold cursor-pointer shadow-xs"
                         >
-                          <LinkIcon className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                          <LinkIcon className="w-3.5 h-3.5 mr-1 text-emerald-600" />
                           Usar receita simulada do Markup ({formatBRL(activeGrossRevenue)})
                         </Button>
                       )}
@@ -681,9 +683,9 @@ export default function DreSimplesPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => addSimplesMonthlyRevenue(0)}
-                        className="h-7 text-xs bg-slate-950/60 border-slate-700 hover:border-emerald-500 text-slate-200 hover:text-emerald-300 cursor-pointer"
+                        className="h-8 text-xs bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white border-slate-700 hover:bg-slate-800 font-semibold cursor-pointer shadow-xs"
                       >
-                        <Plus className="w-3.5 h-3.5 mr-1 text-emerald-400" />+ Adicionar mês
+                        <Plus className="w-3.5 h-3.5 mr-1 text-white" />+ Adicionar mês
                       </Button>
                     </div>
                   </div>
@@ -699,14 +701,14 @@ export default function DreSimplesPage() {
                       return (
                         <div
                           key={`rev-month-${index}`}
-                          className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800 flex flex-col gap-1.5"
+                          className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-1.5"
                         >
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-semibold text-slate-300 w-16 shrink-0">
+                            <span className="text-xs font-mono font-bold text-slate-700 w-16 shrink-0">
                               Mês {index + 1}:
                             </span>
                             <div className="relative flex-1">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                                 R$
                               </span>
                               <Input
@@ -725,7 +727,7 @@ export default function DreSimplesPage() {
                                     })
                                   }
                                 }}
-                                className="pl-8 text-right font-mono text-xs h-8 field-input-interactive"
+                                className="pl-8 text-right font-mono text-xs h-8 bg-white border-slate-300 text-slate-900 font-bold focus:border-emerald-600"
                               />
                             </div>
                             {simplesMonthlyRevenues.length > 1 && (
@@ -739,7 +741,7 @@ export default function DreSimplesPage() {
                                     return next
                                   })
                                 }}
-                                className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors rounded hover:bg-rose-500/10 cursor-pointer"
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                                 title="Remover mês"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -749,7 +751,7 @@ export default function DreSimplesPage() {
 
                           {isFilledFromMarkup && (
                             <div className="flex items-center gap-1.5 pl-1">
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
                                 <LinkIcon className="w-2.5 h-2.5" />
                                 via Markup (simulação)
                               </span>
@@ -761,49 +763,49 @@ export default function DreSimplesPage() {
                   </div>
 
                   {/* Detalhamento transparente do cálculo proporcional */}
-                  <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-500/30 space-y-2 font-mono text-xs">
+                  <div className="p-3.5 rounded-xl bg-emerald-50/50 border border-emerald-200 space-y-2 font-mono text-xs">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="font-bold text-emerald-300">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="font-bold text-slate-900">
                           Cálculo Transparente da RBT12 Proporcional:
                         </span>
                       </div>
-                      <span className="text-[11px] text-emerald-400 font-semibold">
+                      <span className="text-[11px] text-emerald-700 font-bold">
                         · automático em tempo real
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 border-t border-emerald-500/20">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 border-t border-emerald-200">
                       <div>
-                        <span className="text-[10px] text-slate-400 block">Receita Acumulada</span>
-                        <span className="text-slate-200 font-bold">
+                        <span className="text-[10px] text-slate-500 block">Receita Acumulada</span>
+                        <span className="text-slate-900 font-bold">
                           {formatBRL(inicioAtividadeCalc.totalRevenue)}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 block">Meses de Atividade</span>
-                        <span className="text-slate-200 font-bold">
+                        <span className="text-[10px] text-slate-500 block">Meses de Atividade</span>
+                        <span className="text-slate-900 font-bold">
                           {inicioAtividadeCalc.monthsCount}{' '}
                           {inicioAtividadeCalc.monthsCount === 1 ? 'mês' : 'meses'}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-emerald-400 block font-semibold">
+                        <span className="text-[10px] text-emerald-800 block font-semibold">
                           RBT12 Proporcional Calculada
                         </span>
-                        <span className="text-emerald-400 font-extrabold text-sm">
+                        <span className="text-emerald-800 font-black text-sm">
                           {formatBRL(inicioAtividadeCalc.calculatedRbt12)}
                         </span>
                       </div>
                     </div>
 
-                    <div className="p-2 rounded bg-slate-950/80 border border-slate-800 text-[11px] text-emerald-300/90 flex items-center justify-between flex-wrap gap-2">
+                    <div className="p-2.5 rounded-lg bg-white border border-slate-200 text-[11px] text-slate-700 flex items-center justify-between flex-wrap gap-2 shadow-xs">
                       <span>
-                        <strong className="text-slate-200">Fórmula aplicada:</strong>{' '}
+                        <strong className="text-slate-900">Fórmula aplicada:</strong>{' '}
                         {inicioAtividadeCalc.formulaExplanation}
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-500 font-semibold">
                         {inicioAtividadeCalc.monthsCount === 1
                           ? '1º mês: Receita × 12'
                           : 'Meses seguintes: (Média mensal) × 12'}
@@ -818,13 +820,13 @@ export default function DreSimplesPage() {
             <div
               className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono ${
                 fatorRResult.isElegibleAnexo3
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                  : 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                  : 'bg-amber-50 border-amber-300 text-amber-900'
               }`}
             >
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                <span>{fatorRResult.explanation}</span>
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span className="font-medium">{fatorRResult.explanation}</span>
               </div>
 
               {/* Botão de Enquadrar automaticamente */}
@@ -834,7 +836,7 @@ export default function DreSimplesPage() {
                   size="sm"
                   variant="outline"
                   onClick={applyFatorRRecommendation}
-                  className="h-7 text-xs bg-slate-950/60 border-slate-700 hover:border-emerald-500 text-slate-200 hover:text-emerald-300 cursor-pointer shrink-0"
+                  className="h-8 text-xs bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white border-slate-700 hover:bg-slate-800 font-semibold cursor-pointer shrink-0 shadow-xs"
                 >
                   Enquadrar no{' '}
                   {fatorRResult.recommendedAnexo === 'anexo_3' ? 'Anexo III' : 'Anexo V'}
@@ -845,14 +847,14 @@ export default function DreSimplesPage() {
 
           {/* ALERTA DE SUBLIMITE SE RBT12 > R$ 3.600.000 */}
           {pgdas.isSublimiteExceeded && (
-            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/40 flex items-start gap-2.5 text-xs font-mono text-amber-200 animate-in fade-in duration-200">
-              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 flex items-start gap-2.5 text-xs font-mono text-amber-900 animate-in fade-in duration-200">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <span className="font-bold text-amber-300 block uppercase">
+                <span className="font-bold text-amber-900 block uppercase">
                   Sublimite de faturamento estadual/municipal atingido!
                 </span>
-                <p className="leading-relaxed">{pgdas.sublimiteWarning}</p>
-                <p className="text-[11px] text-amber-300/80">
+                <p className="leading-relaxed text-slate-700">{pgdas.sublimiteWarning}</p>
+                <p className="text-[11px] text-amber-800">
                   Na 6ª faixa do Simples Nacional, o tributo municipal/estadual é recolhido em guia
                   própria fora do DAS, mantendo-se no Simples Nacional apenas a unificação dos
                   tributos federais.
@@ -862,47 +864,47 @@ export default function DreSimplesPage() {
           )}
 
           {/* QUADRO DO PGDAS: Alíquota Nominal, Dedução e Alíquota Efetiva */}
-          <div className="p-4 rounded-xl bg-slate-950/70 border border-emerald-500/30 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="text-xs font-mono font-bold uppercase text-emerald-400">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <span className="text-xs font-mono font-bold uppercase text-slate-900">
                 Fórmula oficial do PGDAS — {currentAnexoConfig.nome} ({pgdas.faixaNome})
               </span>
-              <span className="text-[11px] text-slate-400 font-mono">
+              <span className="text-[11px] text-slate-500 font-mono">
                 Alíq. Efetiva = (RBT12 × Alíq. Nominal − Parcela a Deduzir) ÷ RBT12
               </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
-              <div className="p-3 rounded-lg bg-slate-900/70 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block mb-0.5">Faixa do RBT12</span>
-                <span className="text-slate-200 font-bold">{pgdas.faixaNome}</span>
+              <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
+                <span className="text-[10px] text-slate-500 block mb-0.5">Faixa do RBT12</span>
+                <span className="text-slate-900 font-bold">{pgdas.faixaNome}</span>
               </div>
-              <div className="p-3 rounded-lg bg-slate-900/70 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block mb-0.5">Alíquota nominal</span>
-                <span className="text-slate-200 font-bold">
+              <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
+                <span className="text-[10px] text-slate-500 block mb-0.5">Alíquota nominal</span>
+                <span className="text-slate-900 font-bold">
                   {formatNumberBR(pgdas.aliquotaNominal)}%
                 </span>
               </div>
-              <div className="p-3 rounded-lg bg-slate-900/70 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block mb-0.5">
+              <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
+                <span className="text-[10px] text-slate-500 block mb-0.5">
                   Parcela a deduzir (PD)
                 </span>
-                <span className="text-slate-200 font-bold">{formatBRL(pgdas.parcelaDeduzir)}</span>
+                <span className="text-slate-900 font-bold">{formatBRL(pgdas.parcelaDeduzir)}</span>
               </div>
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/40">
-                <span className="text-[10px] text-emerald-400 block mb-0.5 font-semibold">
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 shadow-xs">
+                <span className="text-[10px] text-emerald-800 block mb-0.5 font-semibold">
                   Alíquota efetiva PGDAS
                 </span>
-                <span className="text-base font-extrabold text-emerald-400">
+                <span className="text-base font-black text-emerald-900">
                   {formatNumberBR(pgdas.aliquotaEfetiva, 4)}%
                 </span>
               </div>
             </div>
 
             {/* Repartição da Alíquota Efetiva pelos tributos federais, estaduais e municipais */}
-            <div className="pt-2 border-t border-slate-800/80">
+            <div className="pt-2 border-t border-slate-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] font-mono text-slate-300 font-semibold uppercase">
+                <span className="text-[11px] font-mono text-slate-700 font-bold uppercase">
                   Partilha da alíquota efetiva entre tributos (
                   {formatNumberBR(pgdas.aliquotaEfetiva, 2)}% total)
                 </span>
@@ -910,49 +912,49 @@ export default function DreSimplesPage() {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 font-mono text-xs">
-                <div className="p-2 rounded-md bg-slate-900/50 border border-slate-800 text-center">
-                  <span className="text-[10px] text-slate-400 block">IRPJ</span>
-                  <span className="text-slate-200 font-semibold">
+                <div className="p-2 rounded-lg bg-white border border-slate-200 text-center shadow-xs">
+                  <span className="text-[10px] text-slate-500 block">IRPJ</span>
+                  <span className="text-slate-900 font-bold">
                     {formatNumberBR(pgdas.reparticao.irpjRate, 2)}%
                   </span>
                 </div>
-                <div className="p-2 rounded-md bg-slate-900/50 border border-slate-800 text-center">
-                  <span className="text-[10px] text-slate-400 block">CSLL</span>
-                  <span className="text-slate-200 font-semibold">
+                <div className="p-2 rounded-lg bg-white border border-slate-200 text-center shadow-xs">
+                  <span className="text-[10px] text-slate-500 block">CSLL</span>
+                  <span className="text-slate-900 font-bold">
                     {formatNumberBR(pgdas.reparticao.csllRate, 2)}%
                   </span>
                 </div>
-                <div className="p-2 rounded-md bg-slate-900/50 border border-slate-800 text-center">
-                  <span className="text-[10px] text-slate-400 block">COFINS</span>
-                  <span className="text-slate-200 font-semibold">
+                <div className="p-2 rounded-lg bg-white border border-slate-200 text-center shadow-xs">
+                  <span className="text-[10px] text-slate-500 block">COFINS</span>
+                  <span className="text-slate-900 font-bold">
                     {formatNumberBR(pgdas.reparticao.cofinsRate, 2)}%
                   </span>
                 </div>
-                <div className="p-2 rounded-md bg-slate-900/50 border border-slate-800 text-center">
-                  <span className="text-[10px] text-slate-400 block">PIS</span>
-                  <span className="text-slate-200 font-semibold">
+                <div className="p-2 rounded-lg bg-white border border-slate-200 text-center shadow-xs">
+                  <span className="text-[10px] text-slate-500 block">PIS</span>
+                  <span className="text-slate-900 font-bold">
                     {formatNumberBR(pgdas.reparticao.pisRate, 2)}%
                   </span>
                 </div>
-                <div className="p-2 rounded-md bg-slate-900/50 border border-slate-800 text-center">
-                  <span className="text-[10px] text-slate-400 block">CPP</span>
-                  <span className="text-slate-200 font-semibold">
+                <div className="p-2 rounded-lg bg-white border border-slate-200 text-center shadow-xs">
+                  <span className="text-[10px] text-slate-500 block">CPP</span>
+                  <span className="text-slate-900 font-bold">
                     {formatNumberBR(pgdas.reparticao.cppRate, 2)}%
                   </span>
                 </div>
                 {pgdas.reparticao.ipiRate > 0 && (
-                  <div className="p-2 rounded-md bg-slate-900/50 border border-slate-800 text-center">
-                    <span className="text-[10px] text-slate-400 block">IPI</span>
-                    <span className="text-slate-200 font-semibold">
+                  <div className="p-2 rounded-lg bg-white border border-slate-200 text-center shadow-xs">
+                    <span className="text-[10px] text-slate-500 block">IPI</span>
+                    <span className="text-slate-900 font-bold">
                       {formatNumberBR(pgdas.reparticao.ipiRate, 2)}%
                     </span>
                   </div>
                 )}
-                <div className="p-2 rounded-md bg-slate-900/50 border border-slate-800 text-center">
-                  <span className="text-[10px] text-slate-400 block">
+                <div className="p-2 rounded-lg bg-white border border-slate-200 text-center shadow-xs">
+                  <span className="text-[10px] text-slate-500 block">
                     {currentAnexoConfig.tributoEstadualMunicipal === 'iss' ? 'ISS' : 'ICMS'}
                   </span>
-                  <span className="text-slate-200 font-semibold">
+                  <span className="text-slate-900 font-bold">
                     {formatNumberBR(
                       currentAnexoConfig.tributoEstadualMunicipal === 'iss'
                         ? pgdas.reparticao.issRate
@@ -962,11 +964,11 @@ export default function DreSimplesPage() {
                     %
                   </span>
                 </div>
-                <div className="p-2 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-center">
-                  <span className="text-[10px] text-emerald-400 block font-semibold">
+                <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-300 text-center shadow-xs">
+                  <span className="text-[10px] text-emerald-800 block font-semibold">
                     Total DAS
                   </span>
-                  <span className="text-emerald-400 font-bold">
+                  <span className="text-emerald-900 font-black">
                     {formatNumberBR(pgdas.aliquotaEfetiva, 2)}%
                   </span>
                 </div>
@@ -976,33 +978,31 @@ export default function DreSimplesPage() {
 
           {/* Quadro Informativo de 4 Grandezas: Receita (Unitária / Consolidada) e CMV (Unitário / Consolidado) */}
           <div className="space-y-3 pt-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold uppercase text-slate-200">
+            <div className="flex items-center justify-between border-l-4 border-emerald-500 pl-2.5">
+              <span className="text-xs font-mono font-bold uppercase text-slate-900">
                 Resumo Operacional — Receita e CMV (Unitário vs. Consolidado)
               </span>
-              <span className="text-[11px] text-emerald-400 font-mono font-semibold">
+              <span className="text-[11px] text-emerald-700 font-mono font-semibold">
                 · automático (via Markup e Compras · {qty} un.)
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
               {/* 1. Receita Bruta Unitária */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 border border-slate-200">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-300">
-                    Receita bruta unitária
-                  </label>
-                  <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                  <label className="text-xs font-bold text-slate-700">Receita bruta unitária</label>
+                  <span className="text-[10px] text-emerald-700 font-mono font-semibold">
                     · unitário (Markup)
                   </span>
                 </div>
-                <div className="h-11 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
-                  <span className="text-slate-500 text-xs">R$</span>
-                  <span className="font-bold text-emerald-400">
+                <div className="h-11 px-3.5 rounded-xl bg-white border border-slate-300 flex items-center justify-between font-mono text-sm text-slate-900 shadow-xs">
+                  <span className="text-slate-400 text-xs font-semibold">R$</span>
+                  <span className="font-bold text-slate-900 text-base">
                     {isMultiProduct ? '—' : formatNumberBR(unitGrossRevenue)}
                   </span>
                 </div>
-                <p className="text-[10px] font-mono text-slate-400 px-1">
+                <p className="text-[10px] font-mono text-slate-500 px-1">
                   {isMultiProduct
                     ? 'Multi-itens (sem preço médio global)'
                     : 'Preço unitário de venda apurado'}
@@ -1010,23 +1010,23 @@ export default function DreSimplesPage() {
               </div>
 
               {/* 2. Receita Bruta Consolidada */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 border border-slate-200">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-300">
+                  <label className="text-xs font-bold text-slate-700">
                     Receita bruta consolidada
                   </label>
-                  <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                  <span className="text-[10px] text-emerald-700 font-mono font-semibold">
                     · consolidado ({qty} un.)
                   </span>
                 </div>
-                <div className="h-11 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
-                  <span className="text-slate-500 text-xs">R$</span>
-                  <span className="font-bold text-emerald-400">
+                <div className="h-11 px-3.5 rounded-xl bg-white border border-slate-300 flex items-center justify-between font-mono text-sm text-slate-900 shadow-xs">
+                  <span className="text-slate-400 text-xs font-semibold">R$</span>
+                  <span className="font-black text-slate-900 text-base">
                     {formatNumberBR(activeGrossRevenue)}
                   </span>
                 </div>
                 <p
-                  className="text-[10px] font-mono text-slate-400 px-1 truncate"
+                  className="text-[10px] font-mono text-slate-500 px-1 truncate"
                   title={
                     isMultiProduct
                       ? 'Soma consolidada do faturamento dos itens'
@@ -1040,20 +1040,20 @@ export default function DreSimplesPage() {
               </div>
 
               {/* 3. CMV Unitário */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 border border-slate-200">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-300">CMV unitário</label>
-                  <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                  <label className="text-xs font-bold text-slate-700">CMV unitário</label>
+                  <span className="text-[10px] text-emerald-700 font-mono font-semibold">
                     · unitário (Compras)
                   </span>
                 </div>
-                <div className="h-11 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
-                  <span className="text-slate-500 text-xs">R$</span>
-                  <span className="font-bold text-emerald-400">
+                <div className="h-11 px-3.5 rounded-xl bg-white border border-slate-300 flex items-center justify-between font-mono text-sm text-slate-900 shadow-xs">
+                  <span className="text-slate-400 text-xs font-semibold">R$</span>
+                  <span className="font-bold text-slate-900 text-base">
                     {unitCMV !== null ? formatNumberBR(unitCMV) : '—'}
                   </span>
                 </div>
-                <p className="text-[10px] font-mono text-slate-400 px-1">
+                <p className="text-[10px] font-mono text-slate-500 px-1">
                   {isMultiProduct
                     ? 'Multi-itens (sem média global)'
                     : 'Custo líquido unitário apurado'}
@@ -1061,21 +1061,21 @@ export default function DreSimplesPage() {
               </div>
 
               {/* 4. CMV Consolidado */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 border border-slate-200">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-300">CMV consolidado</label>
-                  <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+                  <label className="text-xs font-bold text-slate-700">CMV consolidado</label>
+                  <span className="text-[10px] text-emerald-700 font-mono font-semibold">
                     · consolidado ({effectiveSoldQtyForCmv} un.)
                   </span>
                 </div>
-                <div className="h-11 px-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/40 flex items-center justify-between font-mono text-sm text-slate-100">
-                  <span className="text-slate-500 text-xs">R$</span>
-                  <span className="font-bold text-emerald-400">
+                <div className="h-11 px-3.5 rounded-xl bg-white border border-slate-300 flex items-center justify-between font-mono text-sm text-slate-900 shadow-xs">
+                  <span className="text-slate-400 text-xs font-semibold">R$</span>
+                  <span className="font-black text-slate-900 text-base">
                     {formatNumberBR(consolidatedCMV)}
                   </span>
                 </div>
                 <p
-                  className="text-[10px] font-mono text-slate-400 px-1 truncate"
+                  className="text-[10px] font-mono text-slate-500 px-1 truncate"
                   title={
                     unitCMV !== null
                       ? `${formatBRL(unitCMV)} × ${effectiveSoldQtyForCmv} un.`
@@ -1091,24 +1091,24 @@ export default function DreSimplesPage() {
           </div>
 
           {/* Faixa Informativa: Quantidade Vendida Automática (linkada diretamente ao Markup/Compras) */}
-          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-xs font-mono font-semibold text-emerald-400 flex items-center gap-2">
-                <LinkIcon className="w-4 h-4" />
+              <span className="text-xs font-mono font-bold text-emerald-900 flex items-center gap-2">
+                <LinkIcon className="w-4 h-4 text-emerald-700" />
                 Quantidade vendida integrada à DRE — definida automaticamente via Markup e Compras
               </span>
-              <p className="text-[11px] font-mono text-slate-400">
+              <p className="text-[11px] font-mono text-slate-600">
                 A coluna "Total ({qty} un.)" e as linhas de resultado acompanham diretamente os
                 produtos calculados, sem necessidade de digitação manual.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="h-10 px-4 rounded-xl bg-slate-950/80 border border-emerald-500/40 flex items-center gap-2 font-mono text-sm text-slate-100 shrink-0 shadow-inner">
-                <span className="text-slate-400 text-xs">Qtd:</span>
-                <span className="font-bold text-emerald-400 text-base">{qty}</span>
-                <span className="text-xs text-slate-400">un.</span>
-                <span className="text-[10px] text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded font-semibold ml-1">
+              <div className="h-10 px-4 rounded-xl bg-white border border-slate-300 flex items-center gap-2 font-mono text-sm text-slate-900 shrink-0 shadow-xs">
+                <span className="text-slate-500 text-xs">Qtd:</span>
+                <span className="font-bold text-slate-900 text-base">{qty}</span>
+                <span className="text-xs text-slate-500">un.</span>
+                <span className="text-[10px] text-emerald-800 bg-emerald-100 border border-emerald-300 px-1.5 py-0.5 rounded font-semibold ml-1">
                   · {quantitySourceLabel}
                 </span>
               </div>
@@ -1117,7 +1117,7 @@ export default function DreSimplesPage() {
                 <Button
                   type="button"
                   onClick={simulateSimples}
-                  className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-5 py-2 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 cursor-pointer transition-transform active:scale-95 text-xs sm:text-sm shrink-0"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-transform active:scale-95 text-xs sm:text-sm shrink-0"
                 >
                   <Calculator className="w-4 h-4" />
                   Simular DRE
@@ -1129,7 +1129,7 @@ export default function DreSimplesPage() {
 
         {/* Quadro Demonstração do Resultado — Simples Nacional (condicionado à simulação) */}
         {isSimplesSimulated ? (
-          <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-7 shadow-2xl space-y-5 animate-in fade-in duration-300">
+          <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-7 shadow-sm space-y-6 animate-in fade-in duration-300">
             {/* DUAS DREs LADO A LADO: Custo + Margem e Preço Líquido Desejado */}
             <RegimeSideBySideDreTables
               regimeKey="simples"
@@ -1138,80 +1138,80 @@ export default function DreSimplesPage() {
             />
 
             {/* Repartição da Guia Única DAS (Detalhamento dos tributos conforme PGDAS) */}
-            <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-3">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                  <Info className="w-4 h-4 text-emerald-600" />
                   Repartição da Guia Única (DAS) · {currentAnexoConfig.nome} (Alíquota Efetiva:{' '}
                   {formatPercentBR(effectiveRate)})
                 </span>
-                <span className="text-[11px] font-mono text-emerald-400">
+                <span className="text-[11px] font-mono font-bold text-emerald-800">
                   Total DAS: {formatBRL(totalDasTotal)}
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
                 {pgdas.reparticao.irpjRate > 0 && (
-                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
-                    <span className="text-slate-400 block text-[10px]">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+                    <span className="text-slate-500 block text-[10px]">
                       IRPJ ({formatPercentBR(pgdas.reparticao.irpjRate)})
                     </span>
-                    <span className="text-slate-200 font-semibold">{formatBRL(totalIrpj)}</span>
+                    <span className="text-slate-900 font-bold">{formatBRL(totalIrpj)}</span>
                   </div>
                 )}
                 {pgdas.reparticao.csllRate > 0 && (
-                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
-                    <span className="text-slate-400 block text-[10px]">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+                    <span className="text-slate-500 block text-[10px]">
                       CSLL ({formatPercentBR(pgdas.reparticao.csllRate)})
                     </span>
-                    <span className="text-slate-200 font-semibold">{formatBRL(totalCsll)}</span>
+                    <span className="text-slate-900 font-bold">{formatBRL(totalCsll)}</span>
                   </div>
                 )}
                 {pgdas.reparticao.cofinsRate > 0 && (
-                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
-                    <span className="text-slate-400 block text-[10px]">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+                    <span className="text-slate-500 block text-[10px]">
                       COFINS ({formatPercentBR(pgdas.reparticao.cofinsRate)})
                     </span>
-                    <span className="text-slate-200 font-semibold">{formatBRL(totalCofins)}</span>
+                    <span className="text-slate-900 font-bold">{formatBRL(totalCofins)}</span>
                   </div>
                 )}
                 {pgdas.reparticao.pisRate > 0 && (
-                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
-                    <span className="text-slate-400 block text-[10px]">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+                    <span className="text-slate-500 block text-[10px]">
                       PIS ({formatPercentBR(pgdas.reparticao.pisRate)})
                     </span>
-                    <span className="text-slate-200 font-semibold">{formatBRL(totalPis)}</span>
+                    <span className="text-slate-900 font-bold">{formatBRL(totalPis)}</span>
                   </div>
                 )}
                 {pgdas.reparticao.cppRate > 0 && (
-                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
-                    <span className="text-slate-400 block text-[10px]">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+                    <span className="text-slate-500 block text-[10px]">
                       CPP ({formatPercentBR(pgdas.reparticao.cppRate)})
                     </span>
-                    <span className="text-slate-200 font-semibold">{formatBRL(totalCpp)}</span>
+                    <span className="text-slate-900 font-bold">{formatBRL(totalCpp)}</span>
                   </div>
                 )}
                 {pgdas.reparticao.icmsRate > 0 && (
-                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
-                    <span className="text-slate-400 block text-[10px]">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+                    <span className="text-slate-500 block text-[10px]">
                       ICMS ({formatPercentBR(pgdas.reparticao.icmsRate)})
                     </span>
-                    <span className="text-slate-200 font-semibold">{formatBRL(totalIcms)}</span>
+                    <span className="text-slate-900 font-bold">{formatBRL(totalIcms)}</span>
                   </div>
                 )}
                 {pgdas.reparticao.ipiRate > 0 && (
-                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
-                    <span className="text-slate-400 block text-[10px]">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+                    <span className="text-slate-500 block text-[10px]">
                       IPI ({formatPercentBR(pgdas.reparticao.ipiRate)})
                     </span>
-                    <span className="text-slate-200 font-semibold">{formatBRL(totalIpi)}</span>
+                    <span className="text-slate-900 font-bold">{formatBRL(totalIpi)}</span>
                   </div>
                 )}
                 {pgdas.reparticao.issRate > 0 && (
-                  <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-800">
-                    <span className="text-slate-400 block text-[10px]">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+                    <span className="text-slate-500 block text-[10px]">
                       ISS ({formatPercentBR(pgdas.reparticao.issRate)})
                     </span>
-                    <span className="text-slate-200 font-semibold">{formatBRL(totalIss)}</span>
+                    <span className="text-slate-900 font-bold">{formatBRL(totalIss)}</span>
                   </div>
                 )}
               </div>
@@ -1637,18 +1637,18 @@ export default function DreSimplesPage() {
             />
           </div>
         ) : (
-          <div className="bg-[#0b101b]/60 border border-dashed border-slate-800 rounded-2xl p-8 text-center space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto">
+          <div className="bg-white border border-dashed border-slate-300 rounded-3xl p-8 text-center space-y-3 shadow-xs">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 mx-auto">
               <Calculator className="w-6 h-6" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-white tracking-tight">
+              <h3 className="text-base font-bold text-slate-900 tracking-tight">
                 Demonstração do Resultado pronta para simulação
               </h3>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
                 Informe a quantidade vendida acima e clique em{' '}
-                <strong className="text-emerald-400">"Simular DRE"</strong> para gerar os cálculos
-                da DRE do Simples Nacional com a partilha oficial da guia DAS.
+                <strong className="text-emerald-700 font-bold">"Simular DRE"</strong> para gerar os
+                cálculos da DRE do Simples Nacional com a partilha oficial da guia DAS.
               </p>
             </div>
           </div>
@@ -1664,7 +1664,7 @@ export default function DreSimplesPage() {
           <Button
             type="button"
             onClick={() => navigate('/demo/markup')}
-            className="bg-[#0f172a]/90 text-slate-300 border border-slate-700/80 hover:border-emerald-500/40 hover:text-white hover:bg-slate-800/80 font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-sm"
+            className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white border border-slate-700 hover:bg-slate-800 font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-xs"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Voltar para Calculadora Markup</span>
@@ -1673,7 +1673,7 @@ export default function DreSimplesPage() {
           <Button
             type="button"
             onClick={() => navigate('/demo/dashboard')}
-            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
           >
             <span>Ver Dashboard</span>
             <ArrowRight className="w-4 h-4" />
