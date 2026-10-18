@@ -41,7 +41,6 @@ import {
   type SideResultArt,
   r2,
 } from '@/lib/art12Calculations'
-import { calcularCelulaFornecedorPlenoXAdquirenteSn } from '@/lib/art12SnCalculations'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
 import { useTaxContext } from '@/contexts/TaxContext'
 import { EspelhoRepasseDialog } from './EspelhoRepasseDialog'
@@ -1108,17 +1107,14 @@ export function CmvArt12Module() {
                       },
                     ] as const
                   ).map(({ comprador, extenso, nomeComprador }) => {
-                    const fornSNRegime =
-                      config.fornecedorRegime === 'real' ? 'lucro_real' : 'lucro_presumido'
-                    const adqSNRegime =
-                      comprador === 'simples_hibrido' ? 'simples_hibrido' : 'simples'
+                    const cfgComb = {
+                      ...config,
+                      compradorRegime: comprador,
+                      fornecedorRegime: config.fornecedorRegime,
+                    }
                     const celulasSnItens = (celulasPorItem || []).map(({ item }) => ({
                       item,
-                      celula: calcularCelulaFornecedorPlenoXAdquirenteSn(
-                        fornSNRegime,
-                        adqSNRegime,
-                        item,
-                      ),
+                      cell: computeCellArt12Item(item, cfgComb, row),
                     }))
                     const exibidos = celulasSnItens.slice(0, 3)
                     const restantes = celulasSnItens.length - exibidos.length
@@ -1158,7 +1154,7 @@ export function CmvArt12Module() {
                         <div className="p-4 space-y-3 flex-1 w-full bg-white hover:bg-slate-50/70">
                           {/* Resumo por produto (valor/un e %) */}
                           <div className="space-y-1.5">
-                            {exibidos.map(({ item, celula: ci }) => (
+                            {exibidos.map(({ item, cell: ci }) => (
                               <div
                                 key={item.id}
                                 className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1.5"
@@ -1168,7 +1164,7 @@ export function CmvArt12Module() {
                                 </span>
                                 <div className="text-right shrink-0">
                                   <span className="text-xs font-black text-slate-900 font-mono block leading-tight">
-                                    {formatBRL(ci.exercicio2027.custoUnitario)}/un
+                                    {formatBRL(ci.exercicio.unitario)}/un
                                   </span>
                                   <span
                                     className={`text-[10px] font-mono font-semibold ${
