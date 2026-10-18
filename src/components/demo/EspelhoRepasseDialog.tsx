@@ -322,10 +322,33 @@ export function EspelhoRepasseDialog({
   // Estado para cenário aberto:
   // Para comprador pleno: { ci, fi }
   // Para comprador SN/SNH: fornecedor pleno selecionado ('presumido' | 'real')
-  const [cenarioAberto, setCenarioAberto] = useState<{ ci: number; fi: number } | null>(null)
+  // Sincroniza sempre com a abertura inicial para que, se abrir com comprador e fornecedor específicos,
+  // já caia direto na Camada 2 (6 cards do cenário) se for pleno, ou com o fornecedor correto se for SN.
+  const [cenarioAberto, setCenarioAberto] = useState<{ ci: number; fi: number } | null>(() => {
+    if (baseConfig.compradorRegime === 'presumido' || baseConfig.compradorRegime === 'real') {
+      const ci = baseConfig.compradorRegime === 'real' ? 1 : 0
+      const fi = baseConfig.fornecedorRegime === 'real' ? 1 : 0
+      return { ci, fi }
+    }
+    return null
+  })
   const [fornecedorSnAberto, setFornecedorSnAberto] = useState<RegimeId | null>(
     isCompradorSn ? (baseConfig.fornecedorRegime === 'real' ? 'real' : 'presumido') : null,
   )
+
+  // Sincroniza quando o diálogo abre ou quando baseConfig muda
+  React.useEffect(() => {
+    if (open) {
+      if (baseConfig.compradorRegime === 'presumido' || baseConfig.compradorRegime === 'real') {
+        const ci = baseConfig.compradorRegime === 'real' ? 1 : 0
+        const fi = baseConfig.fornecedorRegime === 'real' ? 1 : 0
+        setCenarioAberto({ ci, fi })
+      } else {
+        setCenarioAberto(null)
+      }
+      setFornecedorSnAberto(baseConfig.fornecedorRegime === 'real' ? 'real' : 'presumido')
+    }
+  }, [open, baseConfig.compradorRegime, baseConfig.fornecedorRegime])
 
   const cfg: CellConfigArt = { ...baseConfig, repasse: mode }
 
