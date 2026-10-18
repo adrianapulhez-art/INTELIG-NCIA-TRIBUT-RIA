@@ -873,12 +873,20 @@ export function CmvArt12Module() {
           </div>
         </div>
 
-        {/* ================= 2. CAMADA INTERNA RECUADA (PADRÃO PRÉ-REFORMA COMPRAS/MARKUP) ================= */}
-        {camadaCenariosAberta && (
-          <div className="mt-4 pt-4 border-t-2 border-slate-200 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="rounded-2xl border-2 border-slate-300 bg-slate-50/80 p-5 sm:p-6 shadow-inner space-y-6">
+        {/* ================= 2. CAMADA INTERNA RECUADA (GAVETA ANINHADA NO CARTÃO PAI) ================= */}
+        {/* Recuo evidente: mx-2 sm:mx-4 (mais estreita que o cartão pai), fundo mais escuro/recuado (bg-slate-100/90), */}
+        {/* borda interna fina (border border-slate-200/90), sombra interna profunda (shadow-inner), expansão com transição suave */}
+        <div
+          className={`grid transition-all duration-300 ease-in-out ${
+            camadaCenariosAberta
+              ? 'grid-rows-[1fr] opacity-100 mt-5'
+              : 'grid-rows-[0fr] opacity-0 mt-0 pointer-events-none'
+          }`}
+        >
+          <div className="overflow-hidden">
+            <div className="mx-1 sm:mx-3 p-3 sm:p-5 rounded-2xl bg-slate-100/90 border border-slate-200/90 shadow-inner space-y-5">
               {/* Cabeçalho da Camada Interna Recuada — Padrão DETALHES DA COMPRA / CENÁRIOS */}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/90 pb-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-300/70 pb-3.5">
                 <div className="border-l-4 border-emerald-600 pl-3">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-300/50" />
@@ -1191,7 +1199,7 @@ export function CmvArt12Module() {
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
       {/* ================= SESSÃO SN NA REFORMA (rearranjo da CEO, 29/09): TODAS as operações
           com Simples Nacional vivem AQUI — 12 combinações (SN puro × SN híbrido) × adquirentes.
