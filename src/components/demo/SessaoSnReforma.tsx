@@ -10,6 +10,9 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Receipt,
+  FileText,
+  Info,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -42,7 +45,7 @@ import { type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
 import { ComparadorFornecedoresDialog } from './ComparadorFornecedoresDialog'
 import { ManualContadorSnDialog } from './ManualContadorSnDialog'
 import { TrilhaChancelaBadge } from './TrilhaChancelaBadge'
-import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
+import { formatBRL, formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
 
 /**
  * ============================================================================
@@ -262,10 +265,57 @@ export function SessaoSnSection({
   const [camadaAnexoAberta, setCamadaAnexoAberta] = useState<boolean>(false) // Camada interna recuada para Tabela Oficial
   const [baseDoDas, setBaseDoDas] = useState<BaseDoDas>('bruta') // default: bruta
 
-  // Parâmetros de modo nota (digitados pelo contador)
-  const [icmsNotaPct, setIcmsNotaPct] = useState(PERFIL_SN_NOTA_PADRAO.icmsNotaPct)
-  const [cbsNotaPct, setCbsNotaPct] = useState(PERFIL_SN_NOTA_PADRAO.cbsNotaPct)
-  const [ibsNotaPct, setIbsNotaPct] = useState(PERFIL_SN_NOTA_PADRAO.ibsNotaPct)
+  // Entradas em valores monetários (R$) destacados na NF-e (Pedido da Adri: campos em R$, nunca percentuais)
+  const [valorIcmsInput, setValorIcmsInput] = useState<string>('')
+  const [valorPisInput, setValorPisInput] = useState<string>('')
+  const [valorCofinsInput, setValorCofinsInput] = useState<string>('')
+  const [valorCbsInput, setValorCbsInput] = useState<string>('')
+  const [valorIbsInput, setValorIbsInput] = useState<string>('')
+
+  // Valores numéricos parseados com suporte a vírgula pt-BR (estado inicial vazio/zero)
+  const valorIcmsNota = useMemo(() => Math.max(0, parseBRNumber(valorIcmsInput)), [valorIcmsInput])
+  const valorPisNota = useMemo(() => Math.max(0, parseBRNumber(valorPisInput)), [valorPisInput])
+  const valorCofinsNota = useMemo(
+    () => Math.max(0, parseBRNumber(valorCofinsInput)),
+    [valorCofinsInput],
+  )
+  const valorCbsNota = useMemo(() => Math.max(0, parseBRNumber(valorCbsInput)), [valorCbsInput])
+  const valorIbsNota = useMemo(() => Math.max(0, parseBRNumber(valorIbsInput)), [valorIbsInput])
+
+  // Total da nota fiscal da compra em uso (nota canônica / item ativo da Calculadora de Compras)
+  const itemSelecionado = itens[Math.min(idxItem, Math.max(0, itens.length - 1))]
+  const totalNotaEmUso = useMemo(() => {
+    if (!itemSelecionado) return 42400
+    const mercFrete = (itemSelecionado.merchandiseValue || 0) + (itemSelecionado.freightValue || 0)
+    return mercFrete > 0 ? mercFrete : itemSelecionado.valorNota || 42400
+  }, [itemSelecionado])
+
+  // Conversão matemática no componente (sem tocar em src/lib/*):
+  // percentual = valor destacado ÷ total da nota fiscal da compra em uso
+  const icmsNotaPct = useMemo(() => {
+    if (totalNotaEmUso <= 0 || valorIcmsNota <= 0) return 0
+    return (valorIcmsNota / totalNotaEmUso) * 100
+  }, [valorIcmsNota, totalNotaEmUso])
+
+  const pisNotaPct = useMemo(() => {
+    if (totalNotaEmUso <= 0 || valorPisNota <= 0) return 0
+    return (valorPisNota / totalNotaEmUso) * 100
+  }, [valorPisNota, totalNotaEmUso])
+
+  const cofinsNotaPct = useMemo(() => {
+    if (totalNotaEmUso <= 0 || valorCofinsNota <= 0) return 0
+    return (valorCofinsNota / totalNotaEmUso) * 100
+  }, [valorCofinsNota, totalNotaEmUso])
+
+  const cbsNotaPct = useMemo(() => {
+    if (totalNotaEmUso <= 0 || valorCbsNota <= 0) return 0
+    return (valorCbsNota / totalNotaEmUso) * 100
+  }, [valorCbsNota, totalNotaEmUso])
+
+  const ibsNotaPct = useMemo(() => {
+    if (totalNotaEmUso <= 0 || valorIbsNota <= 0) return 0
+    return (valorIbsNota / totalNotaEmUso) * 100
+  }, [valorIbsNota, totalNotaEmUso])
 
   // Parâmetros de tabela oficial (Seleção de Anexo I a V e Faixa 1 a 6)
   const [anexoId, setAnexoId] = useState<string>('anexo1')
@@ -487,7 +537,7 @@ export function SessaoSnSection({
               <span className="text-xs font-mono font-bold px-3 py-1 rounded-md border border-emerald-300 bg-white text-emerald-850 shadow-2xs">
                 Origem ativa:{' '}
                 <span className="text-emerald-900 uppercase font-black">
-                  {origem === 'nota' ? 'da nota' : 'estimativa da tabela'}
+                  {origem === 'nota' ? 'valores destacados na nota' : 'estimativa da tabela'}
                 </span>
               </span>
             </div>
@@ -581,7 +631,7 @@ export function SessaoSnSection({
                 </div>
               </button>
 
-              {/* Botão B: Preencher pelo percentual da NOTA (art. 23, §2º) */}
+              {/* Botão B: Preencher com VALORES DESTACADOS NA NOTA FISCAL (art. 23, §2º) */}
               <button
                 type="button"
                 onClick={() => {
@@ -603,7 +653,7 @@ export function SessaoSnSection({
                           : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       }`}
                     >
-                      <Percent className="w-5 h-5" />
+                      <Receipt className="w-5 h-5" />
                     </div>
                     <div>
                       <span
@@ -611,14 +661,14 @@ export function SessaoSnSection({
                           origem === 'nota' ? 'text-white' : 'text-slate-900'
                         }`}
                       >
-                        PREENCHER PERCENTUAL DA NOTA
+                        PREENCHER COM VALORES DESTACADOS NA NOTA FISCAL
                       </span>
                       <span
                         className={`text-xs font-mono block mt-0.5 ${
                           origem === 'nota' ? 'text-emerald-200' : 'text-slate-500'
                         }`}
                       >
-                        Documento Fiscal · LC 123/2006, art. 23, §2º (campo próprio)
+                        Documento Fiscal · Valores monetários destacados na NF-e (R$)
                       </span>
                     </div>
                   </div>
@@ -629,7 +679,7 @@ export function SessaoSnSection({
                         : 'bg-slate-100 text-slate-600 border-slate-200'
                     }`}
                   >
-                    {origem === 'nota' ? 'Ativo' : 'Manual'}
+                    {origem === 'nota' ? 'Ativo' : 'Manual (R$)'}
                   </span>
                 </div>
 
@@ -641,127 +691,447 @@ export function SessaoSnSection({
                   }`}
                 >
                   <span className="font-semibold truncate max-w-[65%]">
-                    ICMS {formatNumberBR(icmsNotaPct, 2)}% · CBS {formatNumberBR(cbsNotaPct, 4)}% ·
-                    IBS {formatNumberBR(ibsNotaPct, 4)}%
+                    {valorIcmsNota > 0 || valorCbsNota > 0 || valorIbsNota > 0 ? (
+                      <>
+                        ICMS {formatBRL(valorIcmsNota)} ({formatNumberBR(icmsNotaPct, 2)}%) · CBS{' '}
+                        {formatBRL(valorCbsNota)} · IBS {formatBRL(valorIbsNota)}
+                      </>
+                    ) : (
+                      'Nenhum valor destacado digitado (valores em R$ zerados/vazios)'
+                    )}
                   </span>
                   <span className="font-bold shrink-0">
-                    {origem === 'nota' ? 'CAMPO DE ENTRADA VISÍVEL' : 'DIGITAR ALÍQUOTAS'}
+                    {origem === 'nota' ? 'CAMPOS EM R$ ATIVOS' : 'DIGITAR VALORES (R$)'}
                   </span>
                 </div>
               </button>
             </div>
 
-            {/* 3. CAMPO DE PERCENTUAL DA NOTA (Dedicado, visível apenas quando origem 'nota' está selecionada) */}
+            {/* 3. CARTÃO DEDICADO DE VALORES DESTACADOS NA NOTA FISCAL (Visível quando origem 'nota' está selecionada) */}
             {origem === 'nota' && (
               <div className="rounded-2xl border border-emerald-300/80 bg-emerald-50/50 p-4 sm:p-5 space-y-4 shadow-xs">
+                {/* Cabeçalho do Cartão */}
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/80 pb-3">
                   <div className="border-l-4 border-emerald-600 pl-3">
                     <h4 className="text-sm font-mono font-bold uppercase tracking-wider text-slate-900">
-                      VALOR DO DESTAQUE DA NOTA FISCAL · DIGITAÇÃO MANUAL
+                      VALORES DESTACADOS NA NOTA FISCAL (NF-e) · DIGITAÇÃO MANUAL EM REAIS (R$)
                     </h4>
                     <p className="text-xs text-slate-600 mt-0.5 font-mono">
-                      Preencha o valor do destaque / percentual informado no campo próprio da NF-e
-                      (art. 23, §2º da LC 123/2006).
+                      Preencha os valores monetários em R$ exatamente como constam destacados no
+                      documento fiscal. O sistema converte automaticamente em percentuais sobre o
+                      total da nota.
                     </p>
                   </div>
-                  <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-md border border-emerald-300 bg-white text-emerald-850 uppercase shadow-2xs">
-                    Origem: Documento Fiscal
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-md border border-emerald-300 bg-white text-emerald-850 uppercase shadow-2xs">
+                      Total da Nota: {formatBRL(totalNotaEmUso)}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-md border border-emerald-300 bg-emerald-100 text-emerald-900 uppercase shadow-2xs">
+                      Origem: Destaque da NF-e
+                    </span>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-end">
-                  {/* Campo Principal em Destaque: % ICMS da nota */}
-                  <div className="sm:col-span-4 space-y-1.5 p-3 rounded-xl bg-white border border-emerald-300 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-mono font-bold text-slate-900 uppercase">
-                        % ICMS da Nota (Destaque NF-e)
-                      </label>
-                      <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                        Campo próprio
+                {/* Botões rápidos de exemplo para conferência e validação */}
+                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                  <span className="text-[11px] font-mono font-bold text-slate-600">
+                    Atalhos de conferência:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValorIcmsInput('7632,00')
+                      setValorPisInput('0,00')
+                      setValorCofinsInput('0,00')
+                      setValorCbsInput('0,00')
+                      setValorIbsInput('0,00')
+                    }}
+                    className="text-[10px] font-mono font-bold text-emerald-900 bg-white hover:bg-emerald-100/60 px-2.5 py-1 rounded-md border border-emerald-300 transition-colors cursor-pointer shadow-2xs"
+                    title="Preenche ICMS com R$ 7.632,00 (18% sobre a nota canônica de R$ 42.400,00)"
+                  >
+                    Caso Canônico: ICMS 18% (R$ 7.632,00)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValorIcmsInput('576,64')
+                      setValorPisInput('0,00')
+                      setValorCofinsInput('0,00')
+                      setValorCbsInput('260,00')
+                      setValorIbsInput('2,88')
+                    }}
+                    className="text-[10px] font-mono font-bold text-slate-700 bg-white hover:bg-slate-100 px-2.5 py-1 rounded-md border border-slate-300 transition-colors cursor-pointer shadow-2xs"
+                    title="Preenche ICMS com R$ 576,64 (1,36% sobre R$ 42.400,00) e frações 2027+"
+                  >
+                    Exemplo Fração Art. 23 (R$ 576,64 · 1,36%)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValorIcmsInput('')
+                      setValorPisInput('')
+                      setValorCofinsInput('')
+                      setValorCbsInput('')
+                      setValorIbsInput('')
+                    }}
+                    className="text-[10px] font-mono font-semibold text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 transition-colors cursor-pointer shadow-2xs ml-auto"
+                  >
+                    Limpar campos (zerar)
+                  </button>
+                </div>
+
+                {/* Grade de 5 inputs monetários formatados (R$) + 1 Resumo Total */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-stretch">
+                  {/* 1. ICMS destacado na nota (R$) */}
+                  <div className="space-y-1.5 p-3 rounded-xl bg-white border border-emerald-300 shadow-2xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <label className="text-[11px] font-mono font-bold text-slate-900 uppercase leading-tight">
+                          ICMS destacado na nota (R$)
+                        </label>
+                        <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200 shrink-0">
+                          NF-e
+                        </span>
+                      </div>
+                      <div className="relative mt-2">
+                        <span className="absolute left-2.5 top-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none">
+                          R$
+                        </span>
+                        <Input
+                          type="text"
+                          value={valorIcmsInput}
+                          onChange={(e) => setValorIcmsInput(e.target.value)}
+                          className="h-10 bg-white border-slate-300 text-xs font-mono font-bold text-slate-900 focus-visible:ring-emerald-500 pl-8 pr-2"
+                          placeholder="0,00"
+                        />
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-slate-100 space-y-0.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono font-bold text-emerald-800">
+                        <span>% Derivado:</span>
+                        <span>{formatNumberBR(icmsNotaPct, 4)}%</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-slate-500 block leading-tight">
+                        {valorIcmsNota > 0
+                          ? `${formatBRL(valorIcmsNota)} ÷ ${formatBRL(totalNotaEmUso)}`
+                          : 'campo vazio/zero (0%)'}
                       </span>
                     </div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        step="0.0001"
-                        value={icmsNotaPct}
-                        onChange={(e) => setIcmsNotaPct(Number(e.target.value) || 0)}
-                        className="h-10 bg-white border-slate-300 text-sm font-mono font-bold text-slate-900 focus-visible:ring-emerald-500 pr-8"
-                        placeholder="Ex: 1.36"
-                      />
-                      <span className="absolute right-3 top-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none">
-                        %
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-500 block leading-tight">
-                      Alíquota destacada pelo fornecedor SN puro para crédito do adquirente
-                    </span>
                   </div>
 
-                  {/* % CBS da nota */}
-                  <div className="sm:col-span-3 space-y-1.5 p-3 rounded-xl bg-white border border-slate-200 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-mono font-semibold text-slate-700 uppercase">
-                        % CBS da Nota
-                      </label>
-                      <span className="text-[10px] font-mono text-slate-500">2027+</span>
+                  {/* 2. PIS destacado na nota (R$) */}
+                  <div className="space-y-1.5 p-3 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <label className="text-[11px] font-mono font-bold text-slate-700 uppercase leading-tight">
+                          PIS destacado na nota (R$)
+                        </label>
+                        <span className="text-[9px] font-mono text-slate-500 shrink-0">NF-e</span>
+                      </div>
+                      <div className="relative mt-2">
+                        <span className="absolute left-2.5 top-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none">
+                          R$
+                        </span>
+                        <Input
+                          type="text"
+                          value={valorPisInput}
+                          onChange={(e) => setValorPisInput(e.target.value)}
+                          className="h-10 bg-white border-slate-300 text-xs font-mono font-bold text-slate-900 focus-visible:ring-emerald-500 pl-8 pr-2"
+                          placeholder="0,00"
+                        />
+                      </div>
                     </div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        step="0.0001"
-                        value={cbsNotaPct}
-                        onChange={(e) => setCbsNotaPct(Number(e.target.value) || 0)}
-                        className="h-10 bg-white border-slate-300 text-sm font-mono font-bold text-slate-900 focus-visible:ring-emerald-500 pr-8"
-                        placeholder="Ex: 0.6132"
-                      />
-                      <span className="absolute right-3 top-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none">
-                        %
+                    <div className="pt-2 border-t border-slate-100 space-y-0.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-700">
+                        <span>% Derivado:</span>
+                        <span>{formatNumberBR(pisNotaPct, 4)}%</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-slate-500 block leading-tight">
+                        {valorPisNota > 0
+                          ? `${formatBRL(valorPisNota)} ÷ ${formatBRL(totalNotaEmUso)}`
+                          : 'campo vazio/zero (0%)'}
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono text-slate-500 block leading-tight">
-                      Fração de CBS do DAS informada em campo próprio
-                    </span>
                   </div>
 
-                  {/* % IBS da nota */}
-                  <div className="sm:col-span-3 space-y-1.5 p-3 rounded-xl bg-white border border-slate-200 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-mono font-semibold text-slate-700 uppercase">
-                        % IBS da Nota
-                      </label>
-                      <span className="text-[10px] font-mono text-slate-500">2027+</span>
+                  {/* 3. COFINS destacado na nota (R$) */}
+                  <div className="space-y-1.5 p-3 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <label className="text-[11px] font-mono font-bold text-slate-700 uppercase leading-tight">
+                          COFINS destacado na nota (R$)
+                        </label>
+                        <span className="text-[9px] font-mono text-slate-500 shrink-0">NF-e</span>
+                      </div>
+                      <div className="relative mt-2">
+                        <span className="absolute left-2.5 top-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none">
+                          R$
+                        </span>
+                        <Input
+                          type="text"
+                          value={valorCofinsInput}
+                          onChange={(e) => setValorCofinsInput(e.target.value)}
+                          className="h-10 bg-white border-slate-300 text-xs font-mono font-bold text-slate-900 focus-visible:ring-emerald-500 pl-8 pr-2"
+                          placeholder="0,00"
+                        />
+                      </div>
                     </div>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        step="0.0001"
-                        value={ibsNotaPct}
-                        onChange={(e) => setIbsNotaPct(Number(e.target.value) || 0)}
-                        className="h-10 bg-white border-slate-300 text-sm font-mono font-bold text-slate-900 focus-visible:ring-emerald-500 pr-8"
-                        placeholder="Ex: 0.0068"
-                      />
-                      <span className="absolute right-3 top-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none">
-                        %
+                    <div className="pt-2 border-t border-slate-100 space-y-0.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-700">
+                        <span>% Derivado:</span>
+                        <span>{formatNumberBR(cofinsNotaPct, 4)}%</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-slate-500 block leading-tight">
+                        {valorCofinsNota > 0
+                          ? `${formatBRL(valorCofinsNota)} ÷ ${formatBRL(totalNotaEmUso)}`
+                          : 'campo vazio/zero (0%)'}
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono text-slate-500 block leading-tight">
-                      Fração de IBS do DAS informada em campo próprio
-                    </span>
                   </div>
 
-                  {/* Resumo da Parcela Creditável da Nota */}
-                  <div className="sm:col-span-2 rounded-xl border border-emerald-300 bg-white p-3 flex flex-col justify-between h-[92px] shadow-2xs">
+                  {/* 4. CBS destacada na nota (R$) */}
+                  <div className="space-y-1.5 p-3 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <label className="text-[11px] font-mono font-bold text-slate-700 uppercase leading-tight">
+                          CBS destacada na nota (R$)
+                        </label>
+                        <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200 shrink-0">
+                          2027+
+                        </span>
+                      </div>
+                      <div className="relative mt-2">
+                        <span className="absolute left-2.5 top-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none">
+                          R$
+                        </span>
+                        <Input
+                          type="text"
+                          value={valorCbsInput}
+                          onChange={(e) => setValorCbsInput(e.target.value)}
+                          className="h-10 bg-white border-slate-300 text-xs font-mono font-bold text-slate-900 focus-visible:ring-emerald-500 pl-8 pr-2"
+                          placeholder="0,00"
+                        />
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-slate-100 space-y-0.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-900">
+                        <span>% Derivado:</span>
+                        <span>{formatNumberBR(cbsNotaPct, 4)}%</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-slate-500 block leading-tight">
+                        {valorCbsNota > 0
+                          ? `${formatBRL(valorCbsNota)} ÷ ${formatBRL(totalNotaEmUso)}`
+                          : 'campo vazio/zero (0%)'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 5. IBS destacado na nota (R$) */}
+                  <div className="space-y-1.5 p-3 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <label className="text-[11px] font-mono font-bold text-slate-700 uppercase leading-tight">
+                          IBS destacado na nota (R$)
+                        </label>
+                        <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200 shrink-0">
+                          2027+
+                        </span>
+                      </div>
+                      <div className="relative mt-2">
+                        <span className="absolute left-2.5 top-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none">
+                          R$
+                        </span>
+                        <Input
+                          type="text"
+                          value={valorIbsInput}
+                          onChange={(e) => setValorIbsInput(e.target.value)}
+                          className="h-10 bg-white border-slate-300 text-xs font-mono font-bold text-slate-900 focus-visible:ring-emerald-500 pl-8 pr-2"
+                          placeholder="0,00"
+                        />
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-slate-100 space-y-0.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-900">
+                        <span>% Derivado:</span>
+                        <span>{formatNumberBR(ibsNotaPct, 4)}%</span>
+                      </div>
+                      <span className="text-[9px] font-mono text-slate-500 block leading-tight">
+                        {valorIbsNota > 0
+                          ? `${formatBRL(valorIbsNota)} ÷ ${formatBRL(totalNotaEmUso)}`
+                          : 'campo vazio/zero (0%)'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 6. Resumo Total da Parcela Creditável */}
+                  <div className="rounded-xl border border-emerald-300 bg-white p-3 flex flex-col justify-between shadow-2xs">
                     <div>
                       <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">
-                        Crédito Total
+                        Crédito Total Derivado
                       </span>
-                      <span className="text-sm font-mono font-black text-emerald-800 block">
+                      <span className="text-sm font-mono font-black text-emerald-800 block mt-0.5">
                         {formatNumberBR(icmsNotaPct + cbsNotaPct + ibsNotaPct, 4)}%
                       </span>
+                      <span className="text-xs font-mono font-bold text-slate-800 block mt-0.5">
+                        {formatBRL(valorIcmsNota + valorCbsNota + valorIbsNota)}
+                      </span>
                     </div>
-                    <span className="text-[9px] font-mono text-emerald-700 leading-tight">
-                      ICMS + CBS + IBS da nota
+                    <span className="text-[9px] font-mono text-emerald-700 leading-tight pt-2 border-t border-emerald-100">
+                      Soma das parcelas creditáveis (ICMS + CBS + IBS)
+                    </span>
+                  </div>
+                </div>
+
+                {/* MEMÓRIA DE CÁLCULO VISÍVEL E DIDÁTICA DA CONVERSÃO (R$ → %) */}
+                <div className="rounded-xl border border-emerald-200/90 bg-white p-3.5 sm:p-4 space-y-3 shadow-2xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                    <div className="flex items-center gap-2">
+                      <Calculator className="w-4 h-4 text-emerald-700" />
+                      <span className="text-xs font-mono font-bold uppercase tracking-wide text-slate-900">
+                        Memória de Cálculo Didática da Conversão (Valores em R$ ÷ Total da Nota =
+                        Alíquota %)
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-600">
+                      Total da nota de referência:{' '}
+                      <strong className="text-slate-900">{formatBRL(totalNotaEmUso)}</strong>
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs font-mono">
+                    {/* Linha 1: ICMS */}
+                    <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 space-y-1">
+                      <div className="flex items-center justify-between font-bold text-slate-900">
+                        <span>ICMS DESTACADO</span>
+                        <span className="text-emerald-800">{formatNumberBR(icmsNotaPct, 4)}%</span>
+                      </div>
+                      <div className="text-[11px] text-slate-700 font-semibold">
+                        {formatBRL(valorIcmsNota)} ÷ {formatBRL(totalNotaEmUso)} ={' '}
+                        {formatNumberBR(icmsNotaPct, 4)}%
+                      </div>
+                      <div className="text-[10px] text-slate-500 italic">
+                        Origem:{' '}
+                        <span className="text-slate-700 not-italic font-medium">
+                          {valorIcmsNota > 0
+                            ? 'valor informado pelo usuário, conforme destaque da NF-e'
+                            : 'campo não informado / zero (percentual derivado: 0,0000% · nada inventado)'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Linha 2: PIS */}
+                    <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 space-y-1">
+                      <div className="flex items-center justify-between font-bold text-slate-900">
+                        <span>PIS DESTACADO</span>
+                        <span className="text-slate-700">{formatNumberBR(pisNotaPct, 4)}%</span>
+                      </div>
+                      <div className="text-[11px] text-slate-700 font-semibold">
+                        {formatBRL(valorPisNota)} ÷ {formatBRL(totalNotaEmUso)} ={' '}
+                        {formatNumberBR(pisNotaPct, 4)}%
+                      </div>
+                      <div className="text-[10px] text-slate-500 italic">
+                        Origem:{' '}
+                        <span className="text-slate-700 not-italic font-medium">
+                          {valorPisNota > 0
+                            ? 'valor informado pelo usuário, conforme destaque da NF-e'
+                            : 'campo não informado / zero (percentual derivado: 0,0000% · nada inventado)'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Linha 3: COFINS */}
+                    <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 space-y-1">
+                      <div className="flex items-center justify-between font-bold text-slate-900">
+                        <span>COFINS DESTACADO</span>
+                        <span className="text-slate-700">{formatNumberBR(cofinsNotaPct, 4)}%</span>
+                      </div>
+                      <div className="text-[11px] text-slate-700 font-semibold">
+                        {formatBRL(valorCofinsNota)} ÷ {formatBRL(totalNotaEmUso)} ={' '}
+                        {formatNumberBR(cofinsNotaPct, 4)}%
+                      </div>
+                      <div className="text-[10px] text-slate-500 italic">
+                        Origem:{' '}
+                        <span className="text-slate-700 not-italic font-medium">
+                          {valorCofinsNota > 0
+                            ? 'valor informado pelo usuário, conforme destaque da NF-e'
+                            : 'campo não informado / zero (percentual derivado: 0,0000% · nada inventado)'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Linha 4: CBS (2027+) */}
+                    <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 space-y-1">
+                      <div className="flex items-center justify-between font-bold text-slate-900">
+                        <span>CBS DESTACADA (2027+)</span>
+                        <span className="text-emerald-800">{formatNumberBR(cbsNotaPct, 4)}%</span>
+                      </div>
+                      <div className="text-[11px] text-slate-700 font-semibold">
+                        {formatBRL(valorCbsNota)} ÷ {formatBRL(totalNotaEmUso)} ={' '}
+                        {formatNumberBR(cbsNotaPct, 4)}%
+                      </div>
+                      <div className="text-[10px] text-slate-500 italic">
+                        Origem:{' '}
+                        <span className="text-slate-700 not-italic font-medium">
+                          {valorCbsNota > 0
+                            ? 'valor informado pelo usuário, conforme destaque da NF-e'
+                            : 'campo não informado / zero (percentual derivado: 0,0000% · nada inventado)'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Linha 5: IBS (2027+) */}
+                    <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 space-y-1">
+                      <div className="flex items-center justify-between font-bold text-slate-900">
+                        <span>IBS DESTACADO (2027+)</span>
+                        <span className="text-emerald-800">{formatNumberBR(ibsNotaPct, 4)}%</span>
+                      </div>
+                      <div className="text-[11px] text-slate-700 font-semibold">
+                        {formatBRL(valorIbsNota)} ÷ {formatBRL(totalNotaEmUso)} ={' '}
+                        {formatNumberBR(ibsNotaPct, 4)}%
+                      </div>
+                      <div className="text-[10px] text-slate-500 italic">
+                        Origem:{' '}
+                        <span className="text-slate-700 not-italic font-medium">
+                          {valorIbsNota > 0
+                            ? 'valor informado pelo usuário, conforme destaque da NF-e'
+                            : 'campo não informado / zero (percentual derivado: 0,0000% · nada inventado)'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Linha 6: Total da Parcela Creditável Derivada */}
+                    <div className="p-2.5 rounded-lg border border-emerald-300 bg-emerald-50/80 space-y-1">
+                      <div className="flex items-center justify-between font-bold text-emerald-950">
+                        <span>PARCELA CREDITÁVEL TOTAL</span>
+                        <span className="text-emerald-900 font-black">
+                          {formatNumberBR(icmsNotaPct + cbsNotaPct + ibsNotaPct, 4)}%
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-emerald-800 font-semibold">
+                        {formatNumberBR(icmsNotaPct, 4)}% + {formatNumberBR(cbsNotaPct, 4)}% +{' '}
+                        {formatNumberBR(ibsNotaPct, 4)}%
+                      </div>
+                      <div className="text-[10px] text-emerald-700 italic">
+                        {formatBRL(valorIcmsNota + valorCbsNota + valorIbsNota)} em créditos
+                        aplicados ao custo do adquirente
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fundamento fiscal didático para o contador */}
+                  <div className="text-[11px] font-mono text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-200 leading-relaxed flex items-start gap-2">
+                    <Info className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                    <span>
+                      <strong className="text-slate-800">Didática Fiscal para o Contador: </strong>
+                      O ICMS eventualmente destacado a 18% em NF-e de venda de fornecedor Simples
+                      Nacional decorre da apuração de saída deste (art. 25, §1º, II da LC 123/2006 =
+                      dedução na saída e não crédito do adquirente). O crédito legítimo do
+                      adquirente LP/LR comprando de SN puro corresponde à fração do anexo indicada
+                      em campo próprio da nota (art. 23, §§1º–2º da LC 123/2006). Os tributos
+                      federais PIS e COFINS no Simples permanecem recolhidos em cota única no DAS e
+                      não conferem créditos à adquirente no regime cumulativo ou puro. Em 2027+, as
+                      frações de CBS e IBS informadas compõem a parcela creditável conforme a
+                      legislação da Reforma Tributária (LC 214/2025).
                     </span>
                   </div>
                 </div>
