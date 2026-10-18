@@ -341,17 +341,17 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto bg-slate-950 border border-emerald-500/30 p-5 sm:p-7 text-slate-100 shadow-2xl">
-        <DialogHeader className="border-b border-slate-800 pb-4">
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto bg-white border border-slate-200 p-5 sm:p-7 text-slate-900 shadow-xl">
+        <DialogHeader className="border-b border-slate-200 pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-mono font-bold text-sm shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 font-mono font-bold text-sm shrink-0">
                 #{index + 1}
               </div>
               <div>
-                <DialogTitle className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                <DialogTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                   <span>Detalhes do Item de Compra</span>
-                  <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                  <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800">
                     {regime === 'presumido'
                       ? 'Lucro Presumido'
                       : regime === 'real'
@@ -359,7 +359,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                         : 'Simples Nacional'}
                   </span>
                 </DialogTitle>
-                <DialogDescription className="text-xs text-slate-400">
+                <DialogDescription className="text-xs text-slate-500">
                   Edite a discriminação completa, tributos individuais e encargos deste produto
                   adquirido.
                 </DialogDescription>
@@ -375,7 +375,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                   onRemove(item.id)
                   onOpenChange(false)
                 }}
-                className="h-8 text-xs bg-rose-950/30 border-rose-800/60 text-rose-300 hover:bg-rose-900/40 hover:text-rose-100 hover:border-rose-500 cursor-pointer self-start sm:self-auto"
+                className="h-8 text-xs bg-white border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 hover:border-rose-300 cursor-pointer self-start sm:self-auto shadow-xs"
               >
                 <Trash2 className="w-3.5 h-3.5 mr-1" />
                 Excluir item
@@ -387,7 +387,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
         <div className="space-y-5 pt-3">
           {/* Linha de Identificação: Nome do item */}
           <div className="space-y-1.5">
-            <label className="text-xs font-mono text-slate-300 font-semibold block">
+            <label className="text-xs font-mono text-slate-700 font-semibold block">
               Nome / Descrição do Produto
             </label>
             <Input
@@ -398,33 +398,35 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                 onUpdate(item.id, 'name', e.target.value)
               }}
               placeholder={`Ex.: Produto ${index + 1}`}
-              className="text-sm font-semibold field-input-interactive"
+              className="text-sm font-semibold field-input-interactive bg-white border-slate-200 text-slate-900"
             />
           </div>
 
           {/* Quadro de Resumo Rápido (4 indicadores da camada frontal) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-slate-900/70 border border-slate-800/80">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
             <div className="space-y-0.5">
-              <span className="text-[10px] font-mono text-slate-400 uppercase block">
+              <span className="text-[10px] font-mono text-slate-500 uppercase block font-semibold">
                 Qtd Comprada
               </span>
-              <strong className="text-sm font-mono text-emerald-400">{item.quantity} un.</strong>
+              <strong className="text-sm font-mono text-emerald-700 font-bold">
+                {item.quantity} un.
+              </strong>
             </div>
 
             <div className="space-y-0.5">
-              <span className="text-[10px] font-mono text-slate-400 uppercase block">
+              <span className="text-[10px] font-mono text-slate-500 uppercase block font-semibold">
                 Saldo em Estoque
               </span>
-              <strong className="text-sm font-mono text-white">
+              <strong className="text-sm font-mono text-slate-900 font-bold">
                 {stockQty !== undefined ? `${stockQty} un.` : `${item.quantity} un.`}
               </strong>
             </div>
 
             <div className="space-y-0.5">
-              <span className="text-[10px] font-mono text-slate-400 uppercase block">
+              <span className="text-[10px] font-mono text-slate-500 uppercase block font-semibold">
                 Preço Médio / Custo Unit.
               </span>
-              <strong className="text-sm font-mono text-emerald-300">
+              <strong className="text-sm font-mono text-emerald-700 font-bold">
                 {formatBRL(
                   averageCost !== undefined && averageCost > 0 ? averageCost : activeUnitCost,
                 )}
@@ -432,10 +434,10 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
             </div>
 
             <div className="space-y-0.5">
-              <span className="text-[10px] font-mono text-slate-400 uppercase block">
+              <span className="text-[10px] font-mono text-slate-500 uppercase block font-semibold">
                 Preço Total (Bruto)
               </span>
-              <strong className="text-sm font-mono text-emerald-400">
+              <strong className="text-sm font-mono text-emerald-700 font-bold">
                 {formatBRL(
                   totalValue !== undefined && totalValue > 0
                     ? totalValue
@@ -446,13 +448,13 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
           </div>
 
           {/* Seção de Estoque do Produto: Estoque Inicial (un.) + Custo Unitário de Partida + Kardex CMP em tempo real */}
-          <div className="p-4 rounded-xl bg-slate-900/70 border border-orange-500/40 space-y-3 shadow-sm">
+          <div className="p-4 rounded-xl bg-amber-50/40 border border-amber-200 space-y-3 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <span className="text-xs font-mono font-semibold uppercase text-orange-400 flex items-center gap-1.5">
+              <span className="text-xs font-mono font-bold uppercase text-amber-900 flex items-center gap-1.5">
                 <Boxes className="w-3.5 h-3.5" />
                 Estoque do Produto & Kardex (CMP Móvel)
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-orange-500/15 border border-orange-500/30 text-orange-300">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-800 font-bold">
                 · controle por produto ativo
               </span>
             </div>
@@ -460,7 +462,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Estoque Inicial em UNIDADES (un.) */}
               <div className="space-y-1">
-                <label className="text-[11px] font-mono text-slate-300 font-semibold block">
+                <label className="text-[11px] font-mono text-slate-700 font-semibold block">
                   Estoque Inicial do Produto (unidades)
                 </label>
                 <Input
@@ -475,17 +477,17 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                     setInitQtyVal(safe > 0 ? String(safe) : '')
                     handleUpdateStockInitial(safe, currentInitialUnitCost)
                   }}
-                  className="text-xs font-mono field-input-interactive border-orange-500/40 focus:border-orange-500"
+                  className="text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900 focus:border-emerald-600"
                 />
               </div>
 
               {/* Custo unitário de partida (R$) */}
               <div className="space-y-1">
-                <label className="text-[11px] font-mono text-slate-300 font-semibold block">
+                <label className="text-[11px] font-mono text-slate-700 font-semibold block">
                   Custo Unitário de Partida (R$)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -498,27 +500,29 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       setInitCostVal(parsed > 0 ? formatNumberBR(parsed) : '')
                       handleUpdateStockInitial(currentInitialQty, parsed)
                     }}
-                    className="pl-8 text-right text-xs font-mono field-input-interactive border-orange-500/40 focus:border-orange-500"
+                    className="pl-8 text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900 focus:border-emerald-600"
                   />
                 </div>
               </div>
             </div>
 
             {/* Painel Kardex em tempo real do produto */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-800/80 font-mono text-xs">
-              <div className="p-2 rounded-lg bg-slate-950/80 border border-slate-800">
-                <span className="text-[10px] text-slate-400 uppercase block">CMP Móvel</span>
-                <strong className="text-emerald-400 font-semibold text-xs sm:text-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-amber-200 font-mono text-xs">
+              <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+                <span className="text-[10px] text-slate-500 uppercase block font-semibold">
+                  CMP Móvel
+                </span>
+                <strong className="text-emerald-700 font-bold text-xs sm:text-sm">
                   {formatBRL(liveCMP)}
                 </strong>
                 <span className="text-[9px] text-slate-500 block">/ un.</span>
               </div>
 
-              <div className="p-2 rounded-lg bg-slate-950/80 border border-slate-800">
-                <span className="text-[10px] text-slate-400 uppercase block">
+              <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+                <span className="text-[10px] text-slate-500 uppercase block font-semibold">
                   Saldo em Unidades
                 </span>
-                <strong className="text-white font-semibold text-xs sm:text-sm">
+                <strong className="text-slate-900 font-bold text-xs sm:text-sm">
                   {liveBalanceUnits} un.
                 </strong>
                 <span className="text-[9px] text-slate-500 block">
@@ -528,17 +532,21 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                 </span>
               </div>
 
-              <div className="p-2 rounded-lg bg-slate-950/80 border border-slate-800">
-                <span className="text-[10px] text-slate-400 uppercase block">Baixas por Venda</span>
-                <strong className="text-amber-300 font-semibold text-xs sm:text-sm">
+              <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+                <span className="text-[10px] text-slate-500 uppercase block font-semibold">
+                  Baixas por Venda
+                </span>
+                <strong className="text-amber-700 font-bold text-xs sm:text-sm">
                   {liveExitUnits} un.
                 </strong>
                 <span className="text-[9px] text-slate-500 block">saídas registradas</span>
               </div>
 
-              <div className="p-2 rounded-lg bg-slate-950/80 border border-slate-800">
-                <span className="text-[10px] text-slate-400 uppercase block">CMV Apurado</span>
-                <strong className="text-emerald-300 font-semibold text-xs sm:text-sm">
+              <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+                <span className="text-[10px] text-slate-500 uppercase block font-semibold">
+                  CMV Apurado
+                </span>
+                <strong className="text-emerald-700 font-bold text-xs sm:text-sm">
                   {formatBRL(liveAccumulatedCmv)}
                 </strong>
                 <span className="text-[9px] text-slate-500 block">baixas valorizadas</span>
@@ -547,16 +555,16 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
           </div>
 
           {/* Seção 1: Quantidade, Preço Unitário e Valor da Mercadoria */}
-          <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800/80 space-y-3">
-            <span className="text-xs font-mono font-semibold uppercase text-emerald-400 flex items-center gap-1.5">
-              <Package className="w-3.5 h-3.5" />
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <span className="text-xs font-mono font-bold uppercase text-slate-900 flex items-center gap-1.5">
+              <Package className="w-3.5 h-3.5 text-emerald-600" />
               Volume e Valores de Aquisição
             </span>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Quantidade comprada */}
               <div className="space-y-1">
-                <label className="text-[11px] font-mono text-slate-300 font-semibold block">
+                <label className="text-[11px] font-mono text-slate-700 font-semibold block">
                   Quantidade comprada (un.)
                 </label>
                 <Input
@@ -577,17 +585,17 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                     onUpdate(item.id, 'quantity', safe)
                     setQtyVal(safe > 0 ? String(safe) : '')
                   }}
-                  className="text-xs font-mono field-input-interactive"
+                  className="text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900"
                 />
               </div>
 
               {/* Valor unitário */}
               <div className="space-y-1">
-                <label className="text-[11px] font-mono text-slate-400 block">
+                <label className="text-[11px] font-mono text-slate-700 font-semibold block">
                   Valor unitário da mercadoria (R$)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -606,18 +614,18 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       onUpdate(item.id, 'unitPrice', parsed)
                       setUnitVal(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pl-8 text-right text-xs font-mono field-input-interactive"
+                    className="pl-8 text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900"
                   />
                 </div>
               </div>
 
               {/* Valor total da mercadoria */}
               <div className="space-y-1">
-                <label className="text-[11px] font-mono text-slate-300 font-semibold block">
+                <label className="text-[11px] font-mono text-slate-700 font-semibold block">
                   Valor total da mercadoria (R$)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -636,7 +644,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       onUpdate(item.id, 'merchandiseValue', parsed)
                       setMerchVal(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pl-8 text-right text-xs font-mono font-bold field-input-interactive"
+                    className="pl-8 text-right text-xs font-mono font-bold field-input-interactive bg-white border-slate-300 text-slate-900"
                   />
                 </div>
               </div>
@@ -644,18 +652,20 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
           </div>
 
           {/* Seção 2: Tributação Individual do Item */}
-          <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800/80 space-y-3">
-            <span className="text-xs font-mono uppercase tracking-wider text-slate-300 font-semibold flex items-center gap-1.5">
-              <Percent className="w-3.5 h-3.5 text-emerald-400" />
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <span className="text-xs font-mono uppercase tracking-wider text-slate-900 font-bold flex items-center gap-1.5">
+              <Percent className="w-3.5 h-3.5 text-emerald-600" />
               Tributação Individual do Item
             </span>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {/* IPI % */}
-              <div className="space-y-1 p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
+              <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-slate-300 font-mono">IPI / Não recup. %</span>
-                  <span className="text-[10px] text-slate-400 font-mono">
+                  <span className="text-[11px] text-slate-700 font-mono font-semibold">
+                    IPI / Não recup. %
+                  </span>
+                  <span className="text-[10px] text-slate-600 font-mono font-semibold">
                     {formatBRL(item.calculatedIpi)}
                   </span>
                 </div>
@@ -676,19 +686,21 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       onUpdate(item.id, 'ipiRate', parsed)
                       setIpiVal(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pr-6 text-right text-xs font-mono field-input-interactive"
+                    className="pr-6 text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900"
                   />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                     %
                   </span>
                 </div>
               </div>
 
               {/* ICMS % */}
-              <div className="space-y-1 p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
+              <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-slate-300 font-mono">ICMS destacado %</span>
-                  <span className="text-[10px] text-emerald-400 font-mono">
+                  <span className="text-[11px] text-slate-700 font-mono font-semibold">
+                    ICMS destacado %
+                  </span>
+                  <span className="text-[10px] text-emerald-700 font-mono font-bold">
                     {formatBRL(item.calculatedIcms)}
                   </span>
                 </div>
@@ -709,21 +721,21 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       onUpdate(item.id, 'icmsRate', parsed)
                       setIcmsVal(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pr-6 text-right text-xs font-mono field-input-interactive"
+                    className="pr-6 text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900"
                   />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                     %
                   </span>
                 </div>
               </div>
 
               {/* Frete do item */}
-              <div className="space-y-1 p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
-                <span className="text-[11px] text-slate-300 font-mono block">
+              <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+                <span className="text-[11px] text-slate-700 font-mono font-semibold block">
                   Frete do item (R$)
                 </span>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -742,17 +754,19 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       onUpdate(item.id, 'freightValue', parsed)
                       setFreightValInput(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pl-8 text-right text-xs font-mono field-input-interactive"
+                    className="pl-8 text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900"
                   />
                 </div>
               </div>
 
               {/* ICMS s/ frete (%) */}
-              <div className="space-y-1 p-2.5 rounded-lg bg-slate-950/60 border border-slate-800">
+              <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-slate-300 font-mono">ICMS s/ frete (%)</span>
+                  <span className="text-[11px] text-slate-700 font-mono font-semibold">
+                    ICMS s/ frete (%)
+                  </span>
                   <span
-                    className="text-[10px] text-emerald-400 font-mono"
+                    className="text-[10px] text-emerald-700 font-mono font-bold"
                     title="Crédito de ICMS s/ frete calculado"
                   >
                     {formatBRL(item.icmsFreightValue || 0)}
@@ -775,18 +789,18 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       onUpdate(item.id, 'icmsFreightRate', parsed)
                       setIcmsFreightRateInput(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pr-6 text-right text-xs font-mono field-input-interactive"
+                    className="pr-6 text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900"
                   />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                     %
                   </span>
                 </div>
               </div>
 
               {/* ICMS-ST recolhido */}
-              <div className="space-y-1 p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 sm:col-span-2 lg:col-span-2">
+              <div className="space-y-1 p-2.5 rounded-lg bg-white border border-slate-200 sm:col-span-2 lg:col-span-2 shadow-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-amber-300 font-mono font-semibold">
+                  <span className="text-[11px] text-amber-800 font-mono font-bold">
                     ICMS-ST na Entrada (R$)
                   </span>
                   <label className="flex items-center gap-1.5 cursor-pointer">
@@ -794,13 +808,15 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       type="checkbox"
                       checked={item.hasSt}
                       onChange={(e) => onUpdate(item.id, 'hasSt', e.target.checked)}
-                      className="rounded bg-slate-900 border-slate-800 text-amber-500 focus:ring-amber-500/20"
+                      className="rounded bg-white border-slate-300 text-emerald-600 focus:ring-emerald-500/20"
                     />
-                    <span className="text-[10px] font-mono text-slate-300">ST ativo no item</span>
+                    <span className="text-[10px] font-mono text-slate-700 font-medium">
+                      ST ativo no item
+                    </span>
                   </label>
                 </div>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-500 pointer-events-none">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
                     R$
                   </span>
                   <Input
@@ -820,7 +836,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       onUpdate(item.id, 'stValue', parsed)
                       setStValInput(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pl-8 text-right bg-slate-950 border-slate-800 text-xs font-mono text-amber-300 disabled:opacity-40 focus:border-amber-500"
+                    className="pl-8 text-right bg-white border-slate-300 text-xs font-mono text-slate-900 disabled:opacity-40 disabled:bg-slate-100 focus:border-emerald-600"
                   />
                 </div>
               </div>
@@ -828,29 +844,29 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
 
             {/* Créditos no Lucro Real (informativo se regime == real) */}
             {regime === 'real' && (
-              <div className="p-3 rounded-lg bg-slate-950 border border-emerald-500/30 text-xs font-mono space-y-1.5 text-slate-300">
-                <div className="flex items-center justify-between font-semibold text-emerald-400">
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-mono space-y-1.5 text-emerald-950">
+                <div className="flex items-center justify-between font-bold text-emerald-900">
                   <span>Créditos Recuperáveis (Lucro Real)</span>
                   <span>Total: {formatBRL(totalItemCredits)}</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-400 pt-1">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-700 pt-1">
                   <div>
                     ICMS mercadoria:{' '}
-                    <strong className="text-emerald-400">{formatBRL(item.calculatedIcms)}</strong>
+                    <strong className="text-emerald-800">{formatBRL(item.calculatedIcms)}</strong>
                   </div>
                   <div>
                     ICMS s/ frete:{' '}
-                    <strong className="text-emerald-400">
+                    <strong className="text-emerald-800">
                       {formatBRL(item.icmsFreightValue || 0)}
                     </strong>
                   </div>
                   <div>
                     PIS (1,65%):{' '}
-                    <strong className="text-emerald-400">{formatBRL(item.calculatedPis)}</strong>
+                    <strong className="text-emerald-800">{formatBRL(item.calculatedPis)}</strong>
                   </div>
                   <div>
                     COFINS (7,60%):{' '}
-                    <strong className="text-emerald-400">{formatBRL(item.calculatedCofins)}</strong>
+                    <strong className="text-emerald-800">{formatBRL(item.calculatedCofins)}</strong>
                   </div>
                 </div>
               </div>
@@ -858,15 +874,15 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
           </div>
 
           {/* Seção 3: Memória de Cálculo Expressa do CMV / Compras Líquidas (Regime Ativo) */}
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-emerald-500/25 space-y-3">
+          <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-mono font-semibold uppercase text-emerald-400 flex items-center gap-1.5">
-                  <Calculator className="w-3.5 h-3.5" />
+                <span className="text-xs font-mono font-bold uppercase text-slate-900 flex items-center gap-1.5">
+                  <Calculator className="w-3.5 h-3.5 text-emerald-600" />
                   Memória de Cálculo do CMV (Compras Líquidas)
                 </span>
                 {regime === 'real' && isPosAActive && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/40 text-amber-300 font-semibold">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 font-semibold">
                     Posição A aplicada (retenção 4,65%)
                   </span>
                 )}
@@ -879,7 +895,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       size="sm"
                       variant="outline"
                       onClick={() => setRealFreightPisCofinsMethod('position_b')}
-                      className="h-6 px-2 text-[10px] font-mono bg-slate-900 border-amber-500/40 text-amber-300 hover:bg-slate-800 hover:text-white cursor-pointer"
+                      className="h-6 px-2 text-[10px] font-mono bg-white border-amber-300 text-amber-800 hover:bg-amber-50 hover:text-amber-900 cursor-pointer"
                     >
                       Voltar para posição padrão B
                     </Button>
@@ -887,13 +903,13 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowAltPositionModal(true)}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 hover:border-amber-400 cursor-pointer transition-all"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100 hover:border-amber-300 cursor-pointer transition-all"
                     >
                       <span>Ver posição alternativa: retenção na fonte 4,65%</span>
-                      <span className="text-amber-300 font-bold">›</span>
+                      <span className="text-amber-700 font-bold">›</span>
                     </button>
                   ))}
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold">
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold">
                   {regime === 'presumido'
                     ? 'Lucro Presumido'
                     : regime === 'real'
@@ -903,106 +919,102 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
               </div>
             </div>
 
-            <div className="rounded-lg bg-slate-950/80 border border-slate-800 p-3 space-y-2 text-xs font-mono">
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-2 text-xs font-mono">
               {/* Linha (+) Mercadorias */}
-              <div className="flex items-center justify-between text-slate-200">
+              <div className="flex items-center justify-between text-slate-800">
                 <span className="flex items-center gap-1.5">
-                  <span className="text-emerald-400 font-bold">(+)</span>
+                  <span className="text-emerald-700 font-bold">(+)</span>
                   <span>
                     Mercadorias
                     {item.quantity > 0 && item.unitPrice > 0 && (
-                      <span className="text-slate-400 text-[11px] ml-1">
+                      <span className="text-slate-500 text-[11px] ml-1">
                         ({item.quantity} un. × {formatBRL(item.unitPrice)})
                       </span>
                     )}
                   </span>
                 </span>
-                <span className="font-semibold text-white">{formatBRL(merchGross)}</span>
+                <span className="font-bold text-slate-900">{formatBRL(merchGross)}</span>
               </div>
 
               {/* Linha (+) Frete sobre compras */}
-              <div className="flex items-center justify-between text-slate-200">
+              <div className="flex items-center justify-between text-slate-800">
                 <span className="flex items-center gap-1.5">
-                  <span className="text-emerald-400 font-bold">(+)</span>
+                  <span className="text-emerald-700 font-bold">(+)</span>
                   <span>Frete sobre compras</span>
                 </span>
-                <span className="font-semibold text-white">{formatBRL(freightVal)}</span>
+                <span className="font-bold text-slate-900">{formatBRL(freightVal)}</span>
               </div>
 
               {/* Linha (+) IPI se houver */}
               {ipiValCalc > 0 && (
-                <div className="flex items-center justify-between text-slate-200">
+                <div className="flex items-center justify-between text-slate-800">
                   <span className="flex items-center gap-1.5">
-                    <span className="text-emerald-400 font-bold">(+)</span>
+                    <span className="text-emerald-700 font-bold">(+)</span>
                     <span>
                       IPI / Tributos não recuperáveis
                       {item.ipiRate > 0 && (
-                        <span className="text-slate-400 text-[11px] ml-1">
+                        <span className="text-slate-500 text-[11px] ml-1">
                           ({formatPercentBR(item.ipiRate)})
                         </span>
                       )}
                     </span>
                   </span>
-                  <span className="font-semibold text-white">{formatBRL(ipiValCalc)}</span>
+                  <span className="font-bold text-slate-900">{formatBRL(ipiValCalc)}</span>
                 </div>
               )}
 
               {/* Linha (+) ST se houver */}
               {stValCalc > 0 && (
-                <div className="flex items-center justify-between text-slate-200">
+                <div className="flex items-center justify-between text-slate-800">
                   <span className="flex items-center gap-1.5">
-                    <span className="text-amber-400 font-bold">(+)</span>
+                    <span className="text-amber-700 font-bold">(+)</span>
                     <span>ICMS-ST na Entrada (custo)</span>
                   </span>
-                  <span className="font-semibold text-amber-300">{formatBRL(stValCalc)}</span>
+                  <span className="font-bold text-amber-800">{formatBRL(stValCalc)}</span>
                 </div>
               )}
 
               {/* DEDUÇÕES CONFORME O REGIME */}
               {regime === 'simples' ? (
-                <div className="py-2 px-2.5 rounded bg-slate-900/60 border border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between">
+                <div className="py-2 px-2.5 rounded bg-amber-50 border border-amber-200 text-[11px] text-amber-900 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <Info className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                     <span>Deduções de tributos recuperáveis (art. 23 LC 123/2006):</span>
                   </span>
-                  <span className="text-amber-300 font-semibold">
-                    Sem deduções (bruto integral)
-                  </span>
+                  <span className="text-amber-800 font-bold">Sem deduções (bruto integral)</span>
                 </div>
               ) : (
                 <>
                   {/* Linha (−) ICMS sobre mercadorias */}
-                  <div className="flex items-center justify-between text-slate-300">
+                  <div className="flex items-center justify-between text-slate-700">
                     <span className="flex items-center gap-1.5">
-                      <span className="text-rose-400 font-bold">(−)</span>
+                      <span className="text-rose-600 font-bold">(−)</span>
                       <span>
                         ICMS sobre mercadorias
                         {item.icmsRate > 0 && (
-                          <span className="text-slate-400 text-[11px] ml-1">
+                          <span className="text-slate-500 text-[11px] ml-1">
                             ({formatPercentBR(item.icmsRate)} × {formatBRL(merchGross)})
                           </span>
                         )}
                       </span>
                     </span>
-                    <span className="font-semibold text-rose-400">-{formatBRL(icmsMerchVal)}</span>
+                    <span className="font-bold text-rose-700">-{formatBRL(icmsMerchVal)}</span>
                   </div>
 
                   {/* Linha (−) ICMS sobre fretes */}
-                  <div className="flex items-center justify-between text-slate-300">
+                  <div className="flex items-center justify-between text-slate-700">
                     <span className="flex items-center gap-1.5">
-                      <span className="text-rose-400 font-bold">(−)</span>
+                      <span className="text-rose-600 font-bold">(−)</span>
                       <span>
                         ICMS sobre fretes
                         {(item.icmsFreightRate ?? 0) > 0 && (
-                          <span className="text-slate-400 text-[11px] ml-1">
+                          <span className="text-slate-500 text-[11px] ml-1">
                             ({formatPercentBR(item.icmsFreightRate ?? 0)} × {formatBRL(freightVal)})
                           </span>
                         )}
                       </span>
                     </span>
-                    <span className="font-semibold text-rose-400">
-                      -{formatBRL(icmsFreightVal)}
-                    </span>
+                    <span className="font-bold text-rose-700">-{formatBRL(icmsFreightVal)}</span>
                   </div>
 
                   {/* Linhas exclusivas do Lucro Real: PIS e COFINS */}
@@ -1010,59 +1022,59 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                     <>
                       {isPosAActive ? (
                         <>
-                          <div className="flex items-center justify-between text-slate-300">
+                          <div className="flex items-center justify-between text-slate-700">
                             <span className="flex items-center gap-1.5">
-                              <span className="text-rose-400 font-bold">(−)</span>
+                              <span className="text-rose-600 font-bold">(−)</span>
                               <span>
                                 PIS sobre mercadoria (1,65%)
-                                <span className="text-slate-400 text-[11px] ml-1">
+                                <span className="text-slate-500 text-[11px] ml-1">
                                   (1,65% × {formatBRL(mercNetIcmsVal)})
                                 </span>
                               </span>
                             </span>
-                            <span className="font-semibold text-rose-400">
+                            <span className="font-bold text-rose-700">
                               -{formatBRL(pisValA_merc)}
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between text-slate-300">
+                          <div className="flex items-center justify-between text-slate-700">
                             <span className="flex items-center gap-1.5">
-                              <span className="text-rose-400 font-bold">(−)</span>
+                              <span className="text-rose-600 font-bold">(−)</span>
                               <span>
                                 COFINS sobre mercadoria (7,60%)
-                                <span className="text-slate-400 text-[11px] ml-1">
+                                <span className="text-slate-500 text-[11px] ml-1">
                                   (7,60% × {formatBRL(mercNetIcmsVal)})
                                 </span>
                               </span>
                             </span>
-                            <span className="font-semibold text-rose-400">
+                            <span className="font-bold text-rose-700">
                               -{formatBRL(cofinsValA_merc)}
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between text-slate-300">
+                          <div className="flex items-center justify-between text-slate-700">
                             <span className="flex items-center gap-1.5">
-                              <span className="text-rose-400 font-bold">(−)</span>
+                              <span className="text-rose-600 font-bold">(−)</span>
                               <span>
                                 Crédito retido s/ frete (4,65%)
-                                <span className="text-slate-400 text-[11px] ml-1">
+                                <span className="text-slate-500 text-[11px] ml-1">
                                   (4,65% × {formatBRL(freightNetIcmsVal)})
                                 </span>
                               </span>
                             </span>
-                            <span className="font-semibold text-rose-400">
+                            <span className="font-bold text-rose-700">
                               -{formatBRL(freightCreditA)}
                             </span>
                           </div>
                         </>
                       ) : (
                         <>
-                          <div className="flex items-center justify-between text-slate-300">
+                          <div className="flex items-center justify-between text-slate-700">
                             <span className="flex items-center gap-1.5">
-                              <span className="text-rose-400 font-bold">(−)</span>
+                              <span className="text-rose-600 font-bold">(−)</span>
                               <span>
                                 PIS (1,65%)
-                                <span className="text-slate-400 text-[11px] ml-1">
+                                <span className="text-slate-500 text-[11px] ml-1">
                                   (1,65% × {formatBRL(basePisCofinsB)}
                                   {freightNetIcmsVal > 0 && (
                                     <span className="text-slate-500 ml-1">
@@ -1074,17 +1086,15 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                                 </span>
                               </span>
                             </span>
-                            <span className="font-semibold text-rose-400">
-                              -{formatBRL(pisValB)}
-                            </span>
+                            <span className="font-bold text-rose-700">-{formatBRL(pisValB)}</span>
                           </div>
 
-                          <div className="flex items-center justify-between text-slate-300">
+                          <div className="flex items-center justify-between text-slate-700">
                             <span className="flex items-center gap-1.5">
-                              <span className="text-rose-400 font-bold">(−)</span>
+                              <span className="text-rose-600 font-bold">(−)</span>
                               <span>
                                 COFINS (7,60%)
-                                <span className="text-slate-400 text-[11px] ml-1">
+                                <span className="text-slate-500 text-[11px] ml-1">
                                   (7,60% × {formatBRL(basePisCofinsB)}
                                   {freightNetIcmsVal > 0 && (
                                     <span className="text-slate-500 ml-1">
@@ -1096,7 +1106,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                                 </span>
                               </span>
                             </span>
-                            <span className="font-semibold text-rose-400">
+                            <span className="font-bold text-rose-700">
                               -{formatBRL(cofinsValB)}
                             </span>
                           </div>
@@ -1108,21 +1118,21 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
               )}
 
               {/* Linha (=) Compras Líquidas (Resultado) */}
-              <div className="pt-2 border-t border-slate-700/80 flex items-center justify-between text-sm">
-                <span className="flex items-center gap-1.5 font-bold text-white">
-                  <span className="text-emerald-400">(=)</span>
+              <div className="pt-2.5 border-t-2 border-emerald-600/40 flex items-center justify-between text-sm">
+                <span className="flex items-center gap-1.5 font-bold text-slate-900">
+                  <span className="text-emerald-700">(=)</span>
                   <span>Compras Líquidas / Custo Total:</span>
                 </span>
-                <span className="font-bold text-emerald-400 text-base">
+                <span className="font-black text-emerald-700 text-base">
                   {formatBRL(netPurchasesFromFormula)}
                 </span>
               </div>
 
               {/* Custo Unitário Líquido correspondente */}
               {item.quantity > 0 && (
-                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
+                <div className="flex items-center justify-between text-[11px] text-slate-600 pt-0.5 font-medium">
                   <span>Custo Unitário Líquido ({item.quantity} un.):</span>
-                  <span className="text-emerald-300 font-semibold">
+                  <span className="text-emerald-700 font-bold">
                     {formatBRL(netPurchasesFromFormula / item.quantity)} / un.
                   </span>
                 </div>
@@ -1132,20 +1142,20 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
 
           {/* Subcamada da Posição Alternativa A (Retenção 4,65% sobre o frete) */}
           <Dialog open={showAltPositionModal} onOpenChange={setShowAltPositionModal}>
-            <DialogContent className="max-w-2xl bg-slate-950 border border-amber-500/40 p-5 sm:p-6 text-slate-100 shadow-2xl">
-              <DialogHeader className="border-b border-slate-800 pb-3">
+            <DialogContent className="max-w-2xl bg-white border border-slate-200 p-5 sm:p-6 text-slate-900 shadow-xl">
+              <DialogHeader className="border-b border-slate-200 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold text-sm">
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-800 font-bold text-sm">
                     A
                   </div>
                   <div>
-                    <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                    <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
                       <span>Posição A — Retenção na Fonte 4,65% s/ Frete</span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 font-bold">
                         Camada Opcional
                       </span>
                     </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-400">
+                    <DialogDescription className="text-xs text-slate-500">
                       PIS 1,65% e COFINS 7,60% plenos sobre a mercadoria líquida + crédito de
                       retenção 4,65% sobre o frete líquido.
                     </DialogDescription>
@@ -1155,139 +1165,133 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
 
               <div className="space-y-4 pt-2">
                 {/* Memória completa da Posição A */}
-                <div className="p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2 font-mono text-xs">
-                  <div className="flex items-center justify-between text-slate-200">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 font-mono text-xs">
+                  <div className="flex items-center justify-between text-slate-800">
                     <span className="flex items-center gap-1.5">
-                      <span className="text-emerald-400 font-bold">(+)</span>
+                      <span className="text-emerald-700 font-bold">(+)</span>
                       <span>
                         Mercadorias
                         {item.quantity > 0 && item.unitPrice > 0 && (
-                          <span className="text-slate-400 text-[11px] ml-1">
+                          <span className="text-slate-500 text-[11px] ml-1">
                             ({item.quantity} un. × {formatBRL(item.unitPrice)})
                           </span>
                         )}
                       </span>
                     </span>
-                    <span className="font-semibold text-white">{formatBRL(merchGross)}</span>
+                    <span className="font-bold text-slate-900">{formatBRL(merchGross)}</span>
                   </div>
 
-                  <div className="flex items-center justify-between text-slate-200">
+                  <div className="flex items-center justify-between text-slate-800">
                     <span className="flex items-center gap-1.5">
-                      <span className="text-emerald-400 font-bold">(+)</span>
+                      <span className="text-emerald-700 font-bold">(+)</span>
                       <span>Frete sobre compras</span>
                     </span>
-                    <span className="font-semibold text-white">{formatBRL(freightVal)}</span>
+                    <span className="font-bold text-slate-900">{formatBRL(freightVal)}</span>
                   </div>
 
                   {ipiValCalc > 0 && (
-                    <div className="flex items-center justify-between text-slate-200">
+                    <div className="flex items-center justify-between text-slate-800">
                       <span className="flex items-center gap-1.5">
-                        <span className="text-emerald-400 font-bold">(+)</span>
+                        <span className="text-emerald-700 font-bold">(+)</span>
                         <span>IPI / Tributos não recuperáveis</span>
                       </span>
-                      <span className="font-semibold text-white">{formatBRL(ipiValCalc)}</span>
+                      <span className="font-bold text-slate-900">{formatBRL(ipiValCalc)}</span>
                     </div>
                   )}
 
                   {stValCalc > 0 && (
-                    <div className="flex items-center justify-between text-slate-200">
+                    <div className="flex items-center justify-between text-slate-800">
                       <span className="flex items-center gap-1.5">
-                        <span className="text-amber-400 font-bold">(+)</span>
+                        <span className="text-amber-700 font-bold">(+)</span>
                         <span>ICMS-ST na Entrada</span>
                       </span>
-                      <span className="font-semibold text-amber-300">{formatBRL(stValCalc)}</span>
+                      <span className="font-bold text-amber-800">{formatBRL(stValCalc)}</span>
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between text-slate-300">
+                  <div className="flex items-center justify-between text-slate-700">
                     <span className="flex items-center gap-1.5">
-                      <span className="text-rose-400 font-bold">(−)</span>
+                      <span className="text-rose-600 font-bold">(−)</span>
                       <span>
                         ICMS sobre mercadorias
                         {item.icmsRate > 0 && (
-                          <span className="text-slate-400 text-[11px] ml-1">
+                          <span className="text-slate-500 text-[11px] ml-1">
                             ({formatPercentBR(item.icmsRate)} × {formatBRL(merchGross)})
                           </span>
                         )}
                       </span>
                     </span>
-                    <span className="font-semibold text-rose-400">-{formatBRL(icmsMerchVal)}</span>
+                    <span className="font-bold text-rose-700">-{formatBRL(icmsMerchVal)}</span>
                   </div>
 
-                  <div className="flex items-center justify-between text-slate-300">
+                  <div className="flex items-center justify-between text-slate-700">
                     <span className="flex items-center gap-1.5">
-                      <span className="text-rose-400 font-bold">(−)</span>
+                      <span className="text-rose-600 font-bold">(−)</span>
                       <span>
                         ICMS sobre fretes
                         {(item.icmsFreightRate ?? 0) > 0 && (
-                          <span className="text-slate-400 text-[11px] ml-1">
+                          <span className="text-slate-500 text-[11px] ml-1">
                             ({formatPercentBR(item.icmsFreightRate ?? 0)} × {formatBRL(freightVal)})
                           </span>
                         )}
                       </span>
                     </span>
-                    <span className="font-semibold text-rose-400">
-                      -{formatBRL(icmsFreightVal)}
-                    </span>
+                    <span className="font-bold text-rose-700">-{formatBRL(icmsFreightVal)}</span>
                   </div>
 
-                  <div className="flex items-center justify-between text-slate-300">
+                  <div className="flex items-center justify-between text-slate-700">
                     <span className="flex items-center gap-1.5">
-                      <span className="text-rose-400 font-bold">(−)</span>
+                      <span className="text-rose-600 font-bold">(−)</span>
                       <span>
                         PIS s/ mercadoria (1,65%)
-                        <span className="text-slate-400 text-[11px] ml-1">
+                        <span className="text-slate-500 text-[11px] ml-1">
                           (1,65% × {formatBRL(mercNetIcmsVal)})
                         </span>
                       </span>
                     </span>
-                    <span className="font-semibold text-rose-400">-{formatBRL(pisValA_merc)}</span>
+                    <span className="font-bold text-rose-700">-{formatBRL(pisValA_merc)}</span>
                   </div>
 
-                  <div className="flex items-center justify-between text-slate-300">
+                  <div className="flex items-center justify-between text-slate-700">
                     <span className="flex items-center gap-1.5">
-                      <span className="text-rose-400 font-bold">(−)</span>
+                      <span className="text-rose-600 font-bold">(−)</span>
                       <span>
                         COFINS s/ mercadoria (7,60%)
-                        <span className="text-slate-400 text-[11px] ml-1">
+                        <span className="text-slate-500 text-[11px] ml-1">
                           (7,60% × {formatBRL(mercNetIcmsVal)})
                         </span>
                       </span>
                     </span>
-                    <span className="font-semibold text-rose-400">
-                      -{formatBRL(cofinsValA_merc)}
-                    </span>
+                    <span className="font-bold text-rose-700">-{formatBRL(cofinsValA_merc)}</span>
                   </div>
 
-                  <div className="flex items-center justify-between text-slate-300">
+                  <div className="flex items-center justify-between text-slate-700">
                     <span className="flex items-center gap-1.5">
-                      <span className="text-rose-400 font-bold">(−)</span>
+                      <span className="text-rose-600 font-bold">(−)</span>
                       <span>
                         Crédito retido s/ frete (4,65%)
-                        <span className="text-slate-400 text-[11px] ml-1">
+                        <span className="text-slate-500 text-[11px] ml-1">
                           (4,65% × {formatBRL(freightNetIcmsVal)})
                         </span>
                       </span>
                     </span>
-                    <span className="font-semibold text-rose-400">
-                      -{formatBRL(freightCreditA)}
-                    </span>
+                    <span className="font-bold text-rose-700">-{formatBRL(freightCreditA)}</span>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-700/80 flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-1.5 font-bold text-white">
-                      <span className="text-amber-400">(=)</span>
+                  <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 font-bold text-slate-900">
+                      <span className="text-amber-700">(=)</span>
                       <span>Compras Líquidas (Posição A):</span>
                     </span>
-                    <span className="font-bold text-amber-400 text-base">
+                    <span className="font-bold text-amber-800 text-base">
                       {formatBRL(netPurchasesA)}
                     </span>
                   </div>
 
                   {item.quantity > 0 && (
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
                       <span>Custo Unitário Líquido ({item.quantity} un.):</span>
-                      <span className="text-amber-300 font-semibold">
+                      <span className="text-amber-800 font-bold">
                         {formatBRL(netPurchasesA / item.quantity)} / un.
                       </span>
                     </div>
@@ -1295,21 +1299,23 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                 </div>
 
                 {/* Comparativo rápido entre A e B */}
-                <div className="grid grid-cols-2 gap-2 text-xs font-mono p-2.5 rounded-lg bg-slate-900/40 border border-slate-800">
+                <div className="grid grid-cols-2 gap-2 text-xs font-mono p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
                   <div className="space-y-0.5">
-                    <span className="text-[10px] text-slate-400 uppercase block">
+                    <span className="text-[10px] text-slate-500 uppercase block font-semibold">
                       Posição B (Padrão)
                     </span>
-                    <strong className="text-emerald-400">{formatBRL(netPurchasesB)}</strong>
+                    <strong className="text-emerald-700 font-bold">
+                      {formatBRL(netPurchasesB)}
+                    </strong>
                     <span className="text-[10px] text-slate-500 block">
                       {item.quantity > 0 ? `${formatBRL(netPurchasesB / item.quantity)} / un.` : ''}
                     </span>
                   </div>
                   <div className="space-y-0.5">
-                    <span className="text-[10px] text-amber-400 uppercase block">
+                    <span className="text-[10px] text-amber-700 uppercase block font-semibold">
                       Posição A (Retenção 4,65%)
                     </span>
-                    <strong className="text-amber-300">{formatBRL(netPurchasesA)}</strong>
+                    <strong className="text-amber-800 font-bold">{formatBRL(netPurchasesA)}</strong>
                     <span className="text-[10px] text-slate-500 block">
                       {item.quantity > 0 ? `${formatBRL(netPurchasesA / item.quantity)} / un.` : ''}
                     </span>
@@ -1318,8 +1324,8 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
 
                 {/* Confirmação e Ação de Aplicação */}
                 {showConfirmApplyA ? (
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/40 space-y-2">
-                    <p className="text-xs text-amber-200">
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 space-y-2">
+                    <p className="text-xs text-amber-900 font-medium">
                       Tem certeza de que deseja aplicar a{' '}
                       <strong>Posição A (retenção 4,65%)</strong> em todas as tabelas e relatórios
                       do Lucro Real?
@@ -1330,7 +1336,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                         size="sm"
                         variant="ghost"
                         onClick={() => setShowConfirmApplyA(false)}
-                        className="h-8 text-xs text-slate-400 hover:text-white"
+                        className="h-8 text-xs text-slate-600 hover:text-slate-900"
                       >
                         Cancelar
                       </Button>
@@ -1342,7 +1348,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                           setShowConfirmApplyA(false)
                           setShowAltPositionModal(false)
                         }}
-                        className="h-8 text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold"
+                        className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold"
                       >
                         Confirmar e Aplicar Posição A
                       </Button>
@@ -1355,7 +1361,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       variant="outline"
                       size="sm"
                       onClick={() => setShowAltPositionModal(false)}
-                      className="h-8 text-xs border-slate-700 text-slate-300 hover:text-white"
+                      className="h-8 text-xs border-slate-200 text-slate-700 hover:bg-slate-50"
                     >
                       Fechar
                     </Button>
@@ -1363,7 +1369,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       type="button"
                       size="sm"
                       onClick={() => setShowConfirmApplyA(true)}
-                      className="h-8 text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold cursor-pointer"
+                      className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white font-bold cursor-pointer shadow-xs"
                     >
                       Aplicar posição A nas tabelas
                     </Button>
@@ -1374,14 +1380,14 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
           </Dialog>
 
           {/* Rodapé do Modal com Botão Fechar / Salvar */}
-          <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+          <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
             <span className="text-[11px] font-mono text-slate-500">
               Alterações salvas e recalculadas automaticamente em tempo real.
             </span>
             <Button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-5 h-9 text-xs cursor-pointer shadow-md shadow-emerald-500/20"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 h-9 text-xs cursor-pointer shadow-sm"
             >
               <CheckCircle2 className="w-4 h-4 mr-1.5" />
               Concluir / Fechar camada
