@@ -90,57 +90,57 @@ function CardMemoriaCanonicalEspelho({
   }[cor]
 
   return (
-    <div
-      className={`w-full min-w-0 rounded-2xl border p-3.5 space-y-2 flex flex-col justify-between ${corCls}`}
-    >
-      <div className="flex items-start justify-between gap-1 pb-1.5 border-b border-slate-200">
-        <span className={`text-xs font-mono uppercase leading-tight block ${tituloCls}`}>
+    <div className="w-full min-w-0 rounded-2xl border border-slate-200 bg-white overflow-hidden flex flex-col justify-between shadow-2xs">
+      <div className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 flex items-start justify-between gap-1 border-b border-slate-800">
+        <span className="text-xs font-mono uppercase leading-tight block font-bold text-white">
           {titulo}
         </span>
         {badgeExtra}
       </div>
-      <div className="space-y-1 flex-1">
-        {linhas.map((l, i) => (
-          <div
-            key={`${l.label}-${i}`}
-            className={`flex items-start justify-between gap-2 px-2.5 py-1.5 rounded-lg border ${
-              l.destaque
-                ? 'bg-emerald-100/80 border-emerald-300'
-                : 'bg-slate-50/70 border-slate-200'
-            }`}
-          >
-            <div className="min-w-0">
-              <span
-                className={`text-xs font-mono block leading-tight ${l.destaque ? 'font-bold text-emerald-950' : 'text-slate-800'}`}
-              >
-                {l.label}
-              </span>
-              {l.formula && (
-                <span className="text-[10px] font-mono text-slate-500 block break-words leading-tight mt-0.5">
-                  {l.formula}
+      <div className={`p-3.5 space-y-2 flex-1 flex flex-col justify-between ${corCls}`}>
+        <div className="space-y-1 flex-1">
+          {linhas.map((l, i) => (
+            <div
+              key={`${l.label}-${i}`}
+              className={`flex items-start justify-between gap-2 px-2.5 py-1.5 rounded-lg border ${
+                l.destaque
+                  ? 'bg-emerald-100/80 border-emerald-300'
+                  : 'bg-slate-50/70 border-slate-200'
+              }`}
+            >
+              <div className="min-w-0">
+                <span
+                  className={`text-xs font-mono block leading-tight ${l.destaque ? 'font-bold text-emerald-950' : 'text-slate-800'}`}
+                >
+                  {l.label}
                 </span>
-              )}
-              {l.fundamento && (
-                <span className="text-[9px] font-mono text-emerald-700 block break-words leading-tight mt-0.5">
-                  [{l.fundamento}]
+                {l.formula && (
+                  <span className="text-[10px] font-mono text-slate-500 block break-words leading-tight mt-0.5">
+                    {l.formula}
+                  </span>
+                )}
+                {l.fundamento && (
+                  <span className="text-[9px] font-mono text-emerald-700 block break-words leading-tight mt-0.5">
+                    [{l.fundamento}]
+                  </span>
+                )}
+              </div>
+              <div className="text-right shrink-0">
+                <span
+                  className={`text-xs font-mono font-bold block ${
+                    l.valor < 0
+                      ? 'text-emerald-700'
+                      : l.destaque
+                        ? 'text-emerald-900 font-black'
+                        : 'text-slate-900'
+                  }`}
+                >
+                  {formatBRL(l.valor)}
                 </span>
-              )}
+              </div>
             </div>
-            <div className="text-right shrink-0">
-              <span
-                className={`text-xs font-mono font-bold block ${
-                  l.valor < 0
-                    ? 'text-emerald-700'
-                    : l.destaque
-                      ? 'text-emerald-900 font-black'
-                      : 'text-slate-900'
-                }`}
-              >
-                {formatBRL(l.valor)}
-              </span>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -149,9 +149,15 @@ function CardMemoriaCanonicalEspelho({
 const nomeRegime = (r: RegimeId | undefined) => (r && REGIME_NOME[r] ? REGIME_NOME[r] : '—')
 
 const REPASSE_TITULO: Record<RepasseMode, string> = {
-  integral: 'REPASSE INTEGRAL',
-  parcial: 'REPASSE PARCIAL',
-  nenhum: 'REPASSE NENHUM',
+  integral: 'BASE LIMPA (art. 12) · cadeia neutra',
+  parcial: 'PARCIAL 50% · ganho dividido',
+  nenhum: 'PREÇO CHEIO · comprador absorve (escada)',
+}
+
+const REPASSE_SUBTITULO: Record<RepasseMode, string> = {
+  integral: 'PIS/COFINS eliminados, economia no preço',
+  parcial: 'Metade no preço, metade na margem',
+  nenhum: 'Tributação extinta mantida no preço',
 }
 
 /** CAMADA 1 — card principal compacto do cenário (reflete exatamente o que abre).
@@ -180,76 +186,80 @@ function CardPrincipalCenario({
     <button
       type="button"
       onClick={onAbrir}
-      className={`rounded-2xl border p-3.5 text-left cursor-pointer transition-all space-y-2.5 ${
+      className={`rounded-2xl border text-left cursor-pointer transition-all overflow-hidden flex flex-col justify-between ${
         isMenor
-          ? 'border-emerald-600 bg-emerald-50/70 ring-1 ring-emerald-500 hover:bg-emerald-50 shadow-xs'
-          : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+          ? 'border-emerald-600 ring-1 ring-emerald-500 shadow-xs'
+          : 'border-slate-200 hover:border-slate-300'
       }`}
     >
-      <div className="flex items-center justify-between gap-1 pb-1 border-b border-slate-200">
-        <span className="text-xs font-mono font-bold uppercase text-slate-900">
-          {REGIME_LABEL[comprador]} × {REGIME_LABEL[fornecedor]}
-        </span>
-        {isMenor && (
-          <span className="text-[9px] font-mono font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 rounded px-1.5 py-0.5">
-            MENOR
+      <div className="w-full bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 space-y-1.5 border-b border-slate-800">
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-xs font-mono font-bold uppercase text-white tracking-wide">
+            {REGIME_NOME[fornecedor].toUpperCase()} × {REGIME_NOME[comprador].toUpperCase()}
           </span>
-        )}
-      </div>
-      <div className="space-y-0.5">
-        <div className="text-[10px] font-mono font-bold uppercase text-emerald-800">
-          {repasseTxt}
-        </div>
-        <div className="text-[10px] font-mono uppercase text-slate-600">
-          ADQUIRENTE: {REGIME_NOME[comprador]}
-        </div>
-        <div className="text-[10px] font-mono uppercase text-slate-600">
-          FORNECEDOR: {REGIME_NOME[fornecedor]}
-        </div>
-      </div>
-      {/* CUSTO LÍQUIDO POR ITEM — cada produto com o unitário dele na combinação */}
-      <div className="space-y-1">
-        {exibidos.map(({ item, cell: ci }) => (
-          <div
-            key={item.id}
-            className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1.5"
-          >
-            <span className="text-[10px] font-mono font-bold uppercase text-slate-800 truncate max-w-[45%]">
-              {item.name || 'Item'}
+          {isMenor && (
+            <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-600 rounded px-1.5 py-0.5">
+              MENOR
             </span>
-            <div className="text-right shrink-0">
-              <span className="text-xs font-black text-slate-900 font-mono block leading-tight">
-                {formatBRL(ci.exercicio.unitario)}/un
-              </span>
-              <span
-                className={`text-[10px] font-mono font-semibold ${
-                  ci.deltaPct > 0
-                    ? 'text-rose-700'
-                    : ci.deltaPct < 0
-                      ? 'text-emerald-700'
-                      : 'text-slate-500'
-                }`}
-              >
-                {ci.deltaPct > 0 ? '+' : ''}
-                {formatNumberBR(ci.deltaPct)}%
-              </span>
-            </div>
+          )}
+        </div>
+        <div className="space-y-0.5">
+          <div className="text-[10px] font-mono font-bold uppercase text-emerald-400">
+            {repasseTxt}
           </div>
-        ))}
-        {restantes > 0 && (
-          <div className="text-[10px] font-mono text-slate-500">
-            +{restantes} item{restantes === 1 ? '' : 's'} dentro — cálculo por item na camada
-            interna
+          <div className="text-[10px] font-mono uppercase text-slate-300">
+            ADQUIRENTE: {REGIME_NOME[comprador]}
           </div>
-        )}
-        {celulasItens.length === 0 && (
-          <div className="text-[10px] font-mono text-slate-500">
-            Nenhum item com valor na Calculadora de Compras
+          <div className="text-[10px] font-mono uppercase text-slate-300">
+            FORNECEDOR: {REGIME_NOME[fornecedor]}
           </div>
-        )}
+        </div>
       </div>
-      <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
-        Clique para abrir os 6 cards do cenário
+      <div className="p-3.5 space-y-2.5 flex-1 w-full bg-white hover:bg-slate-50/70">
+        {/* CUSTO LÍQUIDO POR ITEM — cada produto com o unitário dele na combinação */}
+        <div className="space-y-1">
+          {exibidos.map(({ item, cell: ci }) => (
+            <div
+              key={item.id}
+              className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1.5"
+            >
+              <span className="text-[10px] font-mono font-bold uppercase text-slate-800 truncate max-w-[45%]">
+                {item.name || 'Item'}
+              </span>
+              <div className="text-right shrink-0">
+                <span className="text-xs font-black text-slate-900 font-mono block leading-tight">
+                  {formatBRL(ci.exercicio.unitario)}/un
+                </span>
+                <span
+                  className={`text-[10px] font-mono font-semibold ${
+                    ci.deltaPct > 0
+                      ? 'text-rose-700'
+                      : ci.deltaPct < 0
+                        ? 'text-emerald-700'
+                        : 'text-slate-500'
+                  }`}
+                >
+                  {ci.deltaPct > 0 ? '+' : ''}
+                  {formatNumberBR(ci.deltaPct)}%
+                </span>
+              </div>
+            </div>
+          ))}
+          {restantes > 0 && (
+            <div className="text-[10px] font-mono text-slate-500">
+              +{restantes} item{restantes === 1 ? '' : 's'} dentro — cálculo por item na camada
+              interna
+            </div>
+          )}
+          {celulasItens.length === 0 && (
+            <div className="text-[10px] font-mono text-slate-500">
+              Nenhum item com valor na Calculadora de Compras
+            </div>
+          )}
+        </div>
+        <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
+          Clique para abrir os 6 cards do cenário
+        </div>
       </div>
     </button>
   )
@@ -470,15 +480,19 @@ export function EspelhoRepasseDialog({
                 [
                   {
                     m: 'integral',
-                    title: 'Repasse integral',
-                    desc: 'Cadeia neutra (Fisco abre mão)',
+                    title: 'BASE LIMPA (art. 12) · cadeia neutra',
+                    desc: 'PIS/COFINS eliminados, economia no preço',
                   },
                   {
                     m: 'parcial',
-                    title: `Parcial ${formatNumberBR(baseConfig.repassePct)}%`,
-                    desc: 'Dividido entre fornecedor e comprador',
+                    title: `PARCIAL ${formatNumberBR(baseConfig.repassePct)}% · ganho dividido`,
+                    desc: 'Metade no preço, metade na margem',
                   },
-                  { m: 'nenhum', title: 'Sem repasse', desc: 'Comprador absorve (escada)' },
+                  {
+                    m: 'nenhum',
+                    title: 'PREÇO CHEIO · comprador absorve (escada)',
+                    desc: 'Tributação extinta mantida no preço',
+                  },
                 ] as const
               ).map(({ m, title, desc }) => {
                 const ativo = mode === m

@@ -23,9 +23,15 @@ import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
  */
 
 const REPASSE_TITULO: Record<RepasseMode, string> = {
-  integral: 'REPASSE INTEGRAL',
-  parcial: 'REPASSE PARCIAL',
-  nenhum: 'REPASSE NENHUM',
+  integral: 'BASE LIMPA (art. 12) · cadeia neutra',
+  parcial: 'PARCIAL 50% · ganho dividido',
+  nenhum: 'PREÇO CHEIO · comprador absorve (escada)',
+}
+
+const REPASSE_SUBTITULO: Record<RepasseMode, string> = {
+  integral: 'PIS/COFINS eliminados, economia no preço',
+  parcial: 'Metade no preço, metade na margem',
+  nenhum: 'Tributação extinta mantida no preço',
 }
 
 function LinhaCard({ line }: { line: MemoryLineArt }) {
@@ -71,8 +77,9 @@ export function CardMemoriaPorItem({
   if (celulasPorItem.length === 0) return null
   const repasseTxt =
     mode === 'parcial'
-      ? `${REPASSE_TITULO[mode]} ${formatNumberBR(config.repassePct)}%`
+      ? `PARCIAL ${formatNumberBR(config.repassePct)}% · ganho dividido`
       : REPASSE_TITULO[mode]
+  const repasseSub = REPASSE_SUBTITULO[mode]
   const cfg = configOverride ?? config
   const nomeRegime = (r: string) =>
     r === 'presumido'
@@ -148,16 +155,16 @@ export function CardMemoriaPorItem({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {/* 1º — Custo de aquisição para o ADQUIRENTE (comprador) — HOJE */}
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3.5 space-y-2">
-              <div className="space-y-0.5 pb-1 border-b border-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden flex flex-col">
+              <div className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 space-y-0.5 border-b border-slate-800">
                 <div className="flex items-center gap-1.5">
-                  <Wallet className="w-4 h-4 text-emerald-700 shrink-0" />
-                  <span className="text-xs font-bold font-mono uppercase tracking-wide text-slate-900 leading-tight">
+                  <Wallet className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-xs font-bold font-mono uppercase tracking-wide text-white leading-tight">
                     1º Custo de Aquisição para o ADQUIRENTE (COMPRADOR) -{' '}
                     {nomeRegime(cfg.compradorRegime)}
                   </span>
                 </div>
-                <div className="text-[10px] font-mono text-slate-500 uppercase">
+                <div className="text-[10px] font-mono text-slate-300 uppercase">
                   Sistema pré-reforma · HOJE · base integrada à Calculadora de Compras
                 </div>
               </div>
@@ -165,125 +172,132 @@ export function CardMemoriaPorItem({
                   Mercadorias → Frete → IPI → ICMS fragmentado → créditos → Compras Líquidas
                   → Custo Unitário Líquido. Bloco 1 (elementos) + bloco 2 (exclusões e fecho)
                   — TODAS as linhas do motor, sem esconder crédito nenhum. */}
-              <div className="space-y-1">
-                {cell.hoje.lines.map((l) => (
-                  <LinhaCard key={l.key} line={l} />
-                ))}
-              </div>
-              <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 mt-2">
-                <span className="text-xs font-mono font-bold uppercase text-emerald-900">
-                  Custo unitário HOJE
-                </span>
-                <span className="text-xs font-black text-emerald-800 font-mono">
-                  {formatBRL(cell.hoje.unitario)}/un
-                </span>
+              <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between bg-slate-50/50">
+                <div className="space-y-1">
+                  {cell.hoje.lines.map((l) => (
+                    <LinhaCard key={l.key} line={l} />
+                  ))}
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 mt-2">
+                  <span className="text-xs font-mono font-bold uppercase text-emerald-900">
+                    Custo unitário HOJE
+                  </span>
+                  <span className="text-xs font-black text-emerald-800 font-mono">
+                    {formatBRL(cell.hoje.unitario)}/un
+                  </span>
+                </div>
               </div>
             </div>
             {/* 2º — Formação do preço pelo FORNECEDOR — exercício */}
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/30 p-3.5 space-y-2">
-              <div className="space-y-0.5 pb-1 border-b border-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden flex flex-col">
+              <div className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 space-y-0.5 border-b border-slate-800">
                 <div className="flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4 text-emerald-700 shrink-0" />
-                  <span className="text-xs font-bold font-mono uppercase tracking-wide text-emerald-950 leading-tight">
+                  <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-xs font-bold font-mono uppercase tracking-wide text-white leading-tight">
                     2º Formação do Preço pelo FORNECEDOR -{' '}
                     {cfg.fornecedorRegime === 'simples_hibrido'
                       ? 'SN híbrido (regime regular IBS/CBS)'
                       : nomeRegime(cfg.fornecedorRegime)}
                   </span>
                 </div>
-                <div className="text-[10px] font-mono text-slate-500 uppercase">
+                <div className="text-[10px] font-mono text-slate-300 uppercase">
                   {cfg.fornecedorRegime === 'simples'
                     ? `Exercício ${exercicio} · lógica do SN: DAS por dentro, sem destaque · repasse não se aplica (nota congelada)`
-                    : `Exercício ${exercicio} · ${repasseTxt} · regime do cenário simulado`}
+                    : `Exercício ${exercicio} · ${repasseTxt} · ${repasseSub} · regime do cenário simulado`}
                 </div>
               </div>
               {/* Fornecedor SN puro: a memória segue a ORDEM NATURAL do motor —
                   receita bruta → alíquota efetiva → partilha → DAS por dentro → preço da nota */}
-              <div className="space-y-1">
-                {cfg.fornecedorRegime === 'simples' ? (
-                  <>
-                    {cell.exercicio.lines
-                      .filter(
-                        (l) => l.bloco === 1 && l.label !== 'MEMORIA_BLOCO1' && l.key !== 'cbsibs',
-                      )
-                      .map((l) => (
-                        <LinhaCard key={l.key} line={l} />
-                      ))}
-                    <div className="flex items-center justify-between rounded-xl bg-white border border-slate-200 px-3 py-1.5 mt-2">
-                      <span className="text-xs font-mono font-bold uppercase text-slate-800">
-                        Preço da nota (congelado)
-                      </span>
-                      <span className="text-xs font-black text-slate-900 font-mono">
-                        {formatBRL(cell.exercicio.bruto)}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {cell.exercicio.lines
-                      .filter(
-                        (l) =>
-                          l.bloco === 1 &&
-                          l.label !== 'MEMORIA_BLOCO1' &&
-                          l.subtotal !== 'preco_nota',
-                      )
-                      .map((l) => (
-                        <LinhaCard key={l.key} line={l} />
-                      ))}
-                    <div className="flex items-center justify-between rounded-xl bg-white border border-slate-200 px-3 py-1.5 mt-2">
-                      <span className="text-xs font-mono font-bold uppercase text-slate-800">
-                        Base limpa {exercicio}
-                      </span>
-                      <span className="text-xs font-black text-slate-900 font-mono">
-                        {cell.exercicio.baseLimpa !== null
-                          ? formatBRL(cell.exercicio.baseLimpa)
-                          : '—'}
-                      </span>
-                    </div>
-                    {cell.exercicio.lines
-                      .filter((l) => l.subtotal === 'preco_nota')
-                      .map((l) => (
-                        <LinhaCard key={l.key} line={l} />
-                      ))}
-                  </>
-                )}
+              <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between bg-emerald-50/20">
+                <div className="space-y-1">
+                  {cfg.fornecedorRegime === 'simples' ? (
+                    <>
+                      {cell.exercicio.lines
+                        .filter(
+                          (l) =>
+                            l.bloco === 1 && l.label !== 'MEMORIA_BLOCO1' && l.key !== 'cbsibs',
+                        )
+                        .map((l) => (
+                          <LinhaCard key={l.key} line={l} />
+                        ))}
+                      <div className="flex items-center justify-between rounded-xl bg-white border border-slate-200 px-3 py-1.5 mt-2">
+                        <span className="text-xs font-mono font-bold uppercase text-slate-800">
+                          Preço da nota (congelado)
+                        </span>
+                        <span className="text-xs font-black text-slate-900 font-mono">
+                          {formatBRL(cell.exercicio.bruto)}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {cell.exercicio.lines
+                        .filter(
+                          (l) =>
+                            l.bloco === 1 &&
+                            l.label !== 'MEMORIA_BLOCO1' &&
+                            l.subtotal !== 'preco_nota',
+                        )
+                        .map((l) => (
+                          <LinhaCard key={l.key} line={l} />
+                        ))}
+                      <div className="flex items-center justify-between rounded-xl bg-white border border-slate-200 px-3 py-1.5 mt-2">
+                        <span className="text-xs font-mono font-bold uppercase text-slate-800">
+                          Base limpa {exercicio}
+                        </span>
+                        <span className="text-xs font-black text-slate-900 font-mono">
+                          {cell.exercicio.baseLimpa !== null
+                            ? formatBRL(cell.exercicio.baseLimpa)
+                            : '—'}
+                        </span>
+                      </div>
+                      {cell.exercicio.lines
+                        .filter((l) => l.subtotal === 'preco_nota')
+                        .map((l) => (
+                          <LinhaCard key={l.key} line={l} />
+                        ))}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             {/* 3º — Formação do CUSTO pelo ADQUIRENTE (comprador) — exercício */}
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3.5 space-y-2">
-              <div className="space-y-0.5 pb-1 border-b border-slate-200">
+            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden flex flex-col">
+              <div className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 space-y-0.5 border-b border-slate-800">
                 <div className="flex items-center gap-1.5">
-                  <ShoppingCart className="w-4 h-4 text-emerald-700 shrink-0" />
-                  <span className="text-xs font-bold font-mono uppercase tracking-wide text-slate-900 leading-tight">
+                  <ShoppingCart className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="text-xs font-bold font-mono uppercase tracking-wide text-white leading-tight">
                     3º Formação do CUSTO pelo ADQUIRENTE (COMPRADOR) -{' '}
                     {nomeRegime(cfg.compradorRegime)}
                   </span>
                 </div>
-                <div className="text-[10px] font-mono text-slate-500 uppercase">
-                  Exercício {exercicio} · {repasseTxt} · regime do cenário simulado
+                <div className="text-[10px] font-mono text-slate-300 uppercase">
+                  Exercício {exercicio} · {repasseTxt} · {repasseSub} · regime do cenário simulado
                 </div>
               </div>
-              <div className="space-y-1">
-                {cell.exercicio.lines
-                  .filter((l) => l.bloco === 2)
-                  .map((l) => (
-                    <LinhaCard key={l.key} line={l} />
-                  ))}
-              </div>
-              <div className="flex items-center justify-between rounded-xl bg-white border border-slate-200 px-3 py-1.5 mt-2">
-                <span className="text-xs font-mono font-bold uppercase text-slate-800">
-                  Custo unitário {exercicio}
-                </span>
-                <div className="text-right">
-                  <span className="text-xs font-black text-slate-900 font-mono block leading-tight">
-                    {formatBRL(cell.exercicio.unitario)}/un
+              <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between bg-slate-50/50">
+                <div className="space-y-1">
+                  {cell.exercicio.lines
+                    .filter((l) => l.bloco === 2)
+                    .map((l) => (
+                      <LinhaCard key={l.key} line={l} />
+                    ))}
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-white border border-slate-200 px-3 py-1.5 mt-2">
+                  <span className="text-xs font-mono font-bold uppercase text-slate-800">
+                    Custo unitário {exercicio}
                   </span>
-                  <span
-                    className={`text-[10px] font-mono font-bold ${cell.deltaPct > 0 ? 'text-rose-700' : cell.deltaPct < 0 ? 'text-emerald-700' : 'text-slate-500'}`}
-                  >
-                    {cell.deltaPct > 0 ? '+' : ''}
-                    {formatNumberBR(cell.deltaPct)}% VS HOJE
-                  </span>
+                  <div className="text-right">
+                    <span className="text-xs font-black text-slate-900 font-mono block leading-tight">
+                      {formatBRL(cell.exercicio.unitario)}/un
+                    </span>
+                    <span
+                      className={`text-[10px] font-mono font-bold ${cell.deltaPct > 0 ? 'text-rose-700' : cell.deltaPct < 0 ? 'text-emerald-700' : 'text-slate-500'}`}
+                    >
+                      {cell.deltaPct > 0 ? '+' : ''}
+                      {formatNumberBR(cell.deltaPct)}% VS HOJE
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

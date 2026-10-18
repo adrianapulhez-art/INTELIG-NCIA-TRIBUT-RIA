@@ -620,17 +620,27 @@ export function CmvArt12Module() {
         </div>
 
         {/* Nota legal do cabeçalho */}
-        <div className="text-[11px] font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3 leading-relaxed">
-          <ShieldAlert className="w-3.5 h-3.5 text-emerald-700 inline mr-1.5 -mt-0.5" />
-          Fundamento: LC 214/2025, art. 12, caput — base = valor da operação; §1º, IV — frete
-          integra a base; §2º, I — IBS/CBS fora; §2º, II — IPI fora (todos os exercícios); §2º, V —
-          ICMS/ISS/PIS/COFINS fora, vigência expressa 01/01/2026 a 31/12/2032. Frações do ICMS:
-          ADCT, art. 128, I–IV. IPI zerado 2027+: CF, art. 153, §3º + LC 214/2025, art. 454 (ZFM:
-          ADCT, art. 92-B). Crédito do adquirente: art. 47, §2º. Desconto incondicional (consta do
-          documento e não depende de evento posterior): fora da base — art. 12, §2º, III. Devolução
-          e cancelamento: base da operação original — art. 12, §7º. PIS/COFINS embutidos sobre base
-          sem ICMS: tese do século (STJ RE 1.188.403; STF Tema 1098). PENDENTE DE DEFINIÇÃO: se
-          CBS/IBS integram a base do ICMS na transição — simule as duas teses no seletor abaixo.
+        <div className="text-[11px] font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3 leading-relaxed space-y-2">
+          <div>
+            <ShieldAlert className="w-3.5 h-3.5 text-emerald-700 inline mr-1.5 -mt-0.5" />
+            Fundamento: LC 214/2025, art. 12, caput — base = valor da operação; §1º, IV — frete
+            integra a base; §2º, I — IBS/CBS fora; §2º, II — IPI fora (todos os exercícios); §2º, V
+            — ICMS/ISS/PIS/COFINS fora, vigência expressa 01/01/2026 a 31/12/2032. Frações do ICMS:
+            ADCT, art. 128, I–IV. IPI zerado 2027+: CF, art. 153, §3º + LC 214/2025, art. 454 (ZFM:
+            ADCT, art. 92-B). Crédito do adquirente: art. 47, §2º. Desconto incondicional (consta do
+            documento e não depende de evento posterior): fora da base — art. 12, §2º, III.
+            Devolução e cancelamento: base da operação original — art. 12, §7º. PIS/COFINS embutidos
+            sobre base sem ICMS: tese do século (STJ RE 1.188.403; STF Tema 1098). PENDENTE DE
+            DEFINIÇÃO: se CBS/IBS integram a base do ICMS na transição — simule as duas teses no
+            seletor abaixo.
+          </div>
+          <div className="pt-2 border-t border-slate-200 text-slate-700">
+            <strong>Nota de equivalência de nomenclatura:</strong> &quot;BASE LIMPA (art. 12) ·
+            cadeia neutra&quot; corresponde ao antigo &quot;Repasse integral&quot;; &quot;PARCIAL
+            50% · ganho dividido&quot; corresponde ao antigo &quot;Parcial 50%&quot;; &quot;PREÇO
+            CHEIO · comprador absorve (escada)&quot; corresponde ao antigo &quot;Sem repasse&quot;.
+            Os valores calculados são os mesmos — apenas a nomenclatura mudou.
+          </div>
         </div>
 
         {/* Seletor de exercícios */}
@@ -884,18 +894,17 @@ export function CmvArt12Module() {
               </span>
             </div>
           </div>
-
           {/* SEÇÃO A — ADQUIRENTE PLENO · com régua de repasse */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-1.5">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-600" />
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-900">
-                  SEÇÃO A — ADQUIRENTE PLENO · com régua de repasse
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-white px-4 py-3 rounded-xl shadow-xs border border-emerald-700/60">
+              <div className="flex items-center gap-2.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-300/40 shrink-0" />
+                <span className="text-sm font-mono font-black uppercase tracking-wider text-white">
+                  SEÇÃO A — ADQUIRENTE PLENO · COM RÉGUA DE REPASSE
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                Integral · Parcial 50% · Sem repasse dentro do espelho
+              <span className="text-[10px] font-mono font-bold text-emerald-100 bg-emerald-950/80 border border-emerald-600/70 px-2.5 py-1 rounded">
+                Base Limpa · Parcial 50% · Preço Cheio dentro do espelho
               </span>
             </div>
 
@@ -914,10 +923,16 @@ export function CmvArt12Module() {
                 const restantes = celulasItens.length - exibidos.length
                 const repasseTxt =
                   config.repasse === 'parcial'
-                    ? `REPASSE PARCIAL ${formatNumberBR(config.repassePct)}%`
+                    ? `PARCIAL ${formatNumberBR(config.repassePct)}% · GANHO DIVIDIDO`
                     : config.repasse === 'nenhum'
-                      ? 'SEM REPASSE'
-                      : 'REPASSE INTEGRAL'
+                      ? 'PREÇO CHEIO · COMPRADOR ABSORVE (ESCADA)'
+                      : 'BASE LIMPA (ART. 12) · CADEIA NEUTRA'
+                const repasseSub =
+                  config.repasse === 'parcial'
+                    ? 'Metade no preço, metade na margem'
+                    : config.repasse === 'nenhum'
+                      ? 'Tributação extinta mantida no preço'
+                      : 'PIS/COFINS eliminados, economia no preço'
                 const isMenor = comprador === 'real' && config.fornecedorRegime === 'real'
 
                 return (
@@ -928,95 +943,99 @@ export function CmvArt12Module() {
                       setConfig((c) => ({ ...c, compradorRegime: comprador }))
                       setEspelhoModal({ open: true, mode: config.repasse })
                     }}
-                    className={`rounded-2xl border p-4 text-left cursor-pointer transition-all space-y-3 ${
+                    className={`rounded-2xl border text-left cursor-pointer transition-all overflow-hidden flex flex-col justify-between ${
                       isMenor
-                        ? 'border-emerald-600 bg-emerald-50/70 ring-1 ring-emerald-500 hover:bg-emerald-50 shadow-xs'
-                        : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                        ? 'border-emerald-600 ring-1 ring-emerald-500 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-1 pb-1 border-b border-slate-200">
-                      <span className="text-xs font-mono font-bold uppercase text-slate-900">
-                        {REGIME_LABEL[config.fornecedorRegime]} × {REGIME_LABEL[comprador]}
-                      </span>
-                      {isMenor && (
-                        <span className="text-[9px] font-mono font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 rounded px-1.5 py-0.5">
-                          MENOR
+                    <div className="w-full bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 space-y-1.5 border-b border-slate-800">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-mono font-bold uppercase text-white tracking-wide">
+                          {REGIME_LABEL_FULL[config.fornecedorRegime].toUpperCase()} ×{' '}
+                          {REGIME_LABEL_FULL[comprador].toUpperCase()}
                         </span>
-                      )}
-                    </div>
-
-                    <div className="space-y-0.5">
-                      <div className="text-[10px] font-mono font-bold uppercase text-emerald-800">
-                        {repasseTxt}
-                      </div>
-                      <div className="text-[10px] font-mono uppercase text-slate-600">
-                        ADQUIRENTE: {REGIME_LABEL_FULL[comprador]}
-                      </div>
-                      <div className="text-[10px] font-mono uppercase text-slate-600">
-                        FORNECEDOR: {REGIME_LABEL_FULL[config.fornecedorRegime]}
-                      </div>
-                    </div>
-
-                    {/* Resumo por produto (valor/un e %) */}
-                    <div className="space-y-1.5">
-                      {exibidos.map(({ item, cell: ci }) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1.5"
-                        >
-                          <span className="text-[10px] font-mono font-bold uppercase text-slate-800 truncate max-w-[45%]">
-                            {item.name || 'Item'}
+                        {isMenor && (
+                          <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-600 rounded px-1.5 py-0.5">
+                            MENOR
                           </span>
-                          <div className="text-right shrink-0">
-                            <span className="text-xs font-black text-slate-900 font-mono block leading-tight">
-                              {formatBRL(ci.exercicio.unitario)}/un
-                            </span>
-                            <span
-                              className={`text-[10px] font-mono font-semibold ${
-                                ci.deltaPct > 0
-                                  ? 'text-rose-700'
-                                  : ci.deltaPct < 0
-                                    ? 'text-emerald-700'
-                                    : 'text-slate-500'
-                              }`}
-                            >
-                              {ci.deltaPct > 0 ? '+' : ''}
-                              {formatNumberBR(ci.deltaPct)}%
-                            </span>
-                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="text-[10px] font-mono font-bold uppercase text-emerald-400">
+                          {repasseTxt}
                         </div>
-                      ))}
-                      {restantes > 0 && (
-                        <div className="text-[10px] font-mono text-slate-500">
-                          +{restantes} item{restantes === 1 ? '' : 's'} dentro do espelho
+                        <div className="text-[9px] font-mono text-slate-300">{repasseSub}</div>
+                        <div className="text-[10px] font-mono uppercase text-slate-300">
+                          ADQUIRENTE: {REGIME_LABEL_FULL[comprador]}
                         </div>
-                      )}
-                      {celulasItens.length === 0 && (
-                        <div className="text-[10px] font-mono text-slate-500">
-                          Nenhum item com valor na Calculadora de Compras
+                        <div className="text-[10px] font-mono uppercase text-slate-300">
+                          FORNECEDOR: {REGIME_LABEL_FULL[config.fornecedorRegime]}
                         </div>
-                      )}
+                      </div>
                     </div>
 
-                    <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
-                      Clique para abrir os 6 cards do cenário
+                    <div className="p-4 space-y-3 flex-1 w-full bg-white hover:bg-slate-50/70">
+                      {/* Resumo por produto (valor/un e %) */}
+                      <div className="space-y-1.5">
+                        {exibidos.map(({ item, cell: ci }) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1.5"
+                          >
+                            <span className="text-[10px] font-mono font-bold uppercase text-slate-800 truncate max-w-[45%]">
+                              {item.name || 'Item'}
+                            </span>
+                            <div className="text-right shrink-0">
+                              <span className="text-xs font-black text-slate-900 font-mono block leading-tight">
+                                {formatBRL(ci.exercicio.unitario)}/un
+                              </span>
+                              <span
+                                className={`text-[10px] font-mono font-semibold ${
+                                  ci.deltaPct > 0
+                                    ? 'text-rose-700'
+                                    : ci.deltaPct < 0
+                                      ? 'text-emerald-700'
+                                      : 'text-slate-500'
+                                }`}
+                              >
+                                {ci.deltaPct > 0 ? '+' : ''}
+                                {formatNumberBR(ci.deltaPct)}%
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                        {restantes > 0 && (
+                          <div className="text-[10px] font-mono text-slate-500">
+                            +{restantes} item{restantes === 1 ? '' : 's'} dentro do espelho
+                          </div>
+                        )}
+                        {celulasItens.length === 0 && (
+                          <div className="text-[10px] font-mono text-slate-500">
+                            Nenhum item com valor na Calculadora de Compras
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
+                        Clique para abrir os 6 cards do cenário
+                      </div>
                     </div>
                   </button>
                 )
               })}
             </div>
           </div>
-
-          {/* SEÇÃO B — ADQUIRENTE SIMPLES NACIONAL · cenário único */}
+          {/* SEÇÃO B — ADQUIRENTE SIMPLES NACIONAL · CENÁRIO ÚNICO */}
           <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-1.5">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-slate-600" />
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-900">
-                  SEÇÃO B — ADQUIRENTE SIMPLES NACIONAL · cenário único
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-white px-4 py-3 rounded-xl shadow-xs border border-emerald-700/60">
+              <div className="flex items-center gap-2.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-300/40 shrink-0" />
+                <span className="text-sm font-mono font-black uppercase tracking-wider text-white">
+                  SEÇÃO B — ADQUIRENTE SIMPLES NACIONAL · CENÁRIO ÚNICO
                 </span>
               </div>
-              <span className="text-[10px] font-mono text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
+              <span className="text-[10px] font-mono font-bold text-emerald-100 bg-emerald-950/80 border border-emerald-600/70 px-2.5 py-1 rounded">
                 Sem régua de repasse · LC 123/2006 art. 23
               </span>
             </div>
@@ -1026,16 +1045,22 @@ export function CmvArt12Module() {
                 [
                   {
                     comprador: 'simples' as const,
-                    sigla: config.fornecedorRegime === 'real' ? 'LR × SN' : 'LP × SN',
+                    extenso:
+                      config.fornecedorRegime === 'real'
+                        ? 'LUCRO REAL × SIMPLES NACIONAL (PURO)'
+                        : 'LUCRO PRESUMIDO × SIMPLES NACIONAL (PURO)',
                     nomeComprador: 'Simples Nacional Puro',
                   },
                   {
                     comprador: 'simples_hibrido' as const,
-                    sigla: config.fornecedorRegime === 'real' ? 'LR × SNH' : 'LP × SNH',
+                    extenso:
+                      config.fornecedorRegime === 'real'
+                        ? 'LUCRO REAL × SIMPLES NACIONAL HÍBRIDO'
+                        : 'LUCRO PRESUMIDO × SIMPLES NACIONAL HÍBRIDO',
                     nomeComprador: 'Simples Nacional Híbrido (regime regular IBS/CBS)',
                   },
                 ] as const
-              ).map(({ comprador, sigla, nomeComprador }) => {
+              ).map(({ comprador, extenso, nomeComprador }) => {
                 const fornSNRegime =
                   config.fornecedorRegime === 'real' ? 'lucro_real' : 'lucro_presumido'
                 const adqSNRegime = comprador === 'simples_hibrido' ? 'simples_hibrido' : 'simples'
@@ -1055,70 +1080,73 @@ export function CmvArt12Module() {
                       setConfig((c) => ({ ...c, compradorRegime: comprador }))
                       setEspelhoModal({ open: true, mode: 'integral' })
                     }}
-                    className="rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 p-4 text-left cursor-pointer transition-all space-y-3"
+                    className="rounded-2xl border border-slate-200 hover:border-slate-300 text-left cursor-pointer transition-all overflow-hidden flex flex-col justify-between"
                   >
-                    <div className="flex items-center justify-between gap-1 pb-1 border-b border-slate-200">
-                      <span className="text-xs font-mono font-bold uppercase text-slate-900">
-                        {sigla}
-                      </span>
-                      <span className="text-[9px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5">
-                        CENÁRIO ÚNICO
-                      </span>
-                    </div>
-
-                    <div className="space-y-0.5">
-                      <div className="text-[10px] font-mono font-bold uppercase text-slate-700">
-                        CENÁRIO ÚNICO CHANCELADO · SEM REPASSE
-                      </div>
-                      <div className="text-[10px] font-mono uppercase text-slate-600">
-                        ADQUIRENTE: {nomeComprador}
-                      </div>
-                      <div className="text-[10px] font-mono uppercase text-slate-600">
-                        FORNECEDOR: {REGIME_LABEL_FULL[config.fornecedorRegime]}
-                      </div>
-                    </div>
-
-                    {/* Exibição direta do valor de ouro chancelado */}
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-mono font-bold text-slate-900">
-                          {itemRef?.name || 'Item Canônico'}
+                    <div className="w-full bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 space-y-1.5 border-b border-slate-800">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-mono font-bold uppercase text-white tracking-wide">
+                          {extenso}
                         </span>
-                        <span className="text-sm font-black font-mono text-emerald-950">
-                          {formatBRL(celulaSn.exercicio2027.custoUnitario)}/un
+                        <span className="text-[9px] font-mono font-bold text-slate-300 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5">
+                          CENÁRIO ÚNICO
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-600">
-                        <span>HOJE: {formatBRL(celulaSn.hoje.custoUnitario)}/un</span>
-                        <span
-                          className={`font-bold ${
-                            celulaSn.deltaPct > 0
-                              ? 'text-rose-700'
-                              : celulaSn.deltaPct < 0
-                                ? 'text-emerald-700'
-                                : 'text-slate-500'
-                          }`}
-                        >
-                          {celulaSn.deltaPct > 0 ? '+' : ''}
-                          {formatNumberBR(celulaSn.deltaPct)}%
-                        </span>
+                      <div className="space-y-0.5">
+                        <div className="text-[10px] font-mono font-bold uppercase text-emerald-400">
+                          CENÁRIO ÚNICO CHANCELADO · PREÇO CHEIO (SEM REPASSE)
+                        </div>
+                        <div className="text-[10px] font-mono uppercase text-slate-300">
+                          ADQUIRENTE: {nomeComprador}
+                        </div>
+                        <div className="text-[10px] font-mono uppercase text-slate-300">
+                          FORNECEDOR: {REGIME_LABEL_FULL[config.fornecedorRegime]}
+                        </div>
                       </div>
                     </div>
 
-                    <p className="text-[10px] font-mono text-slate-500 leading-tight">
-                      {comprador === 'simples'
-                        ? 'LC 123/2006 art. 13 §1º: custo = nota cheia sem créditos.'
-                        : 'LC 214/2025 art. 41: credita CBS e IBS integrais destacados; sem ICMS 18%.'}
-                    </p>
+                    <div className="p-4 space-y-3 flex-1 w-full bg-white hover:bg-slate-50/70">
+                      {/* Exibição direta do valor de ouro chancelado */}
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-mono font-bold text-slate-900">
+                            {itemRef?.name || 'Item Canônico'}
+                          </span>
+                          <span className="text-sm font-black font-mono text-emerald-950">
+                            {formatBRL(celulaSn.exercicio2027.custoUnitario)}/un
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-600">
+                          <span>HOJE: {formatBRL(celulaSn.hoje.custoUnitario)}/un</span>
+                          <span
+                            className={`font-bold ${
+                              celulaSn.deltaPct > 0
+                                ? 'text-rose-700'
+                                : celulaSn.deltaPct < 0
+                                  ? 'text-emerald-700'
+                                  : 'text-slate-500'
+                            }`}
+                          >
+                            {celulaSn.deltaPct > 0 ? '+' : ''}
+                            {formatNumberBR(celulaSn.deltaPct)}%
+                          </span>
+                        </div>
+                      </div>
 
-                    <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
-                      Clique para abrir o espelho direto (Cards 01, 02 e 03)
+                      <p className="text-[10px] font-mono text-slate-500 leading-tight">
+                        {comprador === 'simples'
+                          ? 'LC 123/2006 art. 13 §1º: custo = nota cheia sem créditos.'
+                          : 'LC 214/2025 art. 41: credita CBS e IBS integrais destacados; sem ICMS 18%.'}
+                      </p>
+
+                      <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
+                        Clique para abrir o espelho direto (Cards 01, 02 e 03)
+                      </div>
                     </div>
                   </button>
                 )
               })}
             </div>
-          </div>
+          </div>{' '}
         </div>
       )}
       {/* ================= SESSÃO SN NA REFORMA (rearranjo da CEO, 29/09): TODAS as operações

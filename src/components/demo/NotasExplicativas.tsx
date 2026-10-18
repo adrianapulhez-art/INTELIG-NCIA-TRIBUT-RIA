@@ -38,9 +38,9 @@ const REGIME_NOME: Record<RegimeId, string> = {
 }
 
 const REPASSE_NOME: Record<RepasseMode, string> = {
-  integral: 'repasse integral',
-  parcial: 'repasse parcial',
-  nenhum: 'sem repasse',
+  integral: 'BASE LIMPA (art. 12) · cadeia neutra',
+  parcial: 'PARCIAL 50% · ganho dividido',
+  nenhum: 'PREÇO CHEIO · comprador absorve (escada)',
 }
 
 function Par({ children }: { children: React.ReactNode }) {
@@ -133,10 +133,8 @@ export function NotaExplicativaCelula({
   const plenoF = !snF && !snhF
   const repasseTxt =
     repasse === 'parcial'
-      ? `repasse parcial (${formatNumberBR(repassePct)}%)`
-      : repasse === 'nenhum'
-        ? 'sem repasse'
-        : 'repasse integral'
+      ? `PARCIAL ${formatNumberBR(repassePct)}% · ganho dividido`
+      : REPASSE_NOME[repasse]
 
   // números reais da célula
   const brutoEx = cell.exercicio.bruto
@@ -165,10 +163,8 @@ export function NotaExplicativaCelula({
 
   const repasseTxt2 =
     repasse === 'parcial'
-      ? `repasse parcial (${formatNumberBR(repassePct)}%)`
-      : repasse === 'nenhum'
-        ? 'sem repasse'
-        : 'repasse integral'
+      ? `PARCIAL ${formatNumberBR(repassePct)}% · ganho dividido`
+      : REPASSE_NOME[repasse]
 
   return (
     <div className="space-y-3">
@@ -493,10 +489,8 @@ export function NotaExplicativaBloco({
   const piscofinsHoje = Math.abs(val(cell.hoje, 'piscofins'))
   const repasseTxt =
     repasse === 'parcial'
-      ? `repasse parcial (${formatNumberBR(repassePct)}%)`
-      : repasse === 'nenhum'
-        ? 'sem repasse'
-        : 'repasse integral'
+      ? `PARCIAL ${formatNumberBR(repassePct)}% · ganho dividido`
+      : REPASSE_NOME[repasse]
 
   return (
     <div className="space-y-3">
