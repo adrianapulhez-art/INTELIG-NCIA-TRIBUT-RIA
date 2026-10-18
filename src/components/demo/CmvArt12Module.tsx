@@ -1112,15 +1112,16 @@ export function CmvArt12Module() {
                       config.fornecedorRegime === 'real' ? 'lucro_real' : 'lucro_presumido'
                     const adqSNRegime =
                       comprador === 'simples_hibrido' ? 'simples_hibrido' : 'simples'
-                    const itemRef =
-                      celulasPorItem && celulasPorItem.length > 0
-                        ? celulasPorItem[0].item
-                        : undefined
-                    const celulaSn = calcularCelulaFornecedorPlenoXAdquirenteSn(
-                      fornSNRegime,
-                      adqSNRegime,
-                      itemRef,
-                    )
+                    const celulasSnItens = (celulasPorItem || []).map(({ item }) => ({
+                      item,
+                      celula: calcularCelulaFornecedorPlenoXAdquirenteSn(
+                        fornSNRegime,
+                        adqSNRegime,
+                        item,
+                      ),
+                    }))
+                    const exibidos = celulasSnItens.slice(0, 3)
+                    const restantes = celulasSnItens.length - exibidos.length
 
                     return (
                       <button
@@ -1155,31 +1156,45 @@ export function CmvArt12Module() {
                         </div>
 
                         <div className="p-4 space-y-3 flex-1 w-full bg-white hover:bg-slate-50/70">
-                          {/* Exibição direta do valor de ouro chancelado */}
-                          <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-mono font-bold text-slate-900">
-                                {itemRef?.name || 'Item Canônico'}
-                              </span>
-                              <span className="text-sm font-black font-mono text-emerald-950">
-                                {formatBRL(celulaSn.exercicio2027.custoUnitario)}/un
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-[10px] font-mono text-slate-600">
-                              <span>HOJE: {formatBRL(celulaSn.hoje.custoUnitario)}/un</span>
-                              <span
-                                className={`font-bold ${
-                                  celulaSn.deltaPct > 0
-                                    ? 'text-rose-700'
-                                    : celulaSn.deltaPct < 0
-                                      ? 'text-emerald-700'
-                                      : 'text-slate-500'
-                                }`}
+                          {/* Resumo por produto (valor/un e %) */}
+                          <div className="space-y-1.5">
+                            {exibidos.map(({ item, celula: ci }) => (
+                              <div
+                                key={item.id}
+                                className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1.5"
                               >
-                                {celulaSn.deltaPct > 0 ? '+' : ''}
-                                {formatNumberBR(celulaSn.deltaPct)}%
-                              </span>
-                            </div>
+                                <span className="text-[10px] font-mono font-bold uppercase text-slate-800 truncate max-w-[45%]">
+                                  {item.name || 'Item'}
+                                </span>
+                                <div className="text-right shrink-0">
+                                  <span className="text-xs font-black text-slate-900 font-mono block leading-tight">
+                                    {formatBRL(ci.exercicio2027.custoUnitario)}/un
+                                  </span>
+                                  <span
+                                    className={`text-[10px] font-mono font-semibold ${
+                                      ci.deltaPct > 0
+                                        ? 'text-rose-700'
+                                        : ci.deltaPct < 0
+                                          ? 'text-emerald-700'
+                                          : 'text-slate-500'
+                                    }`}
+                                  >
+                                    {ci.deltaPct > 0 ? '+' : ''}
+                                    {formatNumberBR(ci.deltaPct)}%
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                            {restantes > 0 && (
+                              <div className="text-[10px] font-mono text-slate-500">
+                                +{restantes} item{restantes === 1 ? '' : 's'} dentro do espelho
+                              </div>
+                            )}
+                            {celulasSnItens.length === 0 && (
+                              <div className="text-[10px] font-mono text-slate-500">
+                                Nenhum item com valor na Calculadora de Compras
+                              </div>
+                            )}
                           </div>
 
                           <p className="text-[10px] font-mono text-slate-500 leading-tight">
