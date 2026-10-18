@@ -91,7 +91,7 @@ function CardMemoriaCanonicalEspelho({
 
   return (
     <div className="w-full min-w-0 rounded-2xl border border-slate-200 bg-white overflow-hidden flex flex-col justify-between shadow-2xs">
-      <div className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 flex items-start justify-between gap-1 border-b border-slate-800">
+      <div className="bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 text-white p-3.5 flex items-start justify-between gap-1 border-b border-slate-600">
         <span className="text-xs font-mono uppercase leading-tight block font-bold text-white">
           {titulo}
         </span>
@@ -192,7 +192,7 @@ function CardPrincipalCenario({
           : 'border-slate-200 hover:border-slate-300'
       }`}
     >
-      <div className="w-full bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 space-y-1.5 border-b border-slate-800">
+      <div className="w-full bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 text-white p-3.5 space-y-1.5 border-b border-slate-600">
         <div className="flex items-center justify-between gap-1">
           <span className="text-xs font-mono font-bold uppercase text-white tracking-wide">
             {REGIME_NOME[fornecedor].toUpperCase()} × {REGIME_NOME[comprador].toUpperCase()}
@@ -204,13 +204,13 @@ function CardPrincipalCenario({
           )}
         </div>
         <div className="space-y-0.5">
-          <div className="text-[10px] font-mono font-bold uppercase text-emerald-400">
+          <div className="text-[10px] font-mono font-bold uppercase text-emerald-300">
             {repasseTxt}
           </div>
-          <div className="text-[10px] font-mono uppercase text-slate-300">
+          <div className="text-[10px] font-mono uppercase text-slate-200">
             ADQUIRENTE: {REGIME_NOME[comprador]}
           </div>
-          <div className="text-[10px] font-mono uppercase text-slate-300">
+          <div className="text-[10px] font-mono uppercase text-slate-200">
             FORNECEDOR: {REGIME_NOME[fornecedor]}
           </div>
         </div>

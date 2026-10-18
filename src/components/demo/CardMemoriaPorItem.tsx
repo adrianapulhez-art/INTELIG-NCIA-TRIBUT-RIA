@@ -156,15 +156,15 @@ export function CardMemoriaPorItem({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {/* 1º — Custo de aquisição para o ADQUIRENTE (comprador) — HOJE */}
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden flex flex-col">
-              <div className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 space-y-0.5 border-b border-slate-800">
+              <div className="bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 text-white p-3.5 space-y-0.5 border-b border-slate-600">
                 <div className="flex items-center gap-1.5">
-                  <Wallet className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <Wallet className="w-4 h-4 text-emerald-300 shrink-0" />
                   <span className="text-xs font-bold font-mono uppercase tracking-wide text-white leading-tight">
                     1º Custo de Aquisição para o ADQUIRENTE (COMPRADOR) -{' '}
                     {nomeRegime(cfg.compradorRegime)}
                   </span>
                 </div>
-                <div className="text-[10px] font-mono text-slate-300 uppercase">
+                <div className="text-[10px] font-mono text-slate-200 uppercase">
                   Sistema pré-reforma · HOJE · base integrada à Calculadora de Compras
                 </div>
               </div>
@@ -190,9 +190,9 @@ export function CardMemoriaPorItem({
             </div>
             {/* 2º — Formação do preço pelo FORNECEDOR — exercício */}
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden flex flex-col">
-              <div className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 space-y-0.5 border-b border-slate-800">
+              <div className="bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 text-white p-3.5 space-y-0.5 border-b border-slate-600">
                 <div className="flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <Building2 className="w-4 h-4 text-emerald-300 shrink-0" />
                   <span className="text-xs font-bold font-mono uppercase tracking-wide text-white leading-tight">
                     2º Formação do Preço pelo FORNECEDOR -{' '}
                     {cfg.fornecedorRegime === 'simples_hibrido'
@@ -200,7 +200,7 @@ export function CardMemoriaPorItem({
                       : nomeRegime(cfg.fornecedorRegime)}
                   </span>
                 </div>
-                <div className="text-[10px] font-mono text-slate-300 uppercase">
+                <div className="text-[10px] font-mono text-slate-200 uppercase">
                   {cfg.fornecedorRegime === 'simples'
                     ? `Exercício ${exercicio} · lógica do SN: DAS por dentro, sem destaque · repasse não se aplica (nota congelada)`
                     : `Exercício ${exercicio} · ${repasseTxt} · ${repasseSub} · regime do cenário simulado`}
@@ -263,18 +263,18 @@ export function CardMemoriaPorItem({
             </div>
             {/* 3º — Formação do CUSTO pelo ADQUIRENTE (comprador) — exercício */}
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden flex flex-col">
-              <div className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 space-y-0.5 border-b border-slate-800">
+              <div className="bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 text-white p-3.5 space-y-0.5 border-b border-slate-600">
                 <div className="flex items-center gap-1.5">
-                  <ShoppingCart className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <ShoppingCart className="w-4 h-4 text-emerald-300 shrink-0" />
                   <span className="text-xs font-bold font-mono uppercase tracking-wide text-white leading-tight">
                     3º Formação do CUSTO pelo ADQUIRENTE (COMPRADOR) -{' '}
                     {nomeRegime(cfg.compradorRegime)}
                   </span>
                 </div>
-                <div className="text-[10px] font-mono text-slate-300 uppercase">
+                <div className="text-[10px] font-mono text-slate-200 uppercase">
                   Exercício {exercicio} · {repasseTxt} · {repasseSub} · regime do cenário simulado
                 </div>
-              </div>
+              </div>{' '}
               <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between bg-slate-50/50">
                 <div className="space-y-1">
                   {cell.exercicio.lines

@@ -6,6 +6,8 @@ import {
   AlertTriangle,
   ShieldAlert,
   ShieldCheck,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -849,15 +851,24 @@ export function CmvArt12Module() {
             </div>
           </div>
 
-          {/* BOTÃO PRIMÁRIO VERDE: ABRIR CENÁRIOS DE CÁLCULOS */}
+          {/* BOTÃO PRIMÁRIO VERDE: ABRIR / FECHAR CENÁRIOS DE CÁLCULOS */}
           <div className="sm:col-span-2 lg:col-span-4">
             <Button
               type="button"
               onClick={() => setCamadaCenariosAberta((prev) => !prev)}
-              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-bold text-xs uppercase cursor-pointer shadow-sm tracking-wider"
+              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-bold text-xs uppercase cursor-pointer shadow-sm tracking-wider flex items-center justify-center gap-2"
             >
-              <Calculator className="w-4 h-4 mr-2" />
-              {camadaCenariosAberta ? 'FECHAR CENÁRIOS DE CÁLCULOS' : 'ABRIR CENÁRIOS DE CÁLCULOS'}
+              <Calculator className="w-4 h-4" />
+              <span>
+                {camadaCenariosAberta
+                  ? 'FECHAR CENÁRIOS DE CÁLCULOS'
+                  : 'ABRIR CENÁRIOS DE CÁLCULOS'}
+              </span>
+              {camadaCenariosAberta ? (
+                <ChevronUp className="w-4 h-4 ml-1 opacity-80" />
+              ) : (
+                <ChevronDown className="w-4 h-4 ml-1 opacity-80" />
+              )}
             </Button>
           </div>
         </div>
@@ -872,283 +883,302 @@ export function CmvArt12Module() {
           />
           Fornecedor industrial na Zona Franca de Manaus (mantém IPI — ADCT, art. 92-B)
         </label>
-      </div>
-      {/* ================= 2. CAMADA INTERNA ÚNICA POR FORNECEDOR ================= */}
-      {camadaCenariosAberta && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
-            <div className="border-l-4 border-emerald-500 pl-2.5">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900">
-                CENÁRIOS DE CÁLCULOS · FORNECEDOR{' '}
-                {config.fornecedorRegime === 'real' ? 'LUCRO REAL' : 'LUCRO PRESUMIDO'}
-              </h4>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Perfil do fornecedor:{' '}
-                <strong>{config.fornecedorPerfil === 'comercio' ? 'Comércio' : 'Indústria'}</strong>{' '}
-                · 4 cenários alimentados pelo perfil único
-              </p>
-            </div>
-            <div className="inline-flex items-center gap-2">
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-emerald-300 bg-emerald-50 text-emerald-800 uppercase">
-                Ambiente Ativo: {REGIME_LABEL[config.fornecedorRegime]}
-              </span>
-            </div>
-          </div>
-          {/* SEÇÃO A — ADQUIRENTE PLENO · com régua de repasse */}
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-white px-4 py-3 rounded-xl shadow-xs border border-emerald-700/60">
-              <div className="flex items-center gap-2.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-300/40 shrink-0" />
-                <span className="text-sm font-mono font-black uppercase tracking-wider text-white">
-                  SEÇÃO A — ADQUIRENTE PLENO · COM RÉGUA DE REPASSE
-                </span>
-              </div>
-              <span className="text-[10px] font-mono font-bold text-emerald-100 bg-emerald-950/80 border border-emerald-600/70 px-2.5 py-1 rounded">
-                Base Limpa · Parcial 50% · Preço Cheio dentro do espelho
-              </span>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              {(['presumido', 'real'] as const).map((comprador) => {
-                const cfgComb = {
-                  ...config,
-                  compradorRegime: comprador,
-                  fornecedorRegime: config.fornecedorRegime,
-                }
-                const celulasItens = (celulasPorItem || []).map(({ item }) => ({
-                  item,
-                  cell: computeCellArt12Item(item, cfgComb, row),
-                }))
-                const exibidos = celulasItens.slice(0, 3)
-                const restantes = celulasItens.length - exibidos.length
-                const repasseTxt =
-                  config.repasse === 'parcial'
-                    ? `PARCIAL ${formatNumberBR(config.repassePct)}% · GANHO DIVIDIDO`
-                    : config.repasse === 'nenhum'
-                      ? 'PREÇO CHEIO · COMPRADOR ABSORVE (ESCADA)'
-                      : 'BASE LIMPA (ART. 12) · CADEIA NEUTRA'
-                const repasseSub =
-                  config.repasse === 'parcial'
-                    ? 'Metade no preço, metade na margem'
-                    : config.repasse === 'nenhum'
-                      ? 'Tributação extinta mantida no preço'
-                      : 'PIS/COFINS eliminados, economia no preço'
-                const isMenor = comprador === 'real' && config.fornecedorRegime === 'real'
-
-                return (
+        {/* ================= 2. CAMADA INTERNA RECÚADA (PADRÃO PRÉ-REFORMA COMPRAS/MARKUP) ================= */}
+        {camadaCenariosAberta && (
+          <div className="mt-4 pt-4 border-t border-slate-200 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 shadow-inner space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
+                <div className="border-l-4 border-emerald-500 pl-2.5">
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                    CENÁRIOS DE CÁLCULOS · FORNECEDOR{' '}
+                    {config.fornecedorRegime === 'real' ? 'LUCRO REAL' : 'LUCRO PRESUMIDO'}
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Perfil do fornecedor:{' '}
+                    <strong>
+                      {config.fornecedorPerfil === 'comercio' ? 'Comércio' : 'Indústria'}
+                    </strong>{' '}
+                    · 4 cenários alimentados pelo perfil único
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-emerald-300 bg-emerald-50 text-emerald-800 uppercase">
+                    Ambiente Ativo: {REGIME_LABEL[config.fornecedorRegime]}
+                  </span>
                   <button
-                    key={comprador}
                     type="button"
-                    onClick={() => {
-                      setConfig((c) => ({ ...c, compradorRegime: comprador }))
-                      setEspelhoModal({ open: true, mode: config.repasse })
-                    }}
-                    className={`rounded-2xl border text-left cursor-pointer transition-all overflow-hidden flex flex-col justify-between ${
-                      isMenor
-                        ? 'border-emerald-600 ring-1 ring-emerald-500 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
+                    onClick={() => setCamadaCenariosAberta(false)}
+                    className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md transition-all cursor-pointer shadow-xs"
+                    title="Recolher camada de cenários"
                   >
-                    <div className="w-full bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 space-y-1.5 border-b border-slate-800">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs font-mono font-bold uppercase text-white tracking-wide">
-                          {REGIME_LABEL_FULL[config.fornecedorRegime].toUpperCase()} ×{' '}
-                          {REGIME_LABEL_FULL[comprador].toUpperCase()}
-                        </span>
-                        {isMenor && (
-                          <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-600 rounded px-1.5 py-0.5">
-                            MENOR
-                          </span>
-                        )}
-                      </div>
-                      <div className="space-y-0.5">
-                        <div className="text-[10px] font-mono font-bold uppercase text-emerald-400">
-                          {repasseTxt}
-                        </div>
-                        <div className="text-[9px] font-mono text-slate-300">{repasseSub}</div>
-                        <div className="text-[10px] font-mono uppercase text-slate-300">
-                          ADQUIRENTE: {REGIME_LABEL_FULL[comprador]}
-                        </div>
-                        <div className="text-[10px] font-mono uppercase text-slate-300">
-                          FORNECEDOR: {REGIME_LABEL_FULL[config.fornecedorRegime]}
-                        </div>
-                      </div>
-                    </div>
+                    <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Recolher</span>
+                  </button>
+                </div>
+              </div>
 
-                    <div className="p-4 space-y-3 flex-1 w-full bg-white hover:bg-slate-50/70">
-                      {/* Resumo por produto (valor/un e %) */}
-                      <div className="space-y-1.5">
-                        {exibidos.map(({ item, cell: ci }) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1.5"
-                          >
-                            <span className="text-[10px] font-mono font-bold uppercase text-slate-800 truncate max-w-[45%]">
-                              {item.name || 'Item'}
+              {/* SEÇÃO A — ADQUIRENTE PLENO · com régua de repasse */}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-white px-4 py-3 rounded-xl shadow-xs border border-emerald-700/60">
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-300/40 shrink-0" />
+                    <span className="text-sm font-mono font-black uppercase tracking-wider text-white">
+                      SEÇÃO A — ADQUIRENTE PLENO · COM RÉGUA DE REPASSE
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-emerald-100 bg-emerald-950/80 border border-emerald-600/70 px-2.5 py-1 rounded">
+                    Base Limpa · Parcial 50% · Preço Cheio dentro do espelho
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {(['presumido', 'real'] as const).map((comprador) => {
+                    const cfgComb = {
+                      ...config,
+                      compradorRegime: comprador,
+                      fornecedorRegime: config.fornecedorRegime,
+                    }
+                    const celulasItens = (celulasPorItem || []).map(({ item }) => ({
+                      item,
+                      cell: computeCellArt12Item(item, cfgComb, row),
+                    }))
+                    const exibidos = celulasItens.slice(0, 3)
+                    const restantes = celulasItens.length - exibidos.length
+                    const repasseTxt =
+                      config.repasse === 'parcial'
+                        ? `PARCIAL ${formatNumberBR(config.repassePct)}% · GANHO DIVIDIDO`
+                        : config.repasse === 'nenhum'
+                          ? 'PREÇO CHEIO · COMPRADOR ABSORVE (ESCADA)'
+                          : 'BASE LIMPA (ART. 12) · CADEIA NEUTRA'
+                    const repasseSub =
+                      config.repasse === 'parcial'
+                        ? 'Metade no preço, metade na margem'
+                        : config.repasse === 'nenhum'
+                          ? 'Tributação extinta mantida no preço'
+                          : 'PIS/COFINS eliminados, economia no preço'
+                    const isMenor = comprador === 'real' && config.fornecedorRegime === 'real'
+
+                    return (
+                      <button
+                        key={comprador}
+                        type="button"
+                        onClick={() => {
+                          setConfig((c) => ({ ...c, compradorRegime: comprador }))
+                          setEspelhoModal({ open: true, mode: config.repasse })
+                        }}
+                        className={`rounded-2xl border text-left cursor-pointer transition-all overflow-hidden flex flex-col justify-between ${
+                          isMenor
+                            ? 'border-emerald-600 ring-1 ring-emerald-500 shadow-xs'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="w-full bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 text-white p-3.5 space-y-1.5 border-b border-slate-600">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-xs font-mono font-bold uppercase text-white tracking-wide">
+                              {REGIME_LABEL_FULL[config.fornecedorRegime].toUpperCase()} ×{' '}
+                              {REGIME_LABEL_FULL[comprador].toUpperCase()}
                             </span>
-                            <div className="text-right shrink-0">
-                              <span className="text-xs font-black text-slate-900 font-mono block leading-tight">
-                                {formatBRL(ci.exercicio.unitario)}/un
+                            {isMenor && (
+                              <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-600 rounded px-1.5 py-0.5">
+                                MENOR
                               </span>
+                            )}
+                          </div>
+                          <div className="space-y-0.5">
+                            <div className="text-[10px] font-mono font-bold uppercase text-emerald-300">
+                              {repasseTxt}
+                            </div>
+                            <div className="text-[9px] font-mono text-slate-200">{repasseSub}</div>
+                            <div className="text-[10px] font-mono uppercase text-slate-200">
+                              ADQUIRENTE: {REGIME_LABEL_FULL[comprador]}
+                            </div>
+                            <div className="text-[10px] font-mono uppercase text-slate-200">
+                              FORNECEDOR: {REGIME_LABEL_FULL[config.fornecedorRegime]}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-4 space-y-3 flex-1 w-full bg-white hover:bg-slate-50/70">
+                          {/* Resumo por produto (valor/un e %) */}
+                          <div className="space-y-1.5">
+                            {exibidos.map(({ item, cell: ci }) => (
+                              <div
+                                key={item.id}
+                                className="flex items-center justify-between rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-1.5"
+                              >
+                                <span className="text-[10px] font-mono font-bold uppercase text-slate-800 truncate max-w-[45%]">
+                                  {item.name || 'Item'}
+                                </span>
+                                <div className="text-right shrink-0">
+                                  <span className="text-xs font-black text-slate-900 font-mono block leading-tight">
+                                    {formatBRL(ci.exercicio.unitario)}/un
+                                  </span>
+                                  <span
+                                    className={`text-[10px] font-mono font-semibold ${
+                                      ci.deltaPct > 0
+                                        ? 'text-rose-700'
+                                        : ci.deltaPct < 0
+                                          ? 'text-emerald-700'
+                                          : 'text-slate-500'
+                                    }`}
+                                  >
+                                    {ci.deltaPct > 0 ? '+' : ''}
+                                    {formatNumberBR(ci.deltaPct)}%
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                            {restantes > 0 && (
+                              <div className="text-[10px] font-mono text-slate-500">
+                                +{restantes} item{restantes === 1 ? '' : 's'} dentro do espelho
+                              </div>
+                            )}
+                            {celulasItens.length === 0 && (
+                              <div className="text-[10px] font-mono text-slate-500">
+                                Nenhum item com valor na Calculadora de Compras
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
+                            Clique para abrir os 6 cards do cenário
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* SEÇÃO B — ADQUIRENTE SIMPLES NACIONAL · CENÁRIO ÚNICO */}
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-white px-4 py-3 rounded-xl shadow-xs border border-emerald-700/60">
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-300/40 shrink-0" />
+                    <span className="text-sm font-mono font-black uppercase tracking-wider text-white">
+                      SEÇÃO B — ADQUIRENTE SIMPLES NACIONAL · CENÁRIO ÚNICO
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-emerald-100 bg-emerald-950/80 border border-emerald-600/70 px-2.5 py-1 rounded">
+                    Sem régua de repasse · LC 123/2006 art. 23
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {(
+                    [
+                      {
+                        comprador: 'simples' as const,
+                        extenso:
+                          config.fornecedorRegime === 'real'
+                            ? 'LUCRO REAL × SIMPLES NACIONAL (PURO)'
+                            : 'LUCRO PRESUMIDO × SIMPLES NACIONAL (PURO)',
+                        nomeComprador: 'Simples Nacional Puro',
+                      },
+                      {
+                        comprador: 'simples_hibrido' as const,
+                        extenso:
+                          config.fornecedorRegime === 'real'
+                            ? 'LUCRO REAL × SIMPLES NACIONAL HÍBRIDO'
+                            : 'LUCRO PRESUMIDO × SIMPLES NACIONAL HÍBRIDO',
+                        nomeComprador: 'Simples Nacional Híbrido (regime regular IBS/CBS)',
+                      },
+                    ] as const
+                  ).map(({ comprador, extenso, nomeComprador }) => {
+                    const fornSNRegime =
+                      config.fornecedorRegime === 'real' ? 'lucro_real' : 'lucro_presumido'
+                    const adqSNRegime =
+                      comprador === 'simples_hibrido' ? 'simples_hibrido' : 'simples'
+                    const itemRef =
+                      celulasPorItem && celulasPorItem.length > 0
+                        ? celulasPorItem[0].item
+                        : undefined
+                    const celulaSn = calcularCelulaFornecedorPlenoXAdquirenteSn(
+                      fornSNRegime,
+                      adqSNRegime,
+                      itemRef,
+                    )
+
+                    return (
+                      <button
+                        key={comprador}
+                        type="button"
+                        onClick={() => {
+                          setConfig((c) => ({ ...c, compradorRegime: comprador }))
+                          setEspelhoModal({ open: true, mode: 'integral' })
+                        }}
+                        className="rounded-2xl border border-slate-200 hover:border-slate-300 text-left cursor-pointer transition-all overflow-hidden flex flex-col justify-between"
+                      >
+                        <div className="w-full bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 text-white p-3.5 space-y-1.5 border-b border-slate-600">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-xs font-mono font-bold uppercase text-white tracking-wide">
+                              {extenso}
+                            </span>
+                            <span className="text-[9px] font-mono font-bold text-slate-200 bg-slate-800/80 border border-slate-600 rounded px-1.5 py-0.5">
+                              CENÁRIO ÚNICO
+                            </span>
+                          </div>
+                          <div className="space-y-0.5">
+                            <div className="text-[10px] font-mono font-bold uppercase text-emerald-300">
+                              CENÁRIO ÚNICO CHANCELADO · PREÇO CHEIO (SEM REPASSE)
+                            </div>
+                            <div className="text-[10px] font-mono uppercase text-slate-200">
+                              ADQUIRENTE: {nomeComprador}
+                            </div>
+                            <div className="text-[10px] font-mono uppercase text-slate-200">
+                              FORNECEDOR: {REGIME_LABEL_FULL[config.fornecedorRegime]}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-4 space-y-3 flex-1 w-full bg-white hover:bg-slate-50/70">
+                          {/* Exibição direta do valor de ouro chancelado */}
+                          <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-mono font-bold text-slate-900">
+                                {itemRef?.name || 'Item Canônico'}
+                              </span>
+                              <span className="text-sm font-black font-mono text-emerald-950">
+                                {formatBRL(celulaSn.exercicio2027.custoUnitario)}/un
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] font-mono text-slate-600">
+                              <span>HOJE: {formatBRL(celulaSn.hoje.custoUnitario)}/un</span>
                               <span
-                                className={`text-[10px] font-mono font-semibold ${
-                                  ci.deltaPct > 0
+                                className={`font-bold ${
+                                  celulaSn.deltaPct > 0
                                     ? 'text-rose-700'
-                                    : ci.deltaPct < 0
+                                    : celulaSn.deltaPct < 0
                                       ? 'text-emerald-700'
                                       : 'text-slate-500'
                                 }`}
                               >
-                                {ci.deltaPct > 0 ? '+' : ''}
-                                {formatNumberBR(ci.deltaPct)}%
+                                {celulaSn.deltaPct > 0 ? '+' : ''}
+                                {formatNumberBR(celulaSn.deltaPct)}%
                               </span>
                             </div>
                           </div>
-                        ))}
-                        {restantes > 0 && (
-                          <div className="text-[10px] font-mono text-slate-500">
-                            +{restantes} item{restantes === 1 ? '' : 's'} dentro do espelho
-                          </div>
-                        )}
-                        {celulasItens.length === 0 && (
-                          <div className="text-[10px] font-mono text-slate-500">
-                            Nenhum item com valor na Calculadora de Compras
-                          </div>
-                        )}
-                      </div>
 
-                      <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
-                        Clique para abrir os 6 cards do cenário
-                      </div>
-                    </div>
-                  </button>
-                )
-              })}
+                          <p className="text-[10px] font-mono text-slate-500 leading-tight">
+                            {comprador === 'simples'
+                              ? 'LC 123/2006 art. 13 §1º: custo = nota cheia sem créditos.'
+                              : 'LC 214/2025 art. 41: credita CBS e IBS integrais destacados; sem ICMS 18%.'}
+                          </p>
+
+                          <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
+                            Clique para abrir o espelho direto (Cards 01, 02 e 03)
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           </div>
-          {/* SEÇÃO B — ADQUIRENTE SIMPLES NACIONAL · CENÁRIO ÚNICO */}
-          <div className="space-y-3 pt-2">
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-white px-4 py-3 rounded-xl shadow-xs border border-emerald-700/60">
-              <div className="flex items-center gap-2.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-300/40 shrink-0" />
-                <span className="text-sm font-mono font-black uppercase tracking-wider text-white">
-                  SEÇÃO B — ADQUIRENTE SIMPLES NACIONAL · CENÁRIO ÚNICO
-                </span>
-              </div>
-              <span className="text-[10px] font-mono font-bold text-emerald-100 bg-emerald-950/80 border border-emerald-600/70 px-2.5 py-1 rounded">
-                Sem régua de repasse · LC 123/2006 art. 23
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              {(
-                [
-                  {
-                    comprador: 'simples' as const,
-                    extenso:
-                      config.fornecedorRegime === 'real'
-                        ? 'LUCRO REAL × SIMPLES NACIONAL (PURO)'
-                        : 'LUCRO PRESUMIDO × SIMPLES NACIONAL (PURO)',
-                    nomeComprador: 'Simples Nacional Puro',
-                  },
-                  {
-                    comprador: 'simples_hibrido' as const,
-                    extenso:
-                      config.fornecedorRegime === 'real'
-                        ? 'LUCRO REAL × SIMPLES NACIONAL HÍBRIDO'
-                        : 'LUCRO PRESUMIDO × SIMPLES NACIONAL HÍBRIDO',
-                    nomeComprador: 'Simples Nacional Híbrido (regime regular IBS/CBS)',
-                  },
-                ] as const
-              ).map(({ comprador, extenso, nomeComprador }) => {
-                const fornSNRegime =
-                  config.fornecedorRegime === 'real' ? 'lucro_real' : 'lucro_presumido'
-                const adqSNRegime = comprador === 'simples_hibrido' ? 'simples_hibrido' : 'simples'
-                const itemRef =
-                  celulasPorItem && celulasPorItem.length > 0 ? celulasPorItem[0].item : undefined
-                const celulaSn = calcularCelulaFornecedorPlenoXAdquirenteSn(
-                  fornSNRegime,
-                  adqSNRegime,
-                  itemRef,
-                )
-
-                return (
-                  <button
-                    key={comprador}
-                    type="button"
-                    onClick={() => {
-                      setConfig((c) => ({ ...c, compradorRegime: comprador }))
-                      setEspelhoModal({ open: true, mode: 'integral' })
-                    }}
-                    className="rounded-2xl border border-slate-200 hover:border-slate-300 text-left cursor-pointer transition-all overflow-hidden flex flex-col justify-between"
-                  >
-                    <div className="w-full bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white p-3.5 space-y-1.5 border-b border-slate-800">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs font-mono font-bold uppercase text-white tracking-wide">
-                          {extenso}
-                        </span>
-                        <span className="text-[9px] font-mono font-bold text-slate-300 bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5">
-                          CENÁRIO ÚNICO
-                        </span>
-                      </div>
-                      <div className="space-y-0.5">
-                        <div className="text-[10px] font-mono font-bold uppercase text-emerald-400">
-                          CENÁRIO ÚNICO CHANCELADO · PREÇO CHEIO (SEM REPASSE)
-                        </div>
-                        <div className="text-[10px] font-mono uppercase text-slate-300">
-                          ADQUIRENTE: {nomeComprador}
-                        </div>
-                        <div className="text-[10px] font-mono uppercase text-slate-300">
-                          FORNECEDOR: {REGIME_LABEL_FULL[config.fornecedorRegime]}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 space-y-3 flex-1 w-full bg-white hover:bg-slate-50/70">
-                      {/* Exibição direta do valor de ouro chancelado */}
-                      <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-mono font-bold text-slate-900">
-                            {itemRef?.name || 'Item Canônico'}
-                          </span>
-                          <span className="text-sm font-black font-mono text-emerald-950">
-                            {formatBRL(celulaSn.exercicio2027.custoUnitario)}/un
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-600">
-                          <span>HOJE: {formatBRL(celulaSn.hoje.custoUnitario)}/un</span>
-                          <span
-                            className={`font-bold ${
-                              celulaSn.deltaPct > 0
-                                ? 'text-rose-700'
-                                : celulaSn.deltaPct < 0
-                                  ? 'text-emerald-700'
-                                  : 'text-slate-500'
-                            }`}
-                          >
-                            {celulaSn.deltaPct > 0 ? '+' : ''}
-                            {formatNumberBR(celulaSn.deltaPct)}%
-                          </span>
-                        </div>
-                      </div>
-
-                      <p className="text-[10px] font-mono text-slate-500 leading-tight">
-                        {comprador === 'simples'
-                          ? 'LC 123/2006 art. 13 §1º: custo = nota cheia sem créditos.'
-                          : 'LC 214/2025 art. 41: credita CBS e IBS integrais destacados; sem ICMS 18%.'}
-                      </p>
-
-                      <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
-                        Clique para abrir o espelho direto (Cards 01, 02 e 03)
-                      </div>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>{' '}
-        </div>
-      )}
+        )}
+      </div>
       {/* ================= SESSÃO SN NA REFORMA (rearranjo da CEO, 29/09): TODAS as operações
           com Simples Nacional vivem AQUI — 12 combinações (SN puro × SN híbrido) × adquirentes.
           O espelho do Art. 12 abaixo encolhe para LP/LR × LP/LR. ================= */}
