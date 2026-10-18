@@ -789,86 +789,91 @@ export function CmvArt12Module() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-          {/* FORNECEDOR: LP e LR */}
-          <div className="sm:col-span-1 lg:col-span-4 space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold font-mono text-slate-700 uppercase block">
-                FORNECEDOR
-              </label>
-              <span className="text-[10px] font-mono text-slate-500">Regime da nota de origem</span>
+        <div className="space-y-3">
+          {/* LINHA DE CIMA: FORNECEDOR e PERFIL FORNECEDOR lado a lado */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* FORNECEDOR: LP e LR */}
+            <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold font-mono text-slate-700 uppercase block">
+                  FORNECEDOR
+                </label>
+                <span className="text-[10px] font-mono text-slate-500">
+                  Regime da nota de origem
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(['presumido', 'real'] as const).map((rg) => {
+                  const ativo = config.fornecedorRegime === rg
+                  return (
+                    <button
+                      key={rg}
+                      type="button"
+                      onClick={() => setConfig((c) => ({ ...c, fornecedorRegime: rg }))}
+                      className={`px-3 py-2 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
+                        ativo
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      {REGIME_LABEL[rg]} · {REGIME_LABEL_FULL[rg]}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              {(['presumido', 'real'] as const).map((rg) => {
-                const ativo = config.fornecedorRegime === rg
-                return (
-                  <button
-                    key={rg}
-                    type="button"
-                    onClick={() => setConfig((c) => ({ ...c, fornecedorRegime: rg }))}
-                    className={`px-3 py-2 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
-                      ativo
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    {REGIME_LABEL[rg]} · {REGIME_LABEL_FULL[rg]}
-                  </button>
-                )
-              })}
+
+            {/* PERFIL FORNECEDOR: Comércio e Indústria */}
+            <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold font-mono text-slate-700 uppercase block">
+                  PERFIL FORNECEDOR
+                </label>
+                <span className="text-[10px] font-mono text-slate-500">
+                  Perfil único por ambiente
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(['comercio', 'industria'] as const).map((pf) => {
+                  const ativo = config.fornecedorPerfil === pf
+                  return (
+                    <button
+                      key={pf}
+                      type="button"
+                      onClick={() => setConfig((c) => ({ ...c, fornecedorPerfil: pf }))}
+                      className={`px-3 py-2 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
+                        ativo
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      {pf === 'comercio' ? 'Comércio' : 'Indústria'}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
 
-          {/* PERFIL FORNECEDOR: Comércio e Indústria */}
-          <div className="sm:col-span-1 lg:col-span-4 space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold font-mono text-slate-700 uppercase block">
-                PERFIL FORNECEDOR
-              </label>
-              <span className="text-[10px] font-mono text-slate-500">
-                Perfil único por ambiente
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              {(['comercio', 'industria'] as const).map((pf) => {
-                const ativo = config.fornecedorPerfil === pf
-                return (
-                  <button
-                    key={pf}
-                    type="button"
-                    onClick={() => setConfig((c) => ({ ...c, fornecedorPerfil: pf }))}
-                    className={`px-3 py-2 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
-                      ativo
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    {pf === 'comercio' ? 'Comércio' : 'Indústria'}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* BOTÃO PRIMÁRIO VERDE: ABRIR / FECHAR CENÁRIOS DE CÁLCULOS */}
-          <div className="sm:col-span-2 lg:col-span-4">
-            <Button
+          {/* LINHA DE BAIXO: BOTÃO ABRIR / FECHAR CENÁRIOS DE CÁLCULOS (LARGURA TODA, TARJA CINZA COM LETRA BRANCA) */}
+          <div className="w-full">
+            <button
               type="button"
               onClick={() => setCamadaCenariosAberta((prev) => !prev)}
-              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-bold text-xs uppercase cursor-pointer shadow-sm tracking-wider flex items-center justify-center gap-2"
+              className="w-full rounded-xl bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 hover:from-slate-800 hover:via-slate-700 hover:to-slate-800 hover:bg-slate-800 text-white font-mono font-bold text-xs uppercase cursor-pointer border border-slate-600 shadow-sm tracking-wider px-4 py-3 flex items-center justify-center gap-2 transition-all"
             >
-              <Calculator className="w-4 h-4" />
-              <span>
+              <Calculator className="w-4 h-4 text-white" />
+              <span className="text-white">
                 {camadaCenariosAberta
                   ? 'FECHAR CENÁRIOS DE CÁLCULOS'
                   : 'ABRIR CENÁRIOS DE CÁLCULOS'}
               </span>
               {camadaCenariosAberta ? (
-                <ChevronUp className="w-4 h-4 ml-1 opacity-80" />
+                <ChevronUp className="w-4 h-4 ml-1 text-white opacity-90" />
               ) : (
-                <ChevronDown className="w-4 h-4 ml-1 opacity-80" />
+                <ChevronDown className="w-4 h-4 ml-1 text-white opacity-90" />
               )}
-            </Button>
+            </button>
           </div>
         </div>
 
