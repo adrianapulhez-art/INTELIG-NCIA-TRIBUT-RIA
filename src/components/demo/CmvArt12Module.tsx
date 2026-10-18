@@ -873,49 +873,63 @@ export function CmvArt12Module() {
           </div>
         </div>
 
-        {/* ZFM auxiliar */}
-        <label className="flex items-center gap-2 text-xs font-mono text-slate-700 cursor-pointer pt-1">
-          <input
-            type="checkbox"
-            checked={config.zfm}
-            onChange={(e) => setConfig((c) => ({ ...c, zfm: e.target.checked }))}
-            className="w-4 h-4 accent-emerald-600 rounded"
-          />
-          Fornecedor industrial na Zona Franca de Manaus (mantém IPI — ADCT, art. 92-B)
-        </label>
-
-        {/* ================= 2. CAMADA INTERNA RECÚADA (PADRÃO PRÉ-REFORMA COMPRAS/MARKUP) ================= */}
+        {/* ================= 2. CAMADA INTERNA RECUADA (PADRÃO PRÉ-REFORMA COMPRAS/MARKUP) ================= */}
         {camadaCenariosAberta && (
-          <div className="mt-4 pt-4 border-t border-slate-200 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 shadow-inner space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
-                <div className="border-l-4 border-emerald-500 pl-2.5">
-                  <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900">
-                    CENÁRIOS DE CÁLCULOS · FORNECEDOR{' '}
-                    {config.fornecedorRegime === 'real' ? 'LUCRO REAL' : 'LUCRO PRESUMIDO'}
-                  </h4>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Perfil do fornecedor:{' '}
-                    <strong>
+          <div className="mt-4 pt-4 border-t-2 border-slate-200 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="rounded-2xl border-2 border-slate-300 bg-slate-50/80 p-5 sm:p-6 shadow-inner space-y-6">
+              {/* Cabeçalho da Camada Interna Recuada — Padrão DETALHES DA COMPRA / CENÁRIOS */}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/90 pb-4">
+                <div className="border-l-4 border-emerald-600 pl-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-300/50" />
+                    <h4 className="text-sm font-bold font-mono uppercase tracking-wider text-slate-900">
+                      DETALHES DA COMPRA · CENÁRIOS DE CÁLCULOS · FORNECEDOR{' '}
+                      {config.fornecedorRegime === 'real' ? 'LUCRO REAL' : 'LUCRO PRESUMIDO'}
+                    </h4>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Camada interna recuada · Perfil do fornecedor:{' '}
+                    <strong className="text-slate-800">
                       {config.fornecedorPerfil === 'comercio' ? 'Comércio' : 'Indústria'}
                     </strong>{' '}
-                    · 4 cenários alimentados pelo perfil único
+                    · 4 cenários alimentados pelo perfil único selecionado
                   </p>
                 </div>
                 <div className="inline-flex items-center gap-2">
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-emerald-300 bg-emerald-50 text-emerald-800 uppercase">
-                    Ambiente Ativo: {REGIME_LABEL[config.fornecedorRegime]}
+                  <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 uppercase shadow-xs">
+                    Ambiente Ativo: {REGIME_LABEL[config.fornecedorRegime]} ·{' '}
+                    {config.fornecedorPerfil === 'comercio' ? 'Comércio' : 'Indústria'}
                   </span>
                   <button
                     type="button"
                     onClick={() => setCamadaCenariosAberta(false)}
-                    className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-md transition-all cursor-pointer shadow-xs"
+                    className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-slate-700 hover:text-slate-950 bg-white hover:bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-xs"
                     title="Recolher camada de cenários"
                   >
                     <ChevronUp className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Recolher</span>
+                    <span>FECHAR CENÁRIOS DE CÁLCULOS</span>
                   </button>
                 </div>
+              </div>
+
+              {/* ZFM auxiliar recolhido dentro da camada interna */}
+              <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between gap-2 shadow-xs">
+                <label className="flex items-center gap-2.5 text-xs font-mono text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.zfm}
+                    onChange={(e) => setConfig((c) => ({ ...c, zfm: e.target.checked }))}
+                    className="w-4 h-4 accent-emerald-600 rounded"
+                  />
+                  <span>
+                    Fornecedor industrial na Zona Franca de Manaus (mantém IPI — ADCT, art. 92-B)
+                  </span>
+                </label>
+                {config.zfm && (
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800">
+                    IPI Ativo
+                  </span>
+                )}
               </div>
 
               {/* SEÇÃO A — ADQUIRENTE PLENO · com régua de repasse */}
@@ -1121,7 +1135,7 @@ export function CmvArt12Module() {
                           </div>
                           <div className="space-y-0.5">
                             <div className="text-[10px] font-mono font-bold uppercase text-emerald-300">
-                              CENÁRIO ÚNICO CHANCELADO · PREÇO CHEIO (SEM REPASSE)
+                              Cenário Único (chancelado) · Sem repasse · LC 123/2006 art. 23
                             </div>
                             <div className="text-[10px] font-mono uppercase text-slate-200">
                               ADQUIRENTE: {nomeComprador}
