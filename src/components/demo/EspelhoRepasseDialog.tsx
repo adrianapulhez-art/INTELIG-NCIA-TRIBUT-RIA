@@ -263,6 +263,8 @@ export function EspelhoRepasseDialog({
   mode,
   open,
   onOpenChange,
+  onChangeRepasse,
+  onChangeRepassePct,
   onAbrirCelula,
   celulasPorItem,
   onAbrirMemoriaItem,
@@ -274,6 +276,10 @@ export function EspelhoRepasseDialog({
   mode: RepasseMode
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Permite alternar o modo de repasse dentro do Espelho (recalcula na hora). */
+  onChangeRepasse?: (mode: RepasseMode) => void
+  /** Permite alterar o percentual de repasse parcial dentro do Espelho. */
+  onChangeRepassePct?: (pct: number) => void
   onAbrirCelula: (comprador: RegimeId, fornecedor: RegimeId, cell: CellResultArt) => void
   /** MEMÓRIA POR ITEM dentro do card de repasse (pedido da CEO, 27/09). */
   celulasPorItem?: { item: ItemIntegracaoArt12; cell: CellResultArt }[]
@@ -399,6 +405,106 @@ export function EspelhoRepasseDialog({
             )}
           </DialogDescription>
         </DialogHeader>
+
+        {/* ================= BARRA DE CONTROLE DE REPASSE (NO TOPO DO ESPELHO) ================= */}
+        {isCompradorSn ? (
+          /* Grupo 2 (Adquirente SN): mostra cartão de Cenário Único (chancelado) · Sem repasse */
+          <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold uppercase text-emerald-900">
+                  Cenário Único (chancelado) · Sem repasse (LC 123/2006)
+                </span>
+                <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 rounded px-1.5 py-0.5">
+                  Régua de repasse não aplicável
+                </span>
+              </div>
+              <p className="text-[11px] font-mono text-slate-600">
+                Adquirente optante pelo Simples Nacional: o valor de repasse não se subdivide em
+                réguas — tributação e apropriação de custos seguem regra única (LC 123/2006, art. 13
+                §1º; LC 214/2025, art. 41).
+              </p>
+            </div>
+            <div className="text-[11px] font-mono font-bold text-emerald-800 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg">
+              Adquirente {REGIME_LABEL[baseConfig.compradorRegime]} (
+              {REGIME_NOME[baseConfig.compradorRegime]})
+            </div>
+          </div>
+        ) : (
+          /* Grupo 1 (Adquirente Pleno): 3 botões de escolha do repasse no topo do espelho */
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-mono font-bold uppercase text-slate-800">
+                Escolha do Repasse para o Espelho (recalcula na hora):
+              </span>
+              <span className="text-[10px] font-mono text-slate-500">
+                Cenário ativo: {REGIME_LABEL[baseConfig.fornecedorRegime]} ×{' '}
+                {REGIME_LABEL[baseConfig.compradorRegime]} · Exercício {exercicio}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {(
+                [
+                  {
+                    m: 'integral',
+                    title: 'Repasse integral',
+                    desc: 'Cadeia neutra (Fisco abre mão)',
+                  },
+                  {
+                    m: 'parcial',
+                    title: `Parcial ${formatNumberBR(baseConfig.repassePct)}%`,
+                    desc: 'Dividido entre fornecedor e comprador',
+                  },
+                  { m: 'nenhum', title: 'Sem repasse', desc: 'Comprador absorve (escada)' },
+                ] as const
+              ).map(({ m, title, desc }) => {
+                const ativo = mode === m
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => onChangeRepasse?.(m)}
+                    className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all ${
+                      ativo
+                        ? 'border-emerald-600 bg-emerald-600 text-white shadow-xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono font-bold uppercase">{title}</span>
+                      {ativo && <span className="text-xs">✓</span>}
+                    </div>
+                    <span
+                      className={`text-[10px] font-mono block mt-0.5 ${
+                        ativo ? 'text-emerald-100' : 'text-slate-500'
+                      }`}
+                    >
+                      {desc}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            {mode === 'parcial' && onChangeRepassePct && (
+              <div className="flex items-center gap-2 pt-1 border-t border-slate-200">
+                <span className="text-xs font-mono font-semibold text-slate-600">
+                  Fração repassada:
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={baseConfig.repassePct}
+                  onChange={(e) =>
+                    onChangeRepassePct(Math.max(0, Math.min(100, Number(e.target.value) || 0)))
+                  }
+                  className="w-20 h-7 rounded border border-slate-300 bg-white px-2 text-xs font-mono text-slate-900 focus:outline-emerald-500"
+                />
+                <span className="text-xs font-mono font-bold text-slate-600">%</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {isCompradorSn ? (
           /* ======================================================================= */

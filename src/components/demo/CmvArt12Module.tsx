@@ -23,7 +23,6 @@ import {
   CONFIG_PADRAO_ART12,
   computeCellArt12,
   computeCellsPorItem,
-  reguasArt12,
   aplicarOverrideCbsArt12,
   CBS_EDITAVEL_EXERCICIOS,
   CBS_DEFAULT,
@@ -585,8 +584,6 @@ export function CmvArt12Module() {
   }
   const origemIntegrada = temOrigem
 
-  const reguas = useMemo(() => reguasArt12(input, config, row), [input, config, row])
-
   return (
     <div className="space-y-4">
       {/* ================= Cabeçalho + seletor de exercício ================= */}
@@ -765,7 +762,6 @@ export function CmvArt12Module() {
           </div>
         )}
       </div>
-
       {/* ================= Configuração da célula ================= */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
         <div className="border-l-4 border-emerald-500 pl-2.5">
@@ -777,112 +773,279 @@ export function CmvArt12Module() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
-            <label className="text-xs font-bold font-mono text-slate-600 uppercase block">
-              Fornecedor
-            </label>
-            <div className="grid grid-cols-2 gap-1">
-              {(['presumido', 'real'] as const).map((rg) => {
-                const ativo = config.fornecedorRegime === rg
-                return (
-                  <button
-                    key={rg}
-                    type="button"
-                    onClick={() => setConfig((c) => ({ ...c, fornecedorRegime: rg }))}
-                    className={`px-2 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
-                      ativo
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    {REGIME_LABEL[rg]}
-                  </button>
-                )
-              })}
+        {/* ================= 1) CÉLULA ÚNICA COM SELETOR DE FORNECEDOR E ADQUIRENTE ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+          {/* Coluna Fornecedor + Perfil Fornecedor (5 colunas) */}
+          <div className="lg:col-span-5 space-y-3">
+            <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold font-mono text-slate-700 uppercase block">
+                  Fornecedor
+                </label>
+                <span className="text-[10px] font-mono text-slate-500">
+                  Regime da nota de origem
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {(['presumido', 'real'] as const).map((rg) => {
+                  const ativo = config.fornecedorRegime === rg
+                  return (
+                    <button
+                      key={rg}
+                      type="button"
+                      onClick={() => setConfig((c) => ({ ...c, fornecedorRegime: rg }))}
+                      className={`px-3 py-2 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
+                        ativo
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      {REGIME_LABEL[rg]} · {REGIME_LABEL_FULL[rg]}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <label className="text-[11px] font-bold font-mono text-slate-600 uppercase block">
+                  Perfil fornecedor
+                </label>
+                <div className="grid grid-cols-2 gap-1">
+                  {(['comercio', 'industria'] as const).map((pf) => {
+                    const ativo = config.fornecedorPerfil === pf
+                    return (
+                      <button
+                        key={pf}
+                        type="button"
+                        onClick={() => setConfig((c) => ({ ...c, fornecedorPerfil: pf }))}
+                        className={`px-2 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
+                          ativo
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        {pf === 'comercio' ? 'Comércio' : 'Indústria'}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <label className="text-[11px] font-bold font-mono text-slate-600 uppercase block">
+                  Perfil comprador
+                </label>
+                <div className="grid grid-cols-2 gap-1">
+                  {(['comercio', 'industria'] as const).map((pf) => {
+                    const ativo = config.compradorPerfil === pf
+                    return (
+                      <button
+                        key={pf}
+                        type="button"
+                        onClick={() => setConfig((c) => ({ ...c, compradorPerfil: pf }))}
+                        className={`px-2 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
+                          ativo
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        {pf === 'comercio' ? 'Comércio' : 'Indústria'}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
-            <label className="text-xs font-bold font-mono text-slate-600 uppercase block">
-              Perfil fornecedor
-            </label>
-            <div className="grid grid-cols-2 gap-1">
-              {(['comercio', 'industria'] as const).map((pf) => {
-                const ativo = config.fornecedorPerfil === pf
-                return (
-                  <button
-                    key={pf}
-                    type="button"
-                    onClick={() => setConfig((c) => ({ ...c, fornecedorPerfil: pf }))}
-                    className={`px-2 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
-                      ativo
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    {pf === 'comercio' ? 'Comércio' : 'Indústria'}
-                  </button>
-                )
-              })}
+          {/* Coluna Adquirente dividido em DOIS GRUPOS ROTULADOS (7 colunas) */}
+          <div className="lg:col-span-7 space-y-2.5">
+            {/* GRUPO 1 — ADQUIRENTE PLENO · com régua de repasse */}
+            <div
+              className={`p-3 rounded-xl border transition-all ${
+                config.compradorRegime === 'presumido' || config.compradorRegime === 'real'
+                  ? 'border-emerald-300 bg-emerald-50/40 ring-1 ring-emerald-200'
+                  : 'border-slate-200 bg-white'
+              }`}
+            >
+              <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/80 mb-2">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-900">
+                  GRUPO 1 — ADQUIRENTE PLENO · com régua de repasse
+                </span>
+                <span className="text-[10px] font-mono font-semibold text-emerald-800 bg-emerald-100 border border-emerald-200 rounded px-1.5 py-0.5">
+                  Integral · Parcial · Sem repasse
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {(['presumido', 'real'] as const).map((rg) => {
+                  const ativo = config.compradorRegime === rg
+                  return (
+                    <button
+                      key={rg}
+                      type="button"
+                      onClick={() => setConfig((c) => ({ ...c, compradorRegime: rg }))}
+                      className={`px-3 py-2 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
+                        ativo
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      {REGIME_LABEL[rg]} · {REGIME_LABEL_FULL[rg]}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
-            <label className="text-xs font-bold font-mono text-slate-600 uppercase block">
-              Comprador
-            </label>
-            <div className="grid grid-cols-2 gap-1">
-              {(['presumido', 'real', 'simples', 'simples_hibrido'] as RegimeId[]).map((rg) => {
-                const ativo = config.compradorRegime === rg
-                return (
-                  <button
-                    key={rg}
-                    type="button"
-                    onClick={() => setConfig((c) => ({ ...c, compradorRegime: rg }))}
-                    className={`px-2 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
-                      ativo
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    {REGIME_LABEL[rg]}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
-            <label className="text-xs font-bold font-mono text-slate-600 uppercase block">
-              Perfil comprador
-            </label>
-            <div className="grid grid-cols-2 gap-1">
-              {(['comercio', 'industria'] as const).map((pf) => {
-                const ativo = config.compradorPerfil === pf
-                return (
-                  <button
-                    key={pf}
-                    type="button"
-                    onClick={() => setConfig((c) => ({ ...c, compradorPerfil: pf }))}
-                    className={`px-2 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
-                      ativo
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    {pf === 'comercio' ? 'Comércio' : 'Indústria'}
-                  </button>
-                )
-              })}
+            {/* GRUPO 2 — ADQUIRENTE SN · cenário único, sem repasse */}
+            <div
+              className={`p-3 rounded-xl border transition-all ${
+                config.compradorRegime === 'simples' || config.compradorRegime === 'simples_hibrido'
+                  ? 'border-emerald-300 bg-emerald-50/40 ring-1 ring-emerald-200'
+                  : 'border-slate-200 bg-white'
+              }`}
+            >
+              <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/80 mb-2">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-900">
+                  GRUPO 2 — ADQUIRENTE SN · cenário único, sem repasse
+                </span>
+                <span className="text-[10px] font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5">
+                  Cenário único
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                {(
+                  [
+                    { rg: 'simples', label: 'SN puro', desc: 'Simples Nacional padrão' },
+                    {
+                      rg: 'simples_hibrido',
+                      label: 'SN híbrido',
+                      desc: 'IBS/CBS no regime regular',
+                    },
+                  ] as const
+                ).map(({ rg, label, desc }) => {
+                  const ativo = config.compradorRegime === rg
+                  return (
+                    <button
+                      key={rg}
+                      type="button"
+                      onClick={() => setConfig((c) => ({ ...c, compradorRegime: rg as RegimeId }))}
+                      className={`px-3 py-2 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border text-left ${
+                        ativo
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{label}</span>
+                        {ativo && <span className="text-[10px]">✓</span>}
+                      </div>
+                      <div
+                        className={`text-[10px] font-normal truncate mt-0.5 ${
+                          ativo ? 'text-emerald-100' : 'text-slate-500'
+                        }`}
+                      >
+                        {desc}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-[10px] font-mono text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-200 leading-relaxed">
+                LC 123/2006, art. 23 — fornecedor SN não destaca ICMS pleno; crédito apenas pela
+                fração do anexo.
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Réguas de repasse / Cenário Único Chancelado:
-            Quando o comprador é Simples Nacional (puro ou híbrido), as réguas de repasse
-            (Integral/Parcial/Sem repasse) são ocultadas e é indicado "Cenário Único Chancelado",
-            pois nas regras do SN e LC 123/2006 não há composição de repasse nessas células. */}
+        {/* ================= 2) CHIPS DE ATALHO PARA OS 8 CENÁRIOS ================= */}
+        <div className="pt-2 border-t border-slate-200">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-600">
+              Atalhos rápidos para os 8 cenários (configura e abre o espelho):
+            </span>
+            <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
+              Cenários Plenos | Cenários Adquirente SN
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200">
+            {/* Bloco Pleno (4 chips) */}
+            {(
+              [
+                { f: 'presumido', c: 'presumido', label: 'LP × LP' },
+                { f: 'presumido', c: 'real', label: 'LP × LR' },
+                { f: 'real', c: 'presumido', label: 'LR × LP' },
+                { f: 'real', c: 'real', label: 'LR × LR' },
+              ] as const
+            ).map((chip) => {
+              const ativo = config.fornecedorRegime === chip.f && config.compradorRegime === chip.c
+              return (
+                <button
+                  key={chip.label}
+                  type="button"
+                  onClick={() => {
+                    setConfig((cfg) => ({
+                      ...cfg,
+                      fornecedorRegime: chip.f,
+                      compradorRegime: chip.c,
+                    }))
+                    setEspelhoModal({ open: true, mode: config.repasse })
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
+                    ativo
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-1 ring-emerald-500'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 hover:text-slate-900'
+                  }`}
+                  title={`Configurar Fornecedor ${REGIME_LABEL[chip.f]} × Adquirente ${REGIME_LABEL[chip.c]} e abrir espelho`}
+                >
+                  {chip.label}
+                </button>
+              )
+            })}
+
+            {/* Divisor visual entre Grupo Pleno e Grupo SN */}
+            <span className="h-5 w-px bg-slate-300 mx-1 hidden sm:inline-block" />
+
+            {/* Bloco SN (4 chips) */}
+            {(
+              [
+                { f: 'presumido', c: 'simples', label: 'LP × SN' },
+                { f: 'presumido', c: 'simples_hibrido', label: 'LP × SNH' },
+                { f: 'real', c: 'simples', label: 'LR × SN' },
+                { f: 'real', c: 'simples_hibrido', label: 'LR × SNH' },
+              ] as const
+            ).map((chip) => {
+              const ativo = config.fornecedorRegime === chip.f && config.compradorRegime === chip.c
+              return (
+                <button
+                  key={chip.label}
+                  type="button"
+                  onClick={() => {
+                    setConfig((cfg) => ({
+                      ...cfg,
+                      fornecedorRegime: chip.f,
+                      compradorRegime: chip.c,
+                    }))
+                    setEspelhoModal({ open: true, mode: 'integral' })
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
+                    ativo
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-1 ring-emerald-500'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 hover:text-slate-900'
+                  }`}
+                  title={`Configurar Fornecedor ${REGIME_LABEL[chip.f]} × Adquirente ${REGIME_LABEL[chip.c]} e abrir espelho`}
+                >
+                  {chip.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ================= 3 e 4) VESTÍBULO: ZERO CARDS DE REPASSE (MOVIDOS PARA DENTRO DO ESPELHO) ================= */}
         {config.compradorRegime === 'simples' || config.compradorRegime === 'simples_hibrido' ? (
           <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-4 flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-0.5">
@@ -910,80 +1073,35 @@ export function CmvArt12Module() {
             </Button>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {reguas.map(({ mode, cell }) => {
-                const ativo = config.repasse === mode
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => {
-                      setConfig((c) => ({ ...c, repasse: mode }))
-                      setEspelhoModal({ open: true, mode })
-                    }}
-                    className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
-                      ativo
-                        ? 'border-emerald-600 bg-emerald-50/70 ring-1 ring-emerald-500 shadow-xs'
-                        : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold uppercase text-slate-900">
-                        {mode === 'integral'
-                          ? 'Repasse integral'
-                          : mode === 'parcial'
-                            ? `Parcial ${formatNumberBR(config.repassePct)}%`
-                            : 'Sem repasse'}
-                      </span>
-                      <span
-                        className={`text-xs font-mono font-black ${
-                          cell.deltaPct <= -0.5
-                            ? 'text-emerald-700'
-                            : cell.deltaPct < 0.5
-                              ? 'text-amber-700'
-                              : 'text-rose-700'
-                        }`}
-                      >
-                        {cell.deltaPct > 0 ? '+' : ''}
-                        {formatNumberBR(cell.deltaPct)}%
-                      </span>
-                    </div>
-                    <div className="text-xs font-mono text-slate-600 mt-1">
-                      <strong className="text-slate-900">
-                        {formatBRL(cell.exercicio.unitario)}/un
-                      </strong>{' '}
-                      ·{' '}
-                      {mode === 'integral'
-                        ? 'cadeia neutra — Fisco abre mão'
-                        : mode === 'parcial'
-                          ? 'dividido — fornecedor e comprador'
-                          : 'comprador absorve (escada)'}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-            {config.repasse === 'parcial' && (
-              <div className="flex items-center gap-2 pt-1">
-                <span className="text-xs font-mono font-semibold text-slate-600">
-                  Fração repassada:
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-mono font-bold uppercase text-slate-900">
+                  Cenário Selecionado: {REGIME_LABEL[config.fornecedorRegime]} ×{' '}
+                  {REGIME_LABEL[config.compradorRegime]}
                 </span>
-                <Input
-                  type="number"
-                  value={config.repassePct}
-                  onChange={(e) =>
-                    setConfig((c) => ({
-                      ...c,
-                      repassePct: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
-                    }))
-                  }
-                  className="w-24 h-8 bg-white border-slate-300 text-xs font-mono text-slate-900 focus-visible:ring-emerald-500"
-                />
-                <span className="text-xs font-mono font-bold text-slate-600">%</span>
+                <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 rounded px-2 py-0.5">
+                  {config.repasse === 'integral'
+                    ? 'Repasse integral'
+                    : config.repasse === 'parcial'
+                      ? `Parcial ${formatNumberBR(config.repassePct)}%`
+                      : 'Sem repasse'}
+                </span>
               </div>
-            )}
-          </>
+              <p className="text-xs font-mono text-slate-600">
+                Régua de repasse editável no topo do Espelho dos Cálculos. Clique abaixo para abrir
+                o detalhamento completo dos 6 cards e recalcular na hora.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setEspelhoModal({ open: true, mode: config.repasse })}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-bold text-xs cursor-pointer h-8 shadow-xs"
+            >
+              <Calculator className="w-3.5 h-3.5 mr-1" />
+              Abrir Espelho dos Cálculos
+            </Button>
+          </div>
         )}
 
         {/* ZFM */}
@@ -997,7 +1115,6 @@ export function CmvArt12Module() {
           Fornecedor industrial na Zona Franca de Manaus (mantém IPI — ADCT, art. 92-B)
         </label>
       </div>
-
       {/* ================= SESSÃO SN NA REFORMA (rearranjo da CEO, 29/09): TODAS as operações
           com Simples Nacional vivem AQUI — 12 combinações (SN puro × SN híbrido) × adquirentes.
           O espelho do Art. 12 abaixo encolhe para LP/LR × LP/LR. ================= */}
@@ -1013,7 +1130,6 @@ export function CmvArt12Module() {
           setMemoryCell({ label: `Item · ${item.name || '—'}`, cell, row })
         }
       />
-
       {/* ================= Modal de memória por célula ================= */}
       {memoryCell && (
         <CellMemoryDialogArt
@@ -1052,6 +1168,13 @@ export function CmvArt12Module() {
           mode={espelhoModal.mode}
           open={espelhoModal.open}
           onOpenChange={(o) => !o && setEspelhoModal(null)}
+          onChangeRepasse={(mode) => {
+            setConfig((c) => ({ ...c, repasse: mode }))
+            setEspelhoModal((prev) => (prev ? { ...prev, mode } : null))
+          }}
+          onChangeRepassePct={(pct) => {
+            setConfig((c) => ({ ...c, repassePct: pct }))
+          }}
           celulasPorItem={celulasPorItem}
           onAbrirMemoriaItem={(item, cell) => {
             setEspelhoModal(null)
@@ -1066,7 +1189,7 @@ export function CmvArt12Module() {
             })
           }}
         />
-      )}
+      )}{' '}
     </div>
   )
 }
