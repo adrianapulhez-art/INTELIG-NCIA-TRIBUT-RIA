@@ -1213,6 +1213,19 @@ export function CmvArt12Module() {
                   })}
                 </div>
               </div>
+
+              {/* BOTÃO INFERIOR DE FECHAMENTO: FECHAR CENÁRIOS DE CÁLCULOS (SEGUNDO PONTO DE FECHAMENTO DENTRO DA CAMADA) */}
+              <div className="w-full pt-1">
+                <button
+                  type="button"
+                  onClick={() => setCamadaCenariosAberta(false)}
+                  className="w-full rounded-xl bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 hover:from-slate-800 hover:via-slate-700 hover:to-slate-800 hover:bg-slate-800 text-white font-mono font-bold text-xs uppercase cursor-pointer border border-slate-600 shadow-sm tracking-wider px-4 py-3 flex items-center justify-center gap-2 transition-all"
+                >
+                  <Calculator className="w-4 h-4 text-white" />
+                  <span className="text-white">FECHAR CENÁRIOS DE CÁLCULOS</span>
+                  <ChevronUp className="w-4 h-4 ml-1 text-white opacity-90" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
