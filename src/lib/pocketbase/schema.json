@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-19T10:24:57.835Z",
+  "generatedAt": "2026-10-19T10:48:58.104Z",
   "collections": [
     {
       "name": "users",
@@ -523,6 +523,92 @@
       "indexes": [
         "CREATE INDEX idx_cclasstrib_conf_data ON cclasstrib_conferencias (data_conferencia DESC)",
         "CREATE INDEX idx_cclasstrib_conf_status ON cclasstrib_conferencias (status)"
+      ]
+    },
+    {
+      "name": "lc214_anexos_ncm",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "anexo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "artigo_origem",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "item",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ncm_sh",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "percentual_reducao_pct",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao_reducao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "versao_extracao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "fonte",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_lc214_anexos_anexo ON lc214_anexos_ncm (anexo)",
+        "CREATE INDEX idx_lc214_anexos_ncm ON lc214_anexos_ncm (ncm_sh)",
+        "CREATE INDEX idx_lc214_anexos_reducao ON lc214_anexos_ncm (percentual_reducao_pct)"
       ]
     }
   ]
