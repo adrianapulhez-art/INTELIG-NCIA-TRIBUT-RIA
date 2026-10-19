@@ -1001,6 +1001,20 @@ export function SessaoSnSection({
                       legislação da Reforma Tributária (LC 214/2025).
                     </span>
                   </div>
+
+                  {/* BOTÃO FECHAR INFERIOR (Tarja cinza degradê from-slate-700 via-slate-650 to-slate-700, mono, negrito, caixa alta, chevron up) */}
+                  <div className="w-full pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setOrigem('tabela')}
+                      className="w-full rounded-xl bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 hover:from-slate-800 hover:via-slate-700 hover:to-slate-800 hover:bg-slate-800 text-white font-mono font-bold text-xs uppercase cursor-pointer border border-slate-600 shadow-sm tracking-wider px-4 py-3 flex items-center justify-center gap-2 transition-all"
+                    >
+                      <ChevronUp className="w-4 h-4 text-white opacity-90" />
+                      <span className="text-white">
+                        FECHAR TABELA DE PREENCHIMENTO POR DESTAQUE
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
