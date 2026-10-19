@@ -7,6 +7,26 @@ import {
   METADADOS_NCM_TABELA,
 } from './ncmTabelaService'
 
+import { formatarMascaraNcm, limparNcm } from './ncmClassificationService'
+
+describe('formatarMascaraNcm e limparNcm - Robustez de tipos e defesa contra TypeError', () => {
+  it('não deve lançar TypeError quando receber number, null, undefined ou string', () => {
+    expect(formatarMascaraNcm(null)).toBe('')
+    expect(formatarMascaraNcm(undefined)).toBe('')
+    expect(formatarMascaraNcm(85171300 as unknown as string)).toBe('8517.13.00')
+    expect(formatarMascaraNcm(94049000 as unknown as string)).toBe('9404.90.00')
+    expect(formatarMascaraNcm('85171300')).toBe('8517.13.00')
+    expect(formatarMascaraNcm('8517.13.00')).toBe('8517.13.00')
+    expect(formatarMascaraNcm('')).toBe('')
+    expect(formatarMascaraNcm(0 as unknown as string)).toBe('0')
+
+    expect(limparNcm(null)).toBe('')
+    expect(limparNcm(undefined)).toBe('')
+    expect(limparNcm(85171300 as unknown as string)).toBe('85171300')
+    expect(limparNcm('8517.13.00')).toBe('85171300')
+  })
+})
+
 describe('ncmTabelaService - Validação da Tabela e Busca NCM', () => {
   it('deve conter metadados oficiais consistentes e rastreáveis', () => {
     expect(METADADOS_NCM_TABELA.fonteOficial).toContain('Siscomex')

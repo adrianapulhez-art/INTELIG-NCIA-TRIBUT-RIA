@@ -51,7 +51,7 @@ export function ItemClassificacaoDrawer({
   onAtualizarClassificacao,
 }: ItemClassificacaoDrawerProps) {
   const [ncmDigitado, setNcmDigitado] = useState<string>(
-    item.ncm ? formatarMascaraNcm(item.ncm) : '',
+    item.ncm ? formatarMascaraNcm(String(item.ncm ?? '')) : '',
   )
   const [opcaoSelecionadaId, setOpcaoSelecionadaId] = useState<string | undefined>(item.ncmOpcaoId)
   const [cClassManual, setCClassManual] = useState<string | undefined>(item.cClassTribCodigo)

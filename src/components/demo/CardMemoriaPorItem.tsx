@@ -141,7 +141,7 @@ export function CardMemoriaPorItem({
               </span>
               {item.ncm && (
                 <Badge className="bg-slate-100 text-slate-700 border-slate-300 font-mono text-[10px]">
-                  NCM {formatarMascaraNcm(item.ncm)}
+                  NCM {formatarMascaraNcm(String(item.ncm ?? ''))}
                 </Badge>
               )}
               {item.ncmPercentualReducao && item.ncmPercentualReducao > 0 ? (

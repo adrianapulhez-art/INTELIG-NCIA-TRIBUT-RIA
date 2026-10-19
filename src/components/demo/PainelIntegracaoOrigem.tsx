@@ -239,7 +239,7 @@ export function PainelIntegracaoOrigem({
                           </div>
                         </td>
                         <td className="px-3 py-2 text-center font-mono text-[11px] text-slate-600">
-                          {i.ncm ? formatarMascaraNcm(i.ncm) : '—'}
+                          {i.ncm ? formatarMascaraNcm(String(i.ncm ?? '')) : '—'}
                         </td>
                         <td className="px-3 py-2 text-center">
                           {i.ncmPercentualReducao && i.ncmPercentualReducao > 0 ? (
@@ -314,7 +314,9 @@ export function PainelIntegracaoOrigem({
                         {/* Coluna NCM/SH */}
                         <td className="px-3 py-2 text-center font-mono text-[11px] text-slate-800">
                           {i.ncm ? (
-                            <span className="font-bold">{formatarMascaraNcm(i.ncm)}</span>
+                            <span className="font-bold">
+                              {formatarMascaraNcm(String(i.ncm ?? ''))}
+                            </span>
                           ) : (
                             <span className="text-slate-400 italic">Pendente</span>
                           )}

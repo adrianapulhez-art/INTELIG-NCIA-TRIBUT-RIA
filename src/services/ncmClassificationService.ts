@@ -60,17 +60,21 @@ export interface ClassificacaoNcmResult {
   codigoCClassTribSugerido?: string
 }
 
-/** Formata string de dígitos em máscara NCM: 0000.00.00 */
-export function formatarMascaraNcm(valor: string): string {
-  const limpo = valor.replace(/\D/g, '').slice(0, 8)
+/** Formata string/número de dígitos em máscara NCM: 0000.00.00 */
+export function formatarMascaraNcm(valor: string | number | null | undefined): string {
+  if (valor === null || valor === undefined) return ''
+  const str = typeof valor === 'string' ? valor : String(valor)
+  const limpo = str.replace(/\D/g, '').slice(0, 8)
   if (limpo.length <= 4) return limpo
   if (limpo.length <= 6) return `${limpo.slice(0, 4)}.${limpo.slice(4)}`
   return `${limpo.slice(0, 4)}.${limpo.slice(4, 6)}.${limpo.slice(6)}`
 }
 
 /** Limpa caracteres não-dígito do NCM */
-export function limparNcm(valor: string): string {
-  return valor.replace(/\D/g, '').slice(0, 8)
+export function limparNcm(valor: string | number | null | undefined): string {
+  if (valor === null || valor === undefined) return ''
+  const str = typeof valor === 'string' ? valor : String(valor)
+  return str.replace(/\D/g, '').slice(0, 8)
 }
 
 // Cache em memória para evitar dezenas de roundtrips repetidos
