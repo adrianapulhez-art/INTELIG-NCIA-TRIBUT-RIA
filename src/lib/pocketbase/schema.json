@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-19T15:55:52.227Z",
+  "generatedAt": "2026-10-19T17:46:57.535Z",
   "collections": [
     {
       "name": "users",
@@ -609,6 +609,111 @@
         "CREATE INDEX idx_lc214_anexos_anexo ON lc214_anexos_ncm (anexo)",
         "CREATE INDEX idx_lc214_anexos_ncm ON lc214_anexos_ncm (ncm_sh)",
         "CREATE INDEX idx_lc214_anexos_reducao ON lc214_anexos_ncm (percentual_reducao_pct)"
+      ]
+    },
+    {
+      "name": "ncm_tabela",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "codigo_ncm",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "codigo_formatado",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao_completa",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "capitulo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "posicao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "subposicao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nivel",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fonte_oficial",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "versao_extracao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_conferencia",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status_chancela",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_ncm_tabela_cod ON ncm_tabela (codigo_ncm)",
+        "CREATE INDEX idx_ncm_tabela_fmt ON ncm_tabela (codigo_formatado)",
+        "CREATE INDEX idx_ncm_tabela_pos ON ncm_tabela (posicao)",
+        "CREATE INDEX idx_ncm_tabela_status ON ncm_tabela (status_chancela)"
       ]
     }
   ]

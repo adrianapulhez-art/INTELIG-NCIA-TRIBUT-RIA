@@ -7,6 +7,10 @@ import {
   FileText,
   BookmarkCheck,
   Hash,
+  Database,
+  ArrowRight,
+  ShieldCheck,
+  X,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -16,6 +20,12 @@ import {
   limparNcm,
   type ClassificacaoNcmResult,
 } from '@/services/ncmClassificationService'
+import {
+  buscarNcmPorTexto,
+  selecionarNcmEEnquadrar,
+  METADADOS_NCM_TABELA,
+  type NcmBuscaItem,
+} from '@/services/ncmTabelaService'
 import { TABELA_OFICIAL_CCLASSTRIB } from '@/lib/tabelaOficialCClassTrib'
 import { type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
 
@@ -47,6 +57,12 @@ export function ItemClassificacaoDrawer({
   const [cClassManual, setCClassManual] = useState<string | undefined>(item.cClassTribCodigo)
   const [resultado, setResultado] = useState<ClassificacaoNcmResult | null>(null)
   const [carregando, setCarregando] = useState<boolean>(false)
+
+  // Busca textual no catálogo completo NCM/SH
+  const [termoBuscaTexto, setTermoBuscaTexto] = useState<string>(item.name || '')
+  const [sugestoesCatalogo, setSugestoesCatalogo] = useState<NcmBuscaItem[]>([])
+  const [buscandoCatalogo, setBuscandoCatalogo] = useState<boolean>(false)
+  const [painelBuscaAberto, setPainelBuscaAberto] = useState<boolean>(false)
 
   // Consulta em tempo real à coleção lc214_anexos_ncm
   useEffect(() => {
@@ -89,10 +105,73 @@ export function ItemClassificacaoDrawer({
     }
   }, [ncmDigitado, opcaoSelecionadaId, cClassManual, item.id])
 
+  // Busca textual no catálogo NCM/SH oficial (ex: "cama", "celular", "edredom")
+  useEffect(() => {
+    let ativo = true
+    const termo = termoBuscaTexto.trim()
+    if (!termo || termo.length < 2) {
+      setSugestoesCatalogo([])
+      return
+    }
+
+    setBuscandoCatalogo(true)
+    const timer = setTimeout(() => {
+      buscarNcmPorTexto(termo, 25)
+        .then((itens) => {
+          if (!ativo) return
+          setSugestoesCatalogo(itens)
+          setBuscandoCatalogo(false)
+        })
+        .catch(() => {
+          if (!ativo) return
+          setBuscandoCatalogo(false)
+        })
+    }, 200)
+
+    return () => {
+      ativo = false
+      clearTimeout(timer)
+    }
+  }, [termoBuscaTexto])
+
   const handleMudarNcm = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatado = formatarMascaraNcm(e.target.value)
     setNcmDigitado(formatado)
     setOpcaoSelecionadaId(undefined) // Reset de opção prévia em nova digitação
+  }
+
+  const handleSelecionarNcmDoCatalogo = async (ncmItem: NcmBuscaItem) => {
+    setNcmDigitado(ncmItem.codigoFormatado)
+    setOpcaoSelecionadaId(undefined)
+    setPainelBuscaAberto(false)
+
+    // Enquadra em tempo real e calcula sugestão de cClassTrib
+    const { enquadramento } = await selecionarNcmEEnquadrar(ncmItem.codigoNcm)
+    if (enquadramento.status === 'enquadrado' && enquadramento.opcaoSelecionada) {
+      setCClassManual(enquadramento.cClassTribSugerido)
+      onAtualizarClassificacao(item.id, {
+        ncm: enquadramento.ncmLimpo,
+        ncmPercentualReducao: enquadramento.percentualReducaoPct,
+        ncmAnexo: enquadramento.anexo,
+        ncmArtigoOrigem: enquadramento.artigoOrigem,
+        ncmDescricaoReducao: enquadramento.opcaoSelecionada.descricao_reducao,
+        ncmFonte: enquadramento.fonte,
+        ncmOpcaoId: enquadramento.opcaoSelecionada.id,
+        cClassTribCodigo: enquadramento.cClassTribSugerido || '000001',
+      })
+    } else {
+      setCClassManual('000001')
+      onAtualizarClassificacao(item.id, {
+        ncm: enquadramento.ncmLimpo,
+        ncmPercentualReducao: 0,
+        ncmAnexo: undefined,
+        ncmArtigoOrigem: undefined,
+        ncmDescricaoReducao: 'Sem redutor — alíquota cheia',
+        ncmFonte: enquadramento.fonte,
+        ncmOpcaoId: undefined,
+        cClassTribCodigo: '000001',
+      })
+    }
   }
 
   const handleEscolherOpcaoManual = (opcaoId: string) => {
@@ -114,10 +193,126 @@ export function ItemClassificacaoDrawer({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-slate-500 bg-white/80 border border-slate-200 px-2 py-0.5 rounded">
-            NBS fora de escopo (bens e mercadorias)
+          <Badge
+            variant="outline"
+            className="border-amber-400 bg-amber-50 text-amber-900 font-mono text-[9px] flex items-center gap-1 font-bold"
+          >
+            <ShieldCheck className="w-3 h-3 text-amber-600" />
+            CATÁLOGO NCM: AGUARDANDO CHANCELA DA ADRI
+          </Badge>
+        </div>
+      </div>
+
+      {/* NOVO CAMPO: BUSCA DE NCM POR DESCRIÇÃO DO ITEM COM CATÁLOGO COMPLETO */}
+      <div className="bg-white rounded-xl border border-emerald-300 p-3 shadow-xs space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="text-[10px] uppercase font-bold text-emerald-950 flex items-center gap-1.5">
+            <Database className="w-3.5 h-3.5 text-emerald-600" />
+            <span>
+              Busca Inteligente de NCM por Descrição do Item (Catálogo Oficial Siscomex / TIPI)
+            </span>
+          </label>
+          <span className="text-[9px] text-slate-500">
+            Digite o nome ou palavra-chave (ex.: &quot;cama&quot;, &quot;edredom&quot;,
+            &quot;celular&quot;)
           </span>
         </div>
+
+        <div className="relative">
+          <Input
+            type="text"
+            placeholder="Pesquise por descrição (ex.: cama de madeira, cama de metal, arroz, celular)..."
+            value={termoBuscaTexto}
+            onChange={(e) => {
+              setTermoBuscaTexto(e.target.value)
+              setPainelBuscaAberto(true)
+            }}
+            onFocus={() => setPainelBuscaAberto(true)}
+            className="h-8 text-xs font-mono bg-emerald-50/30 text-slate-900 border-emerald-300 focus-visible:ring-emerald-500 pr-16"
+          />
+          <div className="absolute right-2 top-2 flex items-center gap-1">
+            {termoBuscaTexto && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTermoBuscaTexto('')
+                  setSugestoesCatalogo([])
+                }}
+                className="text-slate-400 hover:text-slate-600 p-0.5 rounded"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+            <Search className="w-3.5 h-3.5 text-emerald-600 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Dropdown com os códigos NCM/SH correspondentes */}
+        {painelBuscaAberto && termoBuscaTexto.trim().length >= 2 && (
+          <div className="rounded-lg border border-emerald-300 bg-white max-h-56 overflow-y-auto divide-y divide-slate-100 shadow-md">
+            <div className="p-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
+              <span>Códigos NCM/SH encontrados ({sugestoesCatalogo.length})</span>
+              <button
+                type="button"
+                onClick={() => setPainelBuscaAberto(false)}
+                className="text-slate-500 hover:text-slate-800 underline cursor-pointer"
+              >
+                Fechar
+              </button>
+            </div>
+
+            {buscandoCatalogo ? (
+              <div className="p-3 text-center text-slate-500 text-[10px]">
+                Buscando no catálogo oficial...
+              </div>
+            ) : sugestoesCatalogo.length === 0 ? (
+              <div className="p-3 text-center text-slate-500 text-[10px]">
+                Nenhum código NCM encontrado para &quot;{termoBuscaTexto}&quot;. Você pode digitar o
+                NCM diretamente no campo abaixo.
+              </div>
+            ) : (
+              sugestoesCatalogo.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => handleSelecionarNcmDoCatalogo(cat)}
+                  className="w-full text-left p-2 hover:bg-emerald-50 transition-colors flex items-start justify-between gap-3 group cursor-pointer"
+                >
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-emerald-700 font-mono text-[11px] group-hover:text-emerald-900">
+                        {cat.codigoFormatado}
+                      </span>
+                      <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-[9px] px-1 py-0">
+                        NCM 8 dígitos
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className="border-amber-300 bg-amber-50/80 text-amber-800 text-[8px] px-1 py-0"
+                      >
+                        {cat.statusChancela === 'aguardando_chancela'
+                          ? 'Aguardando Chancela Adri'
+                          : 'Chancelado'}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-slate-800 font-medium truncate">
+                      {cat.descricao}
+                    </p>
+                    {cat.descricaoCompleta && (
+                      <p className="text-[9px] text-slate-500 line-clamp-1 italic">
+                        {cat.descricaoCompleta}
+                      </p>
+                    )}
+                  </div>
+                  <div className="shrink-0 pt-1 text-emerald-600 opacity-60 group-hover:opacity-100 flex items-center gap-1 text-[10px] font-bold">
+                    <span>Selecionar</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
