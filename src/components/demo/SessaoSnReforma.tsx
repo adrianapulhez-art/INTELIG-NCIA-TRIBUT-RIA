@@ -265,20 +265,13 @@ export function SessaoSnSection({
   const [camadaAnexoAberta, setCamadaAnexoAberta] = useState<boolean>(false) // Camada interna recuada para Tabela Oficial
   const [baseDoDas, setBaseDoDas] = useState<BaseDoDas>('bruta') // default: bruta
 
-  // Entradas em valores monetários (R$) destacados na NF-e (Pedido da Adri: campos em R$, nunca percentuais)
+  // Entradas em valores monetários (R$) destacados na NF-e (Pedido da Adri: campos em R$, nunca percentuais — reduzido para ICMS, CBS e IBS)
   const [valorIcmsInput, setValorIcmsInput] = useState<string>('')
-  const [valorPisInput, setValorPisInput] = useState<string>('')
-  const [valorCofinsInput, setValorCofinsInput] = useState<string>('')
   const [valorCbsInput, setValorCbsInput] = useState<string>('')
   const [valorIbsInput, setValorIbsInput] = useState<string>('')
 
   // Valores numéricos parseados com suporte a vírgula pt-BR (estado inicial vazio/zero)
   const valorIcmsNota = useMemo(() => Math.max(0, parseBRNumber(valorIcmsInput)), [valorIcmsInput])
-  const valorPisNota = useMemo(() => Math.max(0, parseBRNumber(valorPisInput)), [valorPisInput])
-  const valorCofinsNota = useMemo(
-    () => Math.max(0, parseBRNumber(valorCofinsInput)),
-    [valorCofinsInput],
-  )
   const valorCbsNota = useMemo(() => Math.max(0, parseBRNumber(valorCbsInput)), [valorCbsInput])
   const valorIbsNota = useMemo(() => Math.max(0, parseBRNumber(valorIbsInput)), [valorIbsInput])
 
@@ -296,16 +289,6 @@ export function SessaoSnSection({
     if (totalNotaEmUso <= 0 || valorIcmsNota <= 0) return 0
     return (valorIcmsNota / totalNotaEmUso) * 100
   }, [valorIcmsNota, totalNotaEmUso])
-
-  const pisNotaPct = useMemo(() => {
-    if (totalNotaEmUso <= 0 || valorPisNota <= 0) return 0
-    return (valorPisNota / totalNotaEmUso) * 100
-  }, [valorPisNota, totalNotaEmUso])
-
-  const cofinsNotaPct = useMemo(() => {
-    if (totalNotaEmUso <= 0 || valorCofinsNota <= 0) return 0
-    return (valorCofinsNota / totalNotaEmUso) * 100
-  }, [valorCofinsNota, totalNotaEmUso])
 
   const cbsNotaPct = useMemo(() => {
     if (totalNotaEmUso <= 0 || valorCbsNota <= 0) return 0
@@ -741,8 +724,6 @@ export function SessaoSnSection({
                     type="button"
                     onClick={() => {
                       setValorIcmsInput('7632,00')
-                      setValorPisInput('0,00')
-                      setValorCofinsInput('0,00')
                       setValorCbsInput('0,00')
                       setValorIbsInput('0,00')
                     }}
@@ -755,8 +736,6 @@ export function SessaoSnSection({
                     type="button"
                     onClick={() => {
                       setValorIcmsInput('576,64')
-                      setValorPisInput('0,00')
-                      setValorCofinsInput('0,00')
                       setValorCbsInput('260,00')
                       setValorIbsInput('2,88')
                     }}
@@ -769,8 +748,6 @@ export function SessaoSnSection({
                     type="button"
                     onClick={() => {
                       setValorIcmsInput('')
-                      setValorPisInput('')
-                      setValorCofinsInput('')
                       setValorCbsInput('')
                       setValorIbsInput('')
                     }}
@@ -780,8 +757,8 @@ export function SessaoSnSection({
                   </button>
                 </div>
 
-                {/* Grade de 5 inputs monetários formatados (R$) + 1 Resumo Total */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 items-stretch">
+                {/* Grade de 3 inputs monetários formatados (R$) + 1 Resumo Total */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
                   {/* 1. ICMS destacado na nota (R$) */}
                   <div className="space-y-1.5 p-3 rounded-xl bg-white border border-emerald-300 shadow-2xs flex flex-col justify-between">
                     <div>
@@ -819,77 +796,7 @@ export function SessaoSnSection({
                     </div>
                   </div>
 
-                  {/* 2. PIS destacado na nota (R$) */}
-                  <div className="space-y-1.5 p-3 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between gap-1">
-                        <label className="text-[11px] font-mono font-bold text-slate-700 uppercase leading-tight">
-                          PIS destacado na nota (R$)
-                        </label>
-                        <span className="text-[9px] font-mono text-slate-500 shrink-0">NF-e</span>
-                      </div>
-                      <div className="relative mt-2">
-                        <span className="absolute left-2.5 top-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none">
-                          R$
-                        </span>
-                        <Input
-                          type="text"
-                          value={valorPisInput}
-                          onChange={(e) => setValorPisInput(e.target.value)}
-                          className="h-10 bg-white border-slate-300 text-xs font-mono font-bold text-slate-900 focus-visible:ring-emerald-500 pl-8 pr-2"
-                          placeholder="0,00"
-                        />
-                      </div>
-                    </div>
-                    <div className="pt-2 border-t border-slate-100 space-y-0.5">
-                      <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-700">
-                        <span>% Derivado:</span>
-                        <span>{formatNumberBR(pisNotaPct, 4)}%</span>
-                      </div>
-                      <span className="text-[9px] font-mono text-slate-500 block leading-tight">
-                        {valorPisNota > 0
-                          ? `${formatBRL(valorPisNota)} ÷ ${formatBRL(totalNotaEmUso)}`
-                          : 'campo vazio/zero (0%)'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 3. COFINS destacado na nota (R$) */}
-                  <div className="space-y-1.5 p-3 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between gap-1">
-                        <label className="text-[11px] font-mono font-bold text-slate-700 uppercase leading-tight">
-                          COFINS destacado na nota (R$)
-                        </label>
-                        <span className="text-[9px] font-mono text-slate-500 shrink-0">NF-e</span>
-                      </div>
-                      <div className="relative mt-2">
-                        <span className="absolute left-2.5 top-2.5 text-xs font-mono font-bold text-slate-400 pointer-events-none">
-                          R$
-                        </span>
-                        <Input
-                          type="text"
-                          value={valorCofinsInput}
-                          onChange={(e) => setValorCofinsInput(e.target.value)}
-                          className="h-10 bg-white border-slate-300 text-xs font-mono font-bold text-slate-900 focus-visible:ring-emerald-500 pl-8 pr-2"
-                          placeholder="0,00"
-                        />
-                      </div>
-                    </div>
-                    <div className="pt-2 border-t border-slate-100 space-y-0.5">
-                      <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-700">
-                        <span>% Derivado:</span>
-                        <span>{formatNumberBR(cofinsNotaPct, 4)}%</span>
-                      </div>
-                      <span className="text-[9px] font-mono text-slate-500 block leading-tight">
-                        {valorCofinsNota > 0
-                          ? `${formatBRL(valorCofinsNota)} ÷ ${formatBRL(totalNotaEmUso)}`
-                          : 'campo vazio/zero (0%)'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 4. CBS destacada na nota (R$) */}
+                  {/* 2. CBS destacada na nota (R$) */}
                   <div className="space-y-1.5 p-3 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between gap-1">
@@ -926,7 +833,7 @@ export function SessaoSnSection({
                     </div>
                   </div>
 
-                  {/* 5. IBS destacado na nota (R$) */}
+                  {/* 3. IBS destacado na nota (R$) */}
                   <div className="space-y-1.5 p-3 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between gap-1">
@@ -963,7 +870,7 @@ export function SessaoSnSection({
                     </div>
                   </div>
 
-                  {/* 6. Resumo Total da Parcela Creditável */}
+                  {/* 4. Resumo Total da Parcela Creditável */}
                   <div className="rounded-xl border border-emerald-300 bg-white p-3 flex flex-col justify-between shadow-2xs">
                     <div>
                       <span className="text-[10px] font-mono font-bold text-slate-500 uppercase block">
@@ -998,7 +905,7 @@ export function SessaoSnSection({
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs font-mono">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs font-mono">
                     {/* Linha 1: ICMS */}
                     <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 space-y-1">
                       <div className="flex items-center justify-between font-bold text-slate-900">
@@ -1019,47 +926,7 @@ export function SessaoSnSection({
                       </div>
                     </div>
 
-                    {/* Linha 2: PIS */}
-                    <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 space-y-1">
-                      <div className="flex items-center justify-between font-bold text-slate-900">
-                        <span>PIS DESTACADO</span>
-                        <span className="text-slate-700">{formatNumberBR(pisNotaPct, 4)}%</span>
-                      </div>
-                      <div className="text-[11px] text-slate-700 font-semibold">
-                        {formatBRL(valorPisNota)} ÷ {formatBRL(totalNotaEmUso)} ={' '}
-                        {formatNumberBR(pisNotaPct, 4)}%
-                      </div>
-                      <div className="text-[10px] text-slate-500 italic">
-                        Origem:{' '}
-                        <span className="text-slate-700 not-italic font-medium">
-                          {valorPisNota > 0
-                            ? 'valor informado pelo usuário, conforme destaque da NF-e'
-                            : 'campo não informado / zero (percentual derivado: 0,0000% · nada inventado)'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Linha 3: COFINS */}
-                    <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 space-y-1">
-                      <div className="flex items-center justify-between font-bold text-slate-900">
-                        <span>COFINS DESTACADO</span>
-                        <span className="text-slate-700">{formatNumberBR(cofinsNotaPct, 4)}%</span>
-                      </div>
-                      <div className="text-[11px] text-slate-700 font-semibold">
-                        {formatBRL(valorCofinsNota)} ÷ {formatBRL(totalNotaEmUso)} ={' '}
-                        {formatNumberBR(cofinsNotaPct, 4)}%
-                      </div>
-                      <div className="text-[10px] text-slate-500 italic">
-                        Origem:{' '}
-                        <span className="text-slate-700 not-italic font-medium">
-                          {valorCofinsNota > 0
-                            ? 'valor informado pelo usuário, conforme destaque da NF-e'
-                            : 'campo não informado / zero (percentual derivado: 0,0000% · nada inventado)'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Linha 4: CBS (2027+) */}
+                    {/* Linha 2: CBS (2027+) */}
                     <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 space-y-1">
                       <div className="flex items-center justify-between font-bold text-slate-900">
                         <span>CBS DESTACADA (2027+)</span>
@@ -1079,7 +946,7 @@ export function SessaoSnSection({
                       </div>
                     </div>
 
-                    {/* Linha 5: IBS (2027+) */}
+                    {/* Linha 3: IBS (2027+) */}
                     <div className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/60 space-y-1">
                       <div className="flex items-center justify-between font-bold text-slate-900">
                         <span>IBS DESTACADO (2027+)</span>
@@ -1099,7 +966,7 @@ export function SessaoSnSection({
                       </div>
                     </div>
 
-                    {/* Linha 6: Total da Parcela Creditável Derivada */}
+                    {/* Linha 4: Total da Parcela Creditável Derivada */}
                     <div className="p-2.5 rounded-lg border border-emerald-300 bg-emerald-50/80 space-y-1">
                       <div className="flex items-center justify-between font-bold text-emerald-950">
                         <span>PARCELA CREDITÁVEL TOTAL</span>
