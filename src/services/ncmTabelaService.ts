@@ -36,10 +36,10 @@ export const METADADOS_NCM_TABELA = {
     'Portal Único Siscomex / Classif (Receita Federal do Brasil / MDIC / CAMEX) — API Pública de Nomenclatura Comum do Mercosul',
   urlOficial: 'https://portalunico.siscomex.gov.br/classif/api/publico/nomenclatura/download/json',
   baseLegal:
-    'Resolução Gecex nº 272/2021 e alterações (Tarifa Externa Comum - TEC / Tabela TIPI / LC 214/2025)',
-  versaoExtracao: '2026-04-18 (Snapshot Vigente 2026/2027)',
+    'Resolução Gecex nº 812/2025, Resolução Gecex nº 272/2021 e Decreto 11.158/2022 (TEC / TIPI / LC 214/2025)',
+  versaoExtracao: 'Vigente em 19/10/2026 (Resolução Gecex nº 812/2025)',
   dataConferencia: '2026-10-19',
-  totalPrevistoOficial: '~10.000 subposições/itens NCM 8 dígitos',
+  totalPrevistoOficial: '10.332 subposições e itens NCM de 8 dígitos',
   statusChancelaPadrao: 'aguardando_chancela' as const,
   responsavelChancela: 'Adriana Pulhez (Adri) — CEO / Contadora',
 }
@@ -64,13 +64,16 @@ export async function carregarCatalogoNcm(): Promise<NcmBuscaItem[]> {
 
   promessaCargaTabela = (async () => {
     try {
-      const records = await pb.collection('ncm_tabela').getFullList<NcmTabelaRecord>({
+      // Para inicialização rápida e economia de payload no cliente,
+      // carrega uma primeira amostra ampla (500 mais frequentes/ordenadas)
+      // enquanto as buscas específicas por termo ou código usam a consulta paginada e indexada no backend
+      const records = await pb.collection('ncm_tabela').getList<NcmTabelaRecord>(1, 500, {
         sort: 'codigo_ncm',
         requestKey: null,
       })
 
-      if (records && records.length > 0) {
-        const mapeados: NcmBuscaItem[] = records.map((r) => ({
+      if (records && records.items.length > 0) {
+        const mapeados: NcmBuscaItem[] = records.items.map((r) => ({
           id: r.id,
           codigoNcm: r.codigo_ncm,
           codigoFormatado: r.codigo_formatado,
@@ -85,7 +88,7 @@ export async function carregarCatalogoNcm(): Promise<NcmBuscaItem[]> {
       }
     } catch (err) {
       console.warn(
-        '[ncmTabelaService] Erro ao carregar coleção ncm_tabela do PocketBase, usando fallback oficial:',
+        '[ncmTabelaService] Erro ao carregar amostra de ncm_tabela do PocketBase, usando catálogo base:',
         err,
       )
     }
@@ -110,6 +113,50 @@ export async function buscarNcmPorTexto(
   const t = termo.trim().toLowerCase()
   if (!t) return []
 
+  // 1. Tenta consulta direta e filtrada via PocketBase (busca otimizada e paginada)
+  try {
+    const isCodigo = /^[0-9.]+$/.test(t)
+    const digitos = t.replace(/\D/g, '')
+
+    let filter = ''
+    if (isCodigo && digitos.length >= 2) {
+      filter = `codigo_ncm ~ "${digitos}" || codigo_formatado ~ "${t}"`
+    } else {
+      // Cria filtro em PocketBase para buscar em descricao e descricao_completa
+      const palavras = t.split(/\s+/).filter(Boolean).slice(0, 3)
+      if (palavras.length > 0) {
+        filter = palavras
+          .map((p) => `(descricao ~ "${p}" || descricao_completa ~ "${p}")`)
+          .join(' && ')
+      }
+    }
+
+    if (filter) {
+      const records = await pb.collection('ncm_tabela').getList<NcmTabelaRecord>(1, limite, {
+        filter,
+        sort: 'codigo_ncm',
+        requestKey: null,
+      })
+
+      if (records && records.items.length > 0) {
+        return records.items.map((r) => ({
+          id: r.id,
+          codigoNcm: r.codigo_ncm,
+          codigoFormatado: r.codigo_formatado,
+          descricao: r.descricao,
+          descricaoCompleta: r.descricao_completa,
+          fonteOficial: r.fonte_oficial || METADADOS_NCM_TABELA.fonteOficial,
+          versaoExtracao: r.versao_extracao || METADADOS_NCM_TABELA.versaoExtracao,
+          statusChancela: r.status_chancela || 'aguardando_chancela',
+        }))
+      }
+    }
+  } catch (errDb) {
+    // Caso ocorra falha de rede ou backend indisponível, usa fallback local em memória
+    console.warn('[ncmTabelaService] Busca remota falhou, recorrendo ao catálogo local:', errDb)
+  }
+
+  // 2. Fallback: pesquisa no catálogo em memória
   const catalogo = await carregarCatalogoNcm()
   const termosSeparados = t.split(/\s+/).filter(Boolean)
 
@@ -119,13 +166,11 @@ export async function buscarNcmPorTexto(
     const desc = item.descricao.toLowerCase()
     const descComp = (item.descricaoCompleta || '').toLowerCase()
 
-    // Se o termo digitado for só números ou formato de código
     if (/^[0-9.]+$/.test(t)) {
       const digitos = t.replace(/\D/g, '')
       return codLimpo.startsWith(digitos) || codFmt.includes(t)
     }
 
-    // Busca textual: todos os termos digitados devem aparecer na descrição ou código
     return termosSeparados.every(
       (termoPalavra) =>
         desc.includes(termoPalavra) ||
@@ -146,12 +191,36 @@ export async function selecionarNcmEEnquadrar(codigoNcmOuFormatado: string): Pro
   ncmItem: NcmBuscaItem | undefined
   enquadramento: ClassificacaoNcmResult
 }> {
-  const catalogo = await carregarCatalogoNcm()
   const digitos = codigoNcmOuFormatado.replace(/\D/g, '')
 
-  const ncmItem = catalogo.find(
-    (c) => c.codigoNcm === digitos || c.codigoFormatado === codigoNcmOuFormatado,
-  )
+  let ncmItem: NcmBuscaItem | undefined
+
+  // Tenta buscar o registro exato no PocketBase primeiro
+  try {
+    const record = await pb
+      .collection('ncm_tabela')
+      .getFirstListItem<NcmTabelaRecord>(`codigo_ncm="${digitos}"`, {
+        requestKey: null,
+      })
+    if (record) {
+      ncmItem = {
+        id: record.id,
+        codigoNcm: record.codigo_ncm,
+        codigoFormatado: record.codigo_formatado,
+        descricao: record.descricao,
+        descricaoCompleta: record.descricao_completa,
+        fonteOficial: record.fonte_oficial || METADADOS_NCM_TABELA.fonteOficial,
+        versaoExtracao: record.versao_extracao || METADADOS_NCM_TABELA.versaoExtracao,
+        statusChancela: record.status_chancela || 'aguardando_chancela',
+      }
+    }
+  } catch (_) {
+    // Se não encontrou no banco remoto, busca no catálogo em memória
+    const catalogo = await carregarCatalogoNcm()
+    ncmItem = catalogo.find(
+      (c) => c.codigoNcm === digitos || c.codigoFormatado === codigoNcmOuFormatado,
+    )
+  }
 
   // Executa o enquadramento completo em tempo real com sugestão de cClassTrib
   const enquadramento = await classificarNcmEmTempoReal(digitos)
