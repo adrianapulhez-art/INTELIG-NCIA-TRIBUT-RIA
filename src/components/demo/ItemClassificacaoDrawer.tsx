@@ -148,7 +148,7 @@ export function ItemClassificacaoDrawer({
     // Enquadra em tempo real e calcula sugestão de cClassTrib
     const { enquadramento } = await selecionarNcmEEnquadrar(ncmItem.codigoNcm)
     if (enquadramento.status === 'enquadrado' && enquadramento.opcaoSelecionada) {
-      setCClassManual(enquadramento.cClassTribSugerido)
+      setCClassManual(enquadramento.codigoCClassTribSugerido)
       onAtualizarClassificacao(item.id, {
         ncm: enquadramento.ncmLimpo,
         ncmPercentualReducao: enquadramento.percentualReducaoPct,
@@ -157,7 +157,7 @@ export function ItemClassificacaoDrawer({
         ncmDescricaoReducao: enquadramento.opcaoSelecionada.descricao_reducao,
         ncmFonte: enquadramento.fonte,
         ncmOpcaoId: enquadramento.opcaoSelecionada.id,
-        cClassTribCodigo: enquadramento.cClassTribSugerido || '000001',
+        cClassTribCodigo: enquadramento.codigoCClassTribSugerido || '000001',
       })
     } else {
       setCClassManual('000001')

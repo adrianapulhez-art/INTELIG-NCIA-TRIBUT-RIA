@@ -1,10 +1,5 @@
 import { pb } from '@/lib/pocketbase/client'
-import {
-  carregarAnexosLc214,
-  casarNcmComAnexos,
-  sugerirCClassTribParaEnquadramento,
-  type ClassificacaoNcmResult,
-} from './ncmClassificationService'
+import { classificarNcmEmTempoReal, type ClassificacaoNcmResult } from './ncmClassificationService'
 
 export interface NcmTabelaRecord {
   id: string
@@ -158,24 +153,8 @@ export async function selecionarNcmEEnquadrar(codigoNcmOuFormatado: string): Pro
     (c) => c.codigoNcm === digitos || c.codigoFormatado === codigoNcmOuFormatado,
   )
 
-  const anexos = await carregarAnexosLc214()
-  const matching = casarNcmComAnexos(digitos, anexos)
-
-  // Sugestão de cClassTrib automática pelo percentual de redução
-  let cClassSugerido: string | undefined
-  if (matching.status === 'com_redutor' && matching.opcoes.length > 0) {
-    const melhorOpcao = matching.opcoes[0]
-    const sugestao = sugerirCClassTribParaEnquadramento(melhorOpcao.percentualReducao)
-    cClassSugerido = sugestao?.codigo
-  } else if (matching.status === 'sem_redutor') {
-    // Alíquota cheia padrão
-    cClassSugerido = '000001'
-  }
-
-  const enquadramento: ClassificacaoNcmResult = {
-    ...matching,
-    cClassTribSugerido: cClassSugerido,
-  }
+  // Executa o enquadramento completo em tempo real com sugestão de cClassTrib
+  const enquadramento = await classificarNcmEmTempoReal(digitos)
 
   return { ncmItem, enquadramento }
 }
