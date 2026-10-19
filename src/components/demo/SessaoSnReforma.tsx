@@ -986,11 +986,21 @@ export function SessaoSnSection({
                     </div>
                   </div>
 
-                  {/* Fundamento fiscal didático para o contador */}
-                  <div className="text-[11px] font-mono text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-200 leading-relaxed flex items-start gap-2">
-                    <Info className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                    <span>
-                      <strong className="text-slate-800">Didática Fiscal para o Contador: </strong>
+                  {/* Notas de fundamento / didática fiscal recolhidas por padrão */}
+                  <details className="group rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-mono transition-colors">
+                    <summary className="flex cursor-pointer items-center justify-between p-2.5 font-bold text-slate-800 hover:text-emerald-850 select-none">
+                      <span className="flex items-center gap-2">
+                        <Info className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>Notas de fundamento · Didática Fiscal para o Contador</span>
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider text-slate-500 font-normal group-open:hidden">
+                        Expandir
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider text-emerald-700 font-semibold hidden group-open:inline">
+                        Recolher
+                      </span>
+                    </summary>
+                    <div className="px-3 pb-3 pt-1 text-slate-600 leading-relaxed border-t border-slate-200/60">
                       O ICMS eventualmente destacado a 18% em NF-e de venda de fornecedor Simples
                       Nacional decorre da apuração de saída deste (art. 25, §1º, II da LC 123/2006 =
                       dedução na saída e não crédito do adquirente). O crédito legítimo do
@@ -1000,8 +1010,8 @@ export function SessaoSnSection({
                       não conferem créditos à adquirente no regime cumulativo ou puro. Em 2027+, as
                       frações de CBS e IBS informadas compõem a parcela creditável conforme a
                       legislação da Reforma Tributária (LC 214/2025).
-                    </span>
-                  </div>
+                    </div>
+                  </details>
 
                   {/* BOTÃO FECHAR INFERIOR (Tarja cinza degradê from-slate-700 via-slate-650 to-slate-700, mono, negrito, caixa alta, chevron up) */}
                   <div className="w-full pt-1">
@@ -1230,11 +1240,25 @@ export function SessaoSnSection({
                     </span>
                   </div>
 
-                  {/* Nota de rodapé da Adri quando pendente de confirmação ou particularidade do anexo */}
+                  {/* Nota de fundamento / rodapé da Adri (recolhida por padrão) */}
                   {notaFonteTabela && (
-                    <p className="text-[11px] font-mono text-slate-500 italic bg-white p-2.5 rounded-lg border border-slate-200">
-                      ℹ️ Fundamento / Nota da Casa: {notaFonteTabela}
-                    </p>
+                    <details className="group rounded-lg border border-slate-200 bg-white text-[11px] font-mono transition-colors">
+                      <summary className="flex cursor-pointer items-center justify-between p-2.5 font-semibold text-slate-700 hover:text-slate-900 select-none">
+                        <span className="flex items-center gap-1.5">
+                          <span>ℹ️</span>
+                          <span className="font-bold">Notas de fundamento · Nota da Casa</span>
+                        </span>
+                        <span className="text-[10px] uppercase text-slate-400 group-open:hidden">
+                          Expandir
+                        </span>
+                        <span className="text-[10px] uppercase text-emerald-700 font-semibold hidden group-open:inline">
+                          Recolher
+                        </span>
+                      </summary>
+                      <div className="px-3 pb-2.5 pt-1 text-slate-600 italic border-t border-slate-100">
+                        {notaFonteTabela}
+                      </div>
+                    </details>
                   )}
 
                   {/* BOTÃO FECHAR INFERIOR (Tarja cinza degradê from-slate-700 via-slate-650 to-slate-700, mono, negrito, caixa alta, chevron up) */}

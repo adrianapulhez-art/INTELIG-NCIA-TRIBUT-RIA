@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-19T00:58:32.897Z",
+  "generatedAt": "2026-10-19T10:24:57.835Z",
   "collections": [
     {
       "name": "users",
@@ -320,6 +320,209 @@
       "indexes": [
         "CREATE INDEX idx_simulacoes_opcao_owner_created ON simulacoes_opcao (owner, created DESC)",
         "CREATE INDEX idx_simulacoes_opcao_veredito ON simulacoes_opcao (veredito)"
+      ]
+    },
+    {
+      "name": "cclasstrib_versoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "versao_documento",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_publicacao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_conferencia",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "origem_fonte",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "total_registros",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ativa",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "metadados",
+          "type": "json",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_cclasstrib_versoes_doc ON cclasstrib_versoes (versao_documento)",
+        "CREATE INDEX idx_cclasstrib_versoes_ativa ON cclasstrib_versoes (ativa)"
+      ]
+    },
+    {
+      "name": "cclasstrib_itens",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "versao",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "cclasstrib_versoes"
+        },
+        {
+          "name": "codigo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cst",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "reducao_ibs_pct",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "reducao_cbs_pct",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo_aliquota",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "uso_nfe",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rb_simples_nacional",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fundamento_legal",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_cclasstrib_itens_versao ON cclasstrib_itens (versao)",
+        "CREATE INDEX idx_cclasstrib_itens_cod ON cclasstrib_itens (codigo)",
+        "CREATE INDEX idx_cclasstrib_itens_cst ON cclasstrib_itens (cst)"
+      ]
+    },
+    {
+      "name": "cclasstrib_conferencias",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "data_conferencia",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "versao_local",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "versao_remota",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fonte_consultada",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "diff_resumo",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "chancelada_por_usuario",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_cclasstrib_conf_data ON cclasstrib_conferencias (data_conferencia DESC)",
+        "CREATE INDEX idx_cclasstrib_conf_status ON cclasstrib_conferencias (status)"
       ]
     }
   ]
