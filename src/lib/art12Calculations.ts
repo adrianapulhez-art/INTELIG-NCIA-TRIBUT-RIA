@@ -114,6 +114,14 @@ export interface CmvArt12Input {
   icmsRate: number // % ICMS na mercadoria
   icmsFreightRate: number // % ICMS no frete
   ipiRate: number // % IPI (só indústria; ZFM mantém)
+  // CLASSIFICAÇÃO FISCAL NCM/SH — LC 214/2025 (Fase 3 — Adriana)
+  ncm?: string
+  ncmPercentualReducao?: number
+  ncmAnexo?: string
+  ncmArtigoOrigem?: string
+  ncmDescricaoReducao?: string
+  ncmFonte?: string
+  cClassTribCodigo?: string
 }
 
 /** Caso canônico: 30 un. × R$ 1.400,00 + frete R$ 400,00; ICMS 18%; IPI 10% (só indústria). */
@@ -819,8 +827,16 @@ export function computeExercicioArt12(
   }
 
   // 6) CBS e IBS — por fora (destacadas); sobre a base limpa
-  const cbsV = r2(baseLimpa * (row.cbsRate / 100))
-  const ibsV = r2(baseLimpa * (row.ibsRate / 100))
+  // CLASSIFICAÇÃO FISCAL NCM/SH (LC 214/2025 - Fase 3 - Adriana):
+  // Redução da alíquota devida conforme enquadramento do item (Anexos I a IX).
+  // Arredondamento chancelado: CBS/IBS sempre meio a meio para cima (r2).
+  const reducaoItemPct = Math.max(0, Math.min(100, input.ncmPercentualReducao ?? 0))
+  const fatorAliquotaDevida = (100 - reducaoItemPct) / 100
+  const aliquotaCbsEfetiva = r2(row.cbsRate * fatorAliquotaDevida)
+  const aliquotaIbsEfetiva = r2(row.ibsRate * fatorAliquotaDevida)
+
+  const cbsV = r2(baseLimpa * (aliquotaCbsEfetiva / 100))
+  const ibsV = r2(baseLimpa * (aliquotaIbsEfetiva / 100))
   if (fornecedorSN || fornecedorSNHib) {
     // ---- FORNECEDOR SN (padrão OU híbrido) — CRITÉRIO IT v2 (chancela CEO, 01/10) ----
     // Base do IBS/CBS (LC 214/2025, art. 12, §2º, V): exclui o montante do ICMS
@@ -833,8 +849,8 @@ export function computeExercicioArt12(
     const pSN = config.perfilFornecedorSN ?? PERFIL_SN_PADRAO
     const icmsDasRef = r2(bruto * (pSN.efetivaPct / 100) * (pSN.icmsFracPct / 100))
     const baseIbsCbsRef = r2(bruto - icmsDasRef)
-    const cbsSNHib = fornecedorSNHib ? r2(baseIbsCbsRef * (row.cbsRate / 100)) : 0
-    const ibsSNHib = fornecedorSNHib ? r2(baseIbsCbsRef * (row.ibsRate / 100)) : 0
+    const cbsSNHib = fornecedorSNHib ? r2(baseIbsCbsRef * (aliquotaCbsEfetiva / 100)) : 0
+    const ibsSNHib = fornecedorSNHib ? r2(baseIbsCbsRef * (aliquotaIbsEfetiva / 100)) : 0
     if (fornecedorSN) {
       // ---- LÓGICA DO SN PURO (apresentação da memória — NÃO altera custos) ----
       // A nota do optante é preço de tabela com tributos POR DENTRO (DAS sobre a receita
@@ -947,29 +963,49 @@ export function computeExercicioArt12(
       })
       lines.push({
         key: 'cbs_snhib',
-        label: '(+) CBS destacada por fora (fornecedor SN híbrido)',
-        formula: `${fmt(row.cbsRate)}% × ${fmt(baseIbsCbsRef)} = ${fmt(cbsSNHib)} — sobre a base limpa`,
+        label:
+          reducaoItemPct > 0
+            ? `(+) CBS ${fmt(aliquotaCbsEfetiva)}% destacada (redução ${reducaoItemPct}% ${input.ncmAnexo || 'LC 214/25'})`
+            : '(+) CBS destacada por fora (fornecedor SN híbrido)',
+        formula:
+          reducaoItemPct > 0
+            ? `${fmt(row.cbsRate)}% × (1 − ${reducaoItemPct}%) = ${fmt(aliquotaCbsEfetiva)}% × ${fmt(baseIbsCbsRef)} = ${fmt(cbsSNHib)} (${input.ncmAnexo || 'LC 214/2025'} · ${input.ncmArtigoOrigem || 'art. 125+'})`
+            : `${fmt(row.cbsRate)}% × ${fmt(baseIbsCbsRef)} = ${fmt(cbsSNHib)} — sobre a base limpa`,
         value: cbsSNHib,
         kind: 'debito',
         bloco: 1,
         fundamento: {
-          dispositivo: 'LC 214/2025, art. 41, §3º + art. 12, §2º, V',
+          dispositivo: input.ncmArtigoOrigem
+            ? `${input.ncmArtigoOrigem} (redução ${reducaoItemPct}%) c/c LC 214/2025, art. 41`
+            : 'LC 214/2025, art. 41, §3º + art. 12, §2º, V',
           efeito:
-            'regime regular de IBS/CBS no Simples: CBS destacada por fora na nota (art. 41) — o crédito do adquirente depende do regime DELE (art. 47)',
+            reducaoItemPct > 0
+              ? `alíquota reduzida em ${reducaoItemPct}% conforme ${input.ncmAnexo || 'anexo legal'} da LC 214/2025`
+              : 'regime regular de IBS/CBS no Simples: CBS destacada por fora na nota (art. 41)',
           validade: 'condicionada',
-          nota: 'CRITÉRIO IT v2 (chancelado pela CEO em 01/10): base sem o ICMS INCIDENTE na operação — fração do DAS informada no documento fiscal (art. 23, §2º).',
         },
       })
       lines.push({
         key: 'ibs_snhib',
-        label: '(+) IBS destacado por fora (fornecedor SN híbrido)',
-        formula: `${fmt(row.ibsRate)}% × ${fmt(baseIbsCbsRef)} = ${fmt(ibsSNHib)} — sobre a base limpa`,
+        label:
+          reducaoItemPct > 0
+            ? `(+) IBS ${fmt(aliquotaIbsEfetiva)}% destacado (redução ${reducaoItemPct}% ${input.ncmAnexo || 'LC 214/25'})`
+            : '(+) IBS destacado por fora (fornecedor SN híbrido)',
+        formula:
+          reducaoItemPct > 0
+            ? `${fmt(row.ibsRate)}% × (1 − ${reducaoItemPct}%) = ${fmt(aliquotaIbsEfetiva)}% × ${fmt(baseIbsCbsRef)} = ${fmt(ibsSNHib)} (${input.ncmAnexo || 'LC 214/2025'} · ${input.ncmArtigoOrigem || 'art. 125+'})`
+            : `${fmt(row.ibsRate)}% × ${fmt(baseIbsCbsRef)} = ${fmt(ibsSNHib)} — sobre a base limpa`,
         value: ibsSNHib,
         kind: 'debito',
         bloco: 1,
         fundamento: {
-          dispositivo: 'LC 214/2025, art. 41, §3º + art. 12, §2º, V',
-          efeito: 'IBS destacado por fora na nota — partilha estadual/municipal',
+          dispositivo: input.ncmArtigoOrigem
+            ? `${input.ncmArtigoOrigem} (redução ${reducaoItemPct}%) c/c LC 214/2025, art. 41`
+            : 'LC 214/2025, art. 41, §3º + art. 12, §2º, V',
+          efeito:
+            reducaoItemPct > 0
+              ? `IBS com redução de ${reducaoItemPct}% conforme ${input.ncmAnexo || 'anexo legal'} da LC 214/2025`
+              : 'IBS destacado por fora na nota — partilha estadual/municipal',
           validade: 'condicionada',
         },
       })
@@ -1131,10 +1167,19 @@ export function computeExercicioArt12(
     }
   }
 
+  const cbsLabel =
+    reducaoItemPct > 0
+      ? `(+) CBS ${fmt(aliquotaCbsEfetiva)}% destacada (redução ${reducaoItemPct}% ${input.ncmAnexo || 'LC 214/25'})`
+      : `(+) CBS ${fmt(row.cbsRate)}% destacada (por fora)`
+  const cbsFormula =
+    reducaoItemPct > 0
+      ? `${fmt(row.cbsRate)}% × (1 − ${reducaoItemPct}%) = ${fmt(aliquotaCbsEfetiva)}% × ${fmt(baseLimpa)} = ${fmt(cbsV)} (${input.ncmAnexo || 'LC 214/2025'} · ${input.ncmArtigoOrigem || 'art. 125+'})`
+      : `${fmt(row.cbsRate)}% × ${fmt(baseLimpa)} = ${fmt(cbsV)}`
+
   lines.push({
     key: 'cbs',
-    label: `(+) CBS ${fmt(row.cbsRate)}% destacada (por fora)`,
-    formula: `${fmt(row.cbsRate)}% × ${fmt(baseLimpa)} = ${fmt(cbsV)}`,
+    label: cbsLabel,
+    formula: cbsFormula,
     value: cbsV,
     kind: 'debito',
     bloco: 1,
@@ -1148,10 +1193,16 @@ export function computeExercicioArt12(
       },
       {
         ordem: 2,
-        descricao: 'CBS por fora (destacada na nota)',
-        expressao: `${fmt6(baseLimpa)} × ${fmt6(row.cbsRate / 100)}`,
+        descricao:
+          reducaoItemPct > 0
+            ? `CBS por fora com redução de ${reducaoItemPct}% (${input.ncmAnexo || 'LC 214/2025'})`
+            : 'CBS por fora (destacada na nota)',
+        expressao: `${fmt6(baseLimpa)} × ${fmt6(aliquotaCbsEfetiva / 100)}`,
         resultado: fmtMoney6(cbsV),
-        fundamento: 'Art. 12, §2º, I: CBS não integra a própria base.',
+        fundamento:
+          reducaoItemPct > 0
+            ? `Art. 12, §2º, I c/c ${input.ncmArtigoOrigem || 'LC 214/2025'} (redução de ${reducaoItemPct}%).`
+            : 'Art. 12, §2º, I: CBS não integra a própria base.',
       },
       {
         ordem: 3,
@@ -1165,8 +1216,13 @@ export function computeExercicioArt12(
       },
     ],
     fundamento: {
-      dispositivo: 'LC 214/2025, art. 12, §2º, I',
-      efeito: 'CBS não integra a própria base — incidência por fora',
+      dispositivo: input.ncmArtigoOrigem
+        ? `${input.ncmArtigoOrigem} c/c art. 12, §2º, I`
+        : 'LC 214/2025, art. 12, §2º, I',
+      efeito:
+        reducaoItemPct > 0
+          ? `CBS com redução de ${reducaoItemPct}% (${input.ncmAnexo || 'anexo'}) — incidência por fora`
+          : 'CBS não integra a própria base — incidência por fora',
       validade: 'integral',
       nota:
         row.cbsRate === 0.9
@@ -1174,10 +1230,20 @@ export function computeExercicioArt12(
           : 'CBS 2027–2028 = referência − 0,1 p.p. (art. 347).',
     },
   })
+
+  const ibsLabel =
+    reducaoItemPct > 0
+      ? `(+) IBS ${fmt(aliquotaIbsEfetiva)}% destacado (redução ${reducaoItemPct}% ${input.ncmAnexo || 'LC 214/25'})`
+      : `(+) IBS ${fmt(row.ibsRate)}% destacado (por fora)`
+  const ibsFormula =
+    reducaoItemPct > 0
+      ? `${fmt(row.ibsRate)}% × (1 − ${reducaoItemPct}%) = ${fmt(aliquotaIbsEfetiva)}% × ${fmt(baseLimpa)} = ${fmt(ibsV)} (${input.ncmAnexo || 'LC 214/2025'} · ${input.ncmArtigoOrigem || 'art. 125+'})`
+      : `${fmt(row.ibsRate)}% × ${fmt(baseLimpa)} = ${fmt(ibsV)}`
+
   lines.push({
     key: 'ibs',
-    label: `(+) IBS ${fmt(row.ibsRate)}% destacado (por fora)`,
-    formula: `${fmt(row.ibsRate)}% × ${fmt(baseLimpa)} = ${fmt(ibsV)}`,
+    label: ibsLabel,
+    formula: ibsFormula,
     value: ibsV,
     kind: 'debito',
     bloco: 1,
@@ -1191,10 +1257,16 @@ export function computeExercicioArt12(
       },
       {
         ordem: 2,
-        descricao: 'IBS por fora (destacado na nota)',
-        expressao: `${fmt6(baseLimpa)} × ${fmt6(row.ibsRate / 100)}`,
+        descricao:
+          reducaoItemPct > 0
+            ? `IBS por fora com redução de ${reducaoItemPct}% (${input.ncmAnexo || 'LC 214/2025'})`
+            : 'IBS por fora (destacado na nota)',
+        expressao: `${fmt6(baseLimpa)} × ${fmt6(aliquotaIbsEfetiva / 100)}`,
         resultado: fmtMoney6(ibsV),
-        fundamento: 'Art. 12, §2º, I: IBS não integra a própria base.',
+        fundamento:
+          reducaoItemPct > 0
+            ? `Art. 12, §2º, I c/c ${input.ncmArtigoOrigem || 'LC 214/2025'} (redução de ${reducaoItemPct}%).`
+            : 'Art. 12, §2º, I: IBS não integra a própria base.',
       },
       {
         ordem: 3,
@@ -1202,22 +1274,26 @@ export function computeExercicioArt12(
         expressao: '—',
         resultado: fmt(ibsV),
         fundamento:
-          row.ibsRate === 0.1
-            ? 'IBS-teste 0,1% (art. 344: 0,05% estadual + 0,05% municipal).'
-            : `Fração de ${fmt(row.ibsRate)}% de ${fmt(17.7)}% (ADCT art. 128).`,
+          row.exercicio === 2026
+            ? 'Alíquota-teste 2026 (art. 343).'
+            : 'ADCT art. 128 (escalonamento gradual).',
       },
     ],
     fundamento: {
-      dispositivo: 'LC 214/2025, art. 12, §2º, I',
-      efeito: 'IBS não integra a própria base — incidência por fora',
+      dispositivo: input.ncmArtigoOrigem
+        ? `${input.ncmArtigoOrigem} c/c art. 12, §2º, I`
+        : 'LC 214/2025, art. 12, §2º, I',
+      efeito:
+        reducaoItemPct > 0
+          ? `IBS com redução de ${reducaoItemPct}% (${input.ncmAnexo || 'anexo'}) — incidência por fora`
+          : 'IBS não integra a própria base — incidência por fora',
       validade: 'integral',
       nota:
-        row.ibsRate === 0.1
-          ? 'IBS-teste 0,1% (art. 344: 0,05% estadual + 0,05% municipal).'
-          : `Fração de ${fmt(row.ibsRate)}% de ${fmt(IBS_PLENO)}% (ADCT art. 128).`,
+        row.exercicio === 2026
+          ? 'Alíquota-teste 2026 (LC 214/2025, art. 343).'
+          : 'ADCT art. 128 (escalonamento gradual).',
     },
   })
-
   // 7) PENDÊNCIA — base do ICMS na transição: preço da nota do fornecedor
   // Tese do Fisco: ICMS por dentro sobre operação + CBS + IBS → nota = (base+CBS+IBS)/(1−t_ex)
   // Tese do Contribuinte: ICMS sobre a operação sem CBS/IBS → nota = base/(1−t_ex) + CBS + IBS
@@ -1683,6 +1759,13 @@ export function computeCellArt12Item(
     icmsRate: item.icmsRate || 0,
     icmsFreightRate: item.icmsFreightRate || 0,
     ipiRate: item.ipiRate || 0,
+    ncm: item.ncm,
+    ncmPercentualReducao: item.ncmPercentualReducao,
+    ncmAnexo: item.ncmAnexo,
+    ncmArtigoOrigem: item.ncmArtigoOrigem,
+    ncmDescricaoReducao: item.ncmDescricaoReducao,
+    ncmFonte: item.ncmFonte,
+    cClassTribCodigo: item.cClassTribCodigo,
   }
   return computeCellArt12(input, config, row)
 }

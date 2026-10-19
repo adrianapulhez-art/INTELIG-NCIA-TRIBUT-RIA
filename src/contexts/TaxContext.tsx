@@ -279,6 +279,15 @@ export interface PurchaseItem {
   unitCostPresumido: number
   unitCostReal: number
   unitCostSimples: number
+  // CLASSIFICAÇÃO FISCAL NCM/SH — LC 214/2025 (Fase 3 — Adriana)
+  ncm?: string // 8 dígitos (ex.: "9402.90.00" ou "94029000")
+  ncmPercentualReducao?: number // 0, 60, 100 etc.
+  ncmAnexo?: string // "Anexo I", "Anexo IV", etc.
+  ncmArtigoOrigem?: string // ex.: "Art. 131, LC 214/2025"
+  ncmDescricaoReducao?: string
+  ncmFonte?: string // fonte oficial Planalto / DOU
+  ncmOpcaoId?: string // id da opção do anexo selecionada (resolução de ambiguidade)
+  cClassTribCodigo?: string // código da Tabela Oficial cClassTrib (ex.: "000001", "100003")
 }
 
 export interface DeductionCostItem {
@@ -3114,6 +3123,14 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         unitCostPresumido: Number.isFinite(unitCostPresumido) ? unitCostPresumido : 0,
         unitCostReal: Number.isFinite(unitCostReal) ? unitCostReal : 0,
         unitCostSimples: Number.isFinite(unitCostSimples) ? unitCostSimples : 0,
+        ncm: item.ncm,
+        ncmPercentualReducao: item.ncmPercentualReducao,
+        ncmAnexo: item.ncmAnexo,
+        ncmArtigoOrigem: item.ncmArtigoOrigem,
+        ncmDescricaoReducao: item.ncmDescricaoReducao,
+        ncmFonte: item.ncmFonte,
+        ncmOpcaoId: item.ncmOpcaoId,
+        cClassTribCodigo: item.cClassTribCodigo,
       }
     })
   }, [purchasesItems, realFreightPisCofinsMethod])

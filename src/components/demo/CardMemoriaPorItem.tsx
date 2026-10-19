@@ -1,6 +1,8 @@
-import { Calculator, Layers, ShoppingCart, Building2, Wallet } from 'lucide-react'
+import { Calculator, Layers, ShoppingCart, Building2, Wallet, Tag } from 'lucide-react'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { formatarMascaraNcm } from '@/services/ncmClassificationService'
 import {
   type CellConfigArt,
   type CellResultArt,
@@ -133,9 +135,27 @@ export function CardMemoriaPorItem({
           className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 space-y-3.5 shadow-2xs"
         >
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
-            <span className="text-sm font-bold font-mono text-slate-900 uppercase tracking-wide">
-              Item {String(idx + 1).padStart(2, '0')} · {item.name || '—'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold font-mono text-slate-900 uppercase tracking-wide">
+                Item {String(idx + 1).padStart(2, '0')} · {item.name || '—'}
+              </span>
+              {item.ncm && (
+                <Badge className="bg-slate-100 text-slate-700 border-slate-300 font-mono text-[10px]">
+                  NCM {formatarMascaraNcm(item.ncm)}
+                </Badge>
+              )}
+              {item.ncmPercentualReducao && item.ncmPercentualReducao > 0 ? (
+                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-mono text-[10px] font-bold">
+                  <Tag className="w-2.5 h-2.5 mr-1 text-emerald-600" />
+                  redução {item.ncmAnexo || 'LC 214/25'} · {item.ncmArtigoOrigem || 'art. 125+'} ·{' '}
+                  {item.ncmPercentualReducao}%
+                </Badge>
+              ) : (
+                <Badge className="bg-slate-50 text-slate-500 border-slate-200 font-mono text-[10px]">
+                  Sem redutor — alíquota cheia
+                </Badge>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-slate-600">
                 {formatNumberBR(item.quantity, 0)} un. · {formatBRL(item.merchandiseValue)} + frete{' '}

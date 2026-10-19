@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ShoppingBasket,
@@ -8,12 +8,17 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  Tag,
+  Info,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { usePurchaseCollapseState } from '@/hooks/usePurchaseCollapseState'
 import { type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
 import { formatBRL, formatNumberBR } from '@/lib/taxCalculations'
+import { formatarMascaraNcm } from '@/services/ncmClassificationService'
+import { ItemClassificacaoDrawer } from '@/components/demo/ItemClassificacaoDrawer'
+import { useTaxContext } from '@/contexts/TaxContext'
 
 const CLASSE_STYLE: Record<string, string> = {
   A: 'bg-emerald-100 text-emerald-800 border-emerald-300',
@@ -40,14 +45,41 @@ export function PainelIntegracaoOrigem({
   onCarregarExemplo: () => void
 }) {
   const navigate = useNavigate()
+  const { updatePurchaseItem } = useTaxContext()
   const itensComValor = itensOrigem.filter((i) => i.valorNota > 0)
   const totalNota = itensComValor.reduce((a, i) => a + i.valorNota, 0)
   const totalQtd = itensComValor.reduce((a, i) => a + (i.quantity || 0), 0)
+
+  // Estado da nota de rodapé colapsável (recolhida por padrão)
+  const [notaRodapeAberta, setNotaRodapeAberta] = useState(false)
 
   // Gerenciamento de abrir/recolher itens copiando o padrão da Calculadora de Compras
   const itemIds = useMemo(() => itensOrigem.map((i) => i.id), [itensOrigem])
   const { isCollapsed, toggleItem, collapseAll, expandAll, allCollapsed, allExpanded } =
     usePurchaseCollapseState('reforma-itens', itemIds)
+
+  const handleAtualizarClassificacao = (
+    id: string,
+    dados: {
+      ncm: string
+      ncmPercentualReducao: number
+      ncmAnexo?: string
+      ncmArtigoOrigem?: string
+      ncmDescricaoReducao?: string
+      ncmFonte?: string
+      ncmOpcaoId?: string
+      cClassTribCodigo?: string
+    },
+  ) => {
+    updatePurchaseItem(id, 'ncm', dados.ncm)
+    updatePurchaseItem(id, 'ncmPercentualReducao', dados.ncmPercentualReducao)
+    updatePurchaseItem(id, 'ncmAnexo', dados.ncmAnexo)
+    updatePurchaseItem(id, 'ncmArtigoOrigem', dados.ncmArtigoOrigem)
+    updatePurchaseItem(id, 'ncmDescricaoReducao', dados.ncmDescricaoReducao)
+    updatePurchaseItem(id, 'ncmFonte', dados.ncmFonte)
+    updatePurchaseItem(id, 'ncmOpcaoId', dados.ncmOpcaoId)
+    updatePurchaseItem(id, 'cClassTribCodigo', dados.cClassTribCodigo)
+  }
 
   return (
     <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-3">
@@ -168,6 +200,8 @@ export function PainelIntegracaoOrigem({
                   <th className="text-right px-3 py-2 font-bold">ICMS</th>
                   <th className="text-right px-3 py-2 font-bold">IPI</th>
                   <th className="text-center px-3 py-2 font-bold">ABC</th>
+                  <th className="text-center px-3 py-2 font-bold">NCM/SH</th>
+                  <th className="text-center px-3 py-2 font-bold">Classificação</th>
                   <th className="text-right px-3 py-2 font-bold">Valor da nota</th>
                   <th className="text-center px-3 py-2 font-bold rounded-tr-xl w-24">Ação</th>
                 </tr>
@@ -189,7 +223,7 @@ export function PainelIntegracaoOrigem({
                         <td className="px-3 py-2" colSpan={7}>
                           <div className="flex items-center gap-2">
                             <span
-                              className="text-slate-900 font-medium max-w-[240px] truncate"
+                              className="text-slate-900 font-medium max-w-[200px] truncate"
                               title={i.name}
                             >
                               {i.name || `Item ${idx + 1}`}
@@ -197,15 +231,26 @@ export function PainelIntegracaoOrigem({
                             <span className="text-[11px] text-slate-500 font-mono">
                               ({formatNumberBR(i.quantity, 0)} un.)
                             </span>
-                            <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-[10px] px-1.5 py-0 font-normal">
-                              recolhido
-                            </Badge>
                             <span
                               className={`inline-block px-1.5 py-0.2 rounded border text-[9px] font-bold ${CLASSE_STYLE[i.classe]}`}
                             >
                               ABC {i.classe}
                             </span>
                           </div>
+                        </td>
+                        <td className="px-3 py-2 text-center font-mono text-[11px] text-slate-600">
+                          {i.ncm ? formatarMascaraNcm(i.ncm) : '—'}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {i.ncmPercentualReducao && i.ncmPercentualReducao > 0 ? (
+                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                              {i.ncmAnexo || 'Redução'} · {i.ncmPercentualReducao}%
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-[10px] font-normal">
+                              Alíquota cheia
+                            </Badge>
+                          )}
                         </td>
                         <td className="px-3 py-2 text-right text-slate-900 font-bold">
                           {formatBRL(i.valorNota)}
@@ -215,7 +260,7 @@ export function PainelIntegracaoOrigem({
                             type="button"
                             onClick={() => toggleItem(i.id)}
                             className="inline-flex items-center gap-1 text-[11px] text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 px-2 py-0.5 rounded cursor-pointer transition-all shadow-sm font-medium"
-                            title="Expandir linha deste item"
+                            title="Expandir classificação deste item"
                           >
                             <ChevronDown className="w-3 h-3 text-slate-500" />
                             <span>Expandir</span>
@@ -225,60 +270,94 @@ export function PainelIntegracaoOrigem({
                     )
                   }
 
+                  const temReducao = Boolean(i.ncmPercentualReducao && i.ncmPercentualReducao > 0)
+
                   return (
-                    <tr
-                      key={i.id}
-                      className={`border-t border-slate-200 hover:bg-slate-50 transition-colors ${i.valorNota <= 0 ? 'opacity-40' : ''}`}
-                    >
-                      <td className="py-2.5 px-3 text-center">
-                        <span className="w-5 h-5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 inline-flex items-center justify-center text-white font-semibold text-[10px] shadow-sm">
-                          {idx + 1}
-                        </span>
-                      </td>
-                      <td
-                        className="px-3 py-2 text-slate-900 max-w-[180px] truncate font-medium"
-                        title={i.name}
+                    <React.Fragment key={i.id}>
+                      <tr
+                        className={`border-t border-slate-200 hover:bg-slate-50 transition-colors ${i.valorNota <= 0 ? 'opacity-40' : ''}`}
                       >
-                        {i.name || '—'}
-                      </td>
-                      <td className="px-3 py-2 text-right text-slate-700">
-                        {formatNumberBR(i.quantity, 0)}
-                      </td>
-                      <td className="px-3 py-2 text-right text-slate-700">
-                        {formatBRL(i.merchandiseValue)}
-                      </td>
-                      <td className="px-3 py-2 text-right text-slate-700">
-                        {formatBRL(i.freightValue)}
-                      </td>
-                      <td className="px-3 py-2 text-right text-slate-600">
-                        {formatNumberBR(i.icmsRate)}%
-                      </td>
-                      <td className="px-3 py-2 text-right text-slate-600">
-                        {formatNumberBR(i.ipiRate)}%
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        <span
-                          className={`inline-block px-1.5 py-0.5 rounded border text-[10px] font-bold ${CLASSE_STYLE[i.classe]}`}
-                          title={`${formatNumberBR(i.abcPct)}% do valor total`}
+                        <td className="py-2.5 px-3 text-center">
+                          <span className="w-5 h-5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 inline-flex items-center justify-center text-white font-semibold text-[10px] shadow-sm">
+                            {idx + 1}
+                          </span>
+                        </td>
+                        <td
+                          className="px-3 py-2 text-slate-900 max-w-[170px] truncate font-medium"
+                          title={i.name}
                         >
-                          {i.classe}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-right text-slate-900 font-bold">
-                        {formatBRL(i.valorNota)}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => toggleItem(i.id)}
-                          className="inline-flex items-center gap-1 text-[11px] text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 px-2 py-0.5 rounded transition-all cursor-pointer shadow-sm font-medium"
-                          title="Recolher linha deste item"
-                        >
-                          <ChevronUp className="w-3 h-3 text-slate-500" />
-                          <span>Recolher</span>
-                        </button>
-                      </td>
-                    </tr>
+                          {i.name || '—'}
+                        </td>
+                        <td className="px-3 py-2 text-right text-slate-700">
+                          {formatNumberBR(i.quantity, 0)}
+                        </td>
+                        <td className="px-3 py-2 text-right text-slate-700">
+                          {formatBRL(i.merchandiseValue)}
+                        </td>
+                        <td className="px-3 py-2 text-right text-slate-700">
+                          {formatBRL(i.freightValue)}
+                        </td>
+                        <td className="px-3 py-2 text-right text-slate-600">
+                          {formatNumberBR(i.icmsRate)}%
+                        </td>
+                        <td className="px-3 py-2 text-right text-slate-600">
+                          {formatNumberBR(i.ipiRate)}%
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <span
+                            className={`inline-block px-1.5 py-0.5 rounded border text-[10px] font-bold ${CLASSE_STYLE[i.classe]}`}
+                            title={`${formatNumberBR(i.abcPct)}% do valor total`}
+                          >
+                            {i.classe}
+                          </span>
+                        </td>
+                        {/* Coluna NCM/SH */}
+                        <td className="px-3 py-2 text-center font-mono text-[11px] text-slate-800">
+                          {i.ncm ? (
+                            <span className="font-bold">{formatarMascaraNcm(i.ncm)}</span>
+                          ) : (
+                            <span className="text-slate-400 italic">Pendente</span>
+                          )}
+                        </td>
+                        {/* Coluna Classificação com Badge */}
+                        <td className="px-3 py-2 text-center">
+                          {temReducao ? (
+                            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                              <Tag className="w-2.5 h-2.5 mr-1 text-emerald-600" />
+                              {i.ncmAnexo || 'Redução'} · {i.ncmPercentualReducao}%
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-slate-100 text-slate-700 border-slate-300 text-[10px] font-medium">
+                              Sem redutor — alíquota cheia
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right text-slate-900 font-bold">
+                          {formatBRL(i.valorNota)}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleItem(i.id)}
+                            className="inline-flex items-center gap-1 text-[11px] text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 px-2 py-0.5 rounded transition-all cursor-pointer shadow-sm font-medium"
+                            title="Recolher classificação deste item"
+                          >
+                            <ChevronUp className="w-3 h-3 text-slate-500" />
+                            <span>Recolher</span>
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* LINHA EXPANDIDA: PAINEL DE CLASSIFICAÇÃO COM CAMADAS INTERNAS RECUADAS */}
+                      <tr className="border-t border-slate-200 bg-slate-50/40">
+                        <td colSpan={12} className="p-0">
+                          <ItemClassificacaoDrawer
+                            item={i}
+                            onAtualizarClassificacao={handleAtualizarClassificacao}
+                          />
+                        </td>
+                      </tr>
+                    </React.Fragment>
                   )
                 })}
               </tbody>
@@ -294,6 +373,9 @@ export function PainelIntegracaoOrigem({
                       itens
                     </span>
                   </td>
+                  <td className="px-3 py-2 text-center text-slate-300 text-[11px]" colSpan={2}>
+                    Classificação por item (Fase 3)
+                  </td>
                   <td className="px-3 py-2 text-right font-bold text-emerald-400">
                     {formatBRL(totalNota)}
                   </td>
@@ -306,15 +388,45 @@ export function PainelIntegracaoOrigem({
           </div>
         </div>
       )}
+
+      {/* NOTA DE RODAPÉ COLAPSÁVEL — RECOLHIDA POR PADRÃO (DETERMINAÇÃO DA ADRI) */}
       {itensComValor.length > 0 && (
-        <div className="flex items-center gap-2 text-xs font-mono text-emerald-900 bg-emerald-100/70 border border-emerald-300 rounded-xl p-3">
-          <Link2 className="w-4 h-4 shrink-0 text-emerald-700" />
-          <span>
-            Vínculo automático: todos os resultados (memórias, matriz, réguas, espelho, notas)
-            derivam destes itens. Zerar a Compras zera a célula — salvar o cenário preserva o
-            vínculo. Edições entram no cenário ativo automaticamente (auto-sync): F5 reidrata o
-            estado atual, nunca um snapshot antigo.
-          </span>
+        <div className="rounded-xl border border-emerald-300 bg-emerald-100/60 overflow-hidden font-mono text-xs">
+          <button
+            type="button"
+            onClick={() => setNotaRodapeAberta((v) => !v)}
+            className="w-full flex items-center justify-between gap-2 p-3 text-left font-bold text-emerald-950 hover:bg-emerald-100 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <Link2 className="w-4 h-4 shrink-0 text-emerald-700" />
+              <span>Vínculo automático ativo — Regra de rastreabilidade e auto-sync</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 font-normal">
+              <span>{notaRodapeAberta ? 'Ocultar detalhes' : 'Ver nota explicativa'}</span>
+              {notaRodapeAberta ? (
+                <ChevronUp className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
+            </div>
+          </button>
+          {notaRodapeAberta && (
+            <div className="p-3 pt-0 text-[11px] text-emerald-900 border-t border-emerald-200/60 leading-relaxed bg-emerald-50/50 space-y-1.5">
+              <p>
+                <strong>Vínculo automático:</strong> todos os resultados (memórias, matriz, réguas,
+                espelho, notas) derivam destes itens. Zerar a Compras zera a célula — salvar o
+                cenário preserva o vínculo. Edições entram no cenário ativo automaticamente
+                (auto-sync): F5 reidrata o estado atual, nunca um snapshot antigo.
+              </p>
+              <div className="flex items-center gap-1.5 text-[10px] text-emerald-800 pt-1 border-t border-emerald-200/50">
+                <Info className="w-3 h-3 text-emerald-700 shrink-0" />
+                <span>
+                  Classificação Fiscal (LC 214/2025): NCM e redutor apurados item a item repercutem
+                  automaticamente na base do IBS/CBS e na memória de cálculo dos exercícios 2027+.
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

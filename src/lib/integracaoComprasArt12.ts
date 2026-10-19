@@ -29,6 +29,15 @@ export interface ItemComprasOrigem {
   ipiRate: number
   hasSt: boolean
   stValue: number
+  // CLASSIFICAÇÃO FISCAL NCM/SH — LC 214/2025 (Fase 3 — Adriana)
+  ncm?: string
+  ncmPercentualReducao?: number
+  ncmAnexo?: string
+  ncmArtigoOrigem?: string
+  ncmDescricaoReducao?: string
+  ncmFonte?: string
+  ncmOpcaoId?: string
+  cClassTribCodigo?: string
 }
 
 export interface ItemIntegracaoArt12 {
@@ -48,6 +57,15 @@ export interface ItemIntegracaoArt12 {
   abcPct: number
   /** Classe ABC por acumulação desc de valor: A até 80%, B até 95%, C o resto. */
   classe: 'A' | 'B' | 'C' | '—'
+  // CLASSIFICAÇÃO FISCAL NCM/SH — LC 214/2025 (Fase 3 — Adriana)
+  ncm?: string
+  ncmPercentualReducao?: number
+  ncmAnexo?: string
+  ncmArtigoOrigem?: string
+  ncmDescricaoReducao?: string
+  ncmFonte?: string
+  ncmOpcaoId?: string
+  cClassTribCodigo?: string
 }
 
 const r2 = (v: number) => Math.round(v * 100) / 100
@@ -77,6 +95,13 @@ export function derivarCasoUnitario(items: ItemIntegracaoArt12[]): CasoUnitario 
     icmsRate: primeiro.icmsRate || 0,
     icmsFreightRate: primeiro.icmsFreightRate || 0,
     ipiRate: primeiro.ipiRate || 0,
+    ncm: primeiro.ncm,
+    ncmPercentualReducao: primeiro.ncmPercentualReducao,
+    ncmAnexo: primeiro.ncmAnexo,
+    ncmArtigoOrigem: primeiro.ncmArtigoOrigem,
+    ncmDescricaoReducao: primeiro.ncmDescricaoReducao,
+    ncmFonte: primeiro.ncmFonte,
+    cClassTribCodigo: primeiro.cClassTribCodigo,
   }
   return { input, item: primeiro, pendentesPorItem: comValor.slice(1) }
 }
@@ -95,6 +120,14 @@ export function montarItensIntegracao(origem: ItemComprasOrigem[]): ItemIntegrac
     ),
     abcPct: 0,
     classe: '—',
+    ncm: i.ncm,
+    ncmPercentualReducao: i.ncmPercentualReducao,
+    ncmAnexo: i.ncmAnexo,
+    ncmArtigoOrigem: i.ncmArtigoOrigem,
+    ncmDescricaoReducao: i.ncmDescricaoReducao,
+    ncmFonte: i.ncmFonte,
+    ncmOpcaoId: i.ncmOpcaoId,
+    cClassTribCodigo: i.cClassTribCodigo,
   }))
   const total = base.reduce((a, i) => a + i.valorNota, 0)
   const ordenados = [...base].sort((a, b) => b.valorNota - a.valorNota)

@@ -545,6 +545,7 @@ export function CmvArt12Module() {
     updatePurchaseItem(idA, 'icmsFreightRate', 18)
     updatePurchaseItem(idA, 'icmsFreightValue', 72)
     updatePurchaseItem(idA, 'ipiRate', 10)
+    updatePurchaseItem(idA, 'ncm', '8517.13.00')
     const idB = addPurchaseItem('Capa protetora (exemplo)')
     updatePurchaseItem(idB, 'quantity', 30)
     updatePurchaseItem(idB, 'unitPrice', 35)
@@ -553,6 +554,7 @@ export function CmvArt12Module() {
     updatePurchaseItem(idB, 'icmsRate', 18)
     updatePurchaseItem(idB, 'icmsFreightRate', 18)
     updatePurchaseItem(idB, 'icmsFreightValue', 9)
+    updatePurchaseItem(idB, 'ncm', '3926.90.90')
   }
 
   const rowBase = useMemo(
