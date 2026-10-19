@@ -1,4 +1,4 @@
-import { pb } from '@/lib/pocketbase/client'
+import pb from '@/lib/pocketbase/client'
 import { classificarNcmEmTempoReal, type ClassificacaoNcmResult } from './ncmClassificationService'
 
 export interface NcmTabelaRecord {
