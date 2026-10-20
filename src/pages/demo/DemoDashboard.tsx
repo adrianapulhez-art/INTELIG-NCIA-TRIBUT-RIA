@@ -24,9 +24,6 @@ interface ToolCard {
   subtitle: string
   description: string
   path: string
-  gradient: string
-  borderAccent: string
-  accentColor: string
   icon: React.ElementType
 }
 
@@ -42,9 +39,6 @@ export default function DemoDashboard() {
       description:
         'Acréscimos, deduções e tributos recuperáveis para composição exata do CMV em todos os regimes tributários.',
       path: '/demo/compras',
-      gradient: 'from-[#0b2b28]/90 via-[#09201f]/80 to-[#051414]/95',
-      borderAccent: 'border-teal-500/30 hover:border-teal-400/60',
-      accentColor: 'text-teal-400',
       icon: ShoppingCart,
     },
     {
@@ -55,9 +49,6 @@ export default function DemoDashboard() {
       description:
         'Precificação inteligente por dentro e por fora, alíquotas personalizadas e múltiplos produtos em simultâneo.',
       path: '/demo/markup',
-      gradient: 'from-[#143329]/90 via-[#0d261e]/80 to-[#071612]/95',
-      borderAccent: 'border-emerald-500/30 hover:border-emerald-400/60',
-      accentColor: 'text-emerald-400',
       icon: Calculator,
     },
     {
@@ -68,9 +59,6 @@ export default function DemoDashboard() {
       description:
         'Tabela específica de despesas com vendas, administrativas, financeiras e receitas operacionais para apuração exata do LAIR em todos os regimes.',
       path: '/demo/despesas-operacionais',
-      gradient: 'from-[#2c1d0c]/90 via-[#1f1508]/80 to-[#120c04]/95',
-      borderAccent: 'border-orange-500/30 hover:border-orange-400/60',
-      accentColor: 'text-orange-400',
       icon: Receipt,
     },
     {
@@ -81,9 +69,6 @@ export default function DemoDashboard() {
       description:
         'Margens de presunção por atividade, adicional de 10%, folha patronal e exclusão do ICMS na base PIS/COFINS.',
       path: '/demo/dre-presumido',
-      gradient: 'from-[#0e2c2c]/90 via-[#0a2123]/80 to-[#061417]/95',
-      borderAccent: 'border-cyan-500/30 hover:border-cyan-400/60',
-      accentColor: 'text-cyan-400',
       icon: Receipt,
     },
     {
@@ -94,9 +79,6 @@ export default function DemoDashboard() {
       description:
         'Apuração com deduções integrais de insumos, créditos de PIS 1,65% / COFINS 7,6% e tributação sobre lucro contábil.',
       path: '/demo/dre-real',
-      gradient: 'from-[#132a23]/90 via-[#0e1f1a]/80 to-[#061210]/95',
-      borderAccent: 'border-emerald-500/30 hover:border-emerald-400/60',
-      accentColor: 'text-emerald-400',
       icon: FileSpreadsheet,
     },
     {
@@ -107,9 +89,6 @@ export default function DemoDashboard() {
       description:
         'Alíquota efetiva oficial por faixa, 5 anexos, segregação de tributos e Fator R automático para serviços.',
       path: '/demo/simples',
-      gradient: 'from-[#123326]/90 via-[#0d261e]/80 to-[#071612]/95',
-      borderAccent: 'border-emerald-500/30 hover:border-emerald-400/60',
-      accentColor: 'text-emerald-300',
       icon: PieChart,
     },
     {
@@ -120,9 +99,6 @@ export default function DemoDashboard() {
       description:
         'Diagnóstico comparativo consolidado em tempo real, KPIs executivos, composição de CMV e análise de viabilidade dos regimes.',
       path: '/demo/dashboard',
-      gradient: 'from-[#10382e]/90 via-[#0a2922]/80 to-[#061814]/95',
-      borderAccent: 'border-emerald-400/35 hover:border-emerald-300/70',
-      accentColor: 'text-emerald-300',
       icon: Scale,
     },
     {
@@ -133,12 +109,8 @@ export default function DemoDashboard() {
       description:
         'Simulação da transição completa (LC 214/2025), alíquotas vigentes por ano, ponto de virada, precificação por fora e créditos amplos.',
       path: '/demo/reforma',
-      gradient: 'from-[#0b2f28]/90 via-[#07241e]/85 to-[#041511]/95',
-      borderAccent: 'border-emerald-400/40 hover:border-emerald-300/80',
-      accentColor: 'text-emerald-300',
       icon: Layers,
     },
-
     {
       id: 'clientes',
       tag: 'GESTÃO DE CENÁRIOS',
@@ -147,9 +119,6 @@ export default function DemoDashboard() {
       description:
         'Banco de simulações em nuvem, histórico de diagnósticos de clientes e restauração instantânea de cenários.',
       path: '/demo/clientes',
-      gradient: 'from-[#12282c]/90 via-[#0c1f23]/80 to-[#061317]/95',
-      borderAccent: 'border-teal-500/30 hover:border-teal-400/60',
-      accentColor: 'text-teal-300',
       icon: Users,
     },
     {
@@ -160,9 +129,6 @@ export default function DemoDashboard() {
       description:
         '10 capítulos com o Caso Adriana ao centavo: cadastro, modos, regimes, Memória de Cálculo, comparativos e integração com Compras. Base de conhecimento do Assistente IT.',
       path: '/demo/manual',
-      gradient: 'from-[#1a2c14]/90 via-[#142011]/80 to-[#0b1207]/95',
-      borderAccent: 'border-lime-500/30 hover:border-lime-400/60',
-      accentColor: 'text-lime-400',
       icon: BookOpen,
     },
   ]
@@ -235,7 +201,7 @@ export default function DemoDashboard() {
           </span>
         </div>
 
-        {/* Grid de GRANDES CARDS estilo ADAPTA (cantos arredondados ~24px, tom sobre tom verde fumê, botão Acessar no topo direito) */}
+        {/* Grid de GRANDES CARDS — Tratamento DOURADO Metálico chancelado para teste visual da Adri */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {tools.map((tool) => {
             const Icon = tool.icon
@@ -243,53 +209,73 @@ export default function DemoDashboard() {
               <div
                 key={tool.id}
                 onClick={() => navigate(tool.path)}
-                className={`group relative overflow-hidden rounded-[24px] border ${tool.borderAccent} bg-gradient-to-b ${tool.gradient} p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-emerald-950/60 cursor-pointer flex flex-col justify-between min-h-[220px] backdrop-blur-sm`}
+                className="group relative overflow-hidden rounded-[24px] border border-amber-300/80 hover:border-amber-200 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-900/30 cursor-pointer flex flex-col justify-between min-h-[220px] shadow-lg shadow-amber-950/15 bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14]"
               >
-                {/* Glow sutil tom sobre tom no hover */}
-                <div className="pointer-events-none absolute -top-16 -right-16 w-40 h-40 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-400/20 transition-all duration-300" />
-                <div className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-10 group-hover:opacity-20 transition-opacity" />
+                {/* 1. Camada de reflexo metálico escovado horizontal com faixas de brilho lateral (inspiração Ref 1) */}
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-40 mix-blend-overlay"
+                  style={{
+                    background:
+                      'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.85) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.9) 72%, rgba(150,95,10,0.5) 100%)',
+                  }}
+                />
 
-                {/* Topo do Card: Marca/Tag à esquerda + Botão 'Acessar' pill no canto superior direito (estilo Adapta) */}
+                {/* 2. Camada de textura/grão folheado a ouro suave (gold foil / brush lines, inspiração Ref 3) */}
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-20 mix-blend-soft-light"
+                  style={{
+                    backgroundImage:
+                      'repeating-linear-gradient(0deg, rgba(255,255,255,0.25) 0px, rgba(255,255,255,0.25) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 50% 50%, rgba(255,230,120,0.6), transparent 80%)',
+                  }}
+                />
+
+                {/* 3. Brilho chanfrado superior (beveled edge highlight) */}
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-80" />
+
+                {/* 4. Sheen dinâmico ao passar o mouse (brilho diagonal fluido de ouro polido) */}
+                <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/30 to-transparent -rotate-45 translate-x-[-120%] group-hover:translate-x-[120%] transition-transform duration-1000 ease-in-out" />
+
+                {/* Topo do Card: Marca/Tag à esquerda + Botão 'Acessar' pill no canto superior direito */}
                 <div className="relative z-10 flex items-start justify-between gap-3 mb-4">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-mono tracking-widest uppercase font-bold text-emerald-400/80">
+                    <span className="text-[10px] font-mono tracking-widest uppercase font-extrabold text-[#5c3e06] drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
                       IT • {tool.tag}
                     </span>
-                    <span className="text-[11px] text-slate-400 font-sans mt-0.5">
+                    <span className="text-[11px] text-[#4a3307] font-semibold font-sans mt-0.5">
                       {tool.subtitle}
                     </span>
                   </div>
 
-                  {/* Botão Pill Acessar no canto superior direito (como no card Adapta) */}
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-slate-950/70 border border-emerald-500/30 text-emerald-300 group-hover:bg-emerald-500 group-hover:text-slate-950 group-hover:border-emerald-400 transition-all duration-200 text-xs font-bold font-sans shadow-sm shrink-0">
+                  {/* Botão Pill Acessar no canto superior direito — contraste elegante escuro/dourado */}
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#3b2405]/90 border border-amber-300/50 text-[#fff5cc] group-hover:bg-[#1a0f02] group-hover:text-amber-200 group-hover:border-amber-200 transition-all duration-200 text-xs font-bold font-sans shadow-md shrink-0">
                     <span>Acessar</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform text-amber-300" />
                   </span>
                 </div>
 
-                {/* Corpo do Card: Título grande em caixa alta + Descrição funcional */}
+                {/* Corpo do Card: Título grande em caixa alta + Descrição com contraste nítido */}
                 <div className="relative z-10 space-y-2 my-auto">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#3b2405]/85 border border-amber-300/60 flex items-center justify-center text-amber-300 shadow-sm shrink-0 group-hover:scale-105 transition-transform">
                       <Icon className="w-3.5 h-3.5" />
                     </div>
-                    <h3 className="text-lg sm:text-xl font-extrabold text-white tracking-tight group-hover:text-emerald-300 transition-colors">
+                    <h3 className="text-lg sm:text-xl font-black text-[#261502] tracking-tight group-hover:text-[#0f0800] transition-colors drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
                       {tool.title}
                     </h3>
                   </div>
 
-                  <p className="text-xs text-emerald-100/70 leading-relaxed font-sans line-clamp-2">
+                  <p className="text-xs text-[#3f2a05] font-medium leading-relaxed font-sans line-clamp-2">
                     {tool.description}
                   </p>
                 </div>
 
-                {/* Rodapé do Card: Linha discreta de navegação */}
-                <div className="relative z-10 pt-3 mt-3 border-t border-emerald-500/15 flex items-center justify-between text-[11px] font-mono text-emerald-400/80">
+                {/* Rodapé do Card: Linha discreta de navegação com alto contraste e legibilidade */}
+                <div className="relative z-10 pt-3 mt-3 border-t border-[#8f5d0b]/30 flex items-center justify-between text-[11px] font-mono text-[#4a3307] font-bold">
                   <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-[#3b2405] shadow-[0_0_6px_rgba(255,255,255,0.8)] animate-pulse" />
                     Módulo integrado
                   </span>
-                  <span className="group-hover:text-emerald-300 transition-colors">
+                  <span className="text-[#331d03] group-hover:text-black group-hover:translate-x-0.5 transition-all">
                     Abrir tela &rarr;
                   </span>
                 </div>
