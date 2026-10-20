@@ -133,7 +133,7 @@ export default function ManualPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar no manual…"
-                className="pl-9 bg-slate-50 border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-emerald-500 rounded-xl"
+                className="pl-9 bg-slate-50 border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-amber-500 rounded-xl"
               />
               {query && (
                 <button
@@ -161,7 +161,7 @@ export default function ManualPage() {
                       handleSelectChapter(chapter.id)
                       setQuery('')
                     }}
-                    className="w-full text-left rounded-xl px-2.5 py-2 hover:bg-emerald-50 text-slate-700 hover:text-emerald-900 transition-colors cursor-pointer"
+                    className="w-full text-left rounded-xl px-2.5 py-2 hover:bg-amber-50 text-slate-700 hover:text-[#261502] transition-colors cursor-pointer"
                   >
                     <span className="text-xs font-semibold text-slate-900 block">
                       {chapter.title}
@@ -185,13 +185,13 @@ export default function ManualPage() {
                       onClick={() => handleSelectChapter(c.id)}
                       className={`w-full text-left rounded-xl px-3 py-2 text-xs font-medium transition-all duration-150 cursor-pointer flex items-start gap-2.5 ${
                         isActive
-                          ? 'bg-emerald-600 text-white shadow-xs font-bold'
-                          : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100/90'
+                          ? 'bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] shadow-xs font-bold border border-amber-300'
+                          : 'text-slate-700 hover:text-slate-950 hover:bg-amber-50/60'
                       }`}
                     >
                       <span
                         className={`font-mono text-[10px] mt-0.5 shrink-0 font-bold ${
-                          isActive ? 'text-emerald-100' : 'text-slate-400'
+                          isActive ? 'text-[#3b2405]' : 'text-slate-400'
                         }`}
                       >
                         {String(c.num).padStart(2, '0')}
@@ -210,8 +210,8 @@ export default function ManualPage() {
           <article className="flex-1 min-w-0 bg-white border border-slate-200 rounded-3xl p-5 sm:p-7 shadow-xs">
             {/* Cabeçalho do capítulo com badge claro */}
             <div className="flex items-center gap-2 mb-5">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800 font-mono text-[10px] font-semibold tracking-wider uppercase">
-                <span className="w-6 h-6 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-300/80 bg-gradient-to-b from-[#f9e596]/30 to-[#e5b742]/20 text-[#3b2405] font-mono text-[10px] font-semibold tracking-wider uppercase shadow-2xs">
+                <span className="w-6 h-6 rounded-lg bg-gradient-to-b from-[#f9e596] to-[#e5b742] border border-amber-300 flex items-center justify-center text-[#261502]">
                   <FileText className="w-3.5 h-3.5" />
                 </span>
                 Capítulo {String(activeChapter.num).padStart(2, '0')} de {CHAPTERS.length}
@@ -234,9 +234,9 @@ export default function ManualPage() {
                 >
                   <span className="flex items-center gap-2.5 min-w-0">
                     {goldTipOpen ? (
-                      <ChevronDown className="w-4 h-4 text-emerald-300 shrink-0" />
+                      <ChevronDown className="w-4 h-4 text-amber-300 shrink-0" />
                     ) : (
-                      <ChevronRight className="w-4 h-4 text-emerald-300 shrink-0" />
+                      <ChevronRight className="w-4 h-4 text-amber-300 shrink-0" />
                     )}
                     <span className="w-6 h-6 rounded-md bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
                       <Lightbulb className="w-3.5 h-3.5 text-amber-300" />
@@ -245,7 +245,7 @@ export default function ManualPage() {
                       {GOLD_TIP_LABEL}
                     </span>
                   </span>
-                  <span className="text-[10px] font-mono font-bold text-emerald-200 bg-emerald-950/80 border border-emerald-500/40 rounded-full px-2.5 py-0.5 shrink-0">
+                  <span className="text-[10px] font-mono font-bold text-amber-200 bg-[#261502] border border-amber-500/50 rounded-full px-2.5 py-0.5 shrink-0">
                     {goldTipOpen ? 'Recolher' : 'Expandir nota'}
                   </span>
                 </button>
@@ -321,7 +321,7 @@ export default function ManualPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleSelectChapter(prevChapter.id)}
-                  className="text-xs bg-white border-slate-200 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 cursor-pointer shadow-xs gap-1"
+                  className="text-xs bg-white border-slate-200 text-slate-700 hover:text-[#261502] hover:bg-amber-50 hover:border-amber-300 cursor-pointer shadow-xs gap-1"
                 >
                   <ChevronRight className="w-3.5 h-3.5 rotate-180" />
                   <span>{prevChapter.title.replace(/^Capítulo \d+ — /, '')}</span>
@@ -334,7 +334,7 @@ export default function ManualPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleSelectChapter(nextChapter.id)}
-                  className="text-xs bg-white border-slate-200 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 cursor-pointer shadow-xs gap-1"
+                  className="text-xs bg-white border-slate-200 text-slate-700 hover:text-[#261502] hover:bg-amber-50 hover:border-amber-300 cursor-pointer shadow-xs gap-1"
                 >
                   <span>{nextChapter.title.replace(/^Capítulo \d+ — /, '')}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -355,18 +355,18 @@ export default function ManualPage() {
           >
             <span className="flex items-center gap-2.5 min-w-0">
               {footerNotesOpen ? (
-                <ChevronDown className="w-4 h-4 text-emerald-300 shrink-0" />
+                <ChevronDown className="w-4 h-4 text-amber-300 shrink-0" />
               ) : (
-                <ChevronRight className="w-4 h-4 text-emerald-300 shrink-0" />
+                <ChevronRight className="w-4 h-4 text-amber-300 shrink-0" />
               )}
-              <span className="w-6 h-6 rounded-md bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shrink-0">
-                <Info className="w-3.5 h-3.5 text-emerald-300" />
+              <span className="w-6 h-6 rounded-md bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
+                <Info className="w-3.5 h-3.5 text-amber-300" />
               </span>
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-white truncate text-left">
                 Notas Didáticas e Fundamentos de Base
               </span>
             </span>
-            <span className="text-[10px] font-mono font-bold text-emerald-200 bg-emerald-950/80 border border-emerald-500/40 rounded-full px-2.5 py-0.5 shrink-0">
+            <span className="text-[10px] font-mono font-bold text-amber-200 bg-[#261502] border border-amber-500/50 rounded-full px-2.5 py-0.5 shrink-0">
               {footerNotesOpen ? 'Recolher' : 'Ver fundamentos'}
             </span>
           </button>

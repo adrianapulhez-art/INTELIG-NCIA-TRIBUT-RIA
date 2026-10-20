@@ -286,10 +286,10 @@
   background: radial-gradient(circle at 50% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
 }
 
-/* Fundo limpo e suave para tema claro neutro */
+/* Fundo limpo e suave para tema claro neutro com atmosfera ouro sutil */
 .bg-emerald-smoky-atmosphere {
   background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(16, 185, 129, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(229, 183, 66, 0.08) 0%, transparent 70%),
     #f8fafc;
 }
 
@@ -300,7 +300,67 @@
   border: 1px solid #e2e8f0;
 }
 
-/* Campos de entrada/seleção interativos — neutros com foco no acento esmeralda */
+/* Tratamento oficial: Ouro Metálico Escovado com Brilho Dramático */
+.btn-gold-dramatic {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f9e596 0%, #e5b742 50%, #b87c14 100%);
+  border: 1px solid rgba(253, 230, 138, 0.9);
+  color: #261502;
+  font-weight: 800;
+  box-shadow: 0 4px 14px -2px rgba(59, 36, 5, 0.25);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-gold-dramatic:hover {
+  border-color: #fef08a;
+  color: #0f0700;
+  box-shadow: 0 10px 25px -4px rgba(229, 183, 66, 0.45);
+  transform: translateY(-1px);
+}
+.btn-gold-dramatic:active {
+  transform: translateY(0);
+}
+
+/* Sheen diagonal que cruza o elemento no hover */
+.sheen-gold {
+  position: absolute;
+  inset: -100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.7) 50%, transparent 100%);
+  transform: rotate(-45deg) translateX(-130%);
+  transition: transform 0.7s ease-out;
+  pointer-events-none;
+}
+
+/* Reflexo metálico especular */
+.gold-specular-reflection {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: overlay;
+  opacity: 0.45;
+  background: linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%);
+  pointer-events-none;
+  transition: opacity 0.3s ease;
+}
+
+/* Botão Marrom Nobre com borda âmbar e texto claro */
+.btn-brown-noble {
+  position: relative;
+  overflow: hidden;
+  background-color: #3b2405;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fff5cc;
+  font-weight: 700;
+  box-shadow: 0 2px 8px -1px rgba(38, 21, 2, 0.35);
+  transition: all 0.2s ease;
+}
+.btn-brown-noble:hover {
+  background-color: #261502;
+  border-color: #fcd34d;
+  color: #ffffff;
+  box-shadow: 0 4px 14px -2px rgba(38, 21, 2, 0.5);
+}
+
+/* Campos de entrada/seleção interativos — neutros com foco no acento âmbar/dourado */
 .field-input-interactive {
   background-color: #ffffff !important;
   border-color: #cbd5e1 !important;
@@ -322,11 +382,11 @@
 .field-input-interactive:focus-visible,
 .field-input-interactive:focus-within {
   background-color: #ffffff !important;
-  border-color: #059669 !important;
-  --tw-ring-color: rgba(5, 150, 105, 0.2) !important;
+  border-color: #d97706 !important;
+  --tw-ring-color: rgba(217, 119, 6, 0.2) !important;
   box-shadow:
-    0 0 0 1px #059669,
-    0 0 0 3px rgba(5, 150, 105, 0.15) !important;
+    0 0 0 1px #d97706,
+    0 0 0 3px rgba(217, 119, 6, 0.15) !important;
   outline: none !important;
 }
 @layer utilities {

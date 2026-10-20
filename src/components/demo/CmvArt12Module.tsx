@@ -662,10 +662,10 @@ export function CmvArt12Module() {
                   onClick={() => setExercicio(ex)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
                     ativo
-                      ? 'bg-emerald-600 text-white shadow-xs'
+                      ? 'bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] font-black shadow-xs border border-amber-300'
                       : r.pendente
                         ? 'text-rose-700 hover:bg-rose-50 border border-rose-200'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                        : 'text-slate-600 hover:text-[#261502] hover:bg-white'
                   }`}
                 >
                   {ex}
@@ -695,8 +695,8 @@ export function CmvArt12Module() {
                   onClick={() => setConfig((c) => ({ ...c, baseIcmsTransicao: t.v }))}
                   className={`px-3 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
                     config.baseIcmsTransicao === t.v
-                      ? 'bg-emerald-600 text-white font-bold shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                      ? 'bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] font-black shadow-xs border border-amber-300'
+                      : 'text-slate-600 hover:text-[#261502] hover:bg-white'
                   }`}
                 >
                   {t.label}
@@ -814,8 +814,8 @@ export function CmvArt12Module() {
                       onClick={() => setConfig((c) => ({ ...c, fornecedorRegime: rg }))}
                       className={`px-3 py-2 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
                         ativo
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                          ? 'bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] border-amber-300 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-amber-50/50 hover:text-slate-900'
                       }`}
                     >
                       {REGIME_LABEL[rg]} · {REGIME_LABEL_FULL[rg]}
@@ -845,8 +845,8 @@ export function CmvArt12Module() {
                       onClick={() => setConfig((c) => ({ ...c, fornecedorPerfil: pf }))}
                       className={`px-3 py-2 rounded-lg text-xs font-mono font-bold cursor-pointer transition-all border ${
                         ativo
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                          ? 'bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] border-amber-300 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-amber-50/50 hover:text-slate-900'
                       }`}
                     >
                       {pf === 'comercio' ? 'Comércio' : 'Indústria'}

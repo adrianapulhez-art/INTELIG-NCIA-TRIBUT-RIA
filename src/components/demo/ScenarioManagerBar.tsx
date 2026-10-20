@@ -86,13 +86,13 @@ export const ScenarioManagerBar: React.FC<ScenarioManagerBarProps> = ({ onGravar
 
   return (
     <>
-      {/* Barra de Cenários Superior / Inferior Enxuta */}
+      {/* Barra de Cenários Superior / Inferior Enxuta com Acabamento Ouro/Marrom */}
       <div className="relative z-10 w-full mb-6">
-        <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] p-3 sm:p-3.5 shadow-lg shadow-black/40 backdrop-blur-md">
+        <div className="rounded-xl border border-amber-500/30 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] p-3 sm:p-3.5 shadow-lg shadow-black/40 backdrop-blur-md">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             {/* Esquerda: Identificação e status do cenário */}
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
                 <Bookmark className="w-4 h-4" />
               </div>
               <div className="flex flex-col">
@@ -101,8 +101,8 @@ export const ScenarioManagerBar: React.FC<ScenarioManagerBarProps> = ({ onGravar
                     Cenário Tributário
                   </span>
                   {activeScenarioName ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                      <BookmarkCheck className="w-3 h-3 text-emerald-400" />
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-400/40">
+                      <BookmarkCheck className="w-3 h-3 text-amber-300" />
                       Ativo: {activeScenarioName}
                     </span>
                   ) : (
@@ -110,26 +110,32 @@ export const ScenarioManagerBar: React.FC<ScenarioManagerBarProps> = ({ onGravar
                       Rascunho não gravado
                     </span>
                   )}
-                  {/* CEO 02/10: gerenciamento sai da barra — vive DENTRO do modal
-                      (botões matriz por escopo). Barra fica só com Gravar Cenário. */}
                 </div>
               </div>
             </div>
 
-            {/* Direita: Ações principais limpas e enxutas — CEO 02/10: SÓ Gravar Cenário
-                (Gerenciar e Carregar Cenários saem da barra; gestão vive no modal) */}
+            {/* Direita: Ação Gravar Cenário com Ouro Dramático */}
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Botão Gravar Cenário (abre o modal rico quando onGravarCenario é fornecido) */}
               {onGravarCenario && (
-                <Button
-                  size="sm"
+                <button
+                  type="button"
                   onClick={onGravarCenario}
-                  className="h-8 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/25 gap-1.5 cursor-pointer"
+                  className="group/btn relative overflow-hidden inline-flex items-center gap-1.5 h-8 px-3.5 rounded-xl bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] text-xs font-black uppercase tracking-wide shadow-md shadow-amber-950/30 hover:shadow-lg hover:shadow-amber-500/35 cursor-pointer transition-all duration-300"
                   title="Gravar cenário tributário completo"
                 >
-                  <Save className="w-3.5 h-3.5 text-slate-950" />
-                  <span>Gravar Cenário</span>
-                </Button>
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-40 group-hover/btn:opacity-70 mix-blend-overlay transition-opacity duration-300"
+                    style={{
+                      background:
+                        'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+                    }}
+                  />
+                  <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/btn:translate-x-[130%] transition-transform duration-700 ease-out" />
+                  <Save className="relative z-10 w-3.5 h-3.5 text-[#3b2405]" />
+                  <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)]">
+                    Gravar Cenário
+                  </span>
+                </button>
               )}
             </div>
           </div>
@@ -139,13 +145,13 @@ export const ScenarioManagerBar: React.FC<ScenarioManagerBarProps> = ({ onGravar
             <div
               className={`mt-2.5 px-3 py-2 rounded-lg text-xs flex items-center justify-between border ${
                 feedback.type === 'success'
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                  ? 'bg-amber-500/15 border-amber-400/30 text-amber-200'
                   : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
               }`}
             >
               <div className="flex items-center gap-2">
                 {feedback.type === 'success' ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
                 ) : (
                   <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                 )}

@@ -377,50 +377,50 @@ export default function DrePresumidoPage() {
         {/* Cabeçalho */}
         <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-7 shadow-sm space-y-6">
           <div className="flex items-center gap-3.5 pb-2 border-b border-slate-200">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0 shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-b from-[#f9e596]/40 to-[#e5b742]/30 border border-amber-300 flex items-center justify-center text-[#3b2405] shrink-0 shadow-xs">
               <Calculator className="w-5 h-5" />
             </div>
-            <div className="border-l-4 border-emerald-500 pl-2.5">
+            <div className="border-l-4 border-amber-500 pl-2.5">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                <h2 className="text-base sm:text-lg font-bold text-[#261502] tracking-tight">
                   Demonstração do Resultado do Exercício
                 </h2>
                 <Badge
                   variant="outline"
-                  className="text-[11px] font-mono border-emerald-300 text-emerald-800 bg-emerald-50 px-2 py-0.5 inline-flex items-center gap-1.5 font-semibold shadow-xs"
+                  className="text-[11px] font-mono border-amber-300 text-[#3b2405] bg-amber-50 px-2 py-0.5 inline-flex items-center gap-1.5 font-semibold shadow-xs"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#b87c14] animate-pulse" />
                   Sincronizado globalmente
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500 font-mono mt-0.5">
+              <p className="text-xs text-[#5c3e06] font-mono mt-0.5">
                 Parâmetros setoriais, margens de presunção de IRPJ/CSLL e cálculo de folha patronal.
               </p>
             </div>
           </div>
 
-          {/* Faixa Verde: Conectado às calculadoras */}
-          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
-            <div className="flex items-center gap-2 text-emerald-800 font-semibold">
-              <LinkIcon className="w-4 h-4 text-emerald-600" />
+          {/* Faixa de Destaque Ouro: Conectado às calculadoras */}
+          <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-50/90 via-amber-100/40 to-amber-50/90 border border-amber-300/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+            <div className="flex items-center gap-2 text-[#261502] font-semibold">
+              <LinkIcon className="w-4 h-4 text-[#b87c14]" />
               <span>
                 Conectado às calculadoras — valores e quantidades importados automaticamente
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-slate-700">
+            <div className="flex flex-wrap items-center gap-4 text-[#3b2405]">
               <div>
                 Quantidade:{' '}
-                <strong className="text-emerald-800">
+                <strong className="text-[#261502]">
                   {qty} un. ({quantitySourceLabel})
                 </strong>
               </div>
               <div>
                 Receita Consolidada:{' '}
-                <strong className="text-emerald-800">{formatBRL(activeGrossRevenue)}</strong>
+                <strong className="text-[#261502]">{formatBRL(activeGrossRevenue)}</strong>
               </div>
               <div>
                 CMV Consolidado:{' '}
-                <strong className="text-emerald-800">{formatBRL(consolidatedCMV)}</strong>
+                <strong className="text-[#261502]">{formatBRL(consolidatedCMV)}</strong>
               </div>
             </div>
           </div>
@@ -454,15 +454,15 @@ export default function DrePresumidoPage() {
                     onClick={() => setPresumidoActivity(act.key as ActivityType)}
                     className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-emerald-50 border-2 border-emerald-600 text-slate-900 shadow-xs'
-                        : 'bg-white border-2 border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50'
+                        ? 'bg-amber-50 border-2 border-amber-600 text-[#261502] shadow-xs'
+                        : 'bg-white border-2 border-slate-300 text-slate-600 hover:border-amber-300 hover:bg-amber-50/40'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold font-mono uppercase text-slate-900">
+                      <span className="text-xs font-bold font-mono uppercase text-[#261502]">
                         {act.title}
                       </span>
-                      {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                      {isSelected && <CheckCircle2 className="w-4 h-4 text-[#b87c14]" />}
                     </div>
                     <p className="text-[11px] text-slate-500 mt-1 font-mono">{act.subtitle}</p>
                   </button>
@@ -473,11 +473,11 @@ export default function DrePresumidoPage() {
 
           {/* Quadro Informativo de 4 Grandezas: Receita (Unitária / Consolidada) e CMV (Unitário / Consolidado) */}
           <div className="space-y-3 pt-1">
-            <div className="flex items-center justify-between border-l-4 border-emerald-500 pl-2.5">
-              <span className="text-xs font-mono font-bold uppercase text-slate-900">
+            <div className="flex items-center justify-between border-l-4 border-amber-500 pl-2.5">
+              <span className="text-xs font-mono font-bold uppercase text-[#261502]">
                 Resumo Operacional — Receita e CMV (Unitário vs. Consolidado)
               </span>
-              <span className="text-[11px] text-emerald-700 font-mono font-semibold">
+              <span className="text-[11px] text-[#5c3e06] font-mono font-semibold">
                 · automático (via Markup e Compras · {qty} un.)
               </span>
             </div>
@@ -487,7 +487,7 @@ export default function DrePresumidoPage() {
               <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 border border-slate-200">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-700">Receita bruta unitária</label>
-                  <span className="text-[10px] text-emerald-700 font-mono font-semibold">
+                  <span className="text-[10px] text-[#5c3e06] font-mono font-semibold">
                     · unitário (Markup)
                   </span>
                 </div>
@@ -510,7 +510,7 @@ export default function DrePresumidoPage() {
                   <label className="text-xs font-bold text-slate-700">
                     Receita bruta consolidada
                   </label>
-                  <span className="text-[10px] text-emerald-700 font-mono font-semibold">
+                  <span className="text-[10px] text-[#5c3e06] font-mono font-semibold">
                     · consolidado ({qty} un.)
                   </span>
                 </div>
@@ -538,7 +538,7 @@ export default function DrePresumidoPage() {
               <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 border border-slate-200">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-700">CMV unitário</label>
-                  <span className="text-[10px] text-emerald-700 font-mono font-semibold">
+                  <span className="text-[10px] text-[#5c3e06] font-mono font-semibold">
                     · unitário (Compras)
                   </span>
                 </div>
@@ -559,7 +559,7 @@ export default function DrePresumidoPage() {
               <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 border border-slate-200">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-700">CMV consolidado</label>
-                  <span className="text-[10px] text-emerald-700 font-mono font-semibold">
+                  <span className="text-[10px] text-[#5c3e06] font-mono font-semibold">
                     · consolidado ({effectiveSoldQtyForCmv} un.)
                   </span>
                 </div>
@@ -588,10 +588,10 @@ export default function DrePresumidoPage() {
           {/* Grid de Alíquotas do Regime (Bloqueadas com borda verde) */}
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold uppercase text-slate-800">
+              <span className="text-xs font-mono font-bold uppercase text-[#261502]">
                 Parâmetros e Alíquotas Legais
               </span>
-              <span className="text-[11px] text-emerald-700 font-mono font-semibold">
+              <span className="text-[11px] text-[#5c3e06] font-mono font-semibold">
                 · preenchido automaticamente
               </span>
             </div>
@@ -609,19 +609,19 @@ export default function DrePresumidoPage() {
                 <span className="text-[10px] text-slate-500 block">COFINS</span>
                 <span className="text-slate-900 font-bold">{formatNumberBR(cofinsRate)}%</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 shadow-xs">
-                <span className="text-[10px] text-emerald-800 font-semibold block">
+              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 shadow-xs">
+                <span className="text-[10px] text-[#5c3e06] font-semibold block">
                   Presunção IRPJ
                 </span>
-                <span className="text-emerald-900 font-black">
+                <span className="text-[#261502] font-black">
                   {formatNumberBR(irpjPresumptionRate)}%
                 </span>
               </div>
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 shadow-xs">
-                <span className="text-[10px] text-emerald-800 font-semibold block">
+              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 shadow-xs">
+                <span className="text-[10px] text-[#5c3e06] font-semibold block">
                   Presunção CSLL
                 </span>
-                <span className="text-emerald-900 font-black">
+                <span className="text-[#261502] font-black">
                   {formatNumberBR(csllPresumptionRate)}%
                 </span>
               </div>
@@ -647,37 +647,48 @@ export default function DrePresumidoPage() {
           </div>
 
           {/* Faixa Informativa: Quantidade Vendida Automática (linkada diretamente ao Markup/Compras) */}
-          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-300/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-xs font-mono font-bold text-emerald-900 flex items-center gap-2">
-                <LinkIcon className="w-4 h-4 text-emerald-700" />
+              <span className="text-xs font-mono font-bold text-[#261502] flex items-center gap-2">
+                <LinkIcon className="w-4 h-4 text-[#b87c14]" />
                 Quantidade vendida integrada à DRE — definida automaticamente via Markup e Compras
               </span>
-              <p className="text-[11px] font-mono text-slate-600">
+              <p className="text-[11px] font-mono text-[#5c3e06]">
                 A coluna "Total ({qty} un.)" e as linhas de resultado acompanham diretamente os
                 produtos calculados, sem necessidade de digitação manual.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="h-10 px-4 rounded-xl bg-white border border-slate-300 flex items-center gap-2 font-mono text-sm text-slate-900 shrink-0 shadow-xs">
+              <div className="h-10 px-4 rounded-xl bg-white border border-amber-300 flex items-center gap-2 font-mono text-sm text-slate-900 shrink-0 shadow-xs">
                 <span className="text-slate-500 text-xs">Qtd:</span>
                 <span className="font-bold text-slate-900 text-base">{qty}</span>
                 <span className="text-xs text-slate-500">un.</span>
-                <span className="text-[10px] text-emerald-800 bg-emerald-100 border border-emerald-300 px-1.5 py-0.5 rounded font-semibold ml-1">
+                <span className="text-[10px] text-[#3b2405] bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded font-semibold ml-1">
                   · {quantitySourceLabel}
                 </span>
               </div>
 
               {!isPresumidoSimulated && (
-                <Button
+                <button
                   type="button"
                   onClick={simulatePresumido}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-transform active:scale-95 text-xs sm:text-sm shrink-0"
+                  className="group/btn relative overflow-hidden inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] font-black text-xs sm:text-sm uppercase tracking-wide cursor-pointer shadow-md shadow-amber-950/25 hover:shadow-xl hover:shadow-amber-500/35 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 shrink-0"
                 >
-                  <Calculator className="w-4 h-4" />
-                  Simular DRE
-                </Button>
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-45 group-hover/btn:opacity-70 mix-blend-overlay transition-opacity duration-300"
+                    style={{
+                      background:
+                        'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+                    }}
+                  />
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-90" />
+                  <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/btn:translate-x-[130%] transition-transform duration-700 ease-out" />
+                  <Calculator className="relative z-10 w-4 h-4 text-[#3b2405]" />
+                  <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]">
+                    Simular DRE
+                  </span>
+                </button>
               )}
             </div>
           </div>
@@ -1130,19 +1141,19 @@ export default function DrePresumidoPage() {
             />
           </div>
         ) : (
-          <div className="bg-white border border-dashed border-slate-300 rounded-3xl p-8 text-center space-y-3 shadow-xs">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 mx-auto">
+          <div className="bg-white border border-dashed border-amber-300 rounded-3xl p-8 text-center space-y-3 shadow-xs">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-b from-[#f9e596]/40 to-[#e5b742]/30 border border-amber-300 flex items-center justify-center text-[#3b2405] mx-auto shadow-xs">
               <Calculator className="w-6 h-6" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-slate-900 tracking-tight">
+              <h3 className="text-base font-bold text-[#261502] tracking-tight">
                 Demonstração do Resultado pronta para simulação
               </h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
+              <p className="text-xs text-[#5c3e06] max-w-md mx-auto">
                 A quantidade vendida ({qty} un. · {quantitySourceLabel}) e os valores unitários e
                 consolidados estão integrados. Clique em{' '}
-                <strong className="text-emerald-700 font-bold">"Simular DRE"</strong> para
-                visualizar os resultados detalhados do Lucro Presumido.
+                <strong className="text-[#3b2405] font-bold">"Simular DRE"</strong> para visualizar
+                os resultados detalhados do Lucro Presumido.
               </p>
             </div>
           </div>
@@ -1164,14 +1175,25 @@ export default function DrePresumidoPage() {
             <span>Voltar para Calculadora Markup</span>
           </Button>
 
-          <Button
+          <button
             type="button"
             onClick={() => navigate('/demo/dashboard')}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
+            className="group/btn relative overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] font-black text-xs sm:text-sm uppercase tracking-wide cursor-pointer shadow-md shadow-amber-950/25 hover:shadow-xl hover:shadow-amber-500/35 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300"
           >
-            <span>Ver Dashboard</span>
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+            <div
+              className="pointer-events-none absolute inset-0 opacity-45 group-hover/btn:opacity-70 mix-blend-overlay transition-opacity duration-300"
+              style={{
+                background:
+                  'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+              }}
+            />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-90" />
+            <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/btn:translate-x-[130%] transition-transform duration-700 ease-out" />
+            <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]">
+              Ver Dashboard
+            </span>
+            <ArrowRight className="relative z-10 w-4 h-4 text-[#3b2405]" />
+          </button>
         </div>
       </div>
     </DemoLayout>

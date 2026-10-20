@@ -194,14 +194,14 @@ export default function PurchasesPage() {
           {/* Cabeçalho do Card */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-b from-[#f9e596]/40 to-[#e5b742]/30 border border-amber-300 flex items-center justify-center text-[#3b2405] shrink-0">
                 <Boxes className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                <h2 className="text-base sm:text-lg font-bold text-[#261502] tracking-tight">
                   Compras de Mercadorias para Revenda
                 </h2>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[#5c3e06]">
                   Cadastre os itens da compra com alíquotas e valores específicos. O total
                   consolidado flui diretamente para as DREs.
                 </p>
@@ -249,8 +249,8 @@ export default function PurchasesPage() {
                   onClick={() => setRegime('presumido')}
                   className={`px-4 py-2 rounded-lg text-xs sm:text-sm transition-all cursor-pointer ${
                     regime === 'presumido'
-                      ? 'bg-emerald-600 text-white font-bold shadow-sm'
-                      : 'text-slate-600 font-medium hover:text-slate-900 hover:bg-slate-50'
+                      ? 'bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] font-black shadow-xs border border-amber-300'
+                      : 'text-slate-600 font-medium hover:text-[#261502] hover:bg-amber-50/50'
                   }`}
                 >
                   Lucro Presumido
@@ -260,8 +260,8 @@ export default function PurchasesPage() {
                   onClick={() => setRegime('real')}
                   className={`px-4 py-2 rounded-lg text-xs sm:text-sm transition-all cursor-pointer ${
                     regime === 'real'
-                      ? 'bg-emerald-600 text-white font-bold shadow-sm'
-                      : 'text-slate-600 font-medium hover:text-slate-900 hover:bg-slate-50'
+                      ? 'bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] font-black shadow-xs border border-amber-300'
+                      : 'text-slate-600 font-medium hover:text-[#261502] hover:bg-amber-50/50'
                   }`}
                 >
                   Lucro Real
@@ -271,8 +271,8 @@ export default function PurchasesPage() {
                   onClick={() => setRegime('simples')}
                   className={`px-4 py-2 rounded-lg text-xs sm:text-sm transition-all cursor-pointer ${
                     regime === 'simples'
-                      ? 'bg-emerald-600 text-white font-bold shadow-sm'
-                      : 'text-slate-600 font-medium hover:text-slate-900 hover:bg-slate-50'
+                      ? 'bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] font-black shadow-xs border border-amber-300'
+                      : 'text-slate-600 font-medium hover:text-[#261502] hover:bg-amber-50/50'
                   }`}
                 >
                   Simples Nacional
@@ -285,11 +285,11 @@ export default function PurchasesPage() {
           <div className="space-y-4 pt-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center text-emerald-700">
+                <div className="w-6 h-6 rounded-md bg-amber-50 border border-amber-300 flex items-center justify-center text-[#3b2405]">
                   <Layers className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">
+                  <h3 className="text-sm font-bold text-[#261502]">
                     Itens da Compra ({purchasesItems.length})
                   </h3>
                   <span className="text-xs text-slate-500 hidden sm:inline">
@@ -413,7 +413,7 @@ export default function PurchasesPage() {
                             <td className="py-2.5 px-4 text-right font-mono font-bold text-slate-900">
                               {formatBRL(itemGrossTotal)}
                             </td>
-                            <td className="py-2.5 px-4 text-right font-mono text-emerald-700 font-semibold">
+                            <td className="py-2.5 px-4 text-right font-mono text-[#3b2405] font-semibold">
                               {formatBRL(itemNetPurchases)}
                             </td>
                             <td className="py-2.5 px-4 text-center">
@@ -424,7 +424,7 @@ export default function PurchasesPage() {
                                     e.stopPropagation()
                                     toggleItem(item.id)
                                   }}
-                                  className="inline-flex items-center gap-1 text-[11px] text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 px-2 py-0.5 rounded cursor-pointer transition-all shadow-sm"
+                                  className="inline-flex items-center gap-1 text-[11px] text-slate-700 bg-white hover:bg-amber-50/40 border border-slate-200 px-2 py-0.5 rounded cursor-pointer transition-all shadow-sm"
                                   title="Expandir linha deste item"
                                 >
                                   <ChevronDown className="w-3 h-3 text-slate-500" />
@@ -437,11 +437,11 @@ export default function PurchasesPage() {
                                     setSelectedItemForModal(item)
                                     setIsPurchaseItemModalOpen(true)
                                   }}
-                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded cursor-pointer transition-all"
+                                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#261502] bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2 py-0.5 rounded cursor-pointer transition-all"
                                   title="Abrir detalhes e edição fiscal"
                                 >
                                   <span>Abrir</span>
-                                  <ChevronRight className="w-3 h-3" />
+                                  <ChevronRight className="w-3 h-3 text-[#b87c14]" />
                                 </button>
                               </div>
                             </td>
@@ -459,13 +459,13 @@ export default function PurchasesPage() {
                           className="hover:bg-slate-50 transition-colors cursor-pointer group"
                         >
                           <td className="py-3 px-4 text-center text-white font-bold text-xs">
-                            <span className="w-6 h-6 rounded-md bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 flex items-center justify-center mx-auto text-white font-bold text-xs shadow-sm group-hover:border-emerald-500 transition-colors">
+                            <span className="w-6 h-6 rounded-md bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 flex items-center justify-center mx-auto text-white font-bold text-xs shadow-sm group-hover:border-amber-400 transition-colors">
                               {idx + 1}
                             </span>
                           </td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                              <span className="font-semibold text-slate-900 group-hover:text-[#261502] transition-colors">
                                 {item.name || `Item ${idx + 1}`}
                               </span>
                               {item.hasSt && (
@@ -492,7 +492,7 @@ export default function PurchasesPage() {
                           <td className="py-3 px-4 text-right font-mono font-bold text-slate-900">
                             {formatBRL(itemGrossTotal)}
                           </td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-700">
+                          <td className="py-3 px-4 text-right font-mono font-bold text-[#3b2405]">
                             {formatBRL(itemNetPurchases)}
                           </td>
                           <td className="py-3 px-4 text-center">
@@ -509,9 +509,9 @@ export default function PurchasesPage() {
                                 <ChevronUp className="w-3 h-3 text-slate-500" />
                                 <span className="hidden sm:inline">Recolher</span>
                               </button>
-                              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-md transition-all shadow-sm">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#261502] bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-md transition-all shadow-sm">
                                 <span>Abrir</span>
-                                <ChevronRight className="w-3 h-3" />
+                                <ChevronRight className="w-3 h-3 text-[#b87c14]" />
                               </span>
                             </div>
                           </td>
@@ -543,7 +543,7 @@ export default function PurchasesPage() {
                           ),
                         )}
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-emerald-400 text-sm">
+                      <td className="py-3 px-4 text-right font-bold text-amber-300 text-sm">
                         {formatBRL(
                           purchasesItems.reduce(
                             (acc, it) => acc + calculatePurchaseItemNetPurchases(it, regime),
@@ -598,7 +598,7 @@ export default function PurchasesPage() {
                     setSelectedItemForModal(stubItem)
                     setIsPurchaseItemModalOpen(true)
                   }}
-                  className="h-7 text-xs border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 cursor-pointer font-semibold shrink-0"
+                  className="h-7 text-xs border border-amber-300 bg-amber-50 text-[#3b2405] hover:bg-amber-100 cursor-pointer font-semibold shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" />+ Novo item de compra
                 </Button>
@@ -638,7 +638,7 @@ export default function PurchasesPage() {
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-bold text-slate-900">Encargos Globais da Compra</h3>
                     {hasDeductions && (
-                      <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 text-[10px] px-2 py-0.5 font-medium">
+                      <Badge className="bg-amber-50 text-[#3b2405] border border-amber-300 text-[10px] px-2 py-0.5 font-medium">
                         Dedução: {formatBRL(totalDeductionsValue)}
                       </Badge>
                     )}
@@ -678,10 +678,10 @@ export default function PurchasesPage() {
                       className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm"
                       title="Abrir camada de Deduções do Custo (Devoluções / Abatimentos / Descontos)"
                     >
-                      <Receipt className="w-3.5 h-3.5 text-emerald-600" />
+                      <Receipt className="w-3.5 h-3.5 text-[#b87c14]" />
                       <span>Deduções do Custo</span>
                       {hasDeductions && (
-                        <Badge className="text-[10px] px-1.5 py-0 border-0 font-medium bg-emerald-50 text-emerald-800">
+                        <Badge className="text-[10px] px-1.5 py-0 border-0 font-medium bg-amber-50 text-[#3b2405]">
                           {formatBRL(totalDeductionsValue)}
                         </Badge>
                       )}
@@ -695,7 +695,7 @@ export default function PurchasesPage() {
                       className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer bg-white border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm"
                       title="Abrir Subsistema de Controle de Estoque por Produto (Kardex, CMP Móvel e CMV por Produto)"
                     >
-                      <Boxes className="w-3.5 h-3.5 text-emerald-600" />
+                      <Boxes className="w-3.5 h-3.5 text-[#b87c14]" />
                       <span>Estoque por Produto</span>
                       {hasProductStockData && (
                         <Badge className="text-[10px] px-1.5 py-0 border-0 font-medium bg-slate-100 text-slate-700">
@@ -719,11 +719,11 @@ export default function PurchasesPage() {
                     <DialogHeader className="border-b border-slate-200 pb-3">
                       <div className="flex items-center justify-between gap-2 pr-6">
                         <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                          <Receipt className="w-5 h-5 text-emerald-600" />
+                          <Receipt className="w-5 h-5 text-[#b87c14]" />
                           Deduções do Custo (Devoluções / Abatimentos / Descontos)
                         </DialogTitle>
                         {hasDeductions && (
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 shrink-0">
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-amber-50 border border-amber-300 text-[#3b2405] shrink-0">
                             Total: {formatBRL(totalDeductionsValue)}
                           </span>
                         )}
@@ -744,7 +744,7 @@ export default function PurchasesPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => addDeductionCost('Nova dedução', 0)}
-                          className="h-7 text-xs bg-white border-slate-200 text-slate-700 hover:text-emerald-700 cursor-pointer"
+                          className="h-7 text-xs bg-white border-slate-200 text-slate-700 hover:text-[#261502] cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5 mr-1" />
                           Adicionar dedução
@@ -804,7 +804,7 @@ export default function PurchasesPage() {
 
                       <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
                         <span className="text-slate-500">Total deduzido do custo da compra:</span>
-                        <strong className="text-emerald-700 font-bold text-sm font-mono">
+                        <strong className="text-[#261502] font-bold text-sm font-mono">
                           {formatBRL(totalDeductionsValue)}
                         </strong>
                       </div>
@@ -1034,11 +1034,11 @@ export default function PurchasesPage() {
           <div className="pt-6 border-t border-slate-200 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                  <Calculator className="w-5 h-5 text-emerald-600" />
+                <h3 className="text-base font-bold text-[#261502] tracking-tight flex items-center gap-2">
+                  <Calculator className="w-5 h-5 text-[#b87c14]" />
                   CMV Consolidado da Compra
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-[#5c3e06] mt-0.5">
                   Alimenta automaticamente os campos "CMV · automático" das DREs (Presumido, Real e
                   Simples) e o Dashboard.
                 </p>
@@ -1046,10 +1046,10 @@ export default function PurchasesPage() {
               <button
                 type="button"
                 onClick={() => setIsProductStockDialogOpen(true)}
-                className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 transition-colors inline-flex items-center gap-1 cursor-pointer self-start sm:self-center"
+                className="text-xs font-semibold text-[#3b2405] hover:text-[#0f0700] transition-colors inline-flex items-center gap-1 cursor-pointer self-start sm:self-center"
               >
                 <span>Abrir Kardex detalhado em 'Estoque por Produto'</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-3.5 h-3.5 text-[#b87c14]" />
               </button>
             </div>
 
@@ -1058,7 +1058,7 @@ export default function PurchasesPage() {
               <div
                 className={`p-5 rounded-xl border transition-all ${
                   regime === 'presumido'
-                    ? 'bg-emerald-50/60 border-emerald-500 shadow-sm'
+                    ? 'bg-amber-50/70 border-amber-400 shadow-sm'
                     : 'bg-white border-slate-200 text-slate-700'
                 }`}
               >
@@ -1067,12 +1067,12 @@ export default function PurchasesPage() {
                     Lucro Presumido
                   </span>
                   {regime === 'presumido' && (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-bold text-[10px]">
+                    <span className="px-2 py-0.5 rounded-full bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] font-black text-[10px] border border-amber-300">
                       ATIVO
                     </span>
                   )}
                 </div>
-                <div className="text-2xl font-bold font-mono text-emerald-700 mt-2">
+                <div className="text-2xl font-bold font-mono text-[#261502] mt-2">
                   {formatBRL(calculatedPurchases.cmvPresumido)}
                 </div>
                 <div className="text-xs text-slate-500 mt-1">
@@ -1098,19 +1098,19 @@ export default function PurchasesPage() {
               <div
                 className={`p-5 rounded-xl border transition-all ${
                   regime === 'real'
-                    ? 'bg-emerald-50/60 border-emerald-500 shadow-sm'
+                    ? 'bg-amber-50/70 border-amber-400 shadow-sm'
                     : 'bg-white border-slate-200 text-slate-700'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase text-slate-600">Lucro Real</span>
                   {regime === 'real' && (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-bold text-[10px]">
+                    <span className="px-2 py-0.5 rounded-full bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] font-black text-[10px] border border-amber-300">
                       ATIVO
                     </span>
                   )}
                 </div>
-                <div className="text-2xl font-bold font-mono text-emerald-700 mt-2">
+                <div className="text-2xl font-bold font-mono text-[#261502] mt-2">
                   {formatBRL(calculatedPurchases.cmvReal)}
                 </div>
                 <div className="text-xs text-slate-500 mt-1">
@@ -1136,7 +1136,7 @@ export default function PurchasesPage() {
               <div
                 className={`p-5 rounded-xl border transition-all ${
                   regime === 'simples'
-                    ? 'bg-emerald-50/60 border-emerald-500 shadow-sm'
+                    ? 'bg-amber-50/70 border-amber-400 shadow-sm'
                     : 'bg-white border-slate-200 text-slate-700'
                 }`}
               >
@@ -1145,12 +1145,12 @@ export default function PurchasesPage() {
                     Simples Nacional
                   </span>
                   {regime === 'simples' && (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-bold text-[10px]">
+                    <span className="px-2 py-0.5 rounded-full bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] font-black text-[10px] border border-amber-300">
                       ATIVO
                     </span>
                   )}
                 </div>
-                <div className="text-2xl font-bold font-mono text-emerald-700 mt-2">
+                <div className="text-2xl font-bold font-mono text-[#261502] mt-2">
                   {formatBRL(calculatedPurchases.cmvSimples)}
                 </div>
                 <div className="text-xs text-slate-500 mt-1">
@@ -1192,14 +1192,25 @@ export default function PurchasesPage() {
             <span>Voltar para o Início</span>
           </Button>
 
-          <Button
+          <button
             type="button"
             onClick={() => navigate('/demo/markup')}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
+            className="group/btn relative overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] font-black text-xs sm:text-sm uppercase tracking-wide shadow-md shadow-amber-950/25 hover:shadow-xl hover:shadow-amber-500/35 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer transition-all duration-300"
           >
-            <span>Ir para a Calculadora Markup</span>
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+            <div
+              className="pointer-events-none absolute inset-0 opacity-45 group-hover/btn:opacity-70 mix-blend-overlay transition-opacity duration-300"
+              style={{
+                background:
+                  'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+              }}
+            />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-90" />
+            <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/btn:translate-x-[130%] transition-transform duration-700 ease-out" />
+            <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]">
+              Ir para Calculadora de Markup
+            </span>
+            <ArrowRight className="relative z-10 w-4 h-4 text-[#3b2405]" />
+          </button>
         </div>
       </div>
 

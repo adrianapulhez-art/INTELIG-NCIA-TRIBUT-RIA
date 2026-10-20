@@ -598,14 +598,14 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#07130f] border border-emerald-500/40 text-slate-100 shadow-2xl p-5 sm:p-7">
-        <DialogHeader className="border-b border-emerald-500/20 pb-3">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#140b02] border border-amber-500/40 text-slate-100 shadow-2xl p-5 sm:p-7">
+        <DialogHeader className="border-b border-amber-500/20 pb-3">
           <div className="flex items-center justify-between gap-3 pr-6">
             <DialogTitle className="text-base sm:text-lg font-bold text-white flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 shrink-0 shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0 shadow-sm">
                 <Save className="w-4 h-4" />
               </div>
-              <span>
+              <span className="text-amber-100">
                 {scope === 'markup'
                   ? 'Gravar Cenário de Markup e Precificação'
                   : scope === 'compras'
@@ -614,7 +614,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
               </span>
             </DialogTitle>
             <div className="flex items-center gap-1.5 flex-wrap">
-              <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-mono">
+              <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-mono">
                 Escritório Contábil
               </Badge>
               {scope === 'markup' && (
@@ -664,7 +664,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                 onClick={() => setActiveTab(m.id)}
                 className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                   activeTab === m.id
-                    ? 'border-emerald-400 text-emerald-300'
+                    ? 'border-amber-400 text-amber-300 font-extrabold'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -682,7 +682,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
             onClick={() => setActiveTab('gravar')}
             className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ml-auto cursor-pointer ${
               activeTab === 'gravar'
-                ? 'border-emerald-400 text-emerald-300'
+                ? 'border-amber-400 text-amber-300 font-extrabold'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -727,19 +727,19 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         {activeTab === 'gravar' && (
           <form onSubmit={handleSaveScenario} className="space-y-5 pt-2">
             {/* Bloco 1: Seleção e Criação Inline de Cliente */}
-            <div className="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/25 space-y-3">
+            <div className="p-4 rounded-2xl bg-slate-950/70 border border-amber-500/25 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-emerald-400" />
+                  <Building2 className="w-4 h-4 text-amber-400" />
                   <span>Cliente do Escritório</span>
-                  <span className="text-emerald-400">*</span>
+                  <span className="text-amber-400">*</span>
                 </label>
 
                 {!isCreatingClientInline && (
                   <button
                     type="button"
                     onClick={() => setIsCreatingClientInline(true)}
-                    className="text-[11px] text-emerald-400 hover:text-emerald-300 font-mono flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] text-amber-400 hover:text-amber-300 font-mono flex items-center gap-1 cursor-pointer"
                   >
                     <Plus className="w-3 h-3" />
                     <span>+ Novo Cliente</span>
@@ -806,7 +806,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                       size="sm"
                       disabled={isSavingClient || !newClientName.trim()}
                       onClick={handleCreateClientInline}
-                      className="h-7 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold"
+                      className="h-7 text-xs bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] font-black cursor-pointer border border-amber-200/90"
                     >
                       {isSavingClient ? (
                         <Loader2 className="w-3 h-3 animate-spin mr-1" />
@@ -888,12 +888,12 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                       onClick={() => setSaveDest('nova')}
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         saveDest === 'nova'
-                          ? 'border-emerald-500/60 bg-emerald-500/10'
-                          : 'border-slate-800 bg-slate-950/60 hover:border-emerald-500/30'
+                          ? 'border-amber-400 bg-amber-500/15'
+                          : 'border-slate-800 bg-slate-950/60 hover:border-amber-400/40'
                       }`}
                     >
                       <span
-                        className={`text-xs font-bold block ${saveDest === 'nova' ? 'text-emerald-300' : 'text-slate-300'}`}
+                        className={`text-xs font-bold block ${saveDest === 'nova' ? 'text-amber-300' : 'text-slate-300'}`}
                       >
                         Nova simulação
                       </span>
@@ -906,12 +906,12 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                       onClick={() => setSaveDest('atualizar')}
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         saveDest === 'atualizar'
-                          ? 'border-emerald-500/60 bg-emerald-500/10'
-                          : 'border-slate-800 bg-slate-950/60 hover:border-emerald-500/30'
+                          ? 'border-amber-400 bg-amber-500/15'
+                          : 'border-slate-800 bg-slate-950/60 hover:border-amber-400/40'
                       }`}
                     >
                       <span
-                        className={`text-xs font-bold block ${saveDest === 'atualizar' ? 'text-emerald-300' : 'text-slate-300'}`}
+                        className={`text-xs font-bold block ${saveDest === 'atualizar' ? 'text-amber-300' : 'text-slate-300'}`}
                       >
                         Atualizar simulação existente
                       </span>
@@ -1131,22 +1131,26 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                 type="submit"
                 size="sm"
                 disabled={isSavingScenario}
-                className="text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
+                className="text-xs bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] hover:brightness-105 text-[#261502] font-black px-4 gap-1.5 shadow-md shadow-amber-950/30 border border-amber-200/90 cursor-pointer"
               >
                 {isSavingScenario ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#3b2405]" />
                     <span>Gravando...</span>
                   </>
                 ) : saveDest === 'atualizar' ? (
                   <>
-                    <History className="w-3.5 h-3.5" />
-                    <span>Salvar Atualização</span>
+                    <History className="w-3.5 h-3.5 text-[#3b2405]" />
+                    <span className="drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">
+                      Salvar Atualização
+                    </span>
                   </>
                 ) : (
                   <>
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Gravar Cenário</span>
+                    <Save className="w-3.5 h-3.5 text-[#3b2405]" />
+                    <span className="drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">
+                      Gravar Cenário
+                    </span>
                   </>
                 )}
               </Button>
@@ -1443,7 +1447,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                                 {sc.name}
                               </span>
                               {v && (
-                                <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono">
+                                <Badge className="bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[9px] font-mono">
                                   v{v.n}
                                 </Badge>
                               )}
@@ -1476,13 +1480,14 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                               type="button"
                               size="sm"
                               onClick={() => (v ? handleRestoreVersion(sc, v) : handleRestore(sc))}
-                              className="h-7 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer shadow-sm"
-                              title="Restaurar os dados deste salvamento no formulário"
+                              className="h-7 text-xs font-black bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] cursor-pointer shadow-sm border border-amber-200/90"
+                              title="Restaurar este cenário nas calculadoras e torná-lo ativo"
                             >
-                              <RotateCcw className="w-3 h-3 mr-1" />
-                              Restaurar
+                              <RotateCcw className="w-3 h-3 mr-1 text-[#3b2405]" />
+                              <span className="drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">
+                                Restaurar
+                              </span>
                             </Button>
-
                             <Button
                               type="button"
                               variant="ghost"

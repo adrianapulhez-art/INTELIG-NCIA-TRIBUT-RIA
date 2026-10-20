@@ -904,19 +904,19 @@ export default function MarkupPage() {
           {/* Header com Ícone de Calculadora */}
           <div className="flex items-start justify-between flex-wrap gap-3 pb-3 border-b border-slate-200">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-b from-[#f9e596]/40 to-[#e5b742]/30 border border-amber-300 flex items-center justify-center text-[#3b2405] shrink-0 shadow-sm">
                 <Calculator className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                  <h2 className="text-base sm:text-lg font-bold text-[#261502] tracking-tight">
                     Parâmetros e Produtos do MARKUP
                   </h2>
-                  <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-mono">
+                  <Badge className="bg-amber-50 text-[#3b2405] border border-amber-300 text-[10px] font-mono">
                     {markupProducts.length} {markupProducts.length === 1 ? 'produto' : 'produtos'}
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[#5c3e06]">
                   Configuração de alíquotas automáticas por regime tributário e lista de produtos.
                 </p>
               </div>
@@ -930,44 +930,44 @@ export default function MarkupPage() {
                 <label className="text-xs font-semibold text-slate-700">
                   Regime tributário da empresa (alíquotas automáticas)
                 </label>
-                {/* Sinalização de fluxo na UI, discreta e em camadas — unificada em verde-esmeralda */}
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50/80 border border-emerald-200 text-[11px] font-mono shadow-xs">
+                {/* Sinalização de fluxo na UI, discreta e em camadas — em paleta nobre */}
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50/80 border border-amber-300 text-[11px] font-mono shadow-xs">
                   {markupMode === 'liquid' ? (
                     <span
-                      className="inline-flex items-center gap-1 text-emerald-800 font-medium cursor-help"
+                      className="inline-flex items-center gap-1 text-[#3b2405] font-medium cursor-help"
                       title="Fluxo B: a receita líquida desejada alimenta apenas o markup e a DRE deste regime, sem propagação para os demais."
                     >
-                      <Target className="w-3 h-3 text-emerald-600" />
+                      <Target className="w-3 h-3 text-[#b87c14]" />
                       <span>Precificação por meta (Fluxo B)</span>
                     </span>
                   ) : (
                     <span
-                      className="inline-flex items-center gap-1 text-emerald-800 font-medium cursor-help"
+                      className="inline-flex items-center gap-1 text-[#3b2405] font-medium cursor-help"
                       title="Fluxo Custo + Margem: baseada na composição do CMV ou compras líquidas."
                     >
-                      <Layers className="w-3 h-3 text-emerald-600" />
+                      <Layers className="w-3 h-3 text-[#b87c14]" />
                       <span>Custo + Margem</span>
                     </span>
                   )}
                 </div>
 
-                {/* Botão em camada padrão "Memória ›" para Fluxo A: Comparação por Preço de Mercado — unificado em verde-esmeralda */}
+                {/* Botão em camada padrão "Memória ›" para Fluxo A: Comparação por Preço de Mercado */}
                 <button
                   type="button"
                   onClick={() => setIsMarketComparisonModalOpen(true)}
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 hover:text-emerald-950 hover:border-emerald-400 transition-colors cursor-pointer shadow-xs"
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-medium bg-amber-50 border border-amber-300 text-[#3b2405] hover:bg-amber-100 hover:text-[#0f0700] hover:border-amber-400 transition-colors cursor-pointer shadow-xs"
                   title="Fluxo A: testar um único preço de venda de mercado como âncora nos 3 regimes"
                 >
-                  <TrendingUp className="w-3 h-3 text-emerald-600" />
+                  <TrendingUp className="w-3 h-3 text-[#b87c14]" />
                   <span>Comparação por preço de mercado (Fluxo A) ›</span>
                 </button>
               </div>
 
               <Badge
                 variant="outline"
-                className="text-[11px] font-mono border-emerald-300 text-emerald-800 bg-emerald-50 px-2.5 py-0.5 inline-flex items-center gap-1.5 font-normal shadow-xs"
+                className="text-[11px] font-mono border-amber-300 text-[#3b2405] bg-amber-50 px-2.5 py-0.5 inline-flex items-center gap-1.5 font-normal shadow-xs"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#b87c14] animate-pulse" />
                 Sincronizado globalmente
               </Badge>
             </div>
@@ -978,22 +978,22 @@ export default function MarkupPage() {
                 onClick={() => setRegime('presumido')}
                 className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer shadow-sm ${
                   regime === 'presumido'
-                    ? 'bg-emerald-100/70 border-emerald-600 ring-2 ring-emerald-500/30 text-slate-950 shadow-md'
-                    : 'bg-white border-slate-300 hover:border-emerald-400 hover:bg-emerald-50/30 text-slate-900'
+                    ? 'bg-gradient-to-b from-[#f9e596]/30 to-[#e5b742]/20 border-amber-500 ring-2 ring-amber-400/30 text-slate-950 shadow-md'
+                    : 'bg-white border-slate-300 hover:border-amber-400 hover:bg-amber-50/30 text-slate-900'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-black font-mono uppercase tracking-wider ${regime === 'presumido' ? 'text-emerald-950' : 'text-slate-950'}`}
+                    className={`text-xs font-black font-mono uppercase tracking-wider ${regime === 'presumido' ? 'text-[#261502]' : 'text-slate-950'}`}
                   >
                     Lucro Presumido
                   </span>
                   {regime === 'presumido' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-[#b87c14] shrink-0" />
                   )}
                 </div>
                 <p
-                  className={`text-[11px] mt-1.5 font-mono ${regime === 'presumido' ? 'text-slate-900 font-semibold' : 'text-slate-700 font-medium'}`}
+                  className={`text-[11px] mt-1.5 font-mono ${regime === 'presumido' ? 'text-[#3b2405] font-semibold' : 'text-slate-700 font-medium'}`}
                 >
                   PIS 0,65% · COFINS 3,00% (cumulativo)
                 </p>
@@ -1004,22 +1004,22 @@ export default function MarkupPage() {
                 onClick={() => setRegime('real')}
                 className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer shadow-sm ${
                   regime === 'real'
-                    ? 'bg-emerald-100/70 border-emerald-600 ring-2 ring-emerald-500/30 text-slate-950 shadow-md'
-                    : 'bg-white border-slate-300 hover:border-emerald-400 hover:bg-emerald-50/30 text-slate-900'
+                    ? 'bg-gradient-to-b from-[#f9e596]/30 to-[#e5b742]/20 border-amber-500 ring-2 ring-amber-400/30 text-slate-950 shadow-md'
+                    : 'bg-white border-slate-300 hover:border-amber-400 hover:bg-amber-50/30 text-slate-900'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-black font-mono uppercase tracking-wider ${regime === 'real' ? 'text-emerald-950' : 'text-slate-950'}`}
+                    className={`text-xs font-black font-mono uppercase tracking-wider ${regime === 'real' ? 'text-[#261502]' : 'text-slate-950'}`}
                   >
                     Lucro Real
                   </span>
                   {regime === 'real' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-[#b87c14] shrink-0" />
                   )}
                 </div>
                 <p
-                  className={`text-[11px] mt-1.5 font-mono ${regime === 'real' ? 'text-slate-900 font-semibold' : 'text-slate-700 font-medium'}`}
+                  className={`text-[11px] mt-1.5 font-mono ${regime === 'real' ? 'text-[#3b2405] font-semibold' : 'text-slate-700 font-medium'}`}
                 >
                   PIS 1,65% · COFINS 7,60% (não cumulativo)
                 </p>
@@ -1030,22 +1030,22 @@ export default function MarkupPage() {
                 onClick={() => setRegime('simples')}
                 className={`p-4 rounded-xl border-2 text-left transition-all cursor-pointer shadow-sm ${
                   regime === 'simples'
-                    ? 'bg-emerald-100/70 border-emerald-600 ring-2 ring-emerald-500/30 text-slate-950 shadow-md'
-                    : 'bg-white border-slate-300 hover:border-emerald-400 hover:bg-emerald-50/30 text-slate-900'
+                    ? 'bg-gradient-to-b from-[#f9e596]/30 to-[#e5b742]/20 border-amber-500 ring-2 ring-amber-400/30 text-slate-950 shadow-md'
+                    : 'bg-white border-slate-300 hover:border-amber-400 hover:bg-amber-50/30 text-slate-900'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-black font-mono uppercase tracking-wider ${regime === 'simples' ? 'text-emerald-950' : 'text-slate-950'}`}
+                    className={`text-xs font-black font-mono uppercase tracking-wider ${regime === 'simples' ? 'text-[#261502]' : 'text-slate-950'}`}
                   >
                     Simples Nacional
                   </span>
                   {regime === 'simples' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-[#b87c14] shrink-0" />
                   )}
                 </div>
                 <p
-                  className={`text-[11px] mt-1.5 font-mono ${regime === 'simples' ? 'text-slate-900 font-semibold' : 'text-slate-700 font-medium'}`}
+                  className={`text-[11px] mt-1.5 font-mono ${regime === 'simples' ? 'text-[#3b2405] font-semibold' : 'text-slate-700 font-medium'}`}
                 >
                   Guia única DAS (PIS/COFINS sem destaque avulso)
                 </p>
@@ -1078,8 +1078,8 @@ export default function MarkupPage() {
                     onClick={() => setSimplesIsActiveMoreThan12m(false)}
                     className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer font-bold ${
                       !simplesIsActiveMoreThan12m
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] shadow-xs border border-amber-300'
+                        : 'text-slate-600 hover:text-[#261502]'
                     }`}
                   >
                     NÃO (Início de atividade)
@@ -1089,8 +1089,8 @@ export default function MarkupPage() {
                     onClick={() => setSimplesIsActiveMoreThan12m(true)}
                     className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer font-bold ${
                       simplesIsActiveMoreThan12m
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] shadow-xs border border-amber-300'
+                        : 'text-slate-600 hover:text-[#261502]'
                     }`}
                   >
                     SIM (&gt; 12 meses)
@@ -1107,9 +1107,7 @@ export default function MarkupPage() {
                     </span>
                     <span className="text-[11px] font-mono text-slate-700">
                       RBT12 Adotada:{' '}
-                      <strong className="text-emerald-700">
-                        {formatBRL(effectiveSimplesRbt12)}
-                      </strong>
+                      <strong className="text-[#261502]">{formatBRL(effectiveSimplesRbt12)}</strong>
                     </span>
                   </div>
 
@@ -1121,8 +1119,8 @@ export default function MarkupPage() {
                       onClick={() => setSimplesSelectedScenario('conservador')}
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         simplesSelectedScenario === 'conservador'
-                          ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/30 text-slate-900 shadow-sm'
-                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                          ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-400/30 text-slate-900 shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-amber-300 hover:bg-amber-50/40'
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -1130,7 +1128,7 @@ export default function MarkupPage() {
                           Conservador
                         </span>
                         {simplesSelectedScenario === 'conservador' && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#b87c14]" />
                         )}
                       </div>
                       <div className="mt-1 text-sm font-bold text-slate-900 font-mono">
@@ -1148,8 +1146,8 @@ export default function MarkupPage() {
                       onClick={() => setSimplesSelectedScenario('moderado')}
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         simplesSelectedScenario === 'moderado'
-                          ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/30 text-slate-900 shadow-sm'
-                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                          ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-400/30 text-slate-900 shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-amber-300 hover:bg-amber-50/40'
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -1157,7 +1155,7 @@ export default function MarkupPage() {
                           Moderado
                         </span>
                         {simplesSelectedScenario === 'moderado' && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#b87c14]" />
                         )}
                       </div>
                       <div className="mt-1 text-sm font-bold text-slate-900 font-mono">
@@ -1175,8 +1173,8 @@ export default function MarkupPage() {
                       onClick={() => setSimplesSelectedScenario('otimista')}
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         simplesSelectedScenario === 'otimista'
-                          ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/30 text-slate-900 shadow-sm'
-                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                          ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-400/30 text-slate-900 shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-amber-300 hover:bg-amber-50/40'
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -1184,7 +1182,7 @@ export default function MarkupPage() {
                           Otimista
                         </span>
                         {simplesSelectedScenario === 'otimista' && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#b87c14]" />
                         )}
                       </div>
                       <div className="mt-1 text-sm font-bold text-slate-900 font-mono">
@@ -1247,7 +1245,7 @@ export default function MarkupPage() {
                     const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
                     const pgdasRes = calculatePgdas(anexoClean, effectiveSimplesRbt12)
                     return (
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-mono text-slate-800 flex-wrap gap-2">
+                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50 border border-amber-300 text-xs font-mono text-slate-800 flex-wrap gap-2">
                         <span>
                           Faixa detectada:{' '}
                           <strong className="text-slate-900">Faixa {pgdasRes.faixaNumero}</strong>{' '}
@@ -1255,7 +1253,7 @@ export default function MarkupPage() {
                         </span>
                         <span>
                           Alíquota efetiva PGDAS:{' '}
-                          <strong className="text-emerald-700 text-sm">
+                          <strong className="text-[#261502] text-sm">
                             {formatPercentBR(pgdasRes.aliquotaEfetiva)}
                           </strong>
                         </span>
@@ -1299,7 +1297,7 @@ export default function MarkupPage() {
                     const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
                     const pgdasRes = calculatePgdas(anexoClean, effectiveSimplesRbt12)
                     return (
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-mono text-slate-800 flex-wrap gap-2">
+                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50 border border-amber-300 text-xs font-mono text-slate-800 flex-wrap gap-2">
                         <span>
                           Faixa detectada:{' '}
                           <strong className="text-slate-900">Faixa {pgdasRes.faixaNumero}</strong>{' '}
@@ -1307,7 +1305,7 @@ export default function MarkupPage() {
                         </span>
                         <span>
                           Alíquota efetiva PGDAS:{' '}
-                          <strong className="text-emerald-700 text-sm">
+                          <strong className="text-[#261502] text-sm">
                             {formatPercentBR(pgdasRes.aliquotaEfetiva)}
                           </strong>
                         </span>
@@ -1326,13 +1324,13 @@ export default function MarkupPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-3.5 bg-emerald-600 rounded-full" />
-                  <h3 className="text-sm font-bold text-slate-900 tracking-tight font-mono uppercase">
+                  <span className="w-1.5 h-3.5 bg-[#b87c14] rounded-full" />
+                  <h3 className="text-sm font-bold text-[#261502] tracking-tight font-mono uppercase">
                     Despesas Variáveis de Venda (DV)
                   </h3>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-mono">
+                  <Badge className="bg-amber-50 text-[#3b2405] border border-amber-300 text-[10px] font-mono">
                     Total: {formatPercentBR(totalVariableExpenseRate)}
-                  </Badge>
+                  </Badge>{' '}
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   Taxas incidentes sobre o preço de venda: maquininha ~3%, comissão ~2%, frete de
@@ -1398,7 +1396,7 @@ export default function MarkupPage() {
                         setShowAddDvForm(false)
                       }
                     }}
-                    className="text-xs h-7 bg-emerald-600 text-white hover:bg-emerald-700 font-semibold shadow-sm"
+                    className="text-xs h-7 bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] font-bold shadow-sm cursor-pointer"
                   >
                     Salvar
                   </Button>
@@ -1432,7 +1430,7 @@ export default function MarkupPage() {
           {regime !== 'simples' && (
             <div className="space-y-4 pt-2 border-t border-slate-200">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-800 font-semibold">
+                <h3 className="text-xs font-mono uppercase tracking-wider text-[#3b2405] font-semibold">
                   % Tributos
                 </h3>
                 <Button
@@ -1440,7 +1438,7 @@ export default function MarkupPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowAddCustomTax(!showAddCustomTax)}
-                  className="h-7 text-xs bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:text-emerald-700 cursor-pointer shadow-sm"
+                  className="h-7 text-xs bg-white border-amber-300 text-[#3b2405] hover:border-amber-400 hover:text-[#261502] hover:bg-amber-50/50 cursor-pointer shadow-sm"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" />
                   Adicionar tributo
@@ -1482,7 +1480,7 @@ export default function MarkupPage() {
                       type="button"
                       size="sm"
                       onClick={handleAddCustomTax}
-                      className="text-xs h-7 bg-emerald-600 text-white hover:bg-emerald-700 font-semibold shadow-sm"
+                      className="text-xs h-7 bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] font-bold shadow-sm cursor-pointer"
                     >
                       Salvar
                     </Button>
@@ -1528,8 +1526,7 @@ export default function MarkupPage() {
                   <div className="flex items-center gap-4">
                     <span className="text-slate-500">{formatNumberBR(pisRate)}%</span>
                     <span className="text-slate-700">
-                      Fator:{' '}
-                      <strong className="text-emerald-700">{formatFactorBR(pisFactor)}</strong>
+                      Fator: <strong className="text-[#3b2405]">{formatFactorBR(pisFactor)}</strong>
                     </span>
                   </div>
                 </div>
@@ -1540,7 +1537,7 @@ export default function MarkupPage() {
                     <span className="text-slate-500">{formatNumberBR(cofinsRate)}%</span>
                     <span className="text-slate-700">
                       Fator:{' '}
-                      <strong className="text-emerald-700">{formatFactorBR(cofinsFactor)}</strong>
+                      <strong className="text-[#3b2405]">{formatFactorBR(cofinsFactor)}</strong>
                     </span>
                   </div>
                 </div>
@@ -1563,7 +1560,7 @@ export default function MarkupPage() {
                       <span className="text-slate-500">{formatNumberBR(ct.rate)}%</span>
                       <span className="text-slate-700">
                         Fator:{' '}
-                        <strong className="text-emerald-700">
+                        <strong className="text-[#3b2405]">
                           {formatFactorBR(1 - ct.rate / 100)}
                         </strong>
                       </span>
@@ -1585,17 +1582,17 @@ export default function MarkupPage() {
                 onClick={() => handleSelectDefaultMode('liquid')}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   markupMode === 'liquid'
-                    ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    ? 'bg-amber-50/80 border-amber-400 text-[#261502] shadow-sm'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-amber-300 hover:bg-amber-50/40'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-900">
+                  <span className="text-sm font-semibold text-[#261502]">
                     A partir da receita líquida
                   </span>
-                  {markupMode === 'liquid' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                  {markupMode === 'liquid' && <CheckCircle2 className="w-4 h-4 text-[#b87c14]" />}
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-[#5c3e06] mt-1">
                   Partir do valor líquido desejado e aplicar os fatores fracionados.
                 </p>
               </button>
@@ -1605,19 +1602,19 @@ export default function MarkupPage() {
                 onClick={() => handleSelectDefaultMode('cost_margin')}
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   markupMode === 'cost_margin'
-                    ? 'bg-emerald-50/70 border-emerald-500 text-slate-900 shadow-sm'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    ? 'bg-amber-50/80 border-amber-400 text-[#261502] shadow-sm'
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-amber-300 hover:bg-amber-50/40'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-900">
+                  <span className="text-sm font-semibold text-[#261502]">
                     A partir do custo + margem
                   </span>
                   {markupMode === 'cost_margin' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <CheckCircle2 className="w-4 h-4 text-[#b87c14]" />
                   )}
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-[#5c3e06] mt-1">
                   Partir do custo base e embutir a margem de lucro e tributos.
                 </p>
               </button>
@@ -1628,25 +1625,25 @@ export default function MarkupPage() {
           <div className="space-y-3 pt-2 border-t border-slate-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <Package className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-xs font-mono uppercase tracking-wider text-emerald-800 font-semibold">
+                <Package className="w-4 h-4 text-[#b87c14]" />
+                <h3 className="text-xs font-mono uppercase tracking-wider text-[#3b2405] font-semibold">
                   Produtos / Serviços Cadastrados ({markupProducts.length})
                 </h3>
                 {/* Chip Compacto em Camada: Puxar itens da Compra (CMV) */}
                 <button
                   type="button"
                   onClick={() => setIsImportPurchasesDialogOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100 shadow-sm ml-1"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer bg-amber-50 border-amber-300 text-[#3b2405] hover:bg-amber-100 shadow-sm ml-1"
                   title="Abrir camada para puxar itens da Calculadora de Compras (CMV)"
                 >
-                  <Boxes className="w-3.5 h-3.5 text-emerald-700" />
-                  <span className="font-semibold text-emerald-800">Puxar itens da Compra</span>
-                  <Badge className="text-[9px] px-1.5 py-0 border-0 font-normal bg-emerald-200 text-emerald-900">
+                  <Boxes className="w-3.5 h-3.5 text-[#b87c14]" />
+                  <span className="font-semibold text-[#261502]">Puxar itens da Compra</span>
+                  <Badge className="text-[9px] px-1.5 py-0 border-0 font-normal bg-amber-200 text-amber-950">
                     {importedPurchasesCount > 0
                       ? `${importedPurchasesCount}/${totalPurchasesAvailableCount}`
                       : `${totalPurchasesAvailableCount} disp.`}
                   </Badge>
-                  <ChevronRight className="w-3 h-3 text-emerald-700 ml-0.5" />
+                  <ChevronRight className="w-3 h-3 text-[#b87c14] ml-0.5" />
                 </button>
               </div>
 
@@ -2710,10 +2707,21 @@ export default function MarkupPage() {
                 setSimulationValidationError(null)
                 simulateMarkup()
               }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer transition-transform active:scale-95"
+              className="group/btn relative overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] font-black text-xs sm:text-sm uppercase tracking-wide shadow-md shadow-amber-950/25 hover:shadow-xl hover:shadow-amber-500/35 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer transition-all duration-300"
             >
-              <Calculator className="w-4 h-4" />
-              Simular
+              <div
+                className="pointer-events-none absolute inset-0 opacity-45 group-hover/btn:opacity-70 mix-blend-overlay transition-opacity duration-300"
+                style={{
+                  background:
+                    'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+                }}
+              />
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-90" />
+              <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/btn:translate-x-[130%] transition-transform duration-700 ease-out" />
+              <Calculator className="relative z-10 w-4 h-4 text-[#3b2405]" />
+              <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]">
+                Simular
+              </span>
             </Button>
           </div>
         </div>
@@ -2723,16 +2731,16 @@ export default function MarkupPage() {
           <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-7 shadow-sm space-y-5 animate-in fade-in duration-300">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-emerald-800 font-bold">
+                <span className="text-xs font-mono uppercase tracking-wider text-[#261502] font-bold">
                   Resultado Consolidado do Markup
                 </span>
-                <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-semibold">
+                <Badge className="bg-amber-50 text-[#3b2405] border border-amber-300 text-[10px] font-mono font-semibold">
                   {markupProducts.length} {markupProducts.length === 1 ? 'item' : 'itens'}
                 </Badge>
               </div>
               <span className="text-xs font-mono text-slate-600">
                 Regime aplicado:{' '}
-                <strong className="text-emerald-800 uppercase font-bold">{regime}</strong>
+                <strong className="text-[#3b2405] uppercase font-bold">{regime}</strong>
               </span>
             </div>
 
@@ -2772,14 +2780,14 @@ export default function MarkupPage() {
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
-                <span className="text-[11px] text-emerald-800 block mb-1 font-bold">
+              <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-300">
+                <span className="text-[11px] text-[#5c3e06] block mb-1 font-bold">
                   Receita bruta consolidada
                 </span>
-                <span className="text-xl sm:text-2xl font-black text-emerald-700">
+                <span className="text-xl sm:text-2xl font-black text-[#261502]">
                   {formatBRL(totalConsolidatedRevenue)}
                 </span>
-                <span className="text-[10px] text-emerald-800/90 block mt-1 font-medium">
+                <span className="text-[10px] text-[#5c3e06] block mt-1 font-medium">
                   Alimenta as DREs (Σ produtos)
                 </span>
               </div>
@@ -2962,12 +2970,12 @@ export default function MarkupPage() {
               <div className="pt-4 mt-2 border-t border-slate-200 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-3.5 bg-emerald-600 rounded-full" />
-                    <Scale className="w-4 h-4 text-emerald-700 shrink-0" />
-                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-900">
+                    <span className="w-1.5 h-3.5 bg-[#b87c14] rounded-full" />
+                    <Scale className="w-4 h-4 text-[#b87c14] shrink-0" />
+                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[#261502]">
                       Preço de venda simulado por regime
                     </h3>
-                    <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-semibold">
+                    <Badge className="bg-amber-50 text-[#3b2405] border border-amber-300 text-[10px] font-mono font-semibold">
                       Comparativo simulado
                     </Badge>
                   </div>
@@ -2980,18 +2988,18 @@ export default function MarkupPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setIsRegimeComparisonDetailsOpen(true)}
-                      className="h-7 text-xs bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-400 font-mono flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      className="h-7 text-xs bg-amber-50 border-amber-300 text-[#3b2405] hover:bg-amber-100 hover:border-amber-400 font-mono flex items-center gap-1.5 cursor-pointer shadow-sm"
                     >
-                      <Layers className="w-3.5 h-3.5 text-emerald-700" />
+                      <Layers className="w-3.5 h-3.5 text-[#b87c14]" />
                       <span>Ver comparativo por produto</span>
-                      <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] px-1.5 py-0 font-mono font-semibold">
+                      <Badge className="bg-amber-100 text-[#261502] border border-amber-300 text-[10px] px-1.5 py-0 font-mono font-semibold">
                         {regimeComparison.prodsPresumido.length}
                       </Badge>
                     </Button>
                   </div>
                 </div>
 
-                {/* Tabela Frontal: MANTÉM a linha RECEITA CONSOLIDADA (Σ) verde-esmeralda com estilo claro */}
+                {/* Tabela Frontal: Linha RECEITA CONSOLIDADA (Σ) com destaque Ouro nobre */}
                 <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                   <table className="w-full text-xs font-mono">
                     <thead>
@@ -3009,29 +3017,29 @@ export default function MarkupPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {/* Linha consolidada total Grupo 2 (Comparativo): Destaque Verde-Esmeralda no tema claro */}
-                      <tr className="bg-emerald-50 font-bold border-t-2 border-b-2 border-emerald-300">
-                        <td className="py-3 px-3 text-left text-emerald-950 font-extrabold uppercase tracking-wide border-l-2 border-emerald-600">
+                      {/* Linha consolidada total Grupo 2 (Comparativo): Destaque Ouro nobre */}
+                      <tr className="bg-amber-50/70 font-bold border-t-2 border-b-2 border-amber-300">
+                        <td className="py-3 px-3 text-left text-[#261502] font-extrabold uppercase tracking-wide border-l-2 border-amber-500">
                           <div className="flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                            <span className="inline-block w-2 h-2 rounded-full bg-[#b87c14] animate-pulse" />
                             <span>Receita Consolidada (Σ)</span>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-right text-emerald-900 font-bold text-sm">
+                        <td className="py-3 px-3 text-right text-[#3b2405] font-bold text-sm">
                           {totalConsolidatedQuantity} un.
                         </td>
-                        <td className="py-3 px-3 text-right text-emerald-800 font-black text-sm">
+                        <td className="py-3 px-3 text-right text-[#261502] font-black text-sm">
                           {formatBRL(regimeComparison.totalRevPresumido)}
                         </td>
-                        <td className="py-3 px-3 text-right text-emerald-800 font-black text-sm">
+                        <td className="py-3 px-3 text-right text-[#261502] font-black text-sm">
                           {formatBRL(regimeComparison.totalRevReal)}
                         </td>
-                        <td className="py-3 px-3 text-right text-emerald-800 font-black text-sm">
+                        <td className="py-3 px-3 text-right text-[#261502] font-black text-sm">
                           {regimeComparison.totalRevSimples !== null
                             ? formatBRL(regimeComparison.totalRevSimples)
                             : '—'}
                         </td>
-                        <td className="py-3 px-3 text-center text-emerald-800 font-semibold text-[11px] border-r-2 border-emerald-400">
+                        <td className="py-3 px-3 text-center text-[#3b2405] font-semibold text-[11px] border-r-2 border-amber-300">
                           Soma por regime
                         </td>
                       </tr>
@@ -3571,7 +3579,7 @@ export default function MarkupPage() {
             <span>Voltar para Calculadora de Compras</span>
           </Button>
 
-          <Button
+          <button
             type="button"
             onClick={() => {
               if (regime === 'simples') {
@@ -3582,11 +3590,22 @@ export default function MarkupPage() {
                 navigate('/demo/dre-presumido')
               }
             }}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
+            className="group/btn relative overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] font-black text-xs sm:text-sm uppercase tracking-wide shadow-md shadow-amber-950/25 hover:shadow-xl hover:shadow-amber-500/35 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer transition-all duration-300"
           >
-            <span>Ir para a DRE</span>
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+            <div
+              className="pointer-events-none absolute inset-0 opacity-45 group-hover/btn:opacity-70 mix-blend-overlay transition-opacity duration-300"
+              style={{
+                background:
+                  'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+              }}
+            />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-90" />
+            <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/btn:translate-x-[130%] transition-transform duration-700 ease-out" />
+            <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]">
+              Ir para a DRE
+            </span>
+            <ArrowRight className="relative z-10 w-4 h-4 text-[#3b2405]" />
+          </button>
         </div>
       </div>
 

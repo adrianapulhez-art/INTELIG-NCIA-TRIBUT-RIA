@@ -111,10 +111,10 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                 variant="outline"
                 size="sm"
                 onClick={handleImportPurchases}
-                className="h-8 text-xs bg-slate-900/90 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/15 hover:border-emerald-400 cursor-pointer"
+                className="h-8 text-xs bg-slate-900/90 border-amber-400/40 text-amber-300 hover:bg-amber-500/15 hover:border-amber-400 cursor-pointer"
                 title="Lança as compras cadastradas na Calculadora como entradas de estoque nos produtos correspondentes"
               >
-                <Download className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                <Download className="w-3.5 h-3.5 mr-1 text-amber-400" />
                 Importar compras da calculadora
               </Button>
               <Button
@@ -134,19 +134,19 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
 
         {/* Notificação / Feedback */}
         {feedbackMessage && (
-          <div className="mt-3 p-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center gap-2 animate-in fade-in">
-            <Info className="w-4 h-4 shrink-0 text-emerald-400" />
+          <div className="mt-3 p-2.5 rounded-lg bg-amber-500/15 border border-amber-400/30 text-amber-200 text-xs font-mono flex items-center gap-2 animate-in fade-in">
+            <Info className="w-4 h-4 shrink-0 text-amber-400" />
             <span>{feedbackMessage}</span>
           </div>
         )}
 
         {/* QUADRO UNIFICADO: ESTOQUE FINAL (EF) & CMV APURADO */}
-        <div className="mt-4 p-4 rounded-2xl bg-slate-950/80 border border-emerald-500/30 space-y-3 shadow-lg shadow-emerald-500/5">
+        <div className="mt-4 p-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 space-y-3 shadow-lg shadow-amber-500/5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
                   Estoque Final & CMV Apurado
                 </h3>
                 <Badge
@@ -165,12 +165,12 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
             {/* Painel Estoque Final (EF) */}
-            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-emerald-500/25">
+            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-amber-500/25">
               <div className="flex items-center justify-between gap-2">
                 <label className="text-xs font-semibold text-slate-200">
                   Estoque Final (EF) — inventário apurado (R$)
                 </label>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded shrink-0">
+                <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 border border-amber-400/30 px-1.5 py-0.5 rounded shrink-0">
                   · automático
                 </span>
               </div>
@@ -183,7 +183,7 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                   readOnly
                   disabled
                   value={formatNumberBR(effectiveFinalStockValue)}
-                  className="pl-9 bg-slate-950/70 border-emerald-500/40 text-emerald-400 font-mono text-sm font-bold cursor-default select-all"
+                  className="pl-9 bg-slate-950/70 border-amber-400/40 text-amber-300 font-mono text-sm font-bold cursor-default select-all"
                 />
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
@@ -193,12 +193,12 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
             </div>
 
             {/* Painel CMV Apurado */}
-            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-emerald-500/25">
+            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/60 border border-amber-500/25">
               <div className="flex items-center justify-between gap-2">
                 <label className="text-xs font-semibold text-slate-200">
                   CMV Apurado ({regime.toUpperCase()})
                 </label>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded shrink-0">
+                <span className="text-[10px] font-mono text-amber-300 bg-amber-500/15 border border-amber-400/30 px-1.5 py-0.5 rounded shrink-0">
                   · automático (EI + CL − EF = CMV)
                 </span>
               </div>
@@ -211,7 +211,7 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                   readOnly
                   disabled
                   value={formatNumberBR(activeCmv)}
-                  className="pl-9 bg-slate-950/70 border-emerald-500/40 text-emerald-400 font-mono text-sm font-bold cursor-default select-all"
+                  className="pl-9 bg-slate-950/70 border-amber-400/40 text-amber-300 font-mono text-sm font-bold cursor-default select-all"
                 />
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
@@ -328,7 +328,7 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                             <span>·</span>
                             <span>
                               CMP:{' '}
-                              <strong className="text-emerald-400">
+                              <strong className="text-amber-300">
                                 {formatBRL(pos?.currentAverageCost ?? 0)}
                               </strong>
                             </span>
@@ -405,7 +405,7 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                         <span className="text-[10px] text-slate-500 uppercase block">
                           Custo Médio Vigente
                         </span>
-                        <strong className="text-emerald-400 text-sm">
+                        <strong className="text-amber-300 text-sm">
                           {formatBRL(activePosition?.currentAverageCost ?? 0)}
                         </strong>
                       </div>

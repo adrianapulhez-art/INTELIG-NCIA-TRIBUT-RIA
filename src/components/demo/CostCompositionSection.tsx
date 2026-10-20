@@ -162,21 +162,21 @@ export function CostCompositionSection({
   return (
     <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
       {/* Header do Subsistema */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-900/40 p-2.5 rounded-xl border border-emerald-500/20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#1a0f02]/60 p-2.5 rounded-xl border border-amber-500/30">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+          <div className="w-6 h-6 rounded-md bg-amber-500/15 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
             <Layers className="w-3.5 h-3.5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-300">
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-200">
                 Subsistema de Composição do Custo
               </span>
-              <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono h-5 px-1.5">
+              <Badge className="bg-amber-500/15 text-amber-300 border border-amber-400/30 text-[10px] font-mono h-5 px-1.5">
                 {productName || 'Produto'}
               </Badge>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-amber-100/70">
               Alimente custos diretos, indiretos e fixos. O custo total do produto é somado e
               sincronizado automaticamente com o cálculo de markup.
             </p>
@@ -233,7 +233,7 @@ export function CostCompositionSection({
                     onClick={() =>
                       addCostCompositionItem(productId, group.key, group.defaultDesc, 0)
                     }
-                    className="h-7 text-[11px] bg-slate-900 border-slate-700 text-slate-200 hover:border-emerald-500/40 hover:text-emerald-300 hover:bg-slate-800 cursor-pointer"
+                    className="h-7 text-[11px] bg-slate-900 border-amber-500/30 text-amber-100 hover:border-amber-400 hover:text-white hover:bg-[#261502] cursor-pointer"
                   >
                     <Plus className="w-3 h-3 mr-1" />
                     {group.buttonLabel}
@@ -275,18 +275,18 @@ export function CostCompositionSection({
         })}
       </div>
 
-      {/* Custo Total do Produto (Soma dos 3 grupos em Destaque Verde) */}
-      <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+      {/* Custo Total do Produto (Soma dos 3 grupos em Destaque Ouro Nobre) */}
+      <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-[#3b2405]/30 to-amber-500/15 border border-amber-400/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold uppercase tracking-wide text-emerald-400">
+            <span className="text-xs font-mono font-bold uppercase tracking-wide text-amber-300">
               Custo total do produto (Composição)
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-400/30">
               Soma: Diretos + Indiretos + Fixos
             </span>
           </div>
-          <div className="text-[11px] font-mono text-slate-400 flex flex-wrap gap-x-3 gap-y-0.5">
+          <div className="text-[11px] font-mono text-amber-100/70 flex flex-wrap gap-x-3 gap-y-0.5">
             <span>Diretos: {formatBRL(subtotalDirect)}</span>
             <span>·</span>
             <span>Indiretos: {formatBRL(subtotalIndirect)}</span>
@@ -297,22 +297,21 @@ export function CostCompositionSection({
 
         <div className="flex items-center gap-3 self-end sm:self-center">
           <div className="text-right">
-            <span className="text-[10px] text-emerald-400/80 font-mono block">
+            <span className="text-[10px] text-amber-300/80 font-mono block">
               Total consolidado do item
             </span>
-            <span className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
+            <span className="text-xl sm:text-2xl font-black text-amber-300 font-mono">
               {formatBRL(grandTotal)}
             </span>
           </div>
           {onApplyTotal && (
-            <Button
+            <button
               type="button"
-              size="sm"
               onClick={() => onApplyTotal(grandTotal)}
-              className="h-8 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 cursor-pointer"
+              className="h-8 text-xs bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] hover:brightness-105 text-[#261502] font-black px-3.5 rounded-lg border border-amber-200/90 cursor-pointer shadow-sm"
             >
               Aplicar ao custo
-            </Button>
+            </button>
           )}
         </div>
       </div>

@@ -93,17 +93,17 @@ export function CardMemoriaPorItem({
           : 'SN híbrido'
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2 border-l-4 border-emerald-500 pl-2.5">
-        <Layers className="w-5 h-5 text-emerald-600" />
-        <span className="text-sm font-mono font-bold uppercase tracking-wider text-slate-900">
+      <div className="flex flex-wrap items-center gap-2 border-l-4 border-amber-500 pl-2.5">
+        <Layers className="w-5 h-5 text-[#b87c14]" />
+        <span className="text-sm font-mono font-bold uppercase tracking-wider text-[#261502]">
           Memória por item — {repasseTxt} · Exercício {exercicio}
         </span>
       </div>
       {/* IDENTIFICAÇÃO DA OPERAÇÃO (checagem da CEO, 28/09) — antes dos itens, a
           combinação exata que está sendo analisada: adquirente × fornecedor × repasse */}
       {mostrarIdentidade === true && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 px-3.5 py-2">
-          <span className="text-xs font-mono font-bold uppercase text-emerald-950">
+        <div className="rounded-xl border border-amber-300 bg-amber-50/50 px-3.5 py-2">
+          <span className="text-xs font-mono font-bold uppercase text-[#261502]">
             OPERAÇÃO ANALISADA: ADQUIRENTE: {nomeRegime(cfg.compradorRegime)} / FORNECEDOR:{' '}
             {nomeRegime(cfg.fornecedorRegime)} · {repasseTxt}
           </span>
@@ -166,9 +166,9 @@ export function CardMemoriaPorItem({
                   size="sm"
                   variant="outline"
                   onClick={() => onAbrirMemoriaItem(item, cell)}
-                  className="border-emerald-600 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 cursor-pointer h-7 text-xs font-mono font-bold shadow-2xs"
+                  className="border-amber-400 text-[#261502] bg-amber-50 hover:bg-amber-100 cursor-pointer h-7 text-xs font-mono font-bold shadow-2xs"
                 >
-                  <Calculator className="w-3.5 h-3.5 mr-1" /> Memória do item
+                  <Calculator className="w-3.5 h-3.5 mr-1 text-[#b87c14]" /> Memória do item
                 </Button>
               )}
             </div>
@@ -178,7 +178,7 @@ export function CardMemoriaPorItem({
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden flex flex-col">
               <div className="bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 text-white p-3.5 space-y-0.5 border-b border-slate-600">
                 <div className="flex items-center gap-1.5">
-                  <Wallet className="w-4 h-4 text-emerald-300 shrink-0" />
+                  <Wallet className="w-4 h-4 text-amber-300 shrink-0" />
                   <span className="text-xs font-bold font-mono uppercase tracking-wide text-white leading-tight">
                     1º Custo de Aquisição para o ADQUIRENTE (COMPRADOR) -{' '}
                     {nomeRegime(cfg.compradorRegime)}
@@ -198,11 +198,11 @@ export function CardMemoriaPorItem({
                     <LinhaCard key={l.key} line={l} />
                   ))}
                 </div>
-                <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 mt-2">
-                  <span className="text-xs font-mono font-bold uppercase text-emerald-900">
+                <div className="flex items-center justify-between rounded-xl bg-amber-50 border border-amber-300 px-3 py-1.5 mt-2">
+                  <span className="text-xs font-mono font-bold uppercase text-[#261502]">
                     Custo unitário HOJE
                   </span>
-                  <span className="text-xs font-black text-emerald-800 font-mono">
+                  <span className="text-xs font-black text-[#261502] font-mono">
                     {formatBRL(cell.hoje.unitario)}/un
                   </span>
                 </div>
@@ -212,7 +212,7 @@ export function CardMemoriaPorItem({
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden flex flex-col">
               <div className="bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 text-white p-3.5 space-y-0.5 border-b border-slate-600">
                 <div className="flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4 text-emerald-300 shrink-0" />
+                  <Building2 className="w-4 h-4 text-amber-300 shrink-0" />
                   <span className="text-xs font-bold font-mono uppercase tracking-wide text-white leading-tight">
                     2º Formação do Preço pelo FORNECEDOR -{' '}
                     {cfg.fornecedorRegime === 'simples_hibrido'
@@ -228,7 +228,7 @@ export function CardMemoriaPorItem({
               </div>
               {/* Fornecedor SN puro: a memória segue a ORDEM NATURAL do motor —
                   receita bruta → alíquota efetiva → partilha → DAS por dentro → preço da nota */}
-              <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between bg-emerald-50/20">
+              <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between bg-amber-50/20">
                 <div className="space-y-1">
                   {cfg.fornecedorRegime === 'simples' ? (
                     <>
@@ -285,7 +285,7 @@ export function CardMemoriaPorItem({
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden flex flex-col">
               <div className="bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 text-white p-3.5 space-y-0.5 border-b border-slate-600">
                 <div className="flex items-center gap-1.5">
-                  <ShoppingCart className="w-4 h-4 text-emerald-300 shrink-0" />
+                  <ShoppingCart className="w-4 h-4 text-amber-300 shrink-0" />
                   <span className="text-xs font-bold font-mono uppercase tracking-wide text-white leading-tight">
                     3º Formação do CUSTO pelo ADQUIRENTE (COMPRADOR) -{' '}
                     {nomeRegime(cfg.compradorRegime)}

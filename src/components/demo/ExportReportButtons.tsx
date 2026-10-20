@@ -47,8 +47,8 @@ export function ExportReportButtons({
       className={`flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200 ${className}`}
     >
       <div className="flex items-center gap-2">
-        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-        <span className="text-xs font-mono text-slate-700 font-semibold">
+        <div className="w-2 h-2 rounded-full bg-[#b87c14] animate-pulse" />
+        <span className="text-xs font-mono text-[#261502] font-semibold">
           Exportar Relatório Demonstrativo:
         </span>
         <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
@@ -81,12 +81,12 @@ export function ExportReportButtons({
           disabled={disabled || isExcelLoading}
           onClick={handleExcel}
           title={excelTitle}
-          className="h-8 px-3 rounded-lg bg-white border-slate-300 hover:border-emerald-300 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-mono text-xs cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-xs"
+          className="h-8 px-3 rounded-lg bg-white border-amber-300 hover:border-amber-400 hover:bg-amber-50 text-[#3b2405] hover:text-[#261502] font-mono text-xs cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-xs"
         >
           {isExcelLoading ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-[#b87c14]" />
           ) : (
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            <FileSpreadsheet className="w-3.5 h-3.5 text-[#b87c14]" />
           )}
           <span>Excel</span>
         </Button>

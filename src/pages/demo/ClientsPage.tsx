@@ -406,19 +406,19 @@ export default function ClientsPage() {
         <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0 shadow-xs">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-b from-[#f9e596]/40 to-[#e5b742]/30 border border-amber-300 flex items-center justify-center text-[#3b2405] shrink-0 shadow-xs">
                 <Users className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                  <h2 className="text-base sm:text-lg font-bold text-[#261502] tracking-tight">
                     Gerenciador de Cenários Tributários
                   </h2>
-                  <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-semibold">
+                  <Badge className="bg-amber-50 text-[#3b2405] border border-amber-300 text-[10px] font-mono font-semibold">
                     Consultoria IT
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[#5c3e06]">
                   Histórico de planejamentos fiscais salvos na nuvem.
                 </p>
               </div>
@@ -430,20 +430,30 @@ export default function ClientsPage() {
                 size="sm"
                 onClick={fetchScenarios}
                 disabled={isLoading}
-                className="h-8 text-xs font-semibold bg-white border-slate-300 text-slate-700 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50/50 cursor-pointer gap-1.5 shadow-xs"
+                className="h-8 text-xs font-semibold bg-white border-amber-300/80 text-[#3b2405] hover:text-[#261502] hover:border-amber-400 hover:bg-amber-50/60 cursor-pointer gap-1.5 shadow-xs"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                 <span>Atualizar lista</span>
               </Button>
 
-              <Button
-                size="sm"
+              <button
+                type="button"
                 onClick={() => navigate('/demo/markup')}
-                className="h-8 text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-500 cursor-pointer gap-1.5 shadow-xs"
+                className="group/btn relative overflow-hidden inline-flex items-center gap-1.5 h-8 px-4 rounded-xl bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] text-xs font-extrabold uppercase tracking-wide cursor-pointer shadow-md shadow-amber-950/20 hover:shadow-lg hover:shadow-amber-500/30 transition-all duration-300"
               >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>Nova Simulação</span>
-              </Button>
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-40 group-hover/btn:opacity-70 mix-blend-overlay transition-opacity duration-300"
+                  style={{
+                    background:
+                      'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+                  }}
+                />
+                <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/btn:translate-x-[130%] transition-transform duration-700 ease-out" />
+                <PlusCircle className="relative z-10 w-3.5 h-3.5 text-[#3b2405]" />
+                <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)]">
+                  Nova Simulação
+                </span>
+              </button>
             </div>
           </div>
 
@@ -452,17 +462,17 @@ export default function ClientsPage() {
             <div
               className={`p-3 rounded-xl text-xs flex items-center justify-between border ${
                 feedback.type === 'success'
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  ? 'bg-amber-50 border-amber-300 text-[#3b2405]'
                   : 'bg-rose-50 border-rose-200 text-rose-800'
               }`}
             >
               <div className="flex items-center gap-2">
                 {feedback.type === 'success' ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-[#b87c14] shrink-0" />
                 ) : (
                   <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                 )}
-                <span>{feedback.message}</span>
+                <span className="font-medium">{feedback.message}</span>
               </div>
               <button
                 onClick={() => setFeedback(null)}
@@ -481,7 +491,7 @@ export default function ClientsPage() {
               <span className="text-xs font-mono uppercase text-slate-500 font-semibold">
                 Cenários Salvos
               </span>
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-b from-[#f9e596]/40 to-[#e5b742]/30 text-[#3b2405] border border-amber-300 flex items-center justify-center">
                 <FolderOpen className="w-4 h-4" />
               </div>
             </div>
@@ -542,7 +552,7 @@ export default function ClientsPage() {
 
           {isLoadingClientScenarios ? (
             <div className="py-10 text-center">
-              <Loader2 className="w-6 h-6 animate-spin text-emerald-600 mx-auto" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#b87c14] mx-auto" />
               <p className="text-xs text-slate-500 mt-2 font-mono">
                 Abrindo o depósito de cenários...
               </p>
@@ -551,8 +561,8 @@ export default function ClientsPage() {
             <div className="py-8 text-center">
               <p className="text-xs text-slate-500">
                 Nenhuma simulação por cliente ainda. Grave cenários pelo botão{' '}
-                <strong className="text-emerald-700">"Gravar Novo Cenário"</strong> nas calculadoras
-                — cada cenário fica organizado na pasta do seu cliente.
+                <strong className="text-[#5c3e06]">"Gravar Novo Cenário"</strong> nas calculadoras —
+                cada cenário fica organizado na pasta do seu cliente.
               </p>
             </div>
           ) : (
@@ -573,16 +583,16 @@ export default function ClientsPage() {
                     >
                       <span className="flex items-center gap-2.5 min-w-0">
                         {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-emerald-300 shrink-0" />
+                          <ChevronDown className="w-4 h-4 text-amber-300 shrink-0" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-emerald-300 shrink-0" />
+                          <ChevronRight className="w-4 h-4 text-amber-300 shrink-0" />
                         )}
                         <Folder className="w-4 h-4 text-amber-300 shrink-0" />
                         <span className="text-xs font-mono font-bold uppercase tracking-wider text-white truncate text-left">
                           {folder.clientName}
                         </span>
                       </span>
-                      <span className="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 rounded-full px-2.5 py-0.5 shrink-0">
+                      <span className="text-[10px] font-mono font-bold text-amber-200 bg-[#261502] border border-amber-500/50 rounded-full px-2.5 py-0.5 shrink-0">
                         {folder.items.length}{' '}
                         {folder.items.length === 1 ? 'simulação' : 'simulações'}
                       </span>
@@ -610,7 +620,7 @@ export default function ClientsPage() {
                                     <span className="font-semibold text-xs sm:text-sm text-slate-900 truncate">
                                       {sc.name}
                                     </span>
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono bg-amber-50 text-[#3b2405] border border-amber-300">
                                       {details.regimeLabel}
                                     </span>
                                     {sc.scope && (
@@ -629,8 +639,8 @@ export default function ClientsPage() {
                                 </div>
 
                                 <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
-                                  <Button
-                                    size="sm"
+                                  <button
+                                    type="button"
                                     onClick={() => {
                                       ativarCenario({
                                         id: sc.id,
@@ -644,12 +654,14 @@ export default function ClientsPage() {
                                       )
                                       navigate('/demo/markup')
                                     }}
-                                    className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer shrink-0 shadow-xs gap-1"
+                                    className="group/btn relative overflow-hidden inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] text-xs font-bold cursor-pointer shadow-xs hover:shadow-md hover:shadow-amber-500/30 transition-all duration-200"
                                     title="Restaurar esta simulação nas calculadoras"
                                   >
                                     <RotateCcw className="w-3.5 h-3.5" />
-                                    <span>Restaurar</span>
-                                  </Button>
+                                    <span className="drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">
+                                      Restaurar
+                                    </span>
+                                  </button>
 
                                   <Button
                                     size="sm"
@@ -704,8 +716,8 @@ export default function ClientsPage() {
         <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
             <div className="flex items-center gap-2">
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-              <h3 className="text-sm sm:text-base font-bold text-slate-900">
+              <FileSpreadsheet className="w-4 h-4 text-[#b87c14]" />
+              <h3 className="text-sm sm:text-base font-bold text-[#261502]">
                 Carteira de Cenários Tributários
               </h3>
               <span className="text-xs font-mono text-slate-500">
@@ -721,7 +733,7 @@ export default function ClientsPage() {
                 placeholder="Filtrar por nome ou regime..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-8 bg-slate-50 border-slate-200 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white"
+                className="pl-9 h-8 bg-slate-50 border-slate-200 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:border-amber-500 focus:bg-white"
               />
               {searchQuery && (
                 <button
@@ -737,7 +749,7 @@ export default function ClientsPage() {
           {/* Lista / Tabela */}
           {isLoading ? (
             <div className="py-16 text-center space-y-3">
-              <Loader2 className="w-7 h-7 animate-spin text-emerald-600 mx-auto" />
+              <Loader2 className="w-7 h-7 animate-spin text-[#b87c14] mx-auto" />
               <p className="text-xs text-slate-500 font-mono">
                 Consultando cenários salvos no servidor seguro...
               </p>
@@ -745,39 +757,42 @@ export default function ClientsPage() {
           ) : scenarios.length === 0 ? (
             /* Estado vazio amigável */
             <div className="py-12 sm:py-16 px-4 text-center max-w-md mx-auto space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto shadow-xs">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-b from-[#f9e596]/40 to-[#e5b742]/30 border border-amber-300 text-[#3b2405] flex items-center justify-center mx-auto shadow-xs">
                 <FolderOpen className="w-7 h-7" />
               </div>
               <div className="space-y-1.5">
-                <h4 className="text-base font-bold text-slate-900">Nenhum cenário salvo ainda</h4>
-                <p className="text-xs text-slate-500 leading-relaxed">
+                <h4 className="text-base font-bold text-[#261502]">Nenhum cenário salvo ainda</h4>
+                <p className="text-xs text-[#5c3e06] leading-relaxed">
                   Para que um cliente ou diagnóstico apareça neste painel, basta abrir qualquer
                   calculadora (Markup, Compras ou DREs), preencher os dados e clicar em{' '}
-                  <strong className="text-emerald-700 font-semibold">"Salvar Cenário"</strong> na
+                  <strong className="text-[#3b2405] font-semibold">"Salvar Cenário"</strong> na
                   barra inferior.
                 </p>
               </div>
               <div className="pt-2">
-                <Button
+                <button
+                  type="button"
                   onClick={() => navigate('/demo/markup')}
-                  className="h-9 px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs gap-1.5 cursor-pointer shadow-xs"
+                  className="group/btn relative overflow-hidden inline-flex items-center gap-1.5 h-9 px-5 rounded-xl bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] text-xs font-extrabold uppercase tracking-wide cursor-pointer shadow-md shadow-amber-950/20 hover:shadow-lg hover:shadow-amber-500/30 transition-all duration-300"
                 >
-                  <span>Ir para a Calculadora Markup</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
+                  <span className="drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)]">
+                    Ir para a Calculadora Markup
+                  </span>
+                  <ArrowRight className="w-3.5 h-3.5 text-[#3b2405]" />
+                </button>
               </div>
             </div>
           ) : filteredScenarios.length === 0 ? (
             <div className="py-10 text-center space-y-2">
               <p className="text-xs text-slate-500">
                 Nenhum cenário encontrado para a busca{' '}
-                <strong className="text-emerald-700">"{searchQuery}"</strong>.
+                <strong className="text-[#3b2405]">"{searchQuery}"</strong>.
               </p>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSearchQuery('')}
-                className="text-xs text-emerald-700 hover:bg-emerald-50 h-7"
+                className="text-xs text-[#3b2405] hover:bg-amber-50 h-7"
               >
                 Limpar busca
               </Button>
@@ -818,7 +833,7 @@ export default function ClientsPage() {
                                 value={editingName}
                                 onChange={(e) => setEditingName(e.target.value)}
                                 autoFocus
-                                className="h-7 text-xs bg-white border-emerald-500 text-slate-900 font-sans shadow-xs"
+                                className="h-7 text-xs bg-white border-amber-500 text-slate-900 font-sans shadow-xs"
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') saveEditingName(sc.id)
                                   if (e.key === 'Escape') cancelEditing()
@@ -829,7 +844,7 @@ export default function ClientsPage() {
                                 variant="ghost"
                                 disabled={isSavingName}
                                 onClick={() => saveEditingName(sc.id)}
-                                className="h-7 w-7 p-0 text-emerald-700 hover:bg-emerald-50"
+                                className="h-7 w-7 p-0 text-[#3b2405] hover:bg-amber-50"
                                 title="Salvar nome"
                               >
                                 {isSavingName ? (
@@ -855,7 +870,7 @@ export default function ClientsPage() {
                               </span>
                               <button
                                 onClick={() => startEditing(sc)}
-                                className="text-slate-400 hover:text-emerald-700 opacity-60 group-hover:opacity-100 transition-opacity p-0.5 cursor-pointer"
+                                className="text-slate-400 hover:text-[#3b2405] opacity-60 group-hover:opacity-100 transition-opacity p-0.5 cursor-pointer"
                                 title="Renomear este cenário"
                               >
                                 <Edit2 className="w-3 h-3" />
@@ -875,7 +890,7 @@ export default function ClientsPage() {
                                 ? 'bg-cyan-50 text-cyan-800 border border-cyan-200'
                                 : details.regime === 'real'
                                   ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                                  : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                  : 'bg-amber-50 text-[#3b2405] border border-amber-300'
                             }`}
                           >
                             {details.regimeLabel}
@@ -907,15 +922,17 @@ export default function ClientsPage() {
                         <td className="py-3 px-3 text-right">
                           <div className="flex items-center justify-end gap-1.5 flex-wrap">
                             {/* Carregar e ir para home */}
-                            <Button
-                              size="sm"
+                            <button
+                              type="button"
                               onClick={() => handleLoadAndNavigate(sc)}
-                              className="h-7 px-2.5 text-xs font-bold bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer gap-1 shadow-2xs"
+                              className="group/btn relative overflow-hidden inline-flex items-center gap-1 h-7 px-2.5 rounded-lg bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] text-xs font-bold cursor-pointer shadow-2xs hover:shadow-md hover:shadow-amber-500/30 transition-all duration-200"
                               title="Restaurar este cenário nas calculadoras e ir para a demo"
                             >
-                              <span>Carregar</span>
-                              <ArrowRight className="w-3 h-3" />
-                            </Button>
+                              <span className="drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">
+                                Carregar
+                              </span>
+                              <ArrowRight className="w-3 h-3 text-[#3b2405]" />
+                            </button>
 
                             {/* Atualizar com snapshot atual */}
                             <Button
@@ -974,7 +991,7 @@ export default function ClientsPage() {
             data-open={isDidacticNoteOpen}
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-b from-[#f9e596]/40 to-[#e5b742]/30 border border-amber-300 flex items-center justify-center text-[#3b2405] shrink-0">
                 <Info className="w-4 h-4" />
               </div>
               <div>

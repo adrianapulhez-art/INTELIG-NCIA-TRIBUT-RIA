@@ -100,35 +100,36 @@ export function ImportPurchasesModal({ open, onOpenChange }: ImportPurchasesModa
         <DialogHeader className="border-b border-slate-200 pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-6">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-b from-[#f9e596]/40 to-[#e5b742]/30 border border-amber-300 flex items-center justify-center text-[#3b2405] shrink-0">
                 <Boxes className="w-5 h-5" />
               </div>
               <div>
-                <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <DialogTitle className="text-base font-bold text-[#261502] flex items-center gap-2">
                   <span>Itens da Calculadora de Compras (CMV)</span>
-                  <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-mono">
+                  <Badge className="bg-amber-50 text-[#3b2405] border border-amber-300 text-[10px] font-mono">
                     {totalAvailableCount} {totalAvailableCount === 1 ? 'item' : 'itens'}
                   </Badge>
                 </DialogTitle>
-                <DialogDescription className="text-xs text-slate-500">
+                <DialogDescription className="text-xs text-[#5c3e06]">
                   Selecione os itens de compra para calcular o markup. O custo de aquisição é
                   preenchido automaticamente com o custo líquido do regime ativo (
-                  <strong className="text-emerald-700 uppercase">{regime}</strong>).
+                  <strong className="text-[#261502] uppercase font-bold">{regime}</strong>).
                 </DialogDescription>
               </div>
             </div>
 
             {/* Botão de Importar Todos */}
             {pendingCount > 0 && (
-              <Button
+              <button
                 type="button"
-                size="sm"
                 onClick={handleImportAll}
-                className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm shrink-0 cursor-pointer"
+                className="h-8 text-xs bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] hover:brightness-105 text-[#261502] font-black px-3.5 rounded-lg border border-amber-200/90 shadow-sm shrink-0 cursor-pointer inline-flex items-center"
               >
-                <Download className="w-3.5 h-3.5 mr-1.5" />
-                Importar todos ({pendingCount})
-              </Button>
+                <Download className="w-3.5 h-3.5 mr-1.5 text-[#3b2405]" />
+                <span className="drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">
+                  Importar todos ({pendingCount})
+                </span>
+              </button>
             )}
           </div>
         </DialogHeader>
@@ -138,13 +139,13 @@ export function ImportPurchasesModal({ open, onOpenChange }: ImportPurchasesModa
           <div
             className={`p-3 rounded-xl text-xs font-mono flex items-center gap-2 transition-all ${
               feedbackMessage.type === 'success'
-                ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                ? 'bg-amber-50 border border-amber-300 text-[#3b2405]'
                 : feedbackMessage.type === 'info'
                   ? 'bg-sky-50 border border-sky-200 text-sky-800'
                   : 'bg-rose-50 border border-rose-200 text-rose-800'
             }`}
           >
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-[#b87c14]" />
             <span>{feedbackMessage.text}</span>
           </div>
         )}
@@ -164,9 +165,9 @@ export function ImportPurchasesModal({ open, onOpenChange }: ImportPurchasesModa
 
           <div className="flex items-center gap-2 text-xs font-mono text-slate-600">
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-600" />
+              <span className="w-2 h-2 rounded-full bg-[#b87c14]" />
               <span>Já importados:</span>
-              <strong className="text-emerald-700">{alreadyImportedCount}</strong>
+              <strong className="text-[#3b2405]">{alreadyImportedCount}</strong>
             </span>
             <span className="text-slate-300">|</span>
             <span className="inline-flex items-center gap-1.5">
@@ -223,9 +224,7 @@ export function ImportPurchasesModal({ open, onOpenChange }: ImportPurchasesModa
                         <tr
                           key={item.id}
                           className={`transition-colors ${
-                            isImported
-                              ? 'bg-emerald-50/40 hover:bg-emerald-50/70'
-                              : 'hover:bg-slate-50'
+                            isImported ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'hover:bg-slate-50'
                           }`}
                         >
                           {/* # badge escuro chancelado */}
@@ -242,7 +241,7 @@ export function ImportPurchasesModal({ open, onOpenChange }: ImportPurchasesModa
                                 {item.name || `Item ${idx + 1}`}
                               </span>
                               {isImported && (
-                                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[9px] px-1.5 py-0 font-normal">
+                                <Badge className="bg-amber-100 text-[#3b2405] border-amber-300 text-[9px] px-1.5 py-0 font-normal">
                                   Já no Markup
                                 </Badge>
                               )}
@@ -279,7 +278,7 @@ export function ImportPurchasesModal({ open, onOpenChange }: ImportPurchasesModa
                           {/* Custo Líquido Unitário (Regime Ativo) */}
                           <td className="py-3 px-3.5 text-right">
                             <div className="flex flex-col items-end">
-                              <span className="font-bold text-emerald-700">
+                              <span className="font-bold text-[#3b2405]">
                                 {formatBRL(unitNetCost)} / un.
                               </span>
                               <span className="text-[10px] text-slate-500">
@@ -291,20 +290,21 @@ export function ImportPurchasesModal({ open, onOpenChange }: ImportPurchasesModa
                           {/* Botão de Importar / Status */}
                           <td className="py-3 px-3.5 text-center">
                             {isImported ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span className="inline-flex items-center gap-1 text-[11px] text-[#3b2405] font-semibold bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-lg">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-[#b87c14]" />
                                 <span>Importado</span>
                               </span>
                             ) : (
-                              <Button
+                              <button
                                 type="button"
-                                size="sm"
                                 onClick={() => handleImportSingle(item)}
-                                className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm cursor-pointer px-2.5"
+                                className="h-7 text-xs bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] hover:brightness-105 text-[#261502] font-black shadow-sm cursor-pointer px-2.5 rounded-lg border border-amber-200/90 inline-flex items-center"
                               >
-                                <ShoppingCart className="w-3 h-3 mr-1" />
-                                <span>Calcular Markup</span>
-                              </Button>
+                                <ShoppingCart className="w-3 h-3 mr-1 text-[#3b2405]" />
+                                <span className="drop-shadow-[0_1px_0_rgba(255,255,255,0.6)]">
+                                  Calcular Markup
+                                </span>
+                              </button>
                             )}
                           </td>
                         </tr>
@@ -320,10 +320,11 @@ export function ImportPurchasesModal({ open, onOpenChange }: ImportPurchasesModa
         {/* Rodapé informativo */}
         <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-mono text-slate-600">
           <div className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <Sparkles className="w-3.5 h-3.5 text-[#b87c14] shrink-0" />
             <span>
-              Ao selecionar, o item entra no Markup no modo <strong>Custo + Margem</strong> com o
-              custo unitário líquido preenchido.
+              Ao selecionar, o item entra no Markup no modo{' '}
+              <strong className="text-[#3b2405]">Custo + Margem</strong> com o custo unitário
+              líquido preenchido.
             </span>
           </div>
           <Button
