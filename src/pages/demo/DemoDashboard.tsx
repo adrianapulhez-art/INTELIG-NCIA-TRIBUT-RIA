@@ -136,31 +136,52 @@ export default function DemoDashboard() {
   return (
     <DemoLayout currentTab="home">
       <div className="space-y-8 max-w-6xl mx-auto">
-        {/* Banner Hero Central estilo ADAPTA ONE */}
-        <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-b from-[#0c2c22]/95 via-[#091f18]/90 to-[#05110d]/95 p-8 sm:p-12 text-center shadow-2xl shadow-emerald-950/50 backdrop-blur-md">
-          {/* Brumas radiais verdes esfumadas de fundo */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_25%,rgba(16,185,129,0.28),transparent_70%)]" />
-          <div className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 w-[34rem] h-60 bg-emerald-500/15 blur-3xl rounded-full" />
-          <div className="pointer-events-none absolute inset-0 bg-grid-pattern opacity-25" />
+        {/* Banner Hero Central — Quadrante do Título com Tratamento Dourado Metálico Escovado */}
+        <div className="group relative overflow-hidden rounded-3xl border border-amber-300/80 p-8 sm:p-12 text-center shadow-2xl shadow-amber-950/20 bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14]">
+          {/* 1. Camada de reflexo metálico escovado horizontal com faixas de brilho lateral especular */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-40 mix-blend-overlay"
+            style={{
+              background:
+                'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.85) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.9) 72%, rgba(150,95,10,0.5) 100%)',
+            }}
+          />
+
+          {/* 2. Camada de textura/grão folheado a ouro suave e brilho escovado */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-20 mix-blend-soft-light"
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(0deg, rgba(255,255,255,0.25) 0px, rgba(255,255,255,0.25) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 50% 30%, rgba(255,230,120,0.7), transparent 75%)',
+            }}
+          />
+
+          {/* 3. Brilho chanfrado superior (beveled edge highlight) */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-90" />
+
+          {/* 4. Brilho / sheen diagonal suave animado no hover */}
+          <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/30 to-transparent -rotate-45 translate-x-[-120%] group-hover:translate-x-[120%] transition-transform duration-1000 ease-in-out" />
 
           {/* Conteúdo do Banner */}
           <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center">
             {/* Tag / Badge central */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-emerald-400/35 bg-emerald-500/10 text-emerald-300 font-mono text-xs font-semibold tracking-widest uppercase shadow-sm mb-4">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span>SISTEMA DE INTELIGÊNCIA TRIBUTÁRIA</span>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-amber-900/25 bg-[#3b2405]/15 text-[#3a2304] font-mono text-xs font-bold tracking-widest uppercase shadow-sm mb-4 backdrop-blur-sm">
+              <Sparkles className="w-3.5 h-3.5 text-[#5c3e06]" />
+              <span className="drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
+                SISTEMA DE INTELIGÊNCIA TRIBUTÁRIA
+              </span>
             </div>
 
-            {/* Título Principal estilo ADAPTA ONE (Caixa alta, destaque marcante) */}
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white uppercase leading-tight">
+            {/* Título Principal (Caixa alta, destaque marcante em marrom profundo com leve relevo) */}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-[#261502] uppercase leading-tight drop-shadow-[0_1px_0_rgba(255,255,255,0.4)]">
               PRECIFICAÇÃO &{' '}
-              <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 bg-clip-text text-transparent">
+              <span className="text-[#1a0d01] drop-shadow-[0_1px_1px_rgba(255,255,255,0.5)]">
                 PLANEJAMENTO TRIBUTÁRIO
               </span>
             </h1>
 
-            {/* Subtítulo descritivo */}
-            <p className="mt-3.5 text-sm sm:text-base text-emerald-100/75 max-w-2xl font-sans leading-relaxed">
+            {/* Subtítulo descritivo em tom de marrom-dourado escuro de alta legibilidade */}
+            <p className="mt-3.5 text-sm sm:text-base text-[#3f2a05] max-w-2xl font-sans font-medium leading-relaxed drop-shadow-[0_1px_0_rgba(255,255,255,0.3)]">
               Ambiente profissional de simulação com cálculos oficiais, regime cumulativo e não
               cumulativo, PGDAS completo e comparativo estratégico em tempo real.
             </p>
@@ -170,18 +191,18 @@ export default function DemoDashboard() {
               <button
                 type="button"
                 onClick={() => navigate('/demo/compras')}
-                className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-white text-slate-950 font-bold text-xs sm:text-sm uppercase tracking-wider hover:bg-emerald-400 hover:text-slate-950 transition-all duration-200 shadow-lg shadow-emerald-500/20 cursor-pointer group"
+                className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-[#3b2405] text-[#fff5cc] border border-amber-300/60 font-bold text-xs sm:text-sm uppercase tracking-wider hover:bg-[#1a0f02] hover:text-amber-200 hover:border-amber-200 transition-all duration-200 shadow-xl shadow-amber-950/25 cursor-pointer group/btn"
               >
                 <span>INICIAR COM COMPRAS</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-4 h-4 text-amber-300 group-hover/btn:translate-x-1 transition-transform" />
               </button>
 
               <button
                 type="button"
                 onClick={() => navigate('/demo/dashboard')}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 font-semibold text-xs sm:text-sm tracking-wide hover:bg-emerald-900/60 hover:text-white transition-all duration-200 cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[#3b2405]/80 border border-amber-400/50 text-[#fff5cc] font-semibold text-xs sm:text-sm tracking-wide hover:bg-[#1a0f02] hover:text-white hover:border-amber-200 transition-all duration-200 cursor-pointer shadow-md"
               >
-                <Scale className="w-4 h-4" />
+                <Scale className="w-4 h-4 text-amber-300" />
                 <span>Ver Dashboard</span>
               </button>
             </div>
