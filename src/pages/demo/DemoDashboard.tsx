@@ -274,12 +274,12 @@ export default function DemoDashboard() {
         {/* Título da Seção dos Cards */}
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-2.5">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981]" />
-            <h2 className="text-xs font-mono uppercase tracking-widest text-emerald-400 font-bold">
+            <div className="w-2 h-2 rounded-full bg-[#e5b742] shadow-[0_0_10px_#e5b742]" />
+            <h2 className="text-xs font-mono uppercase tracking-widest text-[#5c3e06] font-bold">
               Módulos Disponíveis para Demonstração
             </h2>
           </div>
-          <span className="text-[11px] font-mono text-slate-400">
+          <span className="text-[11px] font-mono text-amber-900/60 font-medium">
             {tools.length} calculadoras integradas
           </span>
         </div>
