@@ -51,7 +51,9 @@ import {
   Folder,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   RotateCcw,
+  Info,
 } from 'lucide-react'
 
 export default function ClientsPage() {
@@ -224,6 +226,9 @@ export default function ClientsPage() {
   const [isDeletingScenario, setIsDeletingScenario] = useState<boolean>(false)
   // CEO 02/10: ABRIR = memória de cálculo do cenário do depósito (componente compartilhado)
   const [memorySource, setMemorySource] = useState<ScenarioMemorySource | null>(null)
+
+  // Nota didática de apoio colapsável (recolhida por padrão)
+  const [isDidacticNoteOpen, setIsDidacticNoteOpen] = useState<boolean>(false)
 
   const handleDeleteClientScenario = async () => {
     if (!deleteScenarioConfirm) return
@@ -398,22 +403,22 @@ export default function ClientsPage() {
         />
 
         {/* Cabeçalho */}
-        <div className="bg-[#08120e]/90 border border-emerald-500/20 rounded-3xl p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-4">
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-7 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0 shadow-xs">
                 <Users className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                     Gerenciador de Cenários Tributários
                   </h2>
-                  <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono">
+                  <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-semibold">
                     Consultoria IT
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Histórico de planejamentos fiscais salvos na nuvem.
                 </p>
               </div>
@@ -425,7 +430,7 @@ export default function ClientsPage() {
                 size="sm"
                 onClick={fetchScenarios}
                 disabled={isLoading}
-                className="h-8 text-xs font-semibold bg-[#0f172a] border-slate-700 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/40 cursor-pointer gap-1.5"
+                className="h-8 text-xs font-semibold bg-white border-slate-300 text-slate-700 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50/50 cursor-pointer gap-1.5 shadow-xs"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                 <span>Atualizar lista</span>
@@ -434,7 +439,7 @@ export default function ClientsPage() {
               <Button
                 size="sm"
                 onClick={() => navigate('/demo/markup')}
-                className="h-8 text-xs font-bold bg-emerald-500 text-slate-950 hover:bg-emerald-400 cursor-pointer gap-1.5 shadow-sm shadow-emerald-500/20"
+                className="h-8 text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-500 cursor-pointer gap-1.5 shadow-xs"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 <span>Nova Simulação</span>
@@ -447,21 +452,21 @@ export default function ClientsPage() {
             <div
               className={`p-3 rounded-xl text-xs flex items-center justify-between border ${
                 feedback.type === 'success'
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                  : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-rose-50 border-rose-200 text-rose-800'
               }`}
             >
               <div className="flex items-center gap-2">
                 {feedback.type === 'success' ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 ) : (
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                 )}
                 <span>{feedback.message}</span>
               </div>
               <button
                 onClick={() => setFeedback(null)}
-                className="text-slate-400 hover:text-white text-xs cursor-pointer ml-2"
+                className="text-slate-500 hover:text-slate-900 text-xs cursor-pointer ml-2"
               >
                 ✕
               </button>
@@ -471,16 +476,16 @@ export default function ClientsPage() {
 
         {/* 3 Cards de Resumo no Topo */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 sm:p-5 rounded-2xl bg-[#0b101b]/90 border border-slate-800/90 shadow-lg">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-slate-300 transition-colors">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-mono uppercase text-slate-400 font-semibold">
+              <span className="text-xs font-mono uppercase text-slate-500 font-semibold">
                 Cenários Salvos
               </span>
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center">
                 <FolderOpen className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono">
+            <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-mono">
               {summaryMetrics.total}
             </div>
             <p className="text-[11px] text-slate-500 mt-1">
@@ -488,31 +493,31 @@ export default function ClientsPage() {
             </p>
           </div>
 
-          <div className="p-4 sm:p-5 rounded-2xl bg-[#0b101b]/90 border border-slate-800/90 shadow-lg">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-slate-300 transition-colors">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-mono uppercase text-slate-400 font-semibold">
+              <span className="text-xs font-mono uppercase text-slate-500 font-semibold">
                 Regime Mais Frequente
               </span>
-              <div className="w-8 h-8 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 border border-teal-200 flex items-center justify-center">
                 <Layers className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-lg sm:text-xl font-bold text-teal-300 truncate">
+            <div className="text-lg sm:text-xl font-bold text-teal-700 truncate">
               {summaryMetrics.mostUsedRegime}
             </div>
             <p className="text-[11px] text-slate-500 mt-1">Regime mais selecionado nos snapshots</p>
           </div>
 
-          <div className="p-4 sm:p-5 rounded-2xl bg-[#0b101b]/90 border border-slate-800/90 shadow-lg">
+          <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs hover:border-slate-300 transition-colors">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-mono uppercase text-slate-400 font-semibold">
+              <span className="text-xs font-mono uppercase text-slate-500 font-semibold">
                 Última Atualização
               </span>
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 flex items-center justify-center">
                 <Calendar className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-sm sm:text-base font-semibold font-mono text-slate-200">
+            <div className="text-sm sm:text-base font-semibold font-mono text-slate-900">
               {summaryMetrics.lastSimulationDate}
             </div>
             <p className="text-[11px] text-slate-500 mt-1">
@@ -522,11 +527,11 @@ export default function ClientsPage() {
         </div>
 
         {/* DEPÓSITO DE CENÁRIOS POR CLIENTE — árvore de pastas (pasta = cliente, subpasta = simulação) */}
-        <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
             <div className="flex items-center gap-2">
-              <Folder className="w-4 h-4 text-amber-400" />
-              <h3 className="text-sm sm:text-base font-bold text-white">
+              <Folder className="w-4 h-4 text-amber-600" />
+              <h3 className="text-sm sm:text-base font-bold text-slate-900">
                 Depósito de Cenários por Cliente
               </h3>
               <span className="text-xs font-mono text-slate-500">
@@ -537,16 +542,16 @@ export default function ClientsPage() {
 
           {isLoadingClientScenarios ? (
             <div className="py-10 text-center">
-              <Loader2 className="w-6 h-6 animate-spin text-emerald-400 mx-auto" />
-              <p className="text-xs text-slate-400 mt-2 font-mono">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-600 mx-auto" />
+              <p className="text-xs text-slate-500 mt-2 font-mono">
                 Abrindo o depósito de cenários...
               </p>
             </div>
           ) : clientFolders.length === 0 ? (
             <div className="py-8 text-center">
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Nenhuma simulação por cliente ainda. Grave cenários pelo botão{' '}
-                <strong className="text-emerald-400">"Gravar Novo Cenário"</strong> nas calculadoras
+                <strong className="text-emerald-700">"Gravar Novo Cenário"</strong> nas calculadoras
                 — cada cenário fica organizado na pasta do seu cliente.
               </p>
             </div>
@@ -558,128 +563,136 @@ export default function ClientsPage() {
                 return (
                   <div
                     key={folder.clientId}
-                    className="rounded-xl border border-slate-800 bg-slate-950/40 overflow-hidden"
+                    className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs"
                   >
-                    {/* PASTA DO CLIENTE */}
+                    {/* PASTA DO CLIENTE — Tarja em degradê cinza-ardósia com letra branca em caixa alta monoespaçada negrito */}
                     <button
                       type="button"
                       onClick={() => toggleClientFolder(folder.clientId)}
-                      className="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-slate-900/60 hover:bg-slate-900 transition-colors cursor-pointer"
+                      className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 hover:from-slate-800 hover:via-slate-700 hover:to-slate-800 hover:bg-slate-800 text-white transition-all cursor-pointer border-b border-slate-600 shadow-xs"
                     >
-                      <span className="flex items-center gap-2 min-w-0">
+                      <span className="flex items-center gap-2.5 min-w-0">
                         {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <ChevronDown className="w-4 h-4 text-emerald-300 shrink-0" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <ChevronRight className="w-4 h-4 text-emerald-300 shrink-0" />
                         )}
-                        <Folder className="w-4 h-4 text-amber-400 shrink-0" />
-                        <span className="text-xs font-bold text-white truncate text-left">
+                        <Folder className="w-4 h-4 text-amber-300 shrink-0" />
+                        <span className="text-xs font-mono font-bold uppercase tracking-wider text-white truncate text-left">
                           {folder.clientName}
                         </span>
                       </span>
-                      <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2 py-0.5 shrink-0">
+                      <span className="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 rounded-full px-2.5 py-0.5 shrink-0">
                         {folder.items.length}{' '}
                         {folder.items.length === 1 ? 'simulação' : 'simulações'}
                       </span>
                     </button>
 
-                    {/* SUBPASTAS: SIMULAÇÕES DO CLIENTE */}
-                    {isExpanded && (
-                      <div className="p-2 space-y-2">
-                        {folder.items.map((sc) => {
-                          const details = deriveScenarioDetails(sc.snapshot)
-                          return (
-                            <div
-                              key={sc.id}
-                              className="p-3 rounded-lg border border-slate-800 bg-slate-950/70 hover:border-emerald-500/40 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-semibold text-xs sm:text-sm text-white truncate">
-                                    {sc.name}
-                                  </span>
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-                                    {details.regimeLabel}
-                                  </span>
-                                  {sc.scope && (
-                                    <span className="text-[10px] font-mono text-slate-500">
-                                      {sc.scope}
+                    {/* SUBPASTAS: SIMULAÇÕES DO CLIENTE (Camada interna recuada no padrão chancelado) */}
+                    <div
+                      className={`grid transition-all duration-300 ease-in-out ${
+                        isExpanded
+                          ? 'grid-rows-[1fr] opacity-100'
+                          : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                      }`}
+                    >
+                      <div className="overflow-hidden">
+                        <div className="mx-2 sm:mx-3 my-3 p-3 sm:p-4 rounded-xl bg-slate-100/90 border border-slate-200 shadow-inner space-y-2.5">
+                          {folder.items.map((sc) => {
+                            const details = deriveScenarioDetails(sc.snapshot)
+                            return (
+                              <div
+                                key={sc.id}
+                                className="p-3.5 rounded-xl border border-slate-200 bg-white hover:border-emerald-300 hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-semibold text-xs sm:text-sm text-slate-900 truncate">
+                                      {sc.name}
                                     </span>
-                                  )}
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                      {details.regimeLabel}
+                                    </span>
+                                    {sc.scope && (
+                                      <span className="text-[10px] font-mono text-slate-500">
+                                        {sc.scope}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 font-mono mt-1">
+                                    {formatDate(sc.updated || sc.created)} · Receita Bruta Est.{' '}
+                                    <strong className="text-slate-800 font-semibold">
+                                      {formatBRL(details.revenue)}
+                                    </strong>{' '}
+                                    · {details.productsCount} produto(s)
+                                  </p>
                                 </div>
-                                <p className="text-[10px] text-slate-500 font-mono mt-0.5">
-                                  {formatDate(sc.updated || sc.created)} · Receita Bruta Est.{' '}
-                                  {formatBRL(details.revenue)} · {details.productsCount} produto(s)
-                                </p>
+
+                                <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      ativarCenario({
+                                        id: sc.id,
+                                        cliente: sc.client || '',
+                                        nome: sc.name,
+                                        snapshot: sc.snapshot,
+                                      })
+                                      showFeedback(
+                                        'success',
+                                        `Cenário "${sc.name}" restaurado com sucesso!`,
+                                      )
+                                      navigate('/demo/markup')
+                                    }}
+                                    className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer shrink-0 shadow-xs gap-1"
+                                    title="Restaurar esta simulação nas calculadoras"
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    <span>Restaurar</span>
+                                  </Button>
+
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      setMemorySource({
+                                        name: sc.name,
+                                        scope: sc.scope,
+                                        snapshot: sc.snapshot,
+                                        savedAt: sc.updated || sc.created,
+                                      })
+                                    }
+                                    className="h-8 px-2.5 text-xs font-mono font-semibold bg-white border-sky-300 text-sky-800 hover:text-sky-900 hover:bg-sky-50 hover:border-sky-400 cursor-pointer shrink-0 shadow-xs gap-1"
+                                    title="Abrir a memória de cálculo deste cenário"
+                                  >
+                                    <FileText className="w-3.5 h-3.5 text-sky-600" />
+                                    <span>Abrir</span>
+                                  </Button>
+
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={isDeletingScenario}
+                                    onClick={() =>
+                                      setDeleteScenarioConfirm({
+                                        id: sc.id,
+                                        name: sc.name,
+                                        clientName: sc.clientName || sc.client || 'Cliente',
+                                      })
+                                    }
+                                    className="h-8 px-2.5 text-xs bg-white border-slate-200 text-rose-700 hover:text-rose-800 hover:bg-rose-50 hover:border-rose-300 cursor-pointer shrink-0 shadow-xs gap-1"
+                                    title="Apagar este cenário permanentemente"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                    <span>Apagar</span>
+                                  </Button>
+                                </div>
                               </div>
-                              <Button
-                                size="sm"
-                                onClick={() => {
-                                  // PERSISTÊNCIA DO CENÁRIO ATIVO (bug da "fase anterior"):
-                                  // grava no localStorage + hidrata no boot — F5/nova aba
-                                  // não perde mais os itens da Compras nem o cálculo por item.
-                                  ativarCenario({
-                                    id: sc.id,
-                                    cliente: sc.client || '',
-                                    nome: sc.name,
-                                    snapshot: sc.snapshot,
-                                  })
-                                  showFeedback(
-                                    'success',
-                                    `Cenário "${sc.name}" restaurado com sucesso!`,
-                                  )
-                                  navigate('/demo/markup')
-                                }}
-                                className="h-7 px-3 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold cursor-pointer shrink-0"
-                                title="Restaurar esta simulação nas calculadoras"
-                              >
-                                <RotateCcw className="w-3 h-3 mr-1" />
-                                Restaurar
-                              </Button>
-
-                              {/* CEO 02/10: ABRIR = memória de cálculo do cenário do depósito
-                                  (mesmo modal do salvamento no modal de cenários) */}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() =>
-                                  setMemorySource({
-                                    name: sc.name,
-                                    scope: sc.scope,
-                                    snapshot: sc.snapshot,
-                                    savedAt: sc.updated || sc.created,
-                                  })
-                                }
-                                className="h-7 px-2 text-[11px] font-mono font-bold text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 border border-sky-500/40 cursor-pointer shrink-0"
-                                title="Abrir a memória de cálculo deste cenário"
-                              >
-                                <FileText className="w-3 h-3 mr-1" />
-                                Abrir
-                              </Button>
-
-                              {/* CEO 02/10: APAGAR CENÁRIO ao lado do Restaurar */}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={isDeletingScenario}
-                                onClick={() =>
-                                  setDeleteScenarioConfirm({
-                                    id: sc.id,
-                                    name: sc.name,
-                                    clientName: sc.clientName || sc.client || 'Cliente',
-                                  })
-                                }
-                                className="h-7 px-2.5 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/30 cursor-pointer shrink-0"
-                                title="Apagar este cenário permanentemente"
-                              >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                Apagar
-                              </Button>
-                            </div>
-                          )
-                        })}
+                            )
+                          })}
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 )
               })}
@@ -688,11 +701,11 @@ export default function ClientsPage() {
         </div>
 
         {/* Tabela e Filtros de Cenários */}
-        <div className="bg-[#0b101b]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
             <div className="flex items-center gap-2">
-              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-              <h3 className="text-sm sm:text-base font-bold text-white">
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <h3 className="text-sm sm:text-base font-bold text-slate-900">
                 Carteira de Cenários Tributários
               </h3>
               <span className="text-xs font-mono text-slate-500">
@@ -702,18 +715,18 @@ export default function ClientsPage() {
 
             {/* Campo de Busca */}
             <div className="relative w-full sm:w-72">
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <Input
                 type="text"
                 placeholder="Filtrar por nome ou regime..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-8 bg-slate-950/70 border-slate-800 text-xs font-mono text-slate-200 placeholder:text-slate-500 focus:border-emerald-500"
+                className="pl-9 h-8 bg-slate-50 border-slate-200 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
                 >
                   ✕
                 </button>
@@ -724,29 +737,30 @@ export default function ClientsPage() {
           {/* Lista / Tabela */}
           {isLoading ? (
             <div className="py-16 text-center space-y-3">
-              <Loader2 className="w-7 h-7 animate-spin text-emerald-400 mx-auto" />
-              <p className="text-xs text-slate-400 font-mono">
+              <Loader2 className="w-7 h-7 animate-spin text-emerald-600 mx-auto" />
+              <p className="text-xs text-slate-500 font-mono">
                 Consultando cenários salvos no servidor seguro...
               </p>
             </div>
           ) : scenarios.length === 0 ? (
             /* Estado vazio amigável */
             <div className="py-12 sm:py-16 px-4 text-center max-w-md mx-auto space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-inner">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto shadow-xs">
                 <FolderOpen className="w-7 h-7" />
               </div>
               <div className="space-y-1.5">
-                <h4 className="text-base font-bold text-white">Nenhum cenário salvo ainda</h4>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <h4 className="text-base font-bold text-slate-900">Nenhum cenário salvo ainda</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
                   Para que um cliente ou diagnóstico apareça neste painel, basta abrir qualquer
                   calculadora (Markup, Compras ou DREs), preencher os dados e clicar em{' '}
-                  <strong className="text-emerald-400">"Salvar Cenário"</strong> na barra inferior.
+                  <strong className="text-emerald-700 font-semibold">"Salvar Cenário"</strong> na
+                  barra inferior.
                 </p>
               </div>
               <div className="pt-2">
                 <Button
                   onClick={() => navigate('/demo/markup')}
-                  className="h-9 px-5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/20"
+                  className="h-9 px-5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs gap-1.5 cursor-pointer shadow-xs"
                 >
                   <span>Ir para a Calculadora Markup</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -755,48 +769,48 @@ export default function ClientsPage() {
             </div>
           ) : filteredScenarios.length === 0 ? (
             <div className="py-10 text-center space-y-2">
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500">
                 Nenhum cenário encontrado para a busca{' '}
-                <strong className="text-emerald-400">"{searchQuery}"</strong>.
+                <strong className="text-emerald-700">"{searchQuery}"</strong>.
               </p>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSearchQuery('')}
-                className="text-xs text-emerald-400 hover:bg-emerald-500/10 h-7"
+                className="text-xs text-emerald-700 hover:bg-emerald-50 h-7"
               >
                 Limpar busca
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-xs font-mono">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 text-left">
-                    <th className="py-3 px-3 font-semibold text-slate-300">Cenário / Cliente</th>
-                    <th className="py-3 px-3 font-semibold text-slate-300">Regime Salvo</th>
-                    <th className="py-3 px-3 font-semibold text-slate-300 hidden md:table-cell">
+                  <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-600 text-left">
+                    <th className="py-3 px-3 font-semibold text-slate-700">Cenário / Cliente</th>
+                    <th className="py-3 px-3 font-semibold text-slate-700">Regime Salvo</th>
+                    <th className="py-3 px-3 font-semibold text-slate-700 hidden md:table-cell">
                       Receita Bruta Est.
                     </th>
-                    <th className="py-3 px-3 font-semibold text-slate-300 hidden sm:table-cell">
+                    <th className="py-3 px-3 font-semibold text-slate-700 hidden sm:table-cell">
                       Criado em
                     </th>
-                    <th className="py-3 px-3 font-semibold text-slate-300 hidden lg:table-cell">
+                    <th className="py-3 px-3 font-semibold text-slate-700 hidden lg:table-cell">
                       Última Atualização
                     </th>
-                    <th className="py-3 px-3 font-semibold text-slate-300 text-right">Ações</th>
+                    <th className="py-3 px-3 font-semibold text-slate-700 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-slate-200 bg-white">
                   {filteredScenarios.map((sc) => {
                     const isEditing = editingId === sc.id
                     const details = deriveScenarioDetails(sc.data)
                     const isUpdating = updatingId === sc.id
 
                     return (
-                      <tr key={sc.id} className="hover:bg-slate-900/50 transition-colors group">
+                      <tr key={sc.id} className="hover:bg-slate-50 transition-colors group">
                         {/* Nome do Cenário (com edição inline) */}
-                        <td className="py-3 px-3 text-slate-200">
+                        <td className="py-3 px-3 text-slate-900">
                           {isEditing ? (
                             <div className="flex items-center gap-1.5 max-w-xs">
                               <Input
@@ -804,7 +818,7 @@ export default function ClientsPage() {
                                 value={editingName}
                                 onChange={(e) => setEditingName(e.target.value)}
                                 autoFocus
-                                className="h-7 text-xs bg-slate-950 border-emerald-500 text-white font-sans"
+                                className="h-7 text-xs bg-white border-emerald-500 text-slate-900 font-sans shadow-xs"
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') saveEditingName(sc.id)
                                   if (e.key === 'Escape') cancelEditing()
@@ -815,7 +829,7 @@ export default function ClientsPage() {
                                 variant="ghost"
                                 disabled={isSavingName}
                                 onClick={() => saveEditingName(sc.id)}
-                                className="h-7 w-7 p-0 text-emerald-400 hover:bg-emerald-500/20"
+                                className="h-7 w-7 p-0 text-emerald-700 hover:bg-emerald-50"
                                 title="Salvar nome"
                               >
                                 {isSavingName ? (
@@ -828,7 +842,7 @@ export default function ClientsPage() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={cancelEditing}
-                                className="h-7 w-7 p-0 text-slate-400 hover:text-white"
+                                className="h-7 w-7 p-0 text-slate-400 hover:text-slate-700"
                                 title="Cancelar"
                               >
                                 <X className="w-3.5 h-3.5" />
@@ -836,19 +850,19 @@ export default function ClientsPage() {
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold text-white font-sans text-xs sm:text-sm">
+                              <span className="font-semibold text-slate-900 font-sans text-xs sm:text-sm">
                                 {sc.name}
                               </span>
                               <button
                                 onClick={() => startEditing(sc)}
-                                className="text-slate-500 hover:text-emerald-400 opacity-60 group-hover:opacity-100 transition-opacity p-0.5"
+                                className="text-slate-400 hover:text-emerald-700 opacity-60 group-hover:opacity-100 transition-opacity p-0.5 cursor-pointer"
                                 title="Renomear este cenário"
                               >
                                 <Edit2 className="w-3 h-3" />
                               </button>
                             </div>
                           )}
-                          <span className="text-[10px] text-slate-500 block font-mono mt-0.5">
+                          <span className="text-[10px] text-slate-400 block font-mono mt-0.5">
                             ID: {sc.id}
                           </span>
                         </td>
@@ -858,10 +872,10 @@ export default function ClientsPage() {
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono ${
                               details.regime === 'simples'
-                                ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30'
+                                ? 'bg-cyan-50 text-cyan-800 border border-cyan-200'
                                 : details.regime === 'real'
-                                  ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
-                                  : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                  : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                             }`}
                           >
                             {details.regimeLabel}
@@ -869,23 +883,23 @@ export default function ClientsPage() {
                         </td>
 
                         {/* Receita Bruta Estimada */}
-                        <td className="py-3 px-3 hidden md:table-cell text-slate-300 font-mono">
+                        <td className="py-3 px-3 hidden md:table-cell text-slate-700 font-mono">
                           {details.revenue > 0 ? (
-                            <span className="text-slate-200 font-semibold">
+                            <span className="text-slate-900 font-semibold">
                               {formatBRL(details.revenue)}
                             </span>
                           ) : (
-                            <span className="text-slate-500">R$ 0,00</span>
+                            <span className="text-slate-400">R$ 0,00</span>
                           )}
                         </td>
 
                         {/* Data de Criação */}
-                        <td className="py-3 px-3 hidden sm:table-cell text-slate-400">
+                        <td className="py-3 px-3 hidden sm:table-cell text-slate-500">
                           {formatDate(sc.created)}
                         </td>
 
                         {/* Data de Atualização */}
-                        <td className="py-3 px-3 hidden lg:table-cell text-slate-400">
+                        <td className="py-3 px-3 hidden lg:table-cell text-slate-500">
                           {formatDate(sc.updated)}
                         </td>
 
@@ -896,7 +910,7 @@ export default function ClientsPage() {
                             <Button
                               size="sm"
                               onClick={() => handleLoadAndNavigate(sc)}
-                              className="h-7 px-2.5 text-xs font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500 hover:text-slate-950 transition-colors cursor-pointer gap-1"
+                              className="h-7 px-2.5 text-xs font-bold bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer gap-1 shadow-2xs"
                               title="Restaurar este cenário nas calculadoras e ir para a demo"
                             >
                               <span>Carregar</span>
@@ -909,7 +923,7 @@ export default function ClientsPage() {
                               variant="outline"
                               disabled={isUpdating}
                               onClick={() => handleUpdateSnapshot(sc)}
-                              className="h-7 px-2 text-[11px] bg-slate-900 border-slate-700/80 text-teal-300 hover:bg-teal-500/20 hover:border-teal-500/40 cursor-pointer"
+                              className="h-7 px-2 text-[11px] bg-white border-slate-300 text-teal-800 hover:bg-teal-50 hover:border-teal-300 cursor-pointer shadow-2xs"
                               title="Sobrescrever este cenário no servidor com as variáveis atuais da tela"
                             >
                               {isUpdating ? (
@@ -924,7 +938,7 @@ export default function ClientsPage() {
                               size="sm"
                               variant="ghost"
                               onClick={() => startEditing(sc)}
-                              className="h-7 w-7 p-0 text-slate-400 hover:text-white hover:bg-slate-800"
+                              className="h-7 w-7 p-0 text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
                               title="Renomear cenário"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -935,7 +949,7 @@ export default function ClientsPage() {
                               size="sm"
                               variant="ghost"
                               onClick={() => setDeleteConfirmId(sc.id)}
-                              className="h-7 w-7 p-0 text-rose-400 hover:text-rose-300 hover:bg-rose-500/20 cursor-pointer"
+                              className="h-7 w-7 p-0 text-rose-600 hover:text-rose-800 hover:bg-rose-50 cursor-pointer"
                               title="Excluir cenário"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -951,18 +965,97 @@ export default function ClientsPage() {
           )}
         </div>
 
+        {/* NOTA DIDÁTICA DE APOIO COLAPSÁVEL — RECOLHIDA POR PADRÃO (PADRÃO CHANCELADO DO PROJETO) */}
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+          <button
+            type="button"
+            onClick={() => setIsDidacticNoteOpen((prev) => !prev)}
+            className="w-full flex items-center justify-between gap-3 p-4 text-left bg-slate-50/70 hover:bg-slate-100/80 transition-colors cursor-pointer border-b border-transparent data-[open=true]:border-slate-200"
+            data-open={isDidacticNoteOpen}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+                <Info className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-900 block">
+                  ORIENTAÇÕES DE GESTÃO · SINCRONIZAÇÃO E PERSISTÊNCIA DOS CENÁRIOS
+                </span>
+                <span className="text-[11px] text-slate-500 font-sans">
+                  Entenda como funciona o auto-sync, restauração nas calculadoras e memória de
+                  cálculo dos diagnósticos fiscais.
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-slate-600 shrink-0">
+              <span>{isDidacticNoteOpen ? 'RECOLHER NOTAS' : 'VER NOTAS DIDÁTICAS'}</span>
+              {isDidacticNoteOpen ? (
+                <ChevronUp className="w-4 h-4 text-slate-500" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-slate-500" />
+              )}
+            </div>
+          </button>
+
+          <div
+            className={`grid transition-all duration-300 ease-in-out ${
+              isDidacticNoteOpen
+                ? 'grid-rows-[1fr] opacity-100'
+                : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+            }`}
+          >
+            <div className="overflow-hidden">
+              <div className="p-4 sm:p-5 text-xs text-slate-600 bg-white space-y-3 leading-relaxed border-t border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                    <span className="text-[11px] font-mono font-bold text-slate-900 uppercase block">
+                      1. Restauração e Auto-Sync
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      Ao clicar em <strong>Restaurar</strong> ou <strong>Carregar</strong>, o
+                      snapshot tributário é hidratado integralmente nas calculadoras (Markup,
+                      Compras, DREs) e persistido no navegador. F5 ou nova aba não perdem o estado
+                      restaurado.
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                    <span className="text-[11px] font-mono font-bold text-slate-900 uppercase block">
+                      2. Memória de Cálculo Read-Only
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      O botão <strong>Abrir</strong> exibe a memória de cálculo exata capturada no
+                      momento em que a simulação foi gravada, discriminando itens de compra,
+                      impostos recuperáveis e custos unitários sem alterar as variáveis da tela.
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                    <span className="text-[11px] font-mono font-bold text-slate-900 uppercase block">
+                      3. Organização por Cliente
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      Cada simulação fica agrupada na pasta do respectivo cliente contábil. É
+                      possível versionar diferentes diagnósticos para o mesmo contribuinte
+                      comparando alternativas tributárias lado a lado.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Modal de Confirmação de Exclusão */}
         <Dialog
           open={Boolean(deleteConfirmId)}
           onOpenChange={(open) => !open && setDeleteConfirmId(null)}
         >
-          <DialogContent className="bg-[#0b121e] border-slate-700/80 text-slate-100 sm:max-w-sm">
+          <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-sm shadow-xl p-5 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="text-white text-base flex items-center gap-2">
-                <Trash2 className="w-4 h-4 text-rose-400" />
+              <DialogTitle className="text-slate-900 text-base flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-rose-600" />
                 Excluir Cenário do Servidor?
               </DialogTitle>
-              <DialogDescription className="text-slate-400 text-xs">
+              <DialogDescription className="text-slate-500 text-xs">
                 Esta ação apagará permanentemente o cenário e seus parâmetros do banco de dados na
                 nuvem. Não é possível desfazer.
               </DialogDescription>
@@ -973,7 +1066,7 @@ export default function ClientsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setDeleteConfirmId(null)}
-                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                className="border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
               >
                 Cancelar
               </Button>
@@ -982,7 +1075,7 @@ export default function ClientsPage() {
                 size="sm"
                 disabled={isDeleting}
                 onClick={handleDeleteScenario}
-                className="bg-rose-600 hover:bg-rose-500 text-white font-semibold"
+                className="bg-rose-600 hover:bg-rose-500 text-white font-semibold cursor-pointer shadow-xs"
               >
                 {isDeleting ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1010,16 +1103,18 @@ export default function ClientsPage() {
           open={Boolean(deleteScenarioConfirm)}
           onOpenChange={(open) => !open && setDeleteScenarioConfirm(null)}
         >
-          <DialogContent className="max-w-md bg-slate-950 border border-rose-500/40 text-slate-100 shadow-2xl">
+          <DialogContent className="max-w-md bg-white border border-rose-200 text-slate-900 shadow-xl p-5 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-rose-400" />
+              <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-rose-600" />
                 Apagar Cenário do Depósito?
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-400">
+              <DialogDescription className="text-xs text-slate-500">
                 Tem certeza de que deseja apagar permanentemente o cenário{' '}
-                <strong className="text-rose-300">"{deleteScenarioConfirm?.name}"</strong>? Esta
-                ação não poderá ser desfeita — todas as versões do histórico vão junto.
+                <strong className="text-rose-700 font-semibold">
+                  "{deleteScenarioConfirm?.name}"
+                </strong>
+                ? Esta ação não poderá ser desfeita — todas as versões do histórico vão junto.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2 sm:gap-0 pt-2">
@@ -1027,7 +1122,7 @@ export default function ClientsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setDeleteScenarioConfirm(null)}
-                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                className="border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
               >
                 Cancelar
               </Button>
@@ -1036,7 +1131,7 @@ export default function ClientsPage() {
                 size="sm"
                 disabled={isDeletingScenario}
                 onClick={handleDeleteClientScenario}
-                className="bg-rose-600 hover:bg-rose-500 text-white font-semibold"
+                className="bg-rose-600 hover:bg-rose-500 text-white font-semibold cursor-pointer shadow-xs"
               >
                 {isDeletingScenario ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

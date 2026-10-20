@@ -112,20 +112,20 @@ export const ScenarioMemoryDialog: React.FC<ScenarioMemoryDialogProps> = ({
 
   return (
     <Dialog open={Boolean(source)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-[#07130f] border border-sky-500/40 text-slate-100 shadow-2xl p-5 sm:p-6">
-        <DialogHeader className="border-b border-sky-500/20 pb-3">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 shadow-xl p-5 sm:p-6">
+        <DialogHeader className="border-b border-slate-200 pb-3">
           <div className="flex items-center justify-between gap-3 pr-6">
-            <DialogTitle className="text-base font-bold text-white flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-300 shrink-0">
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-700 shrink-0 shadow-xs">
                 <FileText className="w-4 h-4" />
               </div>
               <span>Memória de Cálculo — {source?.name}</span>
             </DialogTitle>
-            <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono shrink-0">
+            <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono shrink-0 font-semibold">
               {scopeLabel}
             </Badge>
           </div>
-          <DialogDescription className="text-xs text-slate-400">
+          <DialogDescription className="text-xs text-slate-500">
             Foto fiscal do salvamento de {source ? formatDate(source.savedAt) : ''} — calculada a
             partir do snapshot gravado, sem tocar no estado atual das telas.
           </DialogDescription>
@@ -137,8 +137,8 @@ export const ScenarioMemoryDialog: React.FC<ScenarioMemoryDialogProps> = ({
           /* ============================================================ */
           expenseItems.length === 0 && revenueItems.length === 0 ? (
             <div className="py-10 text-center space-y-2">
-              <FileText className="w-8 h-8 text-slate-600 mx-auto" />
-              <p className="text-xs text-slate-400 font-mono">
+              <FileText className="w-8 h-8 text-slate-400 mx-auto" />
+              <p className="text-xs text-slate-500 font-mono">
                 Este salvamento não contém despesas nem receitas no snapshot.
               </p>
             </div>
@@ -146,33 +146,33 @@ export const ScenarioMemoryDialog: React.FC<ScenarioMemoryDialogProps> = ({
             <div className="space-y-3 pt-1">
               {/* Despesas Operacionais */}
               {expenseItems.length > 0 && (
-                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-white flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-rose-400" />
+                    <span className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-rose-600" />
                       Despesas Operacionais
                     </span>
-                    <Badge className="bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[9px] font-mono">
+                    <Badge className="bg-rose-50 text-rose-800 border border-rose-200 text-[9px] font-mono font-semibold">
                       {expenseItems.length} lançamento(s)
                     </Badge>
                   </div>
                   <div className="space-y-1.5 font-mono text-[11px]">
                     {expenseItems.map((it, idx) => (
                       <div key={it.id || idx} className="flex items-center justify-between">
-                        <span className="text-rose-400">
+                        <span className="text-rose-700">
                           (−) {it.description || `Despesa ${idx + 1}`}{' '}
                           <span className="text-slate-500 text-[10px]">
                             ({expCatLabel(it.category)})
                           </span>
                         </span>
-                        <span className="text-rose-400 font-semibold">
+                        <span className="text-rose-700 font-semibold">
                           -{formatBRL(it.value || 0)}
                         </span>
                       </div>
                     ))}
-                    <div className="pt-2 border-t border-slate-700/80 flex items-center justify-between text-xs">
-                      <span className="font-bold text-rose-400">(=) Total de Despesas:</span>
-                      <span className="font-bold text-rose-400 text-sm">
+                    <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                      <span className="font-bold text-rose-700">(=) Total de Despesas:</span>
+                      <span className="font-bold text-rose-700 text-sm">
                         {formatBRL(totalExpenses)}
                       </span>
                     </div>
@@ -182,33 +182,33 @@ export const ScenarioMemoryDialog: React.FC<ScenarioMemoryDialogProps> = ({
 
               {/* Receitas Operacionais */}
               {revenueItems.length > 0 && (
-                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-white flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-emerald-600" />
                       Receitas Operacionais
                     </span>
-                    <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono">
+                    <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[9px] font-mono font-semibold">
                       {revenueItems.length} lançamento(s)
                     </Badge>
                   </div>
                   <div className="space-y-1.5 font-mono text-[11px]">
                     {revenueItems.map((it, idx) => (
                       <div key={it.id || idx} className="flex items-center justify-between">
-                        <span className="text-emerald-400">
+                        <span className="text-emerald-700">
                           (+) {it.description || `Receita ${idx + 1}`}{' '}
                           <span className="text-slate-500 text-[10px]">
                             ({revCatLabel(it.category)})
                           </span>
                         </span>
-                        <span className="text-emerald-400 font-semibold">
+                        <span className="text-emerald-700 font-semibold">
                           +{formatBRL(it.value || 0)}
                         </span>
                       </div>
                     ))}
-                    <div className="pt-2 border-t border-slate-700/80 flex items-center justify-between text-xs">
-                      <span className="font-bold text-emerald-400">(=) Total de Receitas:</span>
-                      <span className="font-bold text-emerald-400 text-sm">
+                    <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                      <span className="font-bold text-emerald-700">(=) Total de Receitas:</span>
+                      <span className="font-bold text-emerald-700 text-sm">
                         {formatBRL(totalRevenues)}
                       </span>
                     </div>
@@ -217,13 +217,13 @@ export const ScenarioMemoryDialog: React.FC<ScenarioMemoryDialogProps> = ({
               )}
 
               {/* Resultado do período no snapshot */}
-              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-300 font-mono">
+              <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 font-mono">
                   Resultado (Receitas − Despesas):
                 </span>
                 <span
                   className={`text-sm font-bold font-mono ${
-                    totalRevenues - totalExpenses >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                    totalRevenues - totalExpenses >= 0 ? 'text-emerald-700' : 'text-rose-700'
                   }`}
                 >
                   {formatBRL(totalRevenues - totalExpenses)}
@@ -233,8 +233,8 @@ export const ScenarioMemoryDialog: React.FC<ScenarioMemoryDialogProps> = ({
           )
         ) : items.length === 0 ? (
           <div className="py-10 text-center space-y-2">
-            <FileText className="w-8 h-8 text-slate-600 mx-auto" />
-            <p className="text-xs text-slate-400 font-mono">
+            <FileText className="w-8 h-8 text-slate-400 mx-auto" />
+            <p className="text-xs text-slate-500 font-mono">
               Este salvamento não contém itens de compra no snapshot.
             </p>
           </div>
@@ -256,83 +256,83 @@ export const ScenarioMemoryDialog: React.FC<ScenarioMemoryDialogProps> = ({
               return (
                 <div
                   key={it.id || idx}
-                  className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2"
+                  className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-white flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-sky-400" />
+                    <span className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-sky-600" />
                       {it.name || `Item ${idx + 1}`}
                     </span>
-                    <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-mono">
+                    <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[9px] font-mono font-semibold">
                       {regimeLabel}
                     </Badge>
                   </div>
 
                   <div className="space-y-1.5 font-mono text-[11px]">
                     <div className="flex items-center justify-between">
-                      <span className="text-emerald-400">
+                      <span className="text-slate-700">
                         (+) Mercadorias ({formatNumberBR(qty, 0)} un. × {formatBRL(unit)})
                       </span>
-                      <span className="text-slate-100 font-semibold">{formatBRL(gross)}</span>
+                      <span className="text-slate-900 font-semibold">{formatBRL(gross)}</span>
                     </div>
                     {freight > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-emerald-400">(+) Frete sobre compras</span>
-                        <span className="text-slate-100 font-semibold">{formatBRL(freight)}</span>
+                        <span className="text-slate-700">(+) Frete sobre compras</span>
+                        <span className="text-slate-900 font-semibold">{formatBRL(freight)}</span>
                       </div>
                     )}
                     {ipi > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-emerald-400">(+) IPI não recuperável</span>
-                        <span className="text-slate-100 font-semibold">{formatBRL(ipi)}</span>
+                        <span className="text-slate-700">(+) IPI não recuperável</span>
+                        <span className="text-slate-900 font-semibold">{formatBRL(ipi)}</span>
                       </div>
                     )}
                     {st > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-emerald-400">(+) ICMS-ST na entrada</span>
-                        <span className="text-slate-100 font-semibold">{formatBRL(st)}</span>
+                        <span className="text-slate-700">(+) ICMS-ST na entrada</span>
+                        <span className="text-slate-900 font-semibold">{formatBRL(st)}</span>
                       </div>
                     )}
                     {regimeMem !== 'simples' && icmsMerc > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-rose-400">
+                        <span className="text-rose-700">
                           (−) ICMS sobre mercadorias ({formatNumberBR(it.icmsRate || 0, 2)}% ×{' '}
                           {formatBRL(gross)})
                         </span>
-                        <span className="text-rose-400 font-semibold">-{formatBRL(icmsMerc)}</span>
+                        <span className="text-rose-700 font-semibold">-{formatBRL(icmsMerc)}</span>
                       </div>
                     )}
                     {regimeMem !== 'simples' && icmsFreight > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-rose-400">(−) ICMS sobre fretes</span>
-                        <span className="text-rose-400 font-semibold">
+                        <span className="text-rose-700">(−) ICMS sobre fretes</span>
+                        <span className="text-rose-700 font-semibold">
                           -{formatBRL(icmsFreight)}
                         </span>
                       </div>
                     )}
                     {regimeMem === 'real' && pis > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-rose-400">(−) PIS (1,65%)</span>
-                        <span className="text-rose-400 font-semibold">-{formatBRL(pis)}</span>
+                        <span className="text-rose-700">(−) PIS (1,65%)</span>
+                        <span className="text-rose-700 font-semibold">-{formatBRL(pis)}</span>
                       </div>
                     )}
                     {regimeMem === 'real' && cofins > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-rose-400">(−) COFINS (7,60%)</span>
-                        <span className="text-rose-400 font-semibold">-{formatBRL(cofins)}</span>
+                        <span className="text-rose-700">(−) COFINS (7,60%)</span>
+                        <span className="text-rose-700 font-semibold">-{formatBRL(cofins)}</span>
                       </div>
                     )}
 
-                    <div className="pt-2 border-t border-slate-700/80 flex items-center justify-between text-xs">
-                      <span className="font-bold text-emerald-400">
+                    <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                      <span className="font-bold text-emerald-700">
                         (=) Compras Líquidas / Custo Total:
                       </span>
-                      <span className="font-bold text-emerald-400 text-sm">{formatBRL(net)}</span>
+                      <span className="font-bold text-emerald-700 text-sm">{formatBRL(net)}</span>
                     </div>
                     {qty > 0 && (
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
                         <span>Custo Unitário Líquido ({formatNumberBR(qty, 0)} un.):</span>
-                        <span className="text-emerald-300 font-semibold">
+                        <span className="text-emerald-700 font-semibold">
                           {formatBRL(net / qty)} / un.
                         </span>
                       </div>
@@ -344,7 +344,7 @@ export const ScenarioMemoryDialog: React.FC<ScenarioMemoryDialogProps> = ({
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+        <div className="flex items-center justify-between pt-3 border-t border-slate-200">
           <span className="text-[10px] text-slate-500 font-mono">
             Memória read-only do snapshot gravado — para editar, restaura o salvamento.
           </span>
@@ -353,7 +353,7 @@ export const ScenarioMemoryDialog: React.FC<ScenarioMemoryDialogProps> = ({
             variant="outline"
             size="sm"
             onClick={onClose}
-            className="text-xs bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
+            className="text-xs bg-white border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer shadow-xs"
           >
             Fechar
           </Button>
