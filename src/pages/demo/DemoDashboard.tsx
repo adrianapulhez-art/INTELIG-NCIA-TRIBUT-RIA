@@ -186,24 +186,86 @@ export default function DemoDashboard() {
               cumulativo, PGDAS completo e comparativo estratégico em tempo real.
             </p>
 
-            {/* CTA Pill central no banner hero */}
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            {/* CTA Pill central no banner hero — Tratamento Dourado Metálico com Brilho Intensificado no Hover */}
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3.5">
+              {/* Botão Primário: INICIAR COM COMPRAS */}
               <button
                 type="button"
                 onClick={() => navigate('/demo/compras')}
-                className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-[#3b2405] text-[#fff5cc] border border-amber-300/60 font-bold text-xs sm:text-sm uppercase tracking-wider hover:bg-[#1a0f02] hover:text-amber-200 hover:border-amber-200 transition-all duration-200 shadow-xl shadow-amber-950/25 cursor-pointer group/btn"
+                className="group/btn relative overflow-hidden inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 hover:border-amber-100 font-bold text-xs sm:text-sm uppercase tracking-wider text-[#261502] hover:text-[#0f0700] shadow-lg shadow-amber-950/30 hover:shadow-2xl hover:shadow-amber-500/40 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer transition-all duration-300"
               >
-                <span>INICIAR COM COMPRAS</span>
-                <ArrowRight className="w-4 h-4 text-amber-300 group-hover/btn:translate-x-1 transition-transform" />
+                {/* 1. Camada de reflexo metálico escovado horizontal com faixas especulares */}
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-45 group-hover/btn:opacity-70 mix-blend-overlay transition-opacity duration-300"
+                  style={{
+                    background:
+                      'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+                  }}
+                />
+
+                {/* 2. Camada de microtextura folheada a ouro suave */}
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-25 group-hover/btn:opacity-40 mix-blend-soft-light transition-opacity duration-300"
+                  style={{
+                    backgroundImage:
+                      'repeating-linear-gradient(0deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 50% 30%, rgba(255,240,150,0.8), transparent 70%)',
+                  }}
+                />
+
+                {/* 3. Chanfro / linha superior luminosa (beveled edge) */}
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-90 group-hover/btn:opacity-100 transition-opacity duration-300" />
+
+                {/* 4. Iluminação radial extra no hover para intensificar a luz geral sobre o botão */}
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.45),transparent_70%)] opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
+
+                {/* 5. Sheen diagonal ultraluminoso que cruza o botão e as palavras no hover */}
+                <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/btn:translate-x-[130%] transition-transform duration-700 ease-out" />
+
+                {/* Rótulo e ícone em alto contraste com relevo dourado refinado */}
+                <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)] group-hover/btn:drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] transition-all">
+                  INICIAR COM COMPRAS
+                </span>
+                <ArrowRight className="relative z-10 w-4 h-4 text-[#3b2405] group-hover/btn:text-[#1a0d01] group-hover/btn:translate-x-1 drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)] transition-all duration-200" />
               </button>
 
+              {/* Botão Secundário: Ver Dashboard */}
               <button
                 type="button"
                 onClick={() => navigate('/demo/dashboard')}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[#3b2405]/80 border border-amber-400/50 text-[#fff5cc] font-semibold text-xs sm:text-sm tracking-wide hover:bg-[#1a0f02] hover:text-white hover:border-amber-200 transition-all duration-200 cursor-pointer shadow-md"
+                className="group/btn relative overflow-hidden inline-flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/80 hover:border-amber-100 font-semibold text-xs sm:text-sm tracking-wide text-[#261502] hover:text-[#0f0700] shadow-md shadow-amber-950/25 hover:shadow-2xl hover:shadow-amber-500/35 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer transition-all duration-300"
               >
-                <Scale className="w-4 h-4 text-amber-300" />
-                <span>Ver Dashboard</span>
+                {/* 1. Camada de reflexo metálico escovado horizontal com faixas especulares */}
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-45 group-hover/btn:opacity-70 mix-blend-overlay transition-opacity duration-300"
+                  style={{
+                    background:
+                      'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+                  }}
+                />
+
+                {/* 2. Camada de microtextura folheada a ouro suave */}
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-25 group-hover/btn:opacity-40 mix-blend-soft-light transition-opacity duration-300"
+                  style={{
+                    backgroundImage:
+                      'repeating-linear-gradient(0deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 50% 30%, rgba(255,240,150,0.8), transparent 70%)',
+                  }}
+                />
+
+                {/* 3. Chanfro / linha superior luminosa (beveled edge) */}
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-90 group-hover/btn:opacity-100 transition-opacity duration-300" />
+
+                {/* 4. Iluminação radial extra no hover para intensificar a luz geral sobre o botão */}
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.45),transparent_70%)] opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
+
+                {/* 5. Sheen diagonal ultraluminoso que cruza o botão e as palavras no hover */}
+                <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/btn:translate-x-[130%] transition-transform duration-700 ease-out" />
+
+                {/* Rótulo e ícone em alto contraste com relevo dourado refinado */}
+                <Scale className="relative z-10 w-4 h-4 text-[#3b2405] group-hover/btn:text-[#1a0d01] group-hover/btn:rotate-6 drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)] transition-all duration-200" />
+                <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)] group-hover/btn:drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] transition-all">
+                  Ver Dashboard
+                </span>
               </button>
             </div>
           </div>
