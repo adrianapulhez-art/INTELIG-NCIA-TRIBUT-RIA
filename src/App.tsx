@@ -21,7 +21,6 @@ import DemoDashboardPage from './pages/demo/DemoDashboardPage'
 import ReformaPage from './pages/demo/ReformaPage'
 import ClientsPage from './pages/demo/ClientsPage'
 import ManualPage from './pages/demo/ManualPage'
-import SimuladorOpcaoPage from './pages/demo/SimuladorOpcaoPage'
 import { Navigate } from 'react-router-dom'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
@@ -54,14 +53,6 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <MarkupPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/demo/simulador-opcao"
-              element={
-                <ProtectedRoute>
-                  <SimuladorOpcaoPage />
                 </ProtectedRoute>
               }
             />

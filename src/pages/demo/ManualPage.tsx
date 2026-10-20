@@ -6,17 +6,18 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
   BookOpen,
+  ChevronDown,
   ChevronRight,
   FileText,
-  GraduationCap,
   Lightbulb,
   Search,
   ShieldAlert,
+  Info,
   X,
 } from 'lucide-react'
 
 // Capítulos do Manual — base de conhecimento única (Markdown por capítulo).
-// A especialização por contexto de rota do Assistente IT (Fase 4) consome estes mesmos arquivos.
+// A especialização por contexto de rota do Assistente IT consome estes mesmos arquivos.
 const chapterModules = import.meta.glob('/src/content/manual/cap-*.md', {
   query: '?raw',
   import: 'default',
@@ -71,12 +72,24 @@ export default function ManualPage() {
   const [activeId, setActiveId] = useState<string>(CHAPTERS[0]?.id || '')
   const [query, setQuery] = useState('')
 
+  // Seções colapsáveis RECOLHIDAS por padrão (chancela da Adri)
+  const [goldTipOpen, setGoldTipOpen] = useState(false)
+  const [commonErrorOpen, setCommonErrorOpen] = useState(false)
+  const [footerNotesOpen, setFooterNotesOpen] = useState(false)
+
   const activeChapter = CHAPTERS.find((c) => c.id === activeId) || CHAPTERS[0]
 
   const { body, goldTip, commonError } = useMemo(
     () => splitFixedSections(activeChapter?.content || ''),
     [activeChapter],
   )
+
+  // Ao trocar de capítulo, manter seções colapsáveis recolhidas por padrão
+  const handleSelectChapter = (id: string) => {
+    setActiveId(id)
+    setGoldTipOpen(false)
+    setCommonErrorOpen(false)
+  }
 
   // Busca de texto: título + conteúdo de todos os capítulos (recurso do manual)
   const searchResults = useMemo(() => {
@@ -112,22 +125,22 @@ export default function ManualPage() {
         />
 
         <div className="flex flex-col lg:flex-row gap-6 items-start">
-          {/* Sumário lateral */}
-          <aside className="w-full lg:w-72 shrink-0 lg:sticky lg:top-4 space-y-3">
+          {/* Sumário lateral — Cartão branco com cantos arredondados, borda slate-200 e sombra suave */}
+          <aside className="w-full lg:w-72 shrink-0 lg:sticky lg:top-4 bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar no manual…"
-                className="pl-9 bg-[#091511]/90 border-emerald-500/25 text-sm text-slate-200 placeholder:text-slate-500"
+                className="pl-9 bg-slate-50 border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-emerald-500 rounded-xl"
               />
               {query && (
                 <button
                   type="button"
                   onClick={() => setQuery('')}
                   aria-label="Limpar busca"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -135,8 +148,8 @@ export default function ManualPage() {
             </div>
 
             {searchResults ? (
-              <div className="rounded-2xl border border-emerald-500/25 bg-[#091511]/90 p-3 space-y-1.5">
-                <p className="text-[10px] font-mono uppercase tracking-wider text-emerald-400/80 px-1">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3 space-y-1.5">
+                <p className="text-[10px] font-mono uppercase tracking-wider text-slate-500 px-1">
                   {searchResults.length} resultado{searchResults.length === 1 ? '' : 's'} para "
                   {query}"
                 </p>
@@ -145,14 +158,16 @@ export default function ManualPage() {
                     key={chapter.id}
                     type="button"
                     onClick={() => {
-                      setActiveId(chapter.id)
+                      handleSelectChapter(chapter.id)
                       setQuery('')
                     }}
-                    className="w-full text-left rounded-lg px-2.5 py-2 hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                    className="w-full text-left rounded-xl px-2.5 py-2 hover:bg-emerald-50 text-slate-700 hover:text-emerald-900 transition-colors cursor-pointer"
                   >
-                    <span className="text-xs font-semibold text-emerald-200">{chapter.title}</span>
+                    <span className="text-xs font-semibold text-slate-900 block">
+                      {chapter.title}
+                    </span>
                     {excerpt && (
-                      <span className="block text-[10px] text-slate-400 mt-0.5 leading-snug">
+                      <span className="block text-[10px] text-slate-500 mt-0.5 leading-snug">
                         …{excerpt}…
                       </span>
                     )}
@@ -160,26 +175,30 @@ export default function ManualPage() {
                 ))}
               </div>
             ) : (
-              <nav className="rounded-2xl border border-emerald-500/25 bg-[#091511]/90 p-2 space-y-0.5">
+              <nav className="rounded-2xl border border-slate-200 bg-slate-50/70 p-1.5 space-y-0.5">
                 {CHAPTERS.map((c) => {
                   const isActive = c.id === activeId
                   return (
                     <button
                       key={c.id}
                       type="button"
-                      onClick={() => setActiveId(c.id)}
-                      className={`w-full text-left rounded-xl px-3 py-2 text-xs font-medium transition-all duration-150 cursor-pointer flex items-start gap-2 ${
+                      onClick={() => handleSelectChapter(c.id)}
+                      className={`w-full text-left rounded-xl px-3 py-2 text-xs font-medium transition-all duration-150 cursor-pointer flex items-start gap-2.5 ${
                         isActive
-                          ? 'bg-emerald-500/15 text-emerald-200 border border-emerald-500/30'
-                          : 'text-slate-300 hover:text-white hover:bg-emerald-500/10 border border-transparent'
+                          ? 'bg-emerald-600 text-white shadow-xs font-bold'
+                          : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100/90'
                       }`}
                     >
                       <span
-                        className={`font-mono text-[10px] mt-0.5 shrink-0 ${isActive ? 'text-emerald-400' : 'text-slate-500'}`}
+                        className={`font-mono text-[10px] mt-0.5 shrink-0 font-bold ${
+                          isActive ? 'text-emerald-100' : 'text-slate-400'
+                        }`}
                       >
                         {String(c.num).padStart(2, '0')}
                       </span>
-                      <span>{c.title.replace(/^Capítulo \d+ — /, '')}</span>
+                      <span className="leading-snug">
+                        {c.title.replace(/^Capítulo \d+ — /, '')}
+                      </span>
                     </button>
                   )
                 })}
@@ -187,65 +206,137 @@ export default function ManualPage() {
             )}
           </aside>
 
-          {/* Conteúdo do capítulo */}
-          <article className="flex-1 min-w-0 rounded-2xl border border-emerald-500/25 bg-[#091511]/90 p-5 sm:p-7 shadow-lg shadow-emerald-950/30">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-400/30 bg-emerald-500/10 text-emerald-300 font-mono text-[10px] font-semibold tracking-widest uppercase">
-                <FileText className="w-3 h-3" />
+          {/* Conteúdo do capítulo — Cartão branco chancelado com cantos arredondados rounded-3xl */}
+          <article className="flex-1 min-w-0 bg-white border border-slate-200 rounded-3xl p-5 sm:p-7 shadow-xs">
+            {/* Cabeçalho do capítulo com badge claro */}
+            <div className="flex items-center gap-2 mb-5">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800 font-mono text-[10px] font-semibold tracking-wider uppercase">
+                <span className="w-6 h-6 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700">
+                  <FileText className="w-3.5 h-3.5" />
+                </span>
                 Capítulo {String(activeChapter.num).padStart(2, '0')} de {CHAPTERS.length}
               </span>
             </div>
 
-            <ChatMarkdown content={body} className="manual-chapter-body" />
+            {/* Corpo do capítulo em Markdown limpo */}
+            <div className="text-slate-800 leading-relaxed">
+              <ChatMarkdown content={body} className="manual-chapter-body" />
+            </div>
 
-            {/* Callouts do formato fixo */}
+            {/* SEÇÕES DIDÁTICAS COLAPSÁVEIS (RECOLHIDAS POR PADRÃO) COM TARJAS EM DEGRADÊ ARDÓSIA */}
             {goldTip && (
-              <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-500/[0.07] p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Lightbulb className="w-4 h-4 text-amber-300" />
-                  <span className="text-xs font-bold text-amber-200 uppercase tracking-wider">
-                    {GOLD_TIP_LABEL}
+              <div className="mt-6 rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                {/* Tarja / Banner em degradê cinza-ardósia com texto branco font-mono uppercase */}
+                <button
+                  type="button"
+                  onClick={() => setGoldTipOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 hover:from-slate-800 hover:via-slate-700 hover:to-slate-800 hover:bg-slate-800 text-white transition-all cursor-pointer border-b border-slate-600 shadow-xs"
+                >
+                  <span className="flex items-center gap-2.5 min-w-0">
+                    {goldTipOpen ? (
+                      <ChevronDown className="w-4 h-4 text-emerald-300 shrink-0" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-emerald-300 shrink-0" />
+                    )}
+                    <span className="w-6 h-6 rounded-md bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0">
+                      <Lightbulb className="w-3.5 h-3.5 text-amber-300" />
+                    </span>
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-white truncate text-left">
+                      {GOLD_TIP_LABEL}
+                    </span>
                   </span>
+                  <span className="text-[10px] font-mono font-bold text-emerald-200 bg-emerald-950/80 border border-emerald-500/40 rounded-full px-2.5 py-0.5 shrink-0">
+                    {goldTipOpen ? 'Recolher' : 'Expandir nota'}
+                  </span>
+                </button>
+
+                {/* Camada interna recuada e aninhada no padrão chancelado */}
+                <div
+                  className={`grid transition-all duration-300 ease-in-out ${
+                    goldTipOpen
+                      ? 'grid-rows-[1fr] opacity-100'
+                      : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="mx-2 sm:mx-3 my-3 p-3 sm:p-4 rounded-xl bg-slate-100/90 border border-slate-200 shadow-inner">
+                      <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/50 text-slate-800">
+                        <ChatMarkdown content={goldTip} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <ChatMarkdown content={goldTip} />
               </div>
             )}
 
             {commonError && (
-              <div className="mt-4 rounded-2xl border border-rose-400/30 bg-rose-500/[0.07] p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <ShieldAlert className="w-4 h-4 text-rose-300" />
-                  <span className="text-xs font-bold text-rose-200 uppercase tracking-wider">
-                    {COMMON_ERROR_LABEL}
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+                {/* Tarja / Banner em degradê cinza-ardósia com texto branco font-mono uppercase */}
+                <button
+                  type="button"
+                  onClick={() => setCommonErrorOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 hover:from-slate-800 hover:via-slate-700 hover:to-slate-800 hover:bg-slate-800 text-white transition-all cursor-pointer border-b border-slate-600 shadow-xs"
+                >
+                  <span className="flex items-center gap-2.5 min-w-0">
+                    {commonErrorOpen ? (
+                      <ChevronDown className="w-4 h-4 text-rose-300 shrink-0" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-rose-300 shrink-0" />
+                    )}
+                    <span className="w-6 h-6 rounded-md bg-rose-500/20 border border-rose-400/40 flex items-center justify-center text-rose-300 shrink-0">
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-300" />
+                    </span>
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-white truncate text-left">
+                      {COMMON_ERROR_LABEL}
+                    </span>
                   </span>
+                  <span className="text-[10px] font-mono font-bold text-rose-200 bg-rose-950/80 border border-rose-500/40 rounded-full px-2.5 py-0.5 shrink-0">
+                    {commonErrorOpen ? 'Recolher' : 'Expandir nota'}
+                  </span>
+                </button>
+
+                {/* Camada interna recuada e aninhada no padrão chancelado */}
+                <div
+                  className={`grid transition-all duration-300 ease-in-out ${
+                    commonErrorOpen
+                      ? 'grid-rows-[1fr] opacity-100'
+                      : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="mx-2 sm:mx-3 my-3 p-3 sm:p-4 rounded-xl bg-slate-100/90 border border-slate-200 shadow-inner">
+                      <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50/50 text-slate-800">
+                        <ChatMarkdown content={commonError} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <ChatMarkdown content={commonError} />
               </div>
             )}
 
             {/* Navegação anterior / próximo */}
-            <div className="mt-8 pt-5 border-t border-slate-800 flex items-center justify-between gap-3">
+            <div className="mt-8 pt-5 border-t border-slate-200 flex items-center justify-between gap-3">
               {prevChapter ? (
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={() => setActiveId(prevChapter.id)}
-                  className="text-xs text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+                  onClick={() => handleSelectChapter(prevChapter.id)}
+                  className="text-xs bg-white border-slate-200 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 cursor-pointer shadow-xs gap-1"
                 >
                   <ChevronRight className="w-3.5 h-3.5 rotate-180" />
-                  {prevChapter.title.replace(/^Capítulo \d+ — /, '')}
+                  <span>{prevChapter.title.replace(/^Capítulo \d+ — /, '')}</span>
                 </Button>
               ) : (
                 <span />
               )}
               {nextChapter ? (
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={() => setActiveId(nextChapter.id)}
-                  className="text-xs text-slate-300 hover:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+                  onClick={() => handleSelectChapter(nextChapter.id)}
+                  className="text-xs bg-white border-slate-200 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 cursor-pointer shadow-xs gap-1"
                 >
-                  {nextChapter.title.replace(/^Capítulo \d+ — /, '')}
+                  <span>{nextChapter.title.replace(/^Capítulo \d+ — /, '')}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </Button>
               ) : (
@@ -255,11 +346,53 @@ export default function ManualPage() {
           </article>
         </div>
 
-        {/* Rodapé de base */}
-        <div className="text-[10px] text-slate-500 font-mono leading-relaxed border-t border-slate-800 pt-3">
-          Manual de Uso da Calculadora Markup · Caso Adriana como exemplo canônico (valores
-          canônicos do motor, teste Card ↔ Memória ↔ DRE) · Base de conhecimento do Assistente IT ·
-          Precisão, confiabilidade e fidedignidade.
+        {/* NOTAS DIDÁTICAS E RODAPÉ DE BASE — SEÇÃO COLAPSÁVEL RECOLHIDA POR PADRÃO */}
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setFooterNotesOpen((prev) => !prev)}
+            className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-gradient-to-r from-slate-700 via-slate-650 to-slate-700 bg-slate-700 hover:from-slate-800 hover:via-slate-700 hover:to-slate-800 hover:bg-slate-800 text-white transition-all cursor-pointer border-b border-slate-600 shadow-xs"
+          >
+            <span className="flex items-center gap-2.5 min-w-0">
+              {footerNotesOpen ? (
+                <ChevronDown className="w-4 h-4 text-emerald-300 shrink-0" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-emerald-300 shrink-0" />
+              )}
+              <span className="w-6 h-6 rounded-md bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shrink-0">
+                <Info className="w-3.5 h-3.5 text-emerald-300" />
+              </span>
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-white truncate text-left">
+                Notas Didáticas e Fundamentos de Base
+              </span>
+            </span>
+            <span className="text-[10px] font-mono font-bold text-emerald-200 bg-emerald-950/80 border border-emerald-500/40 rounded-full px-2.5 py-0.5 shrink-0">
+              {footerNotesOpen ? 'Recolher' : 'Ver fundamentos'}
+            </span>
+          </button>
+
+          <div
+            className={`grid transition-all duration-300 ease-in-out ${
+              footerNotesOpen
+                ? 'grid-rows-[1fr] opacity-100'
+                : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+            }`}
+          >
+            <div className="overflow-hidden">
+              <div className="mx-2 sm:mx-3 my-3 p-3 sm:p-4 rounded-xl bg-slate-100/90 border border-slate-200 shadow-inner">
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs font-mono leading-relaxed space-y-1">
+                  <p>
+                    Manual de Uso da Calculadora Markup · Caso Adriana como exemplo canônico
+                    (valores canônicos do motor, teste Card ↔ Memória ↔ DRE) · Base de conhecimento
+                    do Assistente IT · Precisão, confiabilidade e fidedignidade.
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    Validação em conformidade com as Leis Complementares 123/2006 e 214/2025.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </DemoLayout>
