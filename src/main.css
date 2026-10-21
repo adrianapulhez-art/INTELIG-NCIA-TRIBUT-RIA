@@ -385,6 +385,11 @@
   color: #261502 !important;
   font-weight: 700 !important;
 }
+.field-input-brown::placeholder {
+  color: #94a3b8 !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
+}
 .field-input-brown:hover {
   background-color: #fffdfa !important;
   border-color: #f59e0b !important;

@@ -6,6 +6,7 @@ import {
   CASO_CANONICO_ART12,
 } from './art12Calculations'
 import { roundHalfUp, calcularCelulaFornecedorPlenoXAdquirenteSn } from './art12SnCalculations'
+import { REFERENCIAS_MARKUP_POS } from '@/pages/demo/MarkupPosPage'
 
 describe('Validação dos Custos do Adquirente Lucro Presumido 2027 (Card 03)', () => {
   const row2027 = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
@@ -70,5 +71,75 @@ describe('Validação dos Custos do Adquirente Lucro Presumido 2027 (Card 03)', 
     expect(pLr).toBeLessThan(pLp)
     expect(pSnp).toBeGreaterThan(pLp)
     expect(pSnh).toBeLessThan(pSnp)
+  })
+
+  it('6. Motor de cálculo com campos VAZIOS ao abrir continua usando os valores de referência chancelados pela Adri', () => {
+    // Referências chanceladas
+    expect(REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT).toBe(18.0)
+    expect(REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT).toBe(26.5)
+    expect(REFERENCIAS_MARKUP_POS.MARGEM_PADRAO_PCT).toBe(51.9)
+    expect(REFERENCIAS_MARKUP_POS.QUANTIDADE_PADRAO).toBe(24)
+
+    // Simulando estado inicial: DV vazia ([]), ICMS undefined, CBS undefined, Margem undefined, Qtd undefined
+    const despesasVariaveisVazia: Array<{ aliquota?: number }> = []
+    const icmsInput: number | undefined = undefined
+    const cbsInput: number | undefined = undefined
+    const margemInput: number | undefined = undefined
+    const qtdInput: number | undefined = undefined
+
+    // Fallback do motor
+    const icmsEfetivo = icmsInput ?? REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT
+    const cbsEfetivo = cbsInput ?? REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT
+    const margemEfetiva = margemInput ?? REFERENCIAS_MARKUP_POS.MARGEM_PADRAO_PCT
+    const qtdEfetiva = qtdInput ?? REFERENCIAS_MARKUP_POS.QUANTIDADE_PADRAO
+
+    expect(icmsEfetivo).toBe(18.0)
+    expect(cbsEfetivo).toBe(26.5)
+    expect(margemEfetiva).toBe(51.9)
+    expect(qtdEfetiva).toBe(24)
+
+    // Fatores com DV vazia (fator DV = 1,0000)
+    const fatorDvConsolidado = despesasVariaveisVazia.reduce(
+      (f, curr) => f * Math.max(0, 1 - (curr.aliquota ?? 0) / 100),
+      1,
+    )
+    expect(fatorDvConsolidado).toBe(1.0)
+
+    const fatorIcms = Math.max(0, 1 - icmsEfetivo / 100)
+    expect(fatorIcms).toBe(0.82)
+
+    const fatorMargem = Math.max(0, 1 - margemEfetiva / 100)
+    expect(fatorMargem).toBe(0.481)
+
+    // Divisor: 1,0000 * 0,8200 * 0,4810 = 0,394420
+    const divisor = fatorDvConsolidado * fatorIcms * fatorMargem
+    expect(roundHalfUp(divisor, 6)).toBe(0.39442)
+
+    // Custos ouros Card 03 Compras
+    const custoLp = 1116.63
+    const custoLr = 1051.73
+    const custoSnp = 1482.94
+    const custoSnh = 1383.56
+
+    const precoVendaLp = roundHalfUp(custoLp / divisor, 2)
+    const precoVendaLr = roundHalfUp(custoLr / divisor, 2)
+    const precoVendaSnp = roundHalfUp(custoSnp / divisor, 2)
+    const precoVendaSnh = roundHalfUp(custoSnh / divisor, 2)
+
+    // Não zera, não produz NaN, mantém ordenação
+    expect(precoVendaLp).toBe(2831.07)
+    expect(precoVendaLr).toBe(2666.52)
+    expect(precoVendaSnp).toBe(3759.8)
+    expect(precoVendaSnh).toBe(3507.83)
+
+    // CBS 26,50% por fora sobre Preço de Venda
+    const cbsLp = roundHalfUp(precoVendaLp * (cbsEfetivo / 100), 2)
+    expect(cbsLp).toBe(750.23)
+    const notaLp = roundHalfUp(precoVendaLp + cbsLp, 2)
+    expect(notaLp).toBe(3581.3)
+
+    // Lote de 24 un.
+    const loteLp = roundHalfUp(notaLp * qtdEfetiva, 2)
+    expect(loteLp).toBe(roundHalfUp(3581.3 * 24, 2))
   })
 })

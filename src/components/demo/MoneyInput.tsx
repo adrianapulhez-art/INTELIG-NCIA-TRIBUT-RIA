@@ -7,7 +7,7 @@ export interface MoneyInputProps extends Omit<
   'value' | 'onChange' | 'prefix'
 > {
   value: number | undefined | null
-  onChange: (value: number) => void
+  onChange: (value: number | undefined) => void
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void
   decimals?: number
@@ -72,13 +72,19 @@ export const MoneyInput = forwardRef<HTMLInputElement, MoneyInputProps>(function
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     setIsFocused(false)
-    const parsed = parseBRNumber(text)
-    onChange(parsed)
-
-    if (parsed === 0 && showZeroAsEmpty) {
+    const trimmed = text.trim()
+    if (trimmed === '') {
+      onChange(undefined)
       setText('')
     } else {
-      setText(formatNumberBR(parsed, decimals))
+      const parsed = parseBRNumber(trimmed)
+      if (parsed === 0 && showZeroAsEmpty) {
+        onChange(undefined)
+        setText('')
+      } else {
+        onChange(parsed)
+        setText(formatNumberBR(parsed, decimals))
+      }
     }
 
     onBlur?.(e)
@@ -90,8 +96,13 @@ export const MoneyInput = forwardRef<HTMLInputElement, MoneyInputProps>(function
     const cursor = e.target.selectionStart
 
     setText(raw)
-    const num = parseBRNumber(raw)
-    onChange(num)
+    const trimmed = raw.trim()
+    if (trimmed === '') {
+      onChange(undefined)
+    } else {
+      const num = parseBRNumber(trimmed)
+      onChange(num)
+    }
 
     // Preserva a posição do cursor durante a edição para evitar saltos indesejados
     if (cursor !== null) {

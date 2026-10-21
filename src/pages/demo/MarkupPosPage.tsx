@@ -48,11 +48,19 @@ import {
   type ItemIntegracaoArt12,
 } from '@/lib/integracaoComprasArt12'
 
+/** Constantes de referência chanceladas pela Adri (proteção de ouro) */
+export const REFERENCIAS_MARKUP_POS = {
+  ICMS_PADRAO_PCT: 18.0, // Fator 0,8200
+  CBS_PADRAO_PCT: 26.5, // 26,50% por fora
+  MARGEM_PADRAO_PCT: 51.9, // 51,90% chancelada pré-reforma
+  QUANTIDADE_PADRAO: 24, // 24 un. caso canônico
+} as const
+
 /** Tipo para cada linha de Despesa Variável de Venda editável */
 interface DespesaVariavelVenda {
   id: string
   descricao: string
-  aliquota: number // em %, ex.: 2.50 para 2,50%
+  aliquota?: number // em %, undefined quando vazio no campo
 }
 
 /** Chaves dos 4 fornecedores canônicos para adquirente Lucro Presumido */
@@ -217,29 +225,30 @@ export function MarkupPosPage() {
   // --------------------------------------------------------------------------
   // 4. DESPESAS VARIÁVEIS DE VENDA (DV) — editáveis
   // --------------------------------------------------------------------------
-  // Default inicial ilustrativo chancelado: Maquininha 2,50% · Comissão 2,00% · Frete 3,00%
-  const [despesasVariaveis, setDespesasVariaveis] = useState<DespesaVariavelVenda[]>([
-    { id: 'dv-1', descricao: 'Maquininha / Cartão', aliquota: 2.5 },
-    { id: 'dv-2', descricao: 'Comissão Vendedores', aliquota: 2.0 },
-    { id: 'dv-3', descricao: 'Frete Entrega', aliquota: 3.0 },
-  ])
+  // A lista de DV nasce VAZIA conforme solicitação expressa da Adri.
+  // As linhas do print eram apenas exemplo ilustrativo.
+  const [despesasVariaveis, setDespesasVariaveis] = useState<DespesaVariavelVenda[]>([])
 
   const handleAddDv = () => {
     const novoId = `dv-${Date.now()}`
-    setDespesasVariaveis((prev) => [
-      ...prev,
-      { id: novoId, descricao: 'Nova despesa variável', aliquota: 0 },
-    ])
+    setDespesasVariaveis((prev) => [...prev, { id: novoId, descricao: '', aliquota: undefined }])
   }
 
-  const handleUpdateDv = (id: string, campo: 'descricao' | 'aliquota', valor: string | number) => {
+  const handleUpdateDv = (
+    id: string,
+    campo: 'descricao' | 'aliquota',
+    valor: string | number | undefined,
+  ) => {
     setDespesasVariaveis((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item
         if (campo === 'aliquota') {
-          return { ...item, aliquota: Math.max(0, typeof valor === 'number' ? valor : 0) }
+          return {
+            ...item,
+            aliquota: typeof valor === 'number' ? Math.max(0, valor) : undefined,
+          }
         }
-        return { ...item, descricao: String(valor) }
+        return { ...item, descricao: String(valor ?? '') }
       }),
     )
   }
@@ -248,52 +257,66 @@ export function MarkupPosPage() {
     setDespesasVariaveis((prev) => prev.filter((item) => item.id !== id))
   }
 
-  // Soma de DV e fator multiplicativo consolidado
+  // Soma de DV e fator multiplicativo consolidado (vazio trata como 0%)
   const somaDvPct = useMemo(() => {
-    return despesasVariaveis.reduce((acc, curr) => acc + (curr.aliquota || 0), 0)
+    return despesasVariaveis.reduce((acc, curr) => acc + (curr.aliquota ?? 0), 0)
   }, [despesasVariaveis])
 
   const fatorDvConsolidado = useMemo(() => {
-    // Multiplica (1 - aliquota/100) para cada DV
+    // Multiplica (1 - aliquota/100) para cada DV; se não preenchido trata como 0% (fator 1.0000)
     let f = 1
     for (const dv of despesasVariaveis) {
-      f *= Math.max(0, 1 - (dv.aliquota || 0) / 100)
+      const aliq = dv.aliquota ?? 0
+      f *= Math.max(0, 1 - aliq / 100)
     }
     return f
   }, [despesasVariaveis])
 
   // --------------------------------------------------------------------------
-  // 5. TRIBUTOS — COMPOSIÇÃO PÓS-REFORMA
+  // 5. TRIBUTOS — COMPOSIÇÃO PÓS-REFORMA (campos nascem vazios; motor usa referência)
   // --------------------------------------------------------------------------
-  // ICMS editável na transição (default 18,00% -> fator 0,8200)
-  const [icmsRate, setIcmsRate] = useState<number>(18.0)
-  const fatorIcms = useMemo(() => Math.max(0, 1 - (icmsRate || 0) / 100), [icmsRate])
+  // ICMS editável na transição: nasce vazio (undefined), placeholder "18,00%", motor usa 18,00% (fator 0,8200)
+  const [icmsRateInput, setIcmsRateInput] = useState<number | undefined>(undefined)
+  const icmsRateEfetivo = icmsRateInput ?? REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT
+  const fatorIcms = useMemo(() => Math.max(0, 1 - icmsRateEfetivo / 100), [icmsRateEfetivo])
 
-  // CBS 2027: Parâmetro editável com default 26,50% e sinalização permanente
-  const [cbsRate, setCbsRate] = useState<number>(26.5)
+  // CBS 2027: nasce vazio (undefined), placeholder "26,50%", motor usa 26,50%
+  const [cbsRateInput, setCbsRateInput] = useState<number | undefined>(undefined)
+  const cbsRateEfetivo = cbsRateInput ?? REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT
 
   // --------------------------------------------------------------------------
   // 6. FLUXO DE CÁLCULO — MARGEM, QUANTIDADE E PREÇO DE VENDA SIMULADO
   // --------------------------------------------------------------------------
-  // Margem de lucro desejada % (default 51,90% chancelada da pré-reforma)
-  const [margemLucroPct, setMargemLucroPct] = useState<number>(() => {
+  // Margem de lucro desejada %: nasce vazia (undefined), placeholder "51,90%", motor usa 51,90%
+  const margemReferencia = useMemo(() => {
     if (produtoAtivo && produtoAtivo.margin && produtoAtivo.margin > 0) {
       return produtoAtivo.margin
     }
-    return 51.9
-  })
-  const fatorMargem = useMemo(() => Math.max(0, 1 - (margemLucroPct || 0) / 100), [margemLucroPct])
+    return REFERENCIAS_MARKUP_POS.MARGEM_PADRAO_PCT
+  }, [produtoAtivo])
 
-  // Quantidade vendida (padrão 24 ou 30 un.)
-  const [quantidadeVendida, setQuantidadeVendida] = useState<number>(() => {
+  const [margemLucroInput, setMargemLucroInput] = useState<number | undefined>(undefined)
+  const margemLucroEfetiva = margemLucroInput ?? margemReferencia
+  const fatorMargem = useMemo(() => Math.max(0, 1 - margemLucroEfetiva / 100), [margemLucroEfetiva])
+
+  // Quantidade vendida: nasce vazia (undefined), placeholder "24", motor usa 24
+  const quantidadeReferencia = useMemo(() => {
     if (produtoAtivo && produtoAtivo.quantity && produtoAtivo.quantity > 0) {
       return produtoAtivo.quantity
     }
-    return 24
-  })
+    return REFERENCIAS_MARKUP_POS.QUANTIDADE_PADRAO
+  }, [produtoAtivo])
+
+  const [quantidadeVendidaInput, setQuantidadeVendidaInput] = useState<number | undefined>(
+    undefined,
+  )
+  const quantidadeVendidaEfetiva =
+    quantidadeVendidaInput !== undefined && quantidadeVendidaInput > 0
+      ? Math.round(quantidadeVendidaInput)
+      : quantidadeReferencia
 
   // Fator Divisor Multiplicativo: Fator_DV * Fator_ICMS * Fator_Margem
-  // Fatores do adquirente idênticos aos do LP (0,9750 × 0,9800 × 0,9700 × 0,8200 × 0,4810 = 0,365562)
+  // Quando vazio: DV vazio (fator 1,0000) × ICMS 18% (0,8200) × Margem 51,9% (0,4810) = 0,394420
   const fatorDivisor = useMemo(() => {
     const f = fatorDvConsolidado * fatorIcms * fatorMargem
     return f > 0 ? f : 0.0001
@@ -306,11 +329,14 @@ export function MarkupPosPage() {
       const custoInfo = custosAdquirente[key]
       const custoUnitario = custoInfo.custo2027
       const precoVendaUnitario = fatorDivisor > 0 ? roundHalfUp(custoUnitario / fatorDivisor, 2) : 0
-      const faturamentoTotal = roundHalfUp(precoVendaUnitario * Math.max(1, quantidadeVendida), 2)
-      const custoTotal = roundHalfUp(custoUnitario * Math.max(1, quantidadeVendida), 2)
+      const faturamentoTotal = roundHalfUp(
+        precoVendaUnitario * Math.max(1, quantidadeVendidaEfetiva),
+        2,
+      )
+      const custoTotal = roundHalfUp(custoUnitario * Math.max(1, quantidadeVendidaEfetiva), 2)
 
       // Tributos e deduções unitárias
-      const icmsUnitario = roundHalfUp(precoVendaUnitario * (icmsRate / 100), 2)
+      const icmsUnitario = roundHalfUp(precoVendaUnitario * (icmsRateEfetivo / 100), 2)
       const dvUnitarioTotal = roundHalfUp(precoVendaUnitario * (somaDvPct / 100), 2)
       const lucroUnitarioRealizado = roundHalfUp(
         precoVendaUnitario - custoUnitario - icmsUnitario - dvUnitarioTotal,
@@ -322,10 +348,13 @@ export function MarkupPosPage() {
           : 0
 
       // CBS 2027 por fora (arredondamento meio a meio para cima)
-      const cbsUnitario = roundHalfUp(precoVendaUnitario * (cbsRate / 100), 2)
+      const cbsUnitario = roundHalfUp(precoVendaUnitario * (cbsRateEfetivo / 100), 2)
       const totalNotaUnitario = roundHalfUp(precoVendaUnitario + cbsUnitario, 2)
-      const cbsTotal = roundHalfUp(cbsUnitario * Math.max(1, quantidadeVendida), 2)
-      const totalNotaLote = roundHalfUp(totalNotaUnitario * Math.max(1, quantidadeVendida), 2)
+      const cbsTotal = roundHalfUp(cbsUnitario * Math.max(1, quantidadeVendidaEfetiva), 2)
+      const totalNotaLote = roundHalfUp(
+        totalNotaUnitario * Math.max(1, quantidadeVendidaEfetiva),
+        2,
+      )
 
       return {
         key,
@@ -349,7 +378,14 @@ export function MarkupPosPage() {
         custoInfo,
       }
     })
-  }, [custosAdquirente, fatorDivisor, quantidadeVendida, icmsRate, somaDvPct, cbsRate])
+  }, [
+    custosAdquirente,
+    fatorDivisor,
+    quantidadeVendidaEfetiva,
+    icmsRateEfetivo,
+    somaDvPct,
+    cbsRateEfetivo,
+  ])
 
   // Estado do diálogo de memória de cálculo detalhada
   const [modalMemoriaFornecedor, setModalMemoriaFornecedor] = useState<FornecedorPosKey | null>(
@@ -651,52 +687,69 @@ export function MarkupPosPage() {
               </div>
 
               {/* Lista de DVs editáveis */}
-              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                {despesasVariaveis.map((dv) => {
-                  const fatorDerivado = Math.max(0, 1 - (dv.aliquota || 0) / 100)
-                  return (
-                    <div
-                      key={dv.id}
-                      className="rounded-lg border border-slate-200 bg-slate-50/60 p-2 flex items-center gap-2"
-                    >
-                      <input
-                        type="text"
-                        value={dv.descricao}
-                        onChange={(e) => handleUpdateDv(dv.id, 'descricao', e.target.value)}
-                        placeholder="Nome da despesa"
-                        className="flex-1 text-xs font-semibold text-slate-800 bg-white border border-slate-200 rounded px-2 py-1 focus:outline-[#b87c14]"
-                      />
-
-                      <div className="w-20">
-                        <MoneyInput
-                          value={dv.aliquota}
-                          onChange={(val) => handleUpdateDv(dv.id, 'aliquota', val ?? 0)}
-                          decimals={2}
-                          placeholder="0,00"
-                          className="h-7 text-xs font-mono font-bold text-right field-input-brown text-[#261502]"
-                          prefix="%"
-                        />
-                      </div>
-
-                      <div className="w-16 text-right">
-                        <span className="text-[9px] font-mono text-slate-400 block">Fator</span>
-                        <span className="text-[11px] font-mono font-bold text-[#3b2405]">
-                          {fatorDerivado.toFixed(4)}
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDv(dv.id)}
-                        className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer transition-colors"
-                        title="Remover linha"
+              {despesasVariaveis.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-amber-300/80 bg-amber-50/40 p-4 text-center space-y-2">
+                  <p className="text-xs text-slate-600 font-mono">
+                    Nenhuma despesa variável configurada. A lista nasce vazia para digitação manual
+                    do usuário.
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddDv}
+                    className="h-7 text-xs bg-gradient-to-b from-[#ffd966] via-[#f5b014] to-[#8f5204] text-[#1a0c01] font-bold shadow-xs hover:brightness-110 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar despesa variável
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                  {despesasVariaveis.map((dv) => {
+                    const fatorDerivado = Math.max(0, 1 - (dv.aliquota ?? 0) / 100)
+                    return (
+                      <div
+                        key={dv.id}
+                        className="rounded-lg border border-slate-200 bg-slate-50/60 p-2 flex items-center gap-2"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
+                        <input
+                          type="text"
+                          value={dv.descricao}
+                          onChange={(e) => handleUpdateDv(dv.id, 'descricao', e.target.value)}
+                          placeholder="Ex.: Frete, Cartão..."
+                          className="flex-1 text-xs font-semibold text-slate-800 bg-white border border-slate-200 rounded px-2 py-1 focus:outline-[#b87c14]"
+                        />
+
+                        <div className="w-20">
+                          <MoneyInput
+                            value={dv.aliquota}
+                            onChange={(val) => handleUpdateDv(dv.id, 'aliquota', val)}
+                            decimals={2}
+                            placeholder="0,00"
+                            className="h-7 text-xs font-mono font-bold text-right field-input-brown text-[#261502]"
+                            prefix="%"
+                          />
+                        </div>
+
+                        <div className="w-16 text-right">
+                          <span className="text-[9px] font-mono text-slate-400 block">Fator</span>
+                          <span className="text-[11px] font-mono font-bold text-[#3b2405]">
+                            {fatorDerivado.toFixed(4)}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDv(dv.id)}
+                          className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer transition-colors"
+                          title="Remover linha"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Totalizadores de DV */}
@@ -751,17 +804,20 @@ export function MarkupPosPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <MoneyInput
-                    value={icmsRate}
-                    onChange={(val) => setIcmsRate(val ?? 0)}
+                    value={icmsRateInput}
+                    onChange={(val) => setIcmsRateInput(val)}
                     decimals={2}
+                    placeholder="18,00"
                     className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
                     prefix="%"
                   />
-                  <span className="text-[11px] text-slate-500 font-mono">Padrão 18,00%</span>
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT)}
+                  </span>
                 </div>
                 <span className="text-[10px] text-slate-400 font-mono block">
-                  Representa o ICMS estadual que subsiste na venda em 2027 (fator redutor por
-                  dentro).
+                  Subsiste na transição (fator redutor por dentro). Vazio usa a referência 18,00%
+                  sem zerar.
                 </span>
               </div>
 
@@ -775,13 +831,16 @@ export function MarkupPosPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <MoneyInput
-                    value={cbsRate}
-                    onChange={(val) => setCbsRate(val ?? 0)}
+                    value={cbsRateInput}
+                    onChange={(val) => setCbsRateInput(val)}
                     decimals={2}
+                    placeholder="26,50"
                     className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
                     prefix="%"
                   />
-                  <span className="text-[11px] text-slate-500 font-mono">Default ≈ 26,50%</span>
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -830,30 +889,39 @@ export function MarkupPosPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <MoneyInput
-                    value={margemLucroPct}
-                    onChange={(val) => setMargemLucroPct(val ?? 0)}
+                    value={margemLucroInput}
+                    onChange={(val) => setMargemLucroInput(val)}
                     decimals={2}
+                    placeholder={formatNumberBR(margemReferencia, 2)}
                     className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
                     prefix="%"
                   />
-                  <span className="text-[11px] text-slate-500 font-mono">Régua: 51,9%</span>
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    Ref. {formatPercentBR(margemReferencia)}
+                  </span>
                 </div>
                 <span className="text-[10px] text-slate-400 font-mono block">
-                  Mesma régua da pré-reforma (51,9% itens 01-02; 30% item 03 — editável).
+                  Régua de referência {formatPercentBR(margemReferencia)}. Vazio mantém a referência
+                  sem zerar.
                 </span>
               </div>
 
               {/* Quantidade Vendida */}
               <div className="space-y-1 pt-1">
-                <label className="text-xs font-bold text-slate-800">
-                  Quantidade Vendida (un.):
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800">
+                    Quantidade Vendida (un.):
+                  </label>
+                  <span className="text-[11px] font-mono text-slate-500">
+                    Ref. {quantidadeReferencia} un.
+                  </span>
+                </div>
                 <MoneyInput
-                  value={quantidadeVendida}
-                  onChange={(val) => setQuantidadeVendida(Math.max(1, Math.round(val ?? 1)))}
+                  value={quantidadeVendidaInput}
+                  onChange={(val) => setQuantidadeVendidaInput(val)}
                   decimals={0}
                   className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
-                  placeholder="24"
+                  placeholder={String(quantidadeReferencia)}
                 />
               </div>
             </div>
@@ -965,7 +1033,7 @@ export function MarkupPosPage() {
                     {/* 3. Linhas da Composição do Preço */}
                     <div className="space-y-1.5 text-xs font-mono pt-1">
                       <div className="flex justify-between text-slate-600">
-                        <span>(−) ICMS {formatPercentBR(icmsRate)}:</span>
+                        <span>(−) ICMS {formatPercentBR(icmsRateEfetivo)}:</span>
                         <span className="font-semibold">{formatBRL(col.icmsUnitario)}</span>
                       </div>
                       <div className="flex justify-between text-slate-600">
@@ -988,7 +1056,7 @@ export function MarkupPosPage() {
                     {/* 4. CBS 2027 por fora & Total da Nota Fiscal */}
                     <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-2.5 space-y-1 text-xs font-mono">
                       <div className="flex justify-between text-slate-600">
-                        <span>(+) CBS {formatPercentBR(cbsRate)} (por fora):</span>
+                        <span>(+) CBS {formatPercentBR(cbsRateEfetivo)} (por fora):</span>
                         <span className="font-bold text-[#b87c14]">
                           {formatBRL(col.cbsUnitario)}
                         </span>
@@ -998,7 +1066,7 @@ export function MarkupPosPage() {
                         <span>{formatBRL(col.totalNotaUnitario)}</span>
                       </div>
                       <div className="flex justify-between text-[11px] text-slate-500 pt-0.5">
-                        <span>Total Lote ({quantidadeVendida} un.):</span>
+                        <span>Total Lote ({quantidadeVendidaEfetiva} un.):</span>
                         <span className="font-bold text-slate-700">
                           {formatBRL(col.totalNotaLote)}
                         </span>
@@ -1110,7 +1178,9 @@ export function MarkupPosPage() {
                     <span className="text-[10px] uppercase text-slate-500 block">
                       Lote Simulado
                     </span>
-                    <span className="font-bold text-[#261502]">{quantidadeVendida} unidades</span>
+                    <span className="font-bold text-[#261502]">
+                      {quantidadeVendidaEfetiva} unidades
+                    </span>
                   </div>
                 </div>
 
@@ -1139,31 +1209,48 @@ export function MarkupPosPage() {
                       </tr>
 
                       {/* 2. DVs */}
-                      {despesasVariaveis.map((dv, idx) => (
-                        <tr key={dv.id}>
-                          <td className="py-2 px-3 text-slate-400">2.{idx + 1}</td>
-                          <td className="py-2 px-3 text-slate-700">DV: {dv.descricao}</td>
-                          <td className="py-2 px-3 text-slate-500">
-                            {formatPercentBR(dv.aliquota)} s/ Preço de Venda (fator{' '}
-                            {(1 - dv.aliquota / 100).toFixed(4)})
+                      {despesasVariaveis.length === 0 ? (
+                        <tr className="text-slate-400 italic">
+                          <td className="py-2 px-3">2º</td>
+                          <td className="py-2 px-3">Despesas Variáveis (DV)</td>
+                          <td className="py-2 px-3">
+                            Nenhuma configurada (Σ DV = 0,00%, fator 1,0000)
                           </td>
-                          <td className="py-2 px-3 text-right font-semibold text-slate-700">
-                            {formatBRL(
-                              roundHalfUp(
-                                itemMemoriaAtivo.precoVendaUnitario * (dv.aliquota / 100),
-                                2,
-                              ),
-                            )}
-                          </td>
+                          <td className="py-2 px-3 text-right">R$ 0,00</td>
                         </tr>
-                      ))}
+                      ) : (
+                        despesasVariaveis.map((dv, idx) => {
+                          const aliq = dv.aliquota ?? 0
+                          return (
+                            <tr key={dv.id}>
+                              <td className="py-2 px-3 text-slate-400">2.{idx + 1}</td>
+                              <td className="py-2 px-3 text-slate-700">
+                                DV: {dv.descricao || 'Despesa'}
+                              </td>
+                              <td className="py-2 px-3 text-slate-500">
+                                {formatPercentBR(aliq)} s/ Preço de Venda (fator{' '}
+                                {(1 - aliq / 100).toFixed(4)})
+                              </td>
+                              <td className="py-2 px-3 text-right font-semibold text-slate-700">
+                                {formatBRL(
+                                  roundHalfUp(
+                                    itemMemoriaAtivo.precoVendaUnitario * (aliq / 100),
+                                    2,
+                                  ),
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })
+                      )}
 
                       {/* 3. ICMS */}
                       <tr>
                         <td className="py-2 px-3 text-slate-400">3º</td>
                         <td className="py-2 px-3 text-slate-700">ICMS na Venda (Transição)</td>
                         <td className="py-2 px-3 text-slate-500">
-                          {formatPercentBR(icmsRate)} por dentro (fator {fatorIcms.toFixed(4)})
+                          {formatPercentBR(icmsRateEfetivo)} por dentro (fator{' '}
+                          {fatorIcms.toFixed(4)})
                         </td>
                         <td className="py-2 px-3 text-right font-semibold text-slate-700">
                           {formatBRL(itemMemoriaAtivo.icmsUnitario)}
@@ -1183,7 +1270,7 @@ export function MarkupPosPage() {
                         <td className="py-2 px-3 text-slate-400">5º</td>
                         <td className="py-2 px-3 text-slate-700">Margem de Lucro Desejada</td>
                         <td className="py-2 px-3 text-slate-500">
-                          {formatPercentBR(margemLucroPct)} s/ Preço de Venda (fator{' '}
+                          {formatPercentBR(margemLucroEfetiva)} s/ Preço de Venda (fator{' '}
                           {fatorMargem.toFixed(4)})
                         </td>
                         <td className="py-2 px-3 text-right font-semibold text-emerald-700">
@@ -1220,11 +1307,11 @@ export function MarkupPosPage() {
                       <tr>
                         <td className="py-2 px-3 text-slate-400">(+)</td>
                         <td className="py-2 px-3 text-slate-700">
-                          CBS 2027 (Estimada {formatPercentBR(cbsRate)})
+                          CBS 2027 (Estimada {formatPercentBR(cbsRateEfetivo)})
                         </td>
                         <td className="py-2 px-3 text-slate-500">
                           Incidência por fora: {formatBRL(itemMemoriaAtivo.precoVendaUnitario)} ×{' '}
-                          {formatPercentBR(cbsRate)}
+                          {formatPercentBR(cbsRateEfetivo)}
                         </td>
                         <td className="py-2 px-3 text-right font-bold text-[#b87c14]">
                           {formatBRL(itemMemoriaAtivo.cbsUnitario)}
