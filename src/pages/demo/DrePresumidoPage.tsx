@@ -1169,7 +1169,7 @@ export default function DrePresumidoPage() {
           <Button
             type="button"
             onClick={() => navigate('/demo/markup')}
-            className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white border border-slate-700 hover:bg-slate-800 font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-xs"
+            className="bg-[#261502] hover:bg-[#3b2405] text-[#fff5cc] hover:text-white border border-amber-500/50 hover:border-amber-300 font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-xs"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Voltar para Calculadora Markup</span>

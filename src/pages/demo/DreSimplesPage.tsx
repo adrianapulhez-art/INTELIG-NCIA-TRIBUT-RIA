@@ -478,8 +478,8 @@ export default function DreSimplesPage() {
                     onClick={() => setSimplesAnexo(key)}
                     className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-amber-50 border-amber-600 text-[#261502] shadow-xs'
-                        : 'bg-white border-slate-300 text-slate-600 hover:border-amber-300 hover:bg-amber-50/40'
+                        ? 'bg-gradient-to-b from-[#fff7e6] via-[#fef2d6] to-[#fde7b8] border-amber-500 text-[#261502] shadow-md shadow-amber-950/10'
+                        : 'bg-white border-slate-300 text-slate-700 hover:border-amber-400 hover:bg-amber-50/50 hover:shadow-sm'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -488,11 +488,11 @@ export default function DreSimplesPage() {
                       </span>
                       {isSelected && <CheckCircle2 className="w-4 h-4 text-[#b87c14] shrink-0" />}
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-snug font-mono">
+                    <p className="text-[11px] text-[#5c3e06]/85 mt-1 line-clamp-2 leading-snug font-mono">
                       {anexo.descricao}
                     </p>
                     {anexo.sujeitoFatorR && (
-                      <span className="inline-block mt-1.5 text-[10px] font-mono font-bold text-cyan-800 bg-cyan-50 border border-cyan-300 px-1.5 py-0.5 rounded">
+                      <span className="inline-block mt-1.5 text-[10px] font-mono font-bold text-[#3b2405] bg-amber-100/80 border border-amber-400/80 px-2 py-0.5 rounded-md shadow-2xs">
                         Fator R aplicável
                       </span>
                     )}
@@ -683,9 +683,9 @@ export default function DreSimplesPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => addSimplesMonthlyRevenue(0)}
-                        className="h-8 text-xs bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white border-slate-700 hover:bg-slate-800 font-semibold cursor-pointer shadow-xs"
+                        className="h-8 text-xs bg-[#261502] hover:bg-[#3b2405] text-[#fff5cc] hover:text-white border border-amber-500/50 hover:border-amber-300 font-semibold cursor-pointer shadow-xs"
                       >
-                        <Plus className="w-3.5 h-3.5 mr-1 text-white" />+ Adicionar mês
+                        <Plus className="w-3.5 h-3.5 mr-1 text-amber-300" />+ Adicionar mês
                       </Button>
                     </div>
                   </div>
@@ -836,7 +836,7 @@ export default function DreSimplesPage() {
                   size="sm"
                   variant="outline"
                   onClick={applyFatorRRecommendation}
-                  className="h-8 text-xs bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white border-slate-700 hover:bg-slate-800 font-semibold cursor-pointer shrink-0 shadow-xs"
+                  className="h-8 text-xs bg-[#261502] hover:bg-[#3b2405] text-[#fff5cc] hover:text-white border border-amber-500/50 hover:border-amber-300 font-semibold cursor-pointer shrink-0 shadow-xs"
                 >
                   Enquadrar no{' '}
                   {fatorRResult.recommendedAnexo === 'anexo_3' ? 'Anexo III' : 'Anexo V'}
@@ -1673,7 +1673,7 @@ export default function DreSimplesPage() {
           <Button
             type="button"
             onClick={() => navigate('/demo/markup')}
-            className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white border border-slate-700 hover:bg-slate-800 font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-xs"
+            className="bg-[#261502] hover:bg-[#3b2405] text-[#fff5cc] hover:text-white border border-amber-500/50 hover:border-amber-300 font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm shadow-xs"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Voltar para Calculadora Markup</span>

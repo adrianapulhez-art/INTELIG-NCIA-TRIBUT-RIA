@@ -508,11 +508,12 @@ export default function ClientsPage() {
               <span className="text-xs font-mono uppercase text-slate-500 font-semibold">
                 Regime Mais Frequente
               </span>
-              <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 border border-teal-200 flex items-center justify-center">
-                <Layers className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-lg bg-amber-50 text-[#b87c14] border border-amber-300 flex items-center justify-center">
+                <Users className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-lg sm:text-xl font-bold text-teal-700 truncate">
+            <div className="text-lg sm:text-xl font-bold text-[#3b2405] truncate">
+              {' '}
               {summaryMetrics.mostUsedRegime}
             </div>
             <p className="text-[11px] text-slate-500 mt-1">Regime mais selecionado nos snapshots</p>
@@ -523,7 +524,7 @@ export default function ClientsPage() {
               <span className="text-xs font-mono uppercase text-slate-500 font-semibold">
                 Última Atualização
               </span>
-              <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-amber-100/60 text-[#b87c14] border border-amber-300 flex items-center justify-center">
                 <Calendar className="w-4 h-4" />
               </div>
             </div>
@@ -674,10 +675,10 @@ export default function ClientsPage() {
                                         savedAt: sc.updated || sc.created,
                                       })
                                     }
-                                    className="h-8 px-2.5 text-xs font-mono font-semibold bg-white border-sky-300 text-sky-800 hover:text-sky-900 hover:bg-sky-50 hover:border-sky-400 cursor-pointer shrink-0 shadow-xs gap-1"
-                                    title="Abrir a memória de cálculo deste cenário"
+                                    className="h-8 px-2.5 text-xs font-mono font-semibold bg-white border-amber-300 text-[#3b2405] hover:text-[#261502] hover:bg-amber-50 hover:border-amber-400 cursor-pointer shrink-0 shadow-xs gap-1"
+                                    title="Exportar dossiê analítico deste cenário em PDF"
                                   >
-                                    <FileText className="w-3.5 h-3.5 text-sky-600" />
+                                    <FileText className="w-3.5 h-3.5 text-[#b87c14]" />{' '}
                                     <span>Abrir</span>
                                   </Button>
 
@@ -887,7 +888,7 @@ export default function ClientsPage() {
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono ${
                               details.regime === 'simples'
-                                ? 'bg-cyan-50 text-cyan-800 border border-cyan-200'
+                                ? 'bg-amber-50 text-[#3b2405] border border-amber-300'
                                 : details.regime === 'real'
                                   ? 'bg-amber-50 text-amber-800 border border-amber-200'
                                   : 'bg-amber-50 text-[#3b2405] border border-amber-300'
@@ -940,7 +941,7 @@ export default function ClientsPage() {
                               variant="outline"
                               disabled={isUpdating}
                               onClick={() => handleUpdateSnapshot(sc)}
-                              className="h-7 px-2 text-[11px] bg-white border-slate-300 text-teal-800 hover:bg-teal-50 hover:border-teal-300 cursor-pointer shadow-2xs"
+                              className="h-7 px-2 text-[11px] bg-white border-slate-300 text-[#3b2405] hover:bg-amber-50 hover:border-amber-300 cursor-pointer shadow-2xs"
                               title="Sobrescrever este cenário no servidor com as variáveis atuais da tela"
                             >
                               {isUpdating ? (

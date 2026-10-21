@@ -172,9 +172,9 @@ export function ComparadorFornecedoresDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
         <DialogHeader>
-          <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
-            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <ArrowLeftRight className="w-5 h-5 text-emerald-600" />
+          <div className="border-l-4 border-amber-500 pl-2.5 mb-1">
+            <DialogTitle className="text-base font-bold font-mono text-slate-900 flex items-center gap-2">
+              <ArrowLeftRight className="w-5 h-5 text-[#b87c14]" />{' '}
               <span>
                 Comparação de fornecedores SN —{' '}
                 {adquirente === 'presumido'
@@ -232,7 +232,7 @@ export function ComparadorFornecedoresDialog({
                     Por unidade ({comando.item.name || 'item'})
                   </span>
                   <span
-                    className={`text-sm font-black font-mono block mt-1 ${puroVence ? 'text-emerald-700' : 'text-rose-700'}`}
+                    className={`text-sm font-black font-mono block mt-1 ${puroVence ? 'text-[#b87c14]' : 'text-rose-700'}`}
                   >
                     {puroVence ? 'SN puro ' : 'SN híbrido '}
                     {formatBRL(Math.abs(comando.diffUnitario))}
@@ -248,7 +248,7 @@ export function ComparadorFornecedoresDialog({
                     Impacto no estoque (carteira)
                   </span>
                   <span
-                    className={`text-sm font-black font-mono block mt-1 ${diffTotalEstoque < 0 ? 'text-emerald-700' : 'text-rose-700'}`}
+                    className={`text-sm font-black font-mono block mt-1 ${diffTotalEstoque < 0 ? 'text-[#b87c14]' : 'text-rose-700'}`}
                   >
                     {diffTotalEstoque < 0 ? 'SN puro −' : 'SN puro +'}
                     {formatBRL(Math.abs(diffTotalEstoque))}

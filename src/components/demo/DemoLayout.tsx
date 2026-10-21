@@ -291,39 +291,39 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
 
       {/* Barra de Navegação em Tabs / Pills com tratamento dourado metálico escovado e brilho dramático */}
       <div className="relative z-10 pt-5 pb-2 px-4 sm:px-8 max-w-6xl mx-auto w-full text-center">
-        {/* Selo AMBIENTE DE DEMONSTRAÇÃO — Tratamento Dourado Metálico com Brilho Dramático */}
-        <div className="group/pill relative overflow-hidden inline-flex items-center gap-1.5 px-4 py-1 rounded-full border border-amber-300/90 bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] text-[#261502] font-extrabold text-xs tracking-wider uppercase shadow-md shadow-amber-950/20 mb-3.5 cursor-default transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/30 hover:border-amber-100">
-          {/* 1. Camada de reflexo metálico escovado horizontal com faixas especulares */}
+        {/* Selo AMBIENTE DE DEMONSTRAÇÃO — Tratamento Dourado Metálico Saturado com Brilho Dramático Intenso */}
+        <div className="group/pill relative overflow-hidden inline-flex items-center gap-1.5 px-5 py-1.5 rounded-full border border-amber-300/95 bg-gradient-to-b from-[#ffd966] via-[#f5b014] to-[#8f5204] text-[#1a0c01] font-black text-xs tracking-wider uppercase shadow-lg shadow-amber-950/30 mb-3.5 cursor-default transition-all duration-300 hover:shadow-2xl hover:shadow-amber-500/50 hover:border-white hover:scale-[1.02]">
+          {/* 1. Camada de reflexo metálico escovado horizontal com faixas especulares intensas */}
           <div
-            className="pointer-events-none absolute inset-0 opacity-45 group-hover/pill:opacity-70 mix-blend-overlay transition-opacity duration-300"
+            className="pointer-events-none absolute inset-0 opacity-60 group-hover/pill:opacity-90 mix-blend-overlay transition-opacity duration-300"
             style={{
               background:
-                'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+                'linear-gradient(90deg, rgba(140,80,5,0.6) 0%, rgba(255,252,220,1) 22%, rgba(220,145,20,0.3) 48%, rgba(255,252,220,1) 74%, rgba(130,70,5,0.7) 100%)',
             }}
           />
-          {/* 2. Camada de microtextura folheada a ouro suave */}
+          {/* 2. Camada de microtextura folheada a ouro vibrante */}
           <div
-            className="pointer-events-none absolute inset-0 opacity-25 group-hover/pill:opacity-40 mix-blend-soft-light transition-opacity duration-300"
+            className="pointer-events-none absolute inset-0 opacity-35 group-hover/pill:opacity-55 mix-blend-soft-light transition-opacity duration-300"
             style={{
               backgroundImage:
-                'repeating-linear-gradient(0deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 50% 30%, rgba(255,240,150,0.8), transparent 70%)',
+                'repeating-linear-gradient(0deg, rgba(255,255,255,0.4) 0px, rgba(255,255,255,0.4) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 50% 25%, rgba(255,245,170,0.95), transparent 70%)',
             }}
           />
-          {/* 3. Chanfro / linha superior luminosa */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-90 group-hover/pill:opacity-100 transition-opacity duration-300" />
-          {/* 4. Iluminação radial no hover */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.45),transparent_70%)] opacity-0 group-hover/pill:opacity-100 transition-opacity duration-300" />
-          {/* 5. Sheen diagonal fluido no hover */}
-          <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/pill:translate-x-[130%] transition-transform duration-700 ease-out" />
+          {/* 3. Chanfro / linha superior luminosa vívida */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-95 group-hover/pill:opacity-100 transition-opacity duration-300" />
+          {/* 4. Iluminação radial central dramática no hover */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.7),transparent_65%)] opacity-0 group-hover/pill:opacity-100 transition-opacity duration-300" />
+          {/* 5. Sheen diagonal fluido intenso no hover */}
+          <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/85 to-transparent -rotate-45 translate-x-[-130%] group-hover/pill:translate-x-[130%] transition-transform duration-600 ease-out" />
 
-          <Sparkles className="relative z-10 w-3.5 h-3.5 text-[#3b2405] drop-shadow-[0_1px_1px_rgba(255,255,255,0.6)]" />
-          <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)] group-hover/pill:drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] uppercase">
+          <Sparkles className="relative z-10 w-3.5 h-3.5 text-[#3b2405] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] group-hover/pill:text-[#1a0c01] group-hover/pill:scale-110 transition-transform" />
+          <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] group-hover/pill:drop-shadow-[0_1px_3px_rgba(255,255,255,1)] uppercase">
             Ambiente de Demonstração
           </span>
         </div>
 
-        {/* Barra de Tabs em Pills com tratamento dourado e texto em maiúsculo (uppercase) */}
-        <div className="p-2 rounded-2xl bg-white/95 border border-amber-300/50 inline-flex flex-wrap items-center justify-center gap-1.5 shadow-lg shadow-amber-950/10 max-w-full backdrop-blur-md">
+        {/* Barra de Tabs em Pills com tratamento dourado/marrom intenso e hover dramático */}
+        <div className="p-2 rounded-2xl bg-white/95 border border-amber-300/60 inline-flex flex-wrap items-center justify-center gap-1.5 shadow-xl shadow-amber-950/15 max-w-full backdrop-blur-md">
           {tabs.map((tab) => {
             const isActive = currentTab === tab.key
             return (
@@ -332,20 +332,20 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
                 onClick={() => navigate(tab.path)}
                 className={`group/navbtn relative overflow-hidden px-3.5 sm:px-4 py-2 rounded-xl text-xs uppercase tracking-wide cursor-pointer transition-all duration-300 ${
                   isActive
-                    ? 'bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] font-black shadow-md shadow-amber-950/25 hover:shadow-xl hover:shadow-amber-500/35 hover:-translate-y-0.5 active:translate-y-0 hover:text-[#0f0700]'
-                    : 'bg-gradient-to-b from-[#fffbf0] via-[#fbf2d8] to-[#f4e2af] border border-amber-200/60 text-[#3b2405] font-bold shadow-2xs hover:from-[#fdf5d6] hover:via-[#f5dc8a] hover:to-[#dfa732] hover:border-amber-300 hover:text-[#0f0700] hover:shadow-md hover:shadow-amber-900/15 hover:-translate-y-0.5 active:translate-y-0'
+                    ? 'bg-gradient-to-b from-[#ffd966] via-[#f5b014] to-[#8f5204] border border-amber-200 text-[#1a0c01] font-black shadow-lg shadow-amber-950/35 hover:shadow-2xl hover:shadow-amber-500/55 hover:border-white hover:-translate-y-1 active:translate-y-0 hover:text-[#000000]'
+                    : 'bg-gradient-to-b from-[#fff7de] via-[#fdedc3] to-[#e8c67a] border border-amber-300/70 text-[#2b1702] font-extrabold shadow-xs hover:from-[#ffeb99] hover:via-[#f5b014] hover:to-[#a86506] hover:border-amber-200 hover:text-[#000000] hover:shadow-xl hover:shadow-amber-500/35 hover:-translate-y-1 active:translate-y-0'
                 }`}
               >
                 {/* 1. Camada de reflexo metálico escovado horizontal com faixas especulares */}
                 <div
                   className={`pointer-events-none absolute inset-0 mix-blend-overlay transition-opacity duration-300 ${
                     isActive
-                      ? 'opacity-45 group-hover/navbtn:opacity-70'
-                      : 'opacity-25 group-hover/navbtn:opacity-60'
+                      ? 'opacity-60 group-hover/navbtn:opacity-90'
+                      : 'opacity-35 group-hover/navbtn:opacity-85'
                   }`}
                   style={{
                     background:
-                      'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+                      'linear-gradient(90deg, rgba(140,80,5,0.6) 0%, rgba(255,252,220,1) 22%, rgba(220,145,20,0.3) 48%, rgba(255,252,220,1) 74%, rgba(130,70,5,0.7) 100%)',
                   }}
                 />
 
@@ -353,36 +353,36 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
                 <div
                   className={`pointer-events-none absolute inset-0 mix-blend-soft-light transition-opacity duration-300 ${
                     isActive
-                      ? 'opacity-25 group-hover/navbtn:opacity-40'
-                      : 'opacity-15 group-hover/navbtn:opacity-35'
+                      ? 'opacity-35 group-hover/navbtn:opacity-55'
+                      : 'opacity-25 group-hover/navbtn:opacity-50'
                   }`}
                   style={{
                     backgroundImage:
-                      'repeating-linear-gradient(0deg, rgba(255,255,255,0.3) 0px, rgba(255,255,255,0.3) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 50% 30%, rgba(255,240,150,0.8), transparent 70%)',
+                      'repeating-linear-gradient(0deg, rgba(255,255,255,0.4) 0px, rgba(255,255,255,0.4) 1px, transparent 1px, transparent 3px), radial-gradient(circle at 50% 25%, rgba(255,245,170,0.95), transparent 70%)',
                   }}
                 />
 
-                {/* 3. Chanfro / linha superior luminosa */}
+                {/* 3. Chanfro / linha superior luminosa viva */}
                 <div
-                  className={`pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-100 to-transparent transition-opacity duration-300 ${
+                  className={`pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-amber-100 to-transparent transition-opacity duration-300 ${
                     isActive
-                      ? 'opacity-90 group-hover/navbtn:opacity-100'
-                      : 'opacity-60 group-hover/navbtn:opacity-90'
+                      ? 'opacity-95 group-hover/navbtn:opacity-100'
+                      : 'opacity-70 group-hover/navbtn:opacity-100'
                   }`}
                 />
 
-                {/* 4. Iluminação radial no hover */}
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.45),transparent_70%)] opacity-0 group-hover/navbtn:opacity-100 transition-opacity duration-300" />
+                {/* 4. Iluminação radial central acendendo no hover */}
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,0.7),transparent_65%)] opacity-0 group-hover/navbtn:opacity-100 transition-opacity duration-300" />
 
-                {/* 5. Sheen diagonal fluido no hover */}
-                <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/navbtn:translate-x-[130%] transition-transform duration-700 ease-out" />
+                {/* 5. Sheen diagonal fluido cruzando o botão e as palavras no hover */}
+                <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/85 to-transparent -rotate-45 translate-x-[-130%] group-hover/navbtn:translate-x-[130%] transition-transform duration-600 ease-out" />
 
                 {/* Rótulo com relevo luminoso em uppercase */}
                 <span
-                  className={`relative z-10 transition-all uppercase ${
+                  className={`relative z-10 transition-all uppercase tracking-wider ${
                     isActive
-                      ? 'drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)] group-hover/navbtn:drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)]'
-                      : 'drop-shadow-[0_1px_0_rgba(255,255,255,0.8)] group-hover/navbtn:drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]'
+                      ? 'drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)] group-hover/navbtn:drop-shadow-[0_1px_2px_rgba(255,255,255,1)]'
+                      : 'drop-shadow-[0_1px_0_rgba(255,255,255,0.9)] group-hover/navbtn:drop-shadow-[0_1px_2px_rgba(255,255,255,1)]'
                   }`}
                 >
                   {tab.label}

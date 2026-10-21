@@ -408,7 +408,7 @@ export default function OperatingExpensesPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-xs font-semibold text-white">
+                    <tr className="border-b border-amber-900/40 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-xs font-semibold text-amber-100">
                       <th className="py-3 px-3 font-semibold w-12 text-center rounded-tl-xl">#</th>
                       <th className="py-3 px-3 font-semibold">Descrição da Despesa</th>
                       <th className="py-3 px-3 font-semibold w-56">Discriminação / Tipo</th>
@@ -443,7 +443,7 @@ export default function OperatingExpensesPage() {
                         return (
                           <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
                             <td className="py-2.5 px-3 text-center">
-                              <span className="w-5 h-5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 inline-flex items-center justify-center text-white font-semibold text-[10px] shadow-xs">
+                              <span className="w-5 h-5 rounded bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] border border-amber-500/40 inline-flex items-center justify-center text-amber-200 font-semibold text-[10px] shadow-xs">
                                 {idx + 1}
                               </span>
                             </td>
@@ -510,7 +510,7 @@ export default function OperatingExpensesPage() {
                     )}
                   </tbody>
                   {operatingExpenses.length > 0 && (
-                    <tfoot className="border-t-2 border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-xs font-mono font-bold text-white">
+                    <tfoot className="border-t-2 border-amber-900/40 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-xs font-mono font-bold text-amber-100">
                       <tr>
                         <td
                           colSpan={3}
@@ -711,7 +711,7 @@ export default function OperatingExpensesPage() {
               variant="outline"
               size="sm"
               onClick={() => navigate('/demo/markup')}
-              className="text-xs bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border-slate-700 text-white hover:bg-slate-800 hover:border-slate-600 cursor-pointer w-full sm:w-auto font-medium"
+              className="text-xs bg-[#261502] hover:bg-[#3b2405] border border-amber-500/50 hover:border-amber-300 text-[#fff5cc] hover:text-white cursor-pointer w-full sm:w-auto font-medium shadow-xs"
             >
               <ArrowLeft className="w-3.5 h-3.5 mr-1" />
               Voltar: Calculadora de Markup

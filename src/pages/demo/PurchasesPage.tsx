@@ -474,7 +474,7 @@ export default function PurchasesPage() {
                                 </Badge>
                               )}
                               {(item.freightValue ?? 0) > 0 && (
-                                <Badge className="bg-sky-50 text-sky-800 border-sky-200 text-[10px] px-1.5 py-0 font-medium">
+                                <Badge className="bg-amber-50 text-[#3b2405] border-amber-300 text-[10px] px-1.5 py-0 font-medium">
                                   Frete
                                 </Badge>
                               )}
@@ -965,12 +965,12 @@ export default function PurchasesPage() {
                     >
                       <Compass
                         className={`w-3.5 h-3.5 ${
-                          interstateSubsystem.enabled ? 'text-sky-600' : 'text-slate-400'
+                          interstateSubsystem.enabled ? 'text-[#b87c14]' : 'text-slate-400'
                         }`}
                       />
                       <span className="font-medium">DIFAL / Interestadual</span>
                       {interstateSubsystem.enabled && (
-                        <Badge className="text-[10px] px-1.5 py-0 border-0 font-medium bg-sky-100 text-sky-800">
+                        <Badge className="text-[10px] px-1.5 py-0 border-0 font-medium bg-amber-100 text-[#3b2405]">
                           {interstatePurchasesResult && interstatePurchasesResult.hasDifalPurchase
                             ? `DIFAL: ${formatBRL(interstatePurchasesResult.difalPurchaseValue)}`
                             : 'Ativo'}
@@ -1009,7 +1009,7 @@ export default function PurchasesPage() {
                   <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 p-6 text-slate-900 shadow-xl">
                     <DialogHeader className="border-b border-slate-200 pb-3">
                       <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                        <Compass className="w-5 h-5 text-sky-600" />
+                        <Compass className="w-5 h-5 text-[#b87c14]" />
                         Operações Interestaduais e DIFAL — Calculadora de Compras
                       </DialogTitle>
                       <DialogDescription className="text-xs text-slate-500">

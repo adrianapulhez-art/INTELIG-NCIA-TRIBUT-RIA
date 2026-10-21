@@ -300,22 +300,28 @@
   border: 1px solid #e2e8f0;
 }
 
-/* Tratamento oficial: Ouro Metálico Escovado com Brilho Dramático */
+/* Tratamento oficial: Ouro Metálico Escovado com Brilho Dramático — Saturado e Profundo */
 .btn-gold-dramatic {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(180deg, #f9e596 0%, #e5b742 50%, #b87c14 100%);
-  border: 1px solid rgba(253, 230, 138, 0.9);
-  color: #261502;
-  font-weight: 800;
-  box-shadow: 0 4px 14px -2px rgba(59, 36, 5, 0.25);
+  background: linear-gradient(180deg, #ffd966 0%, #f5b014 42%, #b47008 80%, #683d02 100%);
+  border: 1px solid rgba(254, 240, 138, 0.95);
+  color: #1a0c01;
+  font-weight: 900;
+  box-shadow:
+    0 4px 16px -2px rgba(59, 36, 5, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.7);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .btn-gold-dramatic:hover {
-  border-color: #fef08a;
-  color: #0f0700;
-  box-shadow: 0 10px 25px -4px rgba(229, 183, 66, 0.45);
-  transform: translateY(-1px);
+  border-color: #ffffff;
+  color: #000000;
+  background: linear-gradient(180deg, #ffea85 0%, #ffc021 40%, #c8810b 78%, #784504 100%);
+  box-shadow:
+    0 12px 30px -4px rgba(245, 176, 20, 0.65),
+    0 0 20px 2px rgba(254, 240, 138, 0.45),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9);
+  transform: translateY(-1.5px);
 }
 .btn-gold-dramatic:active {
   transform: translateY(0);
