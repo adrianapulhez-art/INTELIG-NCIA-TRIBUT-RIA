@@ -52,6 +52,7 @@ import {
 export const REFERENCIAS_MARKUP_POS = {
   ICMS_PADRAO_PCT: 18.0, // Fator 0,8200
   CBS_PADRAO_PCT: 26.5, // 26,50% por fora
+  IBS_PADRAO_PCT: 0.1, // 0,10% por fora (alíquota-teste LC 214 art. 346)
   MARGEM_PADRAO_PCT: 51.9, // 51,90% chancelada pré-reforma
   QUANTIDADE_PADRAO: 24, // 24 un. caso canônico
 } as const
@@ -284,6 +285,10 @@ export function MarkupPosPage() {
   const [cbsRateInput, setCbsRateInput] = useState<number | undefined>(undefined)
   const cbsRateEfetivo = cbsRateInput ?? REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT
 
+  // IBS 2027 (alíquota-teste LC 214/2025 art. 346): nasce vazio (undefined), placeholder "0,10%", motor usa 0,10%
+  const [ibsRateInput, setIbsRateInput] = useState<number | undefined>(undefined)
+  const ibsRateEfetivo = ibsRateInput ?? REFERENCIAS_MARKUP_POS.IBS_PADRAO_PCT
+
   // --------------------------------------------------------------------------
   // 6. FLUXO DE CÁLCULO — MARGEM, QUANTIDADE E PREÇO DE VENDA SIMULADO
   // --------------------------------------------------------------------------
@@ -347,10 +352,15 @@ export function MarkupPosPage() {
           ? roundHalfUp((lucroUnitarioRealizado / precoVendaUnitario) * 100, 2)
           : 0
 
-      // CBS 2027 por fora (arredondamento meio a meio para cima)
+      // CBS e IBS 2027 por fora (LC 214/2025 art. 12 §2º I c/c art. 346)
+      // Arredondamento meio a meio para cima chancelado
       const cbsUnitario = roundHalfUp(precoVendaUnitario * (cbsRateEfetivo / 100), 2)
-      const totalNotaUnitario = roundHalfUp(precoVendaUnitario + cbsUnitario, 2)
+      const ibsUnitario = roundHalfUp(precoVendaUnitario * (ibsRateEfetivo / 100), 2)
+      const tributosPorForaUnitario = roundHalfUp(cbsUnitario + ibsUnitario, 2)
+      const totalNotaUnitario = roundHalfUp(precoVendaUnitario + tributosPorForaUnitario, 2)
+
       const cbsTotal = roundHalfUp(cbsUnitario * Math.max(1, quantidadeVendidaEfetiva), 2)
+      const ibsTotal = roundHalfUp(ibsUnitario * Math.max(1, quantidadeVendidaEfetiva), 2)
       const totalNotaLote = roundHalfUp(
         totalNotaUnitario * Math.max(1, quantidadeVendidaEfetiva),
         2,
@@ -372,8 +382,11 @@ export function MarkupPosPage() {
         lucroUnitarioRealizado,
         margemEfetivaPct,
         cbsUnitario,
+        ibsUnitario,
+        tributosPorForaUnitario,
         totalNotaUnitario,
         cbsTotal,
+        ibsTotal,
         totalNotaLote,
         custoInfo,
       }
@@ -385,6 +398,7 @@ export function MarkupPosPage() {
     icmsRateEfetivo,
     somaDvPct,
     cbsRateEfetivo,
+    ibsRateEfetivo,
   ])
 
   // Estado do diálogo de memória de cálculo detalhada
@@ -689,50 +703,52 @@ export function MarkupPosPage() {
               {/* Lista de DVs editáveis */}
               {despesasVariaveis.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-amber-300/80 bg-amber-50/40 p-4 text-center space-y-2">
-                  <p className="text-xs text-slate-600 font-mono">
+                  <p className="text-xs text-slate-600 font-mono leading-relaxed">
                     Nenhuma despesa variável configurada. A lista nasce vazia para digitação manual
-                    do usuário.
+                    do usuário (ex.: Frete de entrega 3,00%, Comissão 2,00%, Maquininha 2,50%).
                   </p>
                   <Button
                     type="button"
                     size="sm"
                     onClick={handleAddDv}
-                    className="h-7 text-xs bg-gradient-to-b from-[#ffd966] via-[#f5b014] to-[#8f5204] text-[#1a0c01] font-bold shadow-xs hover:brightness-110 cursor-pointer"
+                    className="h-8 text-xs bg-gradient-to-b from-[#ffd966] via-[#f5b014] to-[#8f5204] text-[#1a0c01] font-bold shadow-xs hover:brightness-110 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar despesa variável
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
                   {despesasVariaveis.map((dv) => {
                     const fatorDerivado = Math.max(0, 1 - (dv.aliquota ?? 0) / 100)
                     return (
                       <div
                         key={dv.id}
-                        className="rounded-lg border border-slate-200 bg-slate-50/60 p-2 flex items-center gap-2"
+                        className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 flex items-center gap-2.5"
                       >
                         <input
                           type="text"
                           value={dv.descricao}
                           onChange={(e) => handleUpdateDv(dv.id, 'descricao', e.target.value)}
-                          placeholder="Ex.: Frete, Cartão..."
-                          className="flex-1 text-xs font-semibold text-slate-800 bg-white border border-slate-200 rounded px-2 py-1 focus:outline-[#b87c14]"
+                          placeholder="Ex.: Frete, Cartão, Comissão..."
+                          className="flex-1 min-w-[120px] h-9 text-xs font-semibold text-slate-800 bg-white border border-slate-200 rounded-md px-2.5 py-1.5 focus:outline-[#b87c14]"
                         />
 
-                        <div className="w-20">
+                        <div className="w-28 shrink-0">
                           <MoneyInput
                             value={dv.aliquota}
                             onChange={(val) => handleUpdateDv(dv.id, 'aliquota', val)}
                             decimals={2}
                             placeholder="0,00"
-                            className="h-7 text-xs font-mono font-bold text-right field-input-brown text-[#261502]"
-                            prefix="%"
+                            className="h-9 text-xs font-mono font-bold text-right field-input-brown text-[#261502]"
+                            suffix="%"
                           />
                         </div>
 
-                        <div className="w-16 text-right">
-                          <span className="text-[9px] font-mono text-slate-400 block">Fator</span>
-                          <span className="text-[11px] font-mono font-bold text-[#3b2405]">
+                        <div className="w-20 text-right shrink-0">
+                          <span className="text-[9px] font-mono text-slate-400 block uppercase">
+                            Fator
+                          </span>
+                          <span className="text-xs font-mono font-bold text-[#3b2405]">
                             {fatorDerivado.toFixed(4)}
                           </span>
                         </div>
@@ -740,10 +756,10 @@ export function MarkupPosPage() {
                         <button
                           type="button"
                           onClick={() => handleRemoveDv(dv.id)}
-                          className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer transition-colors"
-                          title="Remover linha"
+                          className="text-slate-400 hover:text-rose-600 p-1.5 cursor-pointer transition-colors rounded hover:bg-rose-50 shrink-0"
+                          title="Remover despesa variável"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     )
@@ -753,29 +769,29 @@ export function MarkupPosPage() {
             </div>
 
             {/* Totalizadores de DV */}
-            <div className="pt-3 border-t border-amber-900/10 flex items-center justify-between bg-amber-50/60 p-2.5 rounded-xl">
+            <div className="pt-3 border-t border-amber-900/10 flex items-center justify-between bg-amber-50/70 p-3 rounded-xl">
               <div>
-                <span className="text-[10px] font-mono uppercase text-slate-500 block">
+                <span className="text-[10px] font-mono uppercase text-slate-500 block font-bold">
                   Total Σ DV
                 </span>
-                <span className="text-sm font-black font-mono text-[#261502]">
+                <span className="text-base font-black font-mono text-[#261502]">
                   {formatPercentBR(somaDvPct, 2)}
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-mono uppercase text-slate-500 block">
+                <span className="text-[10px] font-mono uppercase text-slate-500 block font-bold">
                   Fator Consolidado DV
                 </span>
-                <span className="text-xs font-mono font-bold text-[#5c3e06]">
+                <span className="text-xs font-mono font-black text-[#5c3e06]">
                   {fatorDvConsolidado.toFixed(6)}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* CARD 02: TRIBUTOS PÓS-REFORMA (ICMS TRANSIÇÃO + CBS 2027) */}
+          {/* CARD 02: TRIBUTOS PÓS-REFORMA (ICMS TRANSIÇÃO + CBS 2027 + IBS) */}
           <div className="rounded-2xl border border-amber-300/70 bg-white p-5 shadow-sm space-y-4 flex flex-col justify-between">
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <div className="border-b border-amber-900/10 pb-2.5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded bg-[#261502] text-amber-200 text-xs font-bold font-mono flex items-center justify-center">
@@ -786,81 +802,127 @@ export function MarkupPosPage() {
                       Tributos na Venda (2027+)
                     </h4>
                     <span className="text-[10px] text-slate-500 font-mono">
-                      PIS/COFINS extintos · ICMS transição · CBS por fora
+                      PIS/COFINS extintos · ICMS transição · CBS e IBS por fora
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* ICMS na Transição */}
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-800">
                     ICMS na Venda (Transição):
                   </label>
-                  <span className="text-[11px] font-mono text-[#5c3e06]">
+                  <span className="text-xs font-mono font-semibold text-[#5c3e06]">
                     Fator: {fatorIcms.toFixed(4)}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MoneyInput
-                    value={icmsRateInput}
-                    onChange={(val) => setIcmsRateInput(val)}
-                    decimals={2}
-                    placeholder="18,00"
-                    className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
-                    prefix="%"
-                  />
-                  <span className="text-[11px] text-slate-500 font-mono">
-                    Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT)}
-                  </span>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                  <div className="sm:col-span-7">
+                    <MoneyInput
+                      value={icmsRateInput}
+                      onChange={(val) => setIcmsRateInput(val)}
+                      decimals={2}
+                      placeholder="18,00"
+                      className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
+                      suffix="%"
+                    />
+                  </div>
+                  <div className="sm:col-span-5 text-right sm:text-left">
+                    <span className="text-xs font-mono text-slate-500 font-semibold block">
+                      Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT)}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono block">
+                <span className="text-[10px] text-slate-400 font-mono block leading-tight">
                   Subsiste na transição (fator redutor por dentro). Vazio usa a referência 18,00%
                   sem zerar.
                 </span>
               </div>
 
               {/* CBS 2027 com Sinalização Permanente */}
-              <div className="space-y-1 pt-1">
+              <div className="space-y-1.5 pt-1 border-t border-slate-100">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-800">CBS 2027 (Por Fora):</label>
-                  <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.2">
-                    Estimativa
+                  <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
+                    Estimativa Senado
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MoneyInput
-                    value={cbsRateInput}
-                    onChange={(val) => setCbsRateInput(val)}
-                    decimals={2}
-                    placeholder="26,50"
-                    className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
-                    prefix="%"
-                  />
-                  <span className="text-[11px] text-slate-500 font-mono">
-                    Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT)}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                  <div className="sm:col-span-7">
+                    <MoneyInput
+                      value={cbsRateInput}
+                      onChange={(val) => setCbsRateInput(val)}
+                      decimals={2}
+                      placeholder="26,50"
+                      className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
+                      suffix="%"
+                    />
+                  </div>
+                  <div className="sm:col-span-5 text-right sm:text-left">
+                    <span className="text-xs font-mono text-slate-500 font-semibold block">
+                      Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT)}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono block leading-tight">
+                  Incidência por fora (LC 214 art. 12 §2º I). Vazio usa a referência 26,50% sem
+                  zerar.
+                </span>
+              </div>
+
+              {/* IBS na Venda (LC 214/2025 art. 346 - alíquota teste 0,10% por fora) */}
+              <div className="space-y-1.5 pt-1 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800">
+                    IBS na Venda (Por Fora):
+                  </label>
+                  <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 rounded px-1.5 py-0.5">
+                    Alíquota-teste (LC 214 art. 346)
                   </span>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                  <div className="sm:col-span-7">
+                    <MoneyInput
+                      value={ibsRateInput}
+                      onChange={(val) => setIbsRateInput(val)}
+                      decimals={2}
+                      placeholder="0,10"
+                      className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
+                      suffix="%"
+                    />
+                  </div>
+                  <div className="sm:col-span-5 text-right sm:text-left">
+                    <span className="text-xs font-mono text-slate-500 font-semibold block">
+                      Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.IBS_PADRAO_PCT)}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono block leading-tight">
+                  Alíquota-teste fixada em lei (LC 214 art. 346). Somado por fora na nota final.
+                  Vazio usa 0,10% sem zerar.
+                </span>
               </div>
             </div>
 
             {/* Sinalização Permanente chancelada pela Adri */}
-            <div className="rounded-xl border border-amber-400/80 bg-amber-50/80 p-2.5 space-y-1">
+            <div className="rounded-xl border border-amber-400/80 bg-amber-50/80 p-2.5 space-y-1 mt-2">
               <div className="flex items-center gap-1.5 text-[#3b2405] text-[11px] font-bold">
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                 <span>Sinalização Legal Permanente (LC 214/2025):</span>
               </div>
               <p className="text-[10px] text-slate-700 leading-relaxed font-mono">
-                Estimativa — alíquota de referência pendente de fixação (resolução do Senado Federal
-                até 15/12/2026). PIS e COFINS 100% extintos a partir de 2027 (LC 214, art. 334, II).
+                Estimativa — alíquota da CBS pendente de fixação pelo Senado Federal. PIS e COFINS
+                100% extintos em 2027 (art. 334, II). IBS com alíquota-teste de 0,10% por fora (art.
+                346).
               </p>
             </div>
           </div>
 
           {/* CARD 03: MARGEM DE LUCRO DESEJADA, QUANTIDADE & FATOR DIVISOR */}
           <div className="rounded-2xl border border-amber-300/70 bg-white p-5 shadow-sm space-y-4 flex flex-col justify-between">
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <div className="border-b border-amber-900/10 pb-2.5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded bg-[#261502] text-amber-200 text-xs font-bold font-mono flex items-center justify-center">
@@ -878,66 +940,80 @@ export function MarkupPosPage() {
               </div>
 
               {/* Margem de Lucro Desejada */}
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-800">
                     Margem de Lucro Desejada (%):
                   </label>
-                  <span className="text-[11px] font-mono text-[#5c3e06]">
+                  <span className="text-xs font-mono font-semibold text-[#5c3e06]">
                     Fator: {fatorMargem.toFixed(4)}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MoneyInput
-                    value={margemLucroInput}
-                    onChange={(val) => setMargemLucroInput(val)}
-                    decimals={2}
-                    placeholder={formatNumberBR(margemReferencia, 2)}
-                    className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
-                    prefix="%"
-                  />
-                  <span className="text-[11px] text-slate-500 font-mono">
-                    Ref. {formatPercentBR(margemReferencia)}
-                  </span>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                  <div className="sm:col-span-7">
+                    <MoneyInput
+                      value={margemLucroInput}
+                      onChange={(val) => setMargemLucroInput(val)}
+                      decimals={2}
+                      placeholder={formatNumberBR(margemReferencia, 2)}
+                      className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
+                      suffix="%"
+                    />
+                  </div>
+                  <div className="sm:col-span-5 text-right sm:text-left">
+                    <span className="text-xs font-mono text-slate-500 font-semibold block">
+                      Ref. {formatPercentBR(margemReferencia)}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono block">
+                <span className="text-[10px] text-slate-400 font-mono block leading-tight">
                   Régua de referência {formatPercentBR(margemReferencia)}. Vazio mantém a referência
                   sem zerar.
                 </span>
               </div>
 
               {/* Quantidade Vendida */}
-              <div className="space-y-1 pt-1">
+              <div className="space-y-1.5 pt-1 border-t border-slate-100">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-800">
                     Quantidade Vendida (un.):
                   </label>
-                  <span className="text-[11px] font-mono text-slate-500">
+                  <span className="text-xs font-mono text-slate-500 font-semibold">
                     Ref. {quantidadeReferencia} un.
                   </span>
                 </div>
-                <MoneyInput
-                  value={quantidadeVendidaInput}
-                  onChange={(val) => setQuantidadeVendidaInput(val)}
-                  decimals={0}
-                  className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
-                  placeholder={String(quantidadeReferencia)}
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                  <div className="sm:col-span-7">
+                    <MoneyInput
+                      value={quantidadeVendidaInput}
+                      onChange={(val) => setQuantidadeVendidaInput(val)}
+                      decimals={0}
+                      className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
+                      placeholder={String(quantidadeReferencia)}
+                      suffix="un."
+                    />
+                  </div>
+                  <div className="sm:col-span-5 text-right sm:text-left">
+                    <span className="text-[10px] text-slate-400 font-mono block">
+                      Lote da operação
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Fator Divisor Multiplicativo do Preço */}
-            <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-3 space-y-1">
+            <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-3.5 space-y-1.5 mt-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono uppercase text-slate-600 font-bold">
                   Fator Divisor Motor:
                 </span>
-                <span className="text-xs font-mono font-black text-[#261502]">
+                <span className="text-sm font-mono font-black text-[#261502]">
                   {fatorDivisor.toFixed(6)}
                 </span>
               </div>
               <p className="text-[10px] font-mono text-slate-500 leading-tight">
-                Fórmula: (1 − Σ DV) × (1 − ICMS) × (1 − Margem) = Preço = Custo ÷ Divisor.
+                Fórmula: (1 − Σ DV) × (1 − ICMS) × (1 − Margem). Preço = Custo ÷ Divisor.
               </p>
             </div>
           </div>
@@ -1053,12 +1129,18 @@ export function MarkupPosPage() {
                       </div>
                     </div>
 
-                    {/* 4. CBS 2027 por fora & Total da Nota Fiscal */}
+                    {/* 4. CBS e IBS por fora & Total da Nota Fiscal */}
                     <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-2.5 space-y-1 text-xs font-mono">
                       <div className="flex justify-between text-slate-600">
                         <span>(+) CBS {formatPercentBR(cbsRateEfetivo)} (por fora):</span>
                         <span className="font-bold text-[#b87c14]">
                           {formatBRL(col.cbsUnitario)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-slate-600">
+                        <span>(+) IBS {formatPercentBR(ibsRateEfetivo)} (por fora):</span>
+                        <span className="font-bold text-emerald-800">
+                          {formatBRL(col.ibsUnitario)}
                         </span>
                       </div>
                       <div className="flex justify-between text-[#261502] font-black border-t border-amber-200/60 pt-1">
@@ -1126,8 +1208,19 @@ export function MarkupPosPage() {
             </div>
 
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-1">
+              <span className="text-[10px] font-bold uppercase text-emerald-800 block">
+                3. IBS na Venda (Incidência por Fora)
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                LC 214/2025, art. 12, §2º, I c/c art. 346: o IBS é cobrado por fora da base de
+                cálculo, com alíquota-teste de 0,10% fixada em lei para a transição inicial,
+                compondo a nota final somado por fora.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-1 md:col-span-3">
               <span className="text-[10px] font-bold uppercase text-[#b87c14] block">
-                3. PIS e COFINS Extintos
+                4. PIS e COFINS Extintos (EC 132/2023)
               </span>
               <p className="text-[11px] leading-relaxed">
                 EC 132/2023, art. 22, I c/c LC 214/2025, art. 334, II: as contribuições ao PIS/PASEP
@@ -1310,7 +1403,8 @@ export function MarkupPosPage() {
                           CBS 2027 (Estimada {formatPercentBR(cbsRateEfetivo)})
                         </td>
                         <td className="py-2 px-3 text-slate-500">
-                          Incidência por fora: {formatBRL(itemMemoriaAtivo.precoVendaUnitario)} ×{' '}
+                          Incidência por fora (LC 214 art. 12 §2º I):{' '}
+                          {formatBRL(itemMemoriaAtivo.precoVendaUnitario)} ×{' '}
                           {formatPercentBR(cbsRateEfetivo)}
                         </td>
                         <td className="py-2 px-3 text-right font-bold text-[#b87c14]">
@@ -1318,12 +1412,29 @@ export function MarkupPosPage() {
                         </td>
                       </tr>
 
-                      {/* 9. Valor Total da Nota Fiscal de Venda */}
+                      {/* 9. IBS na Venda por fora */}
+                      <tr>
+                        <td className="py-2 px-3 text-slate-400">(+)</td>
+                        <td className="py-2 px-3 text-slate-700">
+                          IBS na Venda (Alíquota-teste {formatPercentBR(ibsRateEfetivo)})
+                        </td>
+                        <td className="py-2 px-3 text-slate-500">
+                          Incidência por fora (LC 214 art. 12 §2º I c/c art. 346):{' '}
+                          {formatBRL(itemMemoriaAtivo.precoVendaUnitario)} ×{' '}
+                          {formatPercentBR(ibsRateEfetivo)}
+                        </td>
+                        <td className="py-2 px-3 text-right font-bold text-emerald-800">
+                          {formatBRL(itemMemoriaAtivo.ibsUnitario)}
+                        </td>
+                      </tr>
+
+                      {/* 10. Valor Total da Nota Fiscal de Venda */}
                       <tr className="bg-slate-100 font-black text-slate-900">
                         <td className="py-2.5 px-3">(=)</td>
                         <td className="py-2.5 px-3">Valor Total da Nota Fiscal (Unitário)</td>
                         <td className="py-2.5 px-3 text-xs font-normal text-slate-500">
-                          Preço de Venda + CBS por fora destacada
+                          Preço de Venda + CBS por fora ({formatBRL(itemMemoriaAtivo.cbsUnitario)})
+                          + IBS por fora ({formatBRL(itemMemoriaAtivo.ibsUnitario)})
                         </td>
                         <td className="py-2.5 px-3 text-right text-base text-[#261502]">
                           {formatBRL(itemMemoriaAtivo.totalNotaUnitario)}

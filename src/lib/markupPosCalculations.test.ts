@@ -71,30 +71,40 @@ describe('Validação dos Custos do Adquirente Lucro Presumido 2027 (Card 03)', 
     expect(pLr).toBeLessThan(pLp)
     expect(pSnp).toBeGreaterThan(pLp)
     expect(pSnh).toBeLessThan(pSnp)
+
+    // Cada fornecedor tem preço próprio — nunca idênticos
+    expect(pLp).not.toBe(pLr)
+    expect(pLp).not.toBe(pSnp)
+    expect(pLp).not.toBe(pSnh)
+    expect(pLr).not.toBe(pSnp)
   })
 
-  it('6. Motor de cálculo com campos VAZIOS ao abrir continua usando os valores de referência chancelados pela Adri', () => {
+  it('6. Motor de cálculo com campos VAZIOS ao abrir continua usando os valores de referência chancelados pela Adri (incluindo IBS 0,10%)', () => {
     // Referências chanceladas
     expect(REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT).toBe(18.0)
     expect(REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT).toBe(26.5)
+    expect(REFERENCIAS_MARKUP_POS.IBS_PADRAO_PCT).toBe(0.1)
     expect(REFERENCIAS_MARKUP_POS.MARGEM_PADRAO_PCT).toBe(51.9)
     expect(REFERENCIAS_MARKUP_POS.QUANTIDADE_PADRAO).toBe(24)
 
-    // Simulando estado inicial: DV vazia ([]), ICMS undefined, CBS undefined, Margem undefined, Qtd undefined
+    // Simulando estado inicial: DV vazia ([]), ICMS undefined, CBS undefined, IBS undefined, Margem undefined, Qtd undefined
     const despesasVariaveisVazia: Array<{ aliquota?: number }> = []
     const icmsInput: number | undefined = undefined
     const cbsInput: number | undefined = undefined
+    const ibsInput: number | undefined = undefined
     const margemInput: number | undefined = undefined
     const qtdInput: number | undefined = undefined
 
     // Fallback do motor
     const icmsEfetivo = icmsInput ?? REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT
     const cbsEfetivo = cbsInput ?? REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT
+    const ibsEfetivo = ibsInput ?? REFERENCIAS_MARKUP_POS.IBS_PADRAO_PCT
     const margemEfetiva = margemInput ?? REFERENCIAS_MARKUP_POS.MARGEM_PADRAO_PCT
     const qtdEfetiva = qtdInput ?? REFERENCIAS_MARKUP_POS.QUANTIDADE_PADRAO
 
     expect(icmsEfetivo).toBe(18.0)
     expect(cbsEfetivo).toBe(26.5)
+    expect(ibsEfetivo).toBe(0.1)
     expect(margemEfetiva).toBe(51.9)
     expect(qtdEfetiva).toBe(24)
 
@@ -132,14 +142,67 @@ describe('Validação dos Custos do Adquirente Lucro Presumido 2027 (Card 03)', 
     expect(precoVendaSnp).toBe(3759.8)
     expect(precoVendaSnh).toBe(3507.83)
 
+    // Preços distintos por coluna de fornecedor
+    expect(precoVendaLp).not.toBe(precoVendaLr)
+    expect(precoVendaLp).not.toBe(precoVendaSnp)
+    expect(precoVendaLp).not.toBe(precoVendaSnh)
+
     // CBS 26,50% por fora sobre Preço de Venda
     const cbsLp = roundHalfUp(precoVendaLp * (cbsEfetivo / 100), 2)
     expect(cbsLp).toBe(750.23)
-    const notaLp = roundHalfUp(precoVendaLp + cbsLp, 2)
-    expect(notaLp).toBe(3581.3)
+
+    // IBS 0,10% por fora sobre Preço de Venda (LC 214 art. 12 §2º I c/c art. 346)
+    // 2831,07 * 0,001 = 2,83107 -> 2,83
+    const ibsLp = roundHalfUp(precoVendaLp * (ibsEfetivo / 100), 2)
+    expect(ibsLp).toBe(2.83)
+
+    // Nota final: Preço + CBS + IBS por fora
+    const notaLp = roundHalfUp(precoVendaLp + roundHalfUp(cbsLp + ibsLp, 2), 2)
+    expect(notaLp).toBe(3584.13)
 
     // Lote de 24 un.
     const loteLp = roundHalfUp(notaLp * qtdEfetiva, 2)
-    expect(loteLp).toBe(roundHalfUp(3581.3 * 24, 2))
+    expect(loteLp).toBe(roundHalfUp(3584.13 * 24, 2))
+  })
+
+  it('7. IBS 0,10% por fora na nota e fidelidade à chancela de arredondamento meio a meio', () => {
+    // Teste com a base chancelada da Adri do cenário 04: BC 3.192,53 -> IBS 3,19
+    const baseCenario04 = 3192.53
+    const ibsCenario04 = roundHalfUp(baseCenario04 * (0.1 / 100), 2)
+    expect(ibsCenario04).toBe(3.19)
+
+    // Caso meio a meio: 2,50516 -> 2,51
+    expect(roundHalfUp(2.50516, 2)).toBe(2.51)
+  })
+
+  it('8. Cada coluna de fornecedor tem preço simulado próprio e nota fiscal própria', () => {
+    const fDv = 0.975 * 0.98 * 0.97 // 0,926835
+    const fIcms = 0.82
+    const fMargem = 0.481
+    const divisor = fDv * fIcms * fMargem
+
+    const precos = {
+      lp: roundHalfUp(1116.63 / divisor, 2),
+      lr: roundHalfUp(1051.73 / divisor, 2),
+      snp: roundHalfUp(1482.94 / divisor, 2),
+      snh: roundHalfUp(1383.56 / divisor, 2),
+    }
+
+    // Nenhuma coluna tem preço repetido
+    const uniquePrecos = new Set(Object.values(precos))
+    expect(uniquePrecos.size).toBe(4)
+
+    // Cada uma gera CBS e IBS próprios
+    const cbsRates = 26.5
+    const ibsRates = 0.1
+
+    const notas = Object.entries(precos).map(([, preco]) => {
+      const cbs = roundHalfUp(preco * (cbsRates / 100), 2)
+      const ibs = roundHalfUp(preco * (ibsRates / 100), 2)
+      return roundHalfUp(preco + roundHalfUp(cbs + ibs, 2), 2)
+    })
+
+    const uniqueNotas = new Set(notas)
+    expect(uniqueNotas.size).toBe(4)
   })
 })

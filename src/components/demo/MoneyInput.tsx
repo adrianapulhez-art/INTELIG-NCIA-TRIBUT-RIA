@@ -13,6 +13,7 @@ export interface MoneyInputProps extends Omit<
   decimals?: number
   showZeroAsEmpty?: boolean
   prefix?: React.ReactNode
+  suffix?: React.ReactNode
 }
 
 /**
@@ -37,6 +38,7 @@ export const MoneyInput = forwardRef<HTMLInputElement, MoneyInputProps>(function
     type = 'text',
     inputMode = 'decimal',
     prefix,
+    suffix,
     disabled,
     readOnly,
     ...rest
@@ -118,6 +120,10 @@ export const MoneyInput = forwardRef<HTMLInputElement, MoneyInputProps>(function
     }
   }
 
+  const inputClasses = [className, prefix ? 'pl-7' : '', suffix ? 'pr-7' : '']
+    .filter(Boolean)
+    .join(' ')
+
   const inputElement = (
     <Input
       ref={internalRef}
@@ -130,18 +136,25 @@ export const MoneyInput = forwardRef<HTMLInputElement, MoneyInputProps>(function
       onChange={handleChange}
       disabled={disabled}
       readOnly={readOnly}
-      className={className}
+      className={inputClasses}
       {...rest}
     />
   )
 
-  if (prefix) {
+  if (prefix || suffix) {
     return (
       <div className="relative inline-block w-full">
-        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none">
-          {prefix}
-        </span>
+        {prefix && (
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-mono pointer-events-none z-10 select-none">
+            {prefix}
+          </span>
+        )}
         {inputElement}
+        {suffix && (
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-mono pointer-events-none z-10 select-none">
+            {suffix}
+          </span>
+        )}
       </div>
     )
   }
