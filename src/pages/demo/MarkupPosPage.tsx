@@ -670,10 +670,10 @@ export function MarkupPosPage() {
                       <div className="w-20">
                         <MoneyInput
                           value={dv.aliquota}
-                          onChange={(val) => handleUpdateDv(dv.id, 'aliquota', val)}
+                          onChange={(val) => handleUpdateDv(dv.id, 'aliquota', val ?? 0)}
                           decimals={2}
                           placeholder="0,00"
-                          className="h-7 text-xs font-mono font-bold text-right"
+                          className="h-7 text-xs font-mono font-bold text-right field-input-brown text-[#261502]"
                           prefix="%"
                         />
                       </div>
@@ -752,9 +752,9 @@ export function MarkupPosPage() {
                 <div className="flex items-center gap-2">
                   <MoneyInput
                     value={icmsRate}
-                    onChange={(val) => setIcmsRate(val)}
+                    onChange={(val) => setIcmsRate(val ?? 0)}
                     decimals={2}
-                    className="h-8 text-xs font-mono font-bold"
+                    className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
                     prefix="%"
                   />
                   <span className="text-[11px] text-slate-500 font-mono">Padrão 18,00%</span>
@@ -776,9 +776,9 @@ export function MarkupPosPage() {
                 <div className="flex items-center gap-2">
                   <MoneyInput
                     value={cbsRate}
-                    onChange={(val) => setCbsRate(val)}
+                    onChange={(val) => setCbsRate(val ?? 0)}
                     decimals={2}
-                    className="h-8 text-xs font-mono font-bold"
+                    className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
                     prefix="%"
                   />
                   <span className="text-[11px] text-slate-500 font-mono">Default ≈ 26,50%</span>
@@ -831,9 +831,9 @@ export function MarkupPosPage() {
                 <div className="flex items-center gap-2">
                   <MoneyInput
                     value={margemLucroPct}
-                    onChange={(val) => setMargemLucroPct(val)}
+                    onChange={(val) => setMargemLucroPct(val ?? 0)}
                     decimals={2}
-                    className="h-8 text-xs font-mono font-bold"
+                    className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
                     prefix="%"
                   />
                   <span className="text-[11px] text-slate-500 font-mono">Régua: 51,9%</span>
@@ -850,9 +850,9 @@ export function MarkupPosPage() {
                 </label>
                 <MoneyInput
                   value={quantidadeVendida}
-                  onChange={(val) => setQuantidadeVendida(Math.max(1, Math.round(val || 1)))}
+                  onChange={(val) => setQuantidadeVendida(Math.max(1, Math.round(val ?? 1)))}
                   decimals={0}
-                  className="h-8 text-xs font-mono font-bold"
+                  className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
                   placeholder="24"
                 />
               </div>

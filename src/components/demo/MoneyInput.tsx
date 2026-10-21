@@ -97,7 +97,11 @@ export const MoneyInput = forwardRef<HTMLInputElement, MoneyInputProps>(function
     if (cursor !== null) {
       requestAnimationFrame(() => {
         if (internalRef.current && document.activeElement === internalRef.current) {
-          internalRef.current.setSelectionRange(cursor, cursor)
+          try {
+            internalRef.current.setSelectionRange(cursor, cursor)
+          } catch {
+            // Em navegadores/tipos de input que não suportam setSelectionRange, ignora de forma segura
+          }
         }
       })
     }

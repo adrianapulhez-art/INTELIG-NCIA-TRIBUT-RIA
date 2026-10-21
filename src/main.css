@@ -378,6 +378,30 @@
   box-shadow: 0 4px 14px -2px rgba(38, 21, 2, 0.5);
 }
 
+/* Campos editáveis com números em marrom escuro no padrão nobre IT */
+.field-input-brown {
+  background-color: #ffffff !important;
+  border-color: #fcd34d !important;
+  color: #261502 !important;
+  font-weight: 700 !important;
+}
+.field-input-brown:hover {
+  background-color: #fffdfa !important;
+  border-color: #f59e0b !important;
+}
+.field-input-brown:focus,
+.field-input-brown:focus-visible,
+.field-input-brown:focus-within {
+  background-color: #ffffff !important;
+  border-color: #b87c14 !important;
+  color: #261502 !important;
+  --tw-ring-color: rgba(184, 124, 20, 0.25) !important;
+  box-shadow:
+    0 0 0 1px #b87c14,
+    0 0 0 3px rgba(184, 124, 20, 0.15) !important;
+  outline: none !important;
+}
+
 /* Campos de entrada/seleção interativos — neutros com foco no acento âmbar/dourado */
 .field-input-interactive {
   background-color: #ffffff !important;
