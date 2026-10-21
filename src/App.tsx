@@ -19,6 +19,7 @@ import DreRealPage from './pages/demo/DreRealPage'
 import DreSimplesPage from './pages/demo/DreSimplesPage'
 import DemoDashboardPage from './pages/demo/DemoDashboardPage'
 import ReformaPage from './pages/demo/ReformaPage'
+import MarkupPosPage from './pages/demo/MarkupPosPage'
 import ClientsPage from './pages/demo/ClientsPage'
 import ManualPage from './pages/demo/ManualPage'
 import { Navigate } from 'react-router-dom'
@@ -53,6 +54,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <MarkupPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/demo/markup-pos"
+              element={
+                <ProtectedRoute>
+                  <MarkupPosPage />
                 </ProtectedRoute>
               }
             />

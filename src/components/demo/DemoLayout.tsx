@@ -12,6 +12,7 @@ export type TabKey =
   | 'home'
   | 'compras'
   | 'markup'
+  | 'markup-pos'
   | 'despesas-operacionais'
   | 'dre-presumido'
   | 'dre-real'
@@ -129,6 +130,7 @@ export const DemoLayout: React.FC<DemoLayoutProps> = ({ currentTab, children }) 
     { key: 'home', label: 'Início', path: '/demo' },
     { key: 'compras', label: 'Calculadora de Compras', path: '/demo/compras' },
     { key: 'markup', label: 'Calculadora Markup', path: '/demo/markup' },
+    { key: 'markup-pos', label: 'PÓS EC 132', path: '/demo/markup-pos' },
     {
       key: 'despesas-operacionais',
       label: 'Despesas e Receitas Op.',
