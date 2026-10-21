@@ -727,7 +727,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         {activeTab === 'gravar' && (
           <form onSubmit={handleSaveScenario} className="space-y-5 pt-2">
             {/* Bloco 1: Seleção e Criação Inline de Cliente */}
-            <div className="p-4 rounded-2xl bg-slate-950/70 border border-amber-500/25 space-y-3">
+            <div className="p-4 rounded-2xl bg-[#261502]/80 border border-amber-500/25 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-amber-400" />
@@ -774,7 +774,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                         onChange={(e) => setNewClientName(e.target.value)}
                         placeholder="Ex.: Indústria Alfa Ltda."
                         autoFocus
-                        className="h-8 text-xs bg-slate-950 border-slate-700 text-white placeholder:text-slate-600 focus:border-emerald-500"
+                        className="h-8 text-xs bg-[#1a0f03] border-amber-900/60 text-[#fff5cc] placeholder:text-amber-200/50 focus:border-amber-400"
                       />
                     </div>
                     <div>
@@ -786,7 +786,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                         value={newClientDoc}
                         onChange={(e) => setNewClientDoc(e.target.value)}
                         placeholder="00.000.000/0001-00"
-                        className="h-8 text-xs bg-slate-950 border-slate-700 text-white placeholder:text-slate-600 focus:border-emerald-500"
+                        className="h-8 text-xs bg-[#1a0f03] border-amber-900/60 text-[#fff5cc] placeholder:text-amber-200/50 focus:border-amber-400"
                       />
                     </div>
                   </div>
@@ -878,7 +878,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
               )}
               {/* F2 — DESTINO DO SALVAMENTO: nova simulação × atualizar existente */}
               {activeClientScenariosCount > 0 && (
-                <div className="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/25 space-y-3">
+                <div className="p-4 rounded-2xl bg-[#261502]/80 border border-amber-500/25 space-y-3">
                   <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200 block">
                     Destino do Salvamento
                   </label>
@@ -889,7 +889,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         saveDest === 'nova'
                           ? 'border-amber-400 bg-amber-500/15'
-                          : 'border-slate-800 bg-slate-950/60 hover:border-amber-400/40'
+                          : 'border-amber-900/50 bg-[#1a0f03]/60 hover:border-amber-400/40'
                       }`}
                     >
                       <span
@@ -907,7 +907,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         saveDest === 'atualizar'
                           ? 'border-amber-400 bg-amber-500/15'
-                          : 'border-slate-800 bg-slate-950/60 hover:border-amber-400/40'
+                          : 'border-amber-900/50 bg-[#1a0f03]/60 hover:border-amber-400/40'
                       }`}
                     >
                       <span
@@ -969,7 +969,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
             </div>
 
             {/* Bloco 2: Identificação do Cenário */}
-            <div className="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/25 space-y-3">
+            <div className="p-4 rounded-2xl bg-[#261502]/80 border border-amber-500/25 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200 block">
                   Nome do Cenário <span className="text-emerald-400">*</span>
@@ -1366,7 +1366,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                 placeholder="Buscar por nome do cenário ou cliente..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-8 bg-slate-950/80 border-slate-800 text-xs text-white placeholder:text-slate-500 focus:border-emerald-500"
+                className="pl-9 h-8 bg-[#1a0f03]/90 border-amber-900/60 text-xs text-[#fff5cc] placeholder:text-amber-200/50 focus:border-amber-400"
               />
               {searchQuery && (
                 <button
@@ -1386,7 +1386,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                 <p className="text-xs text-slate-400 font-mono">Carregando cenários salvos...</p>
               </div>
             ) : filteredScenarios.length === 0 ? (
-              <div className="py-10 text-center space-y-3 px-4 rounded-2xl bg-slate-950/50 border border-slate-800/80">
+              <div className="py-10 text-center space-y-3 px-4 rounded-2xl bg-[#261502]/60 border border-amber-900/50">
                 <FolderOpen className="w-8 h-8 text-slate-600 mx-auto" />
                 <p className="text-xs text-slate-400">
                   {searchQuery
@@ -1437,7 +1437,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                         className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                           isCurrentRestored
                             ? 'bg-emerald-500/15 border-emerald-400 shadow-md shadow-emerald-500/10'
-                            : 'bg-slate-950/70 border-slate-800 hover:border-emerald-500/40'
+                            : 'bg-[#1a0f03]/70 border-amber-900/50 hover:border-amber-500/40'
                         }`}
                       >
                         <div className="w-full">

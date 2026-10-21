@@ -345,13 +345,13 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
         <DialogHeader className="border-b border-slate-200 pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 font-mono font-bold text-sm shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-300 flex items-center justify-center text-[#b87c14] font-mono font-bold text-sm shrink-0">
                 #{index + 1}
               </div>
               <div>
-                <DialogTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                <DialogTitle className="text-base sm:text-lg font-bold text-[#261502] flex items-center gap-2">
                   <span>Detalhes do Item de Compra</span>
-                  <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800">
+                  <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-amber-50 border border-amber-300 text-[#261502]">
                     {regime === 'presumido'
                       ? 'Lucro Presumido'
                       : regime === 'real'
@@ -408,7 +408,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
               <span className="text-[10px] font-mono text-slate-500 uppercase block font-semibold">
                 Qtd Comprada
               </span>
-              <strong className="text-sm font-mono text-emerald-700 font-bold">
+              <strong className="text-sm font-mono text-[#b87c14] font-bold">
                 {item.quantity} un.
               </strong>
             </div>
@@ -426,7 +426,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
               <span className="text-[10px] font-mono text-slate-500 uppercase block font-semibold">
                 Preço Médio / Custo Unit.
               </span>
-              <strong className="text-sm font-mono text-emerald-700 font-bold">
+              <strong className="text-sm font-mono text-[#b87c14] font-bold">
                 {formatBRL(
                   averageCost !== undefined && averageCost > 0 ? averageCost : activeUnitCost,
                 )}
@@ -437,7 +437,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
               <span className="text-[10px] font-mono text-slate-500 uppercase block font-semibold">
                 Preço Total (Bruto)
               </span>
-              <strong className="text-sm font-mono text-emerald-700 font-bold">
+              <strong className="text-sm font-mono text-[#b87c14] font-bold">
                 {formatBRL(
                   totalValue !== undefined && totalValue > 0
                     ? totalValue
@@ -477,7 +477,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                     setInitQtyVal(safe > 0 ? String(safe) : '')
                     handleUpdateStockInitial(safe, currentInitialUnitCost)
                   }}
-                  className="text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900 focus:border-emerald-600"
+                  className="text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900 focus:border-amber-500"
                 />
               </div>
 
@@ -500,7 +500,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       setInitCostVal(parsed > 0 ? formatNumberBR(parsed) : '')
                       handleUpdateStockInitial(currentInitialQty, parsed)
                     }}
-                    className="pl-8 text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900 focus:border-emerald-600"
+                    className="pl-8 text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900 focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -512,7 +512,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                 <span className="text-[10px] text-slate-500 uppercase block font-semibold">
                   CMP Móvel
                 </span>
-                <strong className="text-emerald-700 font-bold text-xs sm:text-sm">
+                <strong className="text-[#b87c14] font-bold text-xs sm:text-sm">
                   {formatBRL(liveCMP)}
                 </strong>
                 <span className="text-[9px] text-slate-500 block">/ un.</span>
@@ -546,7 +546,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                 <span className="text-[10px] text-slate-500 uppercase block font-semibold">
                   CMV Apurado
                 </span>
-                <strong className="text-emerald-700 font-bold text-xs sm:text-sm">
+                <strong className="text-[#b87c14] font-bold text-xs sm:text-sm">
                   {formatBRL(liveAccumulatedCmv)}
                 </strong>
                 <span className="text-[9px] text-slate-500 block">baixas valorizadas</span>
@@ -557,7 +557,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
           {/* Seção 1: Quantidade, Preço Unitário e Valor da Mercadoria */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
             <span className="text-xs font-mono font-bold uppercase text-slate-900 flex items-center gap-1.5">
-              <Package className="w-3.5 h-3.5 text-emerald-600" />
+              <Package className="w-3.5 h-3.5 text-[#b87c14]" />
               Volume e Valores de Aquisição
             </span>
 
@@ -654,7 +654,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
           {/* Seção 2: Tributação Individual do Item */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
             <span className="text-xs font-mono uppercase tracking-wider text-slate-900 font-bold flex items-center gap-1.5">
-              <Percent className="w-3.5 h-3.5 text-emerald-600" />
+              <Percent className="w-3.5 h-3.5 text-[#b87c14]" />
               Tributação Individual do Item
             </span>
 
@@ -700,7 +700,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                   <span className="text-[11px] text-slate-700 font-mono font-semibold">
                     ICMS destacado %
                   </span>
-                  <span className="text-[10px] text-emerald-700 font-mono font-bold">
+                  <span className="text-[10px] text-[#b87c14] font-mono font-bold">
                     {formatBRL(item.calculatedIcms)}
                   </span>
                 </div>
@@ -808,7 +808,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       type="checkbox"
                       checked={item.hasSt}
                       onChange={(e) => onUpdate(item.id, 'hasSt', e.target.checked)}
-                      className="rounded bg-white border-slate-300 text-emerald-600 focus:ring-emerald-500/20"
+                      className="rounded bg-white border-slate-300 text-amber-600 focus:ring-amber-500/20"
                     />
                     <span className="text-[10px] font-mono text-slate-700 font-medium">
                       ST ativo no item
@@ -836,7 +836,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       onUpdate(item.id, 'stValue', parsed)
                       setStValInput(parsed > 0 ? formatNumberBR(parsed) : '')
                     }}
-                    className="pl-8 text-right bg-white border-slate-300 text-xs font-mono text-slate-900 disabled:opacity-40 disabled:bg-slate-100 focus:border-emerald-600"
+                    className="pl-8 text-right bg-white border-slate-300 text-xs font-mono text-slate-900 disabled:opacity-40 disabled:bg-slate-100 focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -844,29 +844,29 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
 
             {/* Créditos no Lucro Real (informativo se regime == real) */}
             {regime === 'real' && (
-              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-mono space-y-1.5 text-emerald-950">
-                <div className="flex items-center justify-between font-bold text-emerald-900">
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-300 text-xs font-mono space-y-1.5 text-[#261502]">
+                <div className="flex items-center justify-between font-bold text-[#261502]">
                   <span>Créditos Recuperáveis (Lucro Real)</span>
                   <span>Total: {formatBRL(totalItemCredits)}</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-700 pt-1">
                   <div>
                     ICMS mercadoria:{' '}
-                    <strong className="text-emerald-800">{formatBRL(item.calculatedIcms)}</strong>
+                    <strong className="text-[#b87c14]">{formatBRL(item.calculatedIcms)}</strong>
                   </div>
                   <div>
                     ICMS s/ frete:{' '}
-                    <strong className="text-emerald-800">
+                    <strong className="text-[#b87c14]">
                       {formatBRL(item.icmsFreightValue || 0)}
                     </strong>
                   </div>
                   <div>
                     PIS (1,65%):{' '}
-                    <strong className="text-emerald-800">{formatBRL(item.calculatedPis)}</strong>
+                    <strong className="text-[#b87c14]">{formatBRL(item.calculatedPis)}</strong>
                   </div>
                   <div>
                     COFINS (7,60%):{' '}
-                    <strong className="text-emerald-800">{formatBRL(item.calculatedCofins)}</strong>
+                    <strong className="text-[#b87c14]">{formatBRL(item.calculatedCofins)}</strong>
                   </div>
                 </div>
               </div>
@@ -878,7 +878,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-mono font-bold uppercase text-slate-900 flex items-center gap-1.5">
-                  <Calculator className="w-3.5 h-3.5 text-emerald-600" />
+                  <Calculator className="w-3.5 h-3.5 text-[#b87c14]" />
                   Memória de Cálculo do CMV (Compras Líquidas)
                 </span>
                 {regime === 'real' && isPosAActive && (
@@ -909,7 +909,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                       <span className="text-amber-700 font-bold">›</span>
                     </button>
                   ))}
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold">
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-50 border border-amber-300 text-[#261502] font-bold">
                   {regime === 'presumido'
                     ? 'Lucro Presumido'
                     : regime === 'real'
@@ -923,7 +923,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
               {/* Linha (+) Mercadorias */}
               <div className="flex items-center justify-between text-slate-800">
                 <span className="flex items-center gap-1.5">
-                  <span className="text-emerald-700 font-bold">(+)</span>
+                  <span className="text-[#b87c14] font-bold">(+)</span>
                   <span>
                     Mercadorias
                     {item.quantity > 0 && item.unitPrice > 0 && (
@@ -939,7 +939,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
               {/* Linha (+) Frete sobre compras */}
               <div className="flex items-center justify-between text-slate-800">
                 <span className="flex items-center gap-1.5">
-                  <span className="text-emerald-700 font-bold">(+)</span>
+                  <span className="text-[#b87c14] font-bold">(+)</span>
                   <span>Frete sobre compras</span>
                 </span>
                 <span className="font-bold text-slate-900">{formatBRL(freightVal)}</span>
@@ -949,7 +949,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
               {ipiValCalc > 0 && (
                 <div className="flex items-center justify-between text-slate-800">
                   <span className="flex items-center gap-1.5">
-                    <span className="text-emerald-700 font-bold">(+)</span>
+                    <span className="text-[#b87c14] font-bold">(+)</span>
                     <span>
                       IPI / Tributos não recuperáveis
                       {item.ipiRate > 0 && (
@@ -1118,12 +1118,12 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
               )}
 
               {/* Linha (=) Compras Líquidas (Resultado) */}
-              <div className="pt-2.5 border-t-2 border-emerald-600/40 flex items-center justify-between text-sm">
-                <span className="flex items-center gap-1.5 font-bold text-slate-900">
-                  <span className="text-emerald-700">(=)</span>
+              <div className="pt-2.5 border-t-2 border-amber-500/50 flex items-center justify-between text-sm">
+                <span className="flex items-center gap-1.5 font-bold text-[#261502]">
+                  <span className="text-[#b87c14]">(=)</span>
                   <span>Compras Líquidas / Custo Total:</span>
                 </span>
-                <span className="font-black text-emerald-700 text-base">
+                <span className="font-black text-[#b87c14] text-base">
                   {formatBRL(netPurchasesFromFormula)}
                 </span>
               </div>
@@ -1132,7 +1132,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
               {item.quantity > 0 && (
                 <div className="flex items-center justify-between text-[11px] text-slate-600 pt-0.5 font-medium">
                   <span>Custo Unitário Líquido ({item.quantity} un.):</span>
-                  <span className="text-emerald-700 font-bold">
+                  <span className="text-[#b87c14] font-bold">
                     {formatBRL(netPurchasesFromFormula / item.quantity)} / un.
                   </span>
                 </div>
@@ -1168,7 +1168,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 font-mono text-xs">
                   <div className="flex items-center justify-between text-slate-800">
                     <span className="flex items-center gap-1.5">
-                      <span className="text-emerald-700 font-bold">(+)</span>
+                      <span className="text-[#b87c14] font-bold">(+)</span>
                       <span>
                         Mercadorias
                         {item.quantity > 0 && item.unitPrice > 0 && (
@@ -1183,7 +1183,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
 
                   <div className="flex items-center justify-between text-slate-800">
                     <span className="flex items-center gap-1.5">
-                      <span className="text-emerald-700 font-bold">(+)</span>
+                      <span className="text-[#b87c14] font-bold">(+)</span>
                       <span>Frete sobre compras</span>
                     </span>
                     <span className="font-bold text-slate-900">{formatBRL(freightVal)}</span>
@@ -1192,7 +1192,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                   {ipiValCalc > 0 && (
                     <div className="flex items-center justify-between text-slate-800">
                       <span className="flex items-center gap-1.5">
-                        <span className="text-emerald-700 font-bold">(+)</span>
+                        <span className="text-[#b87c14] font-bold">(+)</span>
                         <span>IPI / Tributos não recuperáveis</span>
                       </span>
                       <span className="font-bold text-slate-900">{formatBRL(ipiValCalc)}</span>
@@ -1304,9 +1304,7 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                     <span className="text-[10px] text-slate-500 uppercase block font-semibold">
                       Posição B (Padrão)
                     </span>
-                    <strong className="text-emerald-700 font-bold">
-                      {formatBRL(netPurchasesB)}
-                    </strong>
+                    <strong className="text-[#b87c14] font-bold">{formatBRL(netPurchasesB)}</strong>
                     <span className="text-[10px] text-slate-500 block">
                       {item.quantity > 0 ? `${formatBRL(netPurchasesB / item.quantity)} / un.` : ''}
                     </span>
@@ -1387,9 +1385,9 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
             <Button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 h-9 text-xs cursor-pointer shadow-sm"
+              className="bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-300 text-[#261502] hover:text-[#0f0700] font-bold px-5 h-9 text-xs cursor-pointer shadow-sm"
             >
-              <CheckCircle2 className="w-4 h-4 mr-1.5" />
+              <CheckCircle2 className="w-4 h-4 mr-1.5 text-[#261502]" />
               Concluir / Fechar camada
             </Button>
           </div>

@@ -349,7 +349,7 @@ export default function PurchasesPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-xs font-semibold text-white">
+                    <tr className="border-b border-amber-900/50 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-xs font-semibold text-[#fff5cc]">
                       <th className="py-3 px-4 w-12 text-center rounded-tl-xl">#</th>
                       <th className="py-3 px-4">Nome do Item</th>
                       <th className="py-3 px-4 text-right">Qtd Comprada</th>
@@ -390,7 +390,7 @@ export default function PurchasesPage() {
                             className="bg-slate-50/50 hover:bg-slate-100/60 transition-colors"
                           >
                             <td className="py-2.5 px-4 text-center text-white font-bold text-xs">
-                              <span className="w-5 h-5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 inline-flex items-center justify-center text-white font-semibold text-[10px] shadow-sm">
+                              <span className="w-5 h-5 rounded bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] border border-amber-500/40 inline-flex items-center justify-center text-amber-200 font-semibold text-[10px] shadow-sm">
                                 {idx + 1}
                               </span>
                             </td>
@@ -459,7 +459,7 @@ export default function PurchasesPage() {
                           className="hover:bg-slate-50 transition-colors cursor-pointer group"
                         >
                           <td className="py-3 px-4 text-center text-white font-bold text-xs">
-                            <span className="w-6 h-6 rounded-md bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 flex items-center justify-center mx-auto text-white font-bold text-xs shadow-sm group-hover:border-amber-400 transition-colors">
+                            <span className="w-6 h-6 rounded-md bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] border border-amber-500/40 flex items-center justify-center mx-auto text-amber-200 font-bold text-xs shadow-sm group-hover:border-amber-300 transition-colors">
                               {idx + 1}
                             </span>
                           </td>
@@ -520,22 +520,22 @@ export default function PurchasesPage() {
                     })}
                   </tbody>
                   {/* Linha de Total / Fecho de Tabela em Faixa Navy com Letra Branca (Padrão Chancelado) */}
-                  <tfoot className="border-t-2 border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-xs font-mono font-bold text-white">
+                  <tfoot className="border-t-2 border-amber-900/60 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-xs font-mono font-bold text-[#fff5cc]">
                     <tr>
                       <td
                         colSpan={2}
-                        className="py-3 px-4 text-left font-bold text-white uppercase tracking-wider"
+                        className="py-3 px-4 text-left font-bold text-[#fff5cc] uppercase tracking-wider"
                       >
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-[#e5b742]" />
                           <span>Total das Compras (Σ)</span>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-white">
+                      <td className="py-3 px-4 text-right font-bold text-[#fff5cc]">
                         {totalPurchasesQuantity} un.
                       </td>
-                      <td className="py-3 px-4 text-right text-slate-300 font-normal">—</td>
-                      <td className="py-3 px-4 text-right font-bold text-white text-sm">
+                      <td className="py-3 px-4 text-right text-amber-200/70 font-normal">—</td>
+                      <td className="py-3 px-4 text-right font-bold text-[#fff5cc] text-sm">
                         {formatBRL(
                           purchasesItems.reduce(
                             (acc, it) => acc + calculatePurchaseItemGrossTotal(it),
@@ -543,7 +543,7 @@ export default function PurchasesPage() {
                           ),
                         )}
                       </td>
-                      <td className="py-3 px-4 text-right font-bold text-amber-300 text-sm">
+                      <td className="py-3 px-4 text-right font-bold text-[#e5b742] text-sm">
                         {formatBRL(
                           purchasesItems.reduce(
                             (acc, it) => acc + calculatePurchaseItemNetPurchases(it, regime),
@@ -551,7 +551,7 @@ export default function PurchasesPage() {
                           ),
                         )}
                       </td>
-                      <td className="py-3 px-4 text-center text-slate-400 text-[11px] font-normal">
+                      <td className="py-3 px-4 text-center text-amber-200/70 text-[11px] font-normal">
                         {purchasesItems.length} {purchasesItems.length === 1 ? 'item' : 'itens'}
                       </td>
                     </tr>

@@ -1343,9 +1343,9 @@ export default function MarkupPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowAddDvForm(!showAddDvForm)}
-                className="h-7 text-xs bg-[#0d1624] text-white hover:bg-[#162236] border-0 shadow-sm font-semibold cursor-pointer self-start sm:self-center"
+                className="h-7 text-xs bg-[#261502] text-[#fff5cc] hover:bg-[#3b2405] hover:text-white border border-amber-500/40 shadow-sm font-semibold cursor-pointer self-start sm:self-center"
               >
-                <Plus className="w-3.5 h-3.5 mr-1" />
+                <Plus className="w-3.5 h-3.5 mr-1 text-[#e5b742]" />
                 Adicionar despesa variável
               </Button>
             </div>
@@ -1415,11 +1415,11 @@ export default function MarkupPage() {
                 />
               ))}
               {/* Linha de Total */}{' '}
-              <div className="px-3.5 py-2.5 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white border-t border-slate-800 flex items-center justify-between text-xs font-bold font-mono">
-                <span className="text-white uppercase font-bold">
+              <div className="px-3.5 py-2.5 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-[#fff5cc] border-t border-amber-900/60 flex items-center justify-between text-xs font-bold font-mono">
+                <span className="text-[#fff5cc] uppercase font-bold">
                   Total Despesas Variáveis (Σ DV)
                 </span>
-                <span className="text-white text-sm font-bold">
+                <span className="text-[#e5b742] text-sm font-bold">
                   {formatPercentBR(totalVariableExpenseRate)}
                 </span>
               </div>
@@ -1762,9 +1762,9 @@ export default function MarkupPage() {
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 font-mono text-xs">
                         {/* Identificação: #, Nome, Tag de modo e badge recolhido */}
                         <div className="flex items-center gap-2.5 flex-1 min-w-[220px]">
-                          <span className="w-6 h-6 rounded-md bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 inline-flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
+                          <span className="w-6 h-6 rounded-md bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] border border-amber-500/40 inline-flex items-center justify-center text-amber-200 font-bold text-xs shrink-0 shadow-sm">
                             #{index + 1}
-                          </span>
+                          </span>{' '}
                           <div className="flex items-center gap-2 flex-wrap min-w-0">
                             <span className="font-sans font-semibold text-slate-800 group-hover:text-emerald-700 transition-colors text-xs sm:text-sm truncate">
                               {prod.name?.trim() || `Produto ${index + 1}`}
@@ -1865,14 +1865,14 @@ export default function MarkupPage() {
                               </button>
                             </div>
 
-                            {/* Botão Expandir / Detalhes — TESTE VISUAL Adri (Frente 1: preto sólido, lettering branca) */}
+                            {/* Botão Expandir / Detalhes — Refinado Marrom Profundo com acento âmbar */}
                             <button
                               type="button"
                               onClick={() => toggleMarkupProduct(prod.id)}
-                              className="inline-flex items-center gap-1 text-[10px] font-mono text-white hover:text-white bg-slate-950 hover:bg-black border border-black px-2 py-1 rounded-md cursor-pointer transition-all shadow-sm font-bold"
+                              className="inline-flex items-center gap-1 text-[10px] font-mono text-[#fff5cc] hover:text-white bg-[#261502] hover:bg-[#3b2405] border border-amber-500/50 hover:border-amber-300 px-2 py-1 rounded-md cursor-pointer transition-all shadow-sm font-bold"
                               title="Expandir camada completa deste produto"
                             >
-                              <ChevronDown className="w-3 h-3 text-white" />
+                              <ChevronDown className="w-3 h-3 text-[#e5b742]" />
                               <span>Detalhes</span>
                             </button>
 
@@ -1901,7 +1901,7 @@ export default function MarkupPage() {
                     {/* Linha superior: Nome do produto, seletor de modo, botão Recolher e lixeira */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-slate-200">
                       <div className="flex items-center gap-2 flex-1 flex-wrap">
-                        <span className="w-6 h-6 rounded-md bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 inline-flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
+                        <span className="w-6 h-6 rounded-md bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] border border-amber-500/40 inline-flex items-center justify-center text-amber-200 font-bold text-xs shrink-0 shadow-sm">
                           #{index + 1}
                         </span>
                         <Input
@@ -1951,14 +1951,14 @@ export default function MarkupPage() {
                           </button>
                         </div>
 
-                        {/* Botão de Recolher Camada — TESTE VISUAL Adri (Frente 1: preto sólido, lettering branca) */}
+                        {/* Botão de Recolher Camada — Refinado Marrom Profundo com acento âmbar */}
                         <button
                           type="button"
                           onClick={() => toggleMarkupProduct(prod.id)}
-                          className="inline-flex items-center gap-1 text-[11px] font-mono text-white hover:text-white bg-slate-950 hover:bg-black border border-black px-2.5 py-1 rounded-md cursor-pointer transition-all shadow-sm font-bold"
+                          className="inline-flex items-center gap-1 text-[11px] font-mono text-[#fff5cc] hover:text-white bg-[#261502] hover:bg-[#3b2405] border border-amber-500/50 hover:border-amber-300 px-2.5 py-1 rounded-md cursor-pointer transition-all shadow-sm font-bold"
                           title="Recolher camada para linha compacta"
                         >
-                          <ChevronUp className="w-3.5 h-3.5 text-white" />
+                          <ChevronUp className="w-3.5 h-3.5 text-[#e5b742]" />
                           <span className="hidden sm:inline">Recolher</span>
                         </button>
 
@@ -2811,7 +2811,7 @@ export default function MarkupPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsProductRevenueDetailsOpen(true)}
-                    className="h-7 text-xs bg-[#0d1624] text-white hover:bg-[#162236] border-0 shadow-sm font-semibold font-mono flex items-center gap-1.5 cursor-pointer"
+                    className="h-7 text-xs bg-[#261502] text-[#fff5cc] hover:bg-[#3b2405] hover:text-white border border-amber-500/40 shadow-sm font-semibold font-mono flex items-center gap-1.5 cursor-pointer"
                   >
                     <Layers className="w-3.5 h-3.5 text-slate-300" />
                     <span>Detalhar por produto</span>
@@ -2874,16 +2874,16 @@ export default function MarkupPage() {
                 <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white my-2 shadow-sm">
                   <table className="w-full text-xs font-mono">
                     <thead>
-                      <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white text-right">
-                        <th className="py-2.5 px-3 text-left font-semibold text-white rounded-tl-xl">
+                      <tr className="border-b border-amber-900/50 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-[#fff5cc] text-right">
+                        <th className="py-2.5 px-3 text-left font-semibold text-[#fff5cc] rounded-tl-xl">
                           Produto
                         </th>
-                        <th className="py-2.5 px-3 font-semibold text-white">Modo</th>
-                        <th className="py-2.5 px-3 font-semibold text-white">Fator Comp.</th>
-                        <th className="py-2.5 px-3 font-semibold text-white">Preço de Venda</th>
-                        <th className="py-2.5 px-3 font-semibold text-white">Qtd.</th>
-                        <th className="py-2.5 px-3 font-semibold text-white">Receita Bruta</th>
-                        <th className="py-2.5 px-3 text-center font-semibold text-white rounded-tr-xl">
+                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Modo</th>
+                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Fator Comp.</th>
+                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Preço de Venda</th>
+                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Qtd.</th>
+                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Receita Bruta</th>
+                        <th className="py-2.5 px-3 text-center font-semibold text-[#fff5cc] rounded-tr-xl">
                           Memória
                         </th>
                       </tr>
@@ -2892,7 +2892,7 @@ export default function MarkupPage() {
                       {markupProducts.map((p, idx) => (
                         <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                           <td className="py-2.5 px-3 text-left font-medium text-[#0f172a]">
-                            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 text-white font-bold text-[10px] mr-1.5 shadow-sm">
+                            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] border border-amber-500/40 text-amber-200 font-bold text-[10px] mr-1.5 shadow-sm">
                               #{idx + 1}
                             </span>
                             {p.name || `Produto ${idx + 1}`}
@@ -3003,15 +3003,19 @@ export default function MarkupPage() {
                 <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                   <table className="w-full text-xs font-mono">
                     <thead>
-                      <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white text-right">
-                        <th className="py-2.5 px-3 text-left font-semibold text-white rounded-tl-xl">
+                      <tr className="border-b border-amber-900/50 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-[#fff5cc] text-right">
+                        <th className="py-2.5 px-3 text-left font-semibold text-[#fff5cc] rounded-tl-xl">
                           Operação
                         </th>
-                        <th className="py-2.5 px-3 font-semibold text-white">Qtd.</th>
-                        <th className="py-2.5 px-3 font-semibold text-white">Lucro Presumido</th>
-                        <th className="py-2.5 px-3 font-semibold text-white">Lucro Real</th>
-                        <th className="py-2.5 px-3 font-semibold text-white">Simples Nacional</th>
-                        <th className="py-2.5 px-3 text-center font-semibold text-white rounded-tr-xl">
+                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Qtd.</th>
+                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">
+                          Lucro Presumido
+                        </th>
+                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Lucro Real</th>
+                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">
+                          Simples Nacional
+                        </th>
+                        <th className="py-2.5 px-3 text-center font-semibold text-[#fff5cc] rounded-tr-xl">
                           Status
                         </th>
                       </tr>
@@ -3108,18 +3112,22 @@ export default function MarkupPage() {
                   <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white my-2 shadow-sm">
                     <table className="w-full text-xs font-mono">
                       <thead>
-                        <tr className="border-b border-slate-800 bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white text-right">
-                          <th className="py-2.5 px-3 text-left font-semibold text-white rounded-tl-xl">
+                        <tr className="border-b border-amber-900/50 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-[#fff5cc] text-right">
+                          <th className="py-2.5 px-3 text-left font-semibold text-[#fff5cc] rounded-tl-xl">
                             Produto
                           </th>
-                          <th className="py-2.5 px-3 font-semibold text-white">Qtd.</th>
-                          <th className="py-2.5 px-3 font-semibold text-white">Lucro Presumido</th>
-                          <th className="py-2.5 px-3 font-semibold text-white">Lucro Real</th>
-                          <th className="py-2.5 px-3 font-semibold text-white">Simples Nacional</th>
-                          <th className="py-2.5 px-3 text-center font-semibold text-white">
+                          <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Qtd.</th>
+                          <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">
+                            Lucro Presumido
+                          </th>
+                          <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Lucro Real</th>
+                          <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">
+                            Simples Nacional
+                          </th>
+                          <th className="py-2.5 px-3 text-center font-semibold text-[#fff5cc]">
                             Menor Preço
                           </th>
-                          <th className="py-2.5 px-3 text-center font-semibold text-white rounded-tr-xl">
+                          <th className="py-2.5 px-3 text-center font-semibold text-[#fff5cc] rounded-tr-xl">
                             Memória
                           </th>
                         </tr>
@@ -3160,7 +3168,7 @@ export default function MarkupPage() {
                           return (
                             <tr key={pPres.id} className="hover:bg-slate-50 transition-colors">
                               <td className="py-2.5 px-3 text-left font-medium text-slate-900">
-                                <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 text-white font-bold text-[10px] mr-1.5 shadow-sm">
+                                <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] border border-amber-500/40 text-amber-200 font-bold text-[10px] mr-1.5 shadow-sm">
                                   #{idx + 1}
                                 </span>
                                 {origProd?.name || pPres.name || `Produto ${idx + 1}`}
@@ -3573,9 +3581,9 @@ export default function MarkupPage() {
           <Button
             type="button"
             onClick={() => navigate('/demo/compras')}
-            className="bg-[#0d1624] text-white hover:bg-[#162236] border-0 shadow-sm font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
+            className="bg-[#261502] text-[#fff5cc] hover:bg-[#3b2405] hover:text-white border border-amber-500/40 shadow-sm font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 text-[#e5b742]" />
             <span>Voltar para Calculadora de Compras</span>
           </Button>
 

@@ -187,8 +187,8 @@ export function ItemClassificacaoDrawer({
       {/* Cabeçalho da Camada Interna Recuada */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-300 pb-2.5">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-300/60" />
-          <span className="font-bold text-slate-900 uppercase text-[11px] tracking-wide">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#e5b742] ring-2 ring-amber-300/60" />
+          <span className="font-bold text-[#261502] uppercase text-[11px] tracking-wide">
             ENQUADRAMENTO EM TEMPO REAL · LC 214/2025 · ITEM: {item.name || 'Sem nome'}
           </span>
         </div>
@@ -204,10 +204,10 @@ export function ItemClassificacaoDrawer({
       </div>
 
       {/* NOVO CAMPO: BUSCA DE NCM POR DESCRIÇÃO DO ITEM COM CATÁLOGO COMPLETO */}
-      <div className="bg-white rounded-xl border border-emerald-300 p-3 shadow-xs space-y-2">
+      <div className="bg-white rounded-xl border border-amber-300 p-3 shadow-xs space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="text-[10px] uppercase font-bold text-emerald-950 flex items-center gap-1.5">
-            <Database className="w-3.5 h-3.5 text-emerald-600" />
+          <label className="text-[10px] uppercase font-bold text-[#261502] flex items-center gap-1.5">
+            <Database className="w-3.5 h-3.5 text-[#b87c14]" />
             <span>
               Busca Inteligente de NCM por Descrição do Item (Catálogo Oficial Siscomex / TIPI)
             </span>
@@ -228,7 +228,7 @@ export function ItemClassificacaoDrawer({
               setPainelBuscaAberto(true)
             }}
             onFocus={() => setPainelBuscaAberto(true)}
-            className="h-8 text-xs font-mono bg-emerald-50/30 text-slate-900 border-emerald-300 focus-visible:ring-emerald-500 pr-16"
+            className="h-8 text-xs font-mono bg-amber-50/40 text-slate-900 border-amber-300 focus-visible:ring-amber-500 pr-16"
           />
           <div className="absolute right-2 top-2 flex items-center gap-1">
             {termoBuscaTexto && (
@@ -243,13 +243,13 @@ export function ItemClassificacaoDrawer({
                 <X className="w-3 h-3" />
               </button>
             )}
-            <Search className="w-3.5 h-3.5 text-emerald-600 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-[#b87c14] pointer-events-none" />
           </div>
         </div>
 
         {/* Dropdown com os códigos NCM/SH correspondentes */}
         {painelBuscaAberto && termoBuscaTexto.trim().length >= 2 && (
-          <div className="rounded-lg border border-emerald-300 bg-white max-h-56 overflow-y-auto divide-y divide-slate-100 shadow-md">
+          <div className="rounded-lg border border-amber-300 bg-white max-h-56 overflow-y-auto divide-y divide-slate-100 shadow-md">
             <div className="p-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase">
               <span>Códigos NCM/SH encontrados ({sugestoesCatalogo.length})</span>
               <button
@@ -276,11 +276,11 @@ export function ItemClassificacaoDrawer({
                   key={cat.id}
                   type="button"
                   onClick={() => handleSelecionarNcmDoCatalogo(cat)}
-                  className="w-full text-left p-2 hover:bg-emerald-50 transition-colors flex items-start justify-between gap-3 group cursor-pointer"
+                  className="w-full text-left p-2 hover:bg-amber-50 transition-colors flex items-start justify-between gap-3 group cursor-pointer"
                 >
                   <div className="space-y-0.5 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-emerald-700 font-mono text-[11px] group-hover:text-emerald-900">
+                      <span className="font-bold text-[#b87c14] font-mono text-[11px] group-hover:text-[#261502]">
                         {cat.codigoFormatado}
                       </span>
                       <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-[9px] px-1 py-0">
@@ -304,7 +304,7 @@ export function ItemClassificacaoDrawer({
                       </p>
                     )}
                   </div>
-                  <div className="shrink-0 pt-1 text-emerald-600 opacity-60 group-hover:opacity-100 flex items-center gap-1 text-[10px] font-bold">
+                  <div className="shrink-0 pt-1 text-[#b87c14] opacity-70 group-hover:opacity-100 flex items-center gap-1 text-[10px] font-bold">
                     <span>Selecionar</span>
                     <ArrowRight className="w-3 h-3" />
                   </div>
@@ -330,7 +330,7 @@ export function ItemClassificacaoDrawer({
               value={ncmDigitado}
               onChange={handleMudarNcm}
               maxLength={10}
-              className="h-8 text-xs font-mono font-bold bg-white text-slate-900 border-slate-300 focus-visible:ring-emerald-500 pr-8"
+              className="h-8 text-xs font-mono font-bold bg-white text-slate-900 border-slate-300 focus-visible:ring-amber-500 pr-8"
             />
             <Search className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
           </div>
@@ -351,7 +351,7 @@ export function ItemClassificacaoDrawer({
           <select
             value={cClassManual || resultado?.codigoCClassTribSugerido || '000001'}
             onChange={handleMudarCClass}
-            className="w-full h-8 text-xs font-mono bg-white border border-slate-300 rounded-md px-2 text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="w-full h-8 text-xs font-mono bg-white border border-slate-300 rounded-md px-2 text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
           >
             {TABELA_OFICIAL_CCLASSTRIB.map((c) => (
               <option key={c.codigo} value={c.codigo}>
@@ -374,8 +374,8 @@ export function ItemClassificacaoDrawer({
               {carregando ? (
                 <span className="text-[11px] text-slate-400">Consultando LC 214/2025...</span>
               ) : resultado?.status === 'enquadrado' ? (
-                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-bold text-[10px]">
-                  <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600" />
+                <Badge className="bg-amber-100 text-[#261502] border-amber-300 font-bold text-[10px]">
+                  <CheckCircle2 className="w-3 h-3 mr-1 text-[#b87c14]" />
                   Redução de {resultado.percentualReducaoPct}% ({resultado.anexo})
                 </Badge>
               ) : resultado?.status === 'ambiguo' ? (
@@ -398,7 +398,7 @@ export function ItemClassificacaoDrawer({
           </div>
           <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-100">
             {resultado?.percentualReducaoPct && resultado.percentualReducaoPct > 0 ? (
-              <span className="text-emerald-700 font-bold">
+              <span className="text-[#b87c14] font-bold">
                 Aplica redutor de {resultado.percentualReducaoPct}% sobre CBS/IBS 2027+
               </span>
             ) : (
@@ -431,15 +431,15 @@ export function ItemClassificacaoDrawer({
                   onClick={() => handleEscolherOpcaoManual(op.id)}
                   className={`text-left p-2.5 rounded-lg border transition-all cursor-pointer ${
                     selecionada
-                      ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-300 text-emerald-950 font-bold shadow-xs'
+                      ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-300 text-[#261502] font-bold shadow-xs'
                       : 'bg-white border-amber-200 text-slate-800 hover:bg-amber-100/60'
                   }`}
                 >
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-bold text-emerald-800">
+                    <span className="font-bold text-[#261502]">
                       {op.anexo} · {op.artigo_origem}
                     </span>
-                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px]">
+                    <Badge className="bg-amber-100 text-[#261502] border-amber-300 text-[10px]">
                       Redução {op.percentual_reducao_pct}%
                     </Badge>
                   </div>
@@ -447,7 +447,7 @@ export function ItemClassificacaoDrawer({
                   <div className="text-[9px] text-slate-500 mt-1 flex items-center justify-between">
                     <span>Termo SH: {op.ncm_sh_termo}</span>
                     {selecionada && (
-                      <span className="text-emerald-700 font-bold">✓ Chancelado manualmente</span>
+                      <span className="text-[#b87c14] font-bold">✓ Chancelado manualmente</span>
                     )}
                   </div>
                 </button>
@@ -459,21 +459,21 @@ export function ItemClassificacaoDrawer({
 
       {/* RASTREABILIDADE LEGAL COMPLETA (DOSSIÊ ROTULADO) */}
       {resultado?.status === 'enquadrado' && resultado.opcaoSelecionada && (
-        <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-3 space-y-1.5 text-[11px]">
+        <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-3 space-y-1.5 text-[11px]">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="font-bold text-emerald-950 flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-emerald-700" />
+            <span className="font-bold text-[#261502] flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-[#b87c14]" />
               {resultado.opcaoSelecionada.anexo} · {resultado.opcaoSelecionada.artigo_origem} · Item{' '}
               {resultado.opcaoSelecionada.item}
             </span>
-            <span className="text-emerald-800 font-bold">
+            <span className="text-[#261502] font-bold">
               Redução devida: {resultado.opcaoSelecionada.percentual_reducao_pct}% no IBS e na CBS
             </span>
           </div>
           <p className="text-slate-700 leading-relaxed">
             <strong>Descrição legal:</strong> {resultado.opcaoSelecionada.descricao}
           </p>
-          <div className="text-[10px] text-slate-500 pt-1 border-t border-emerald-200/80 flex flex-wrap items-center justify-between gap-2">
+          <div className="text-[10px] text-slate-500 pt-1 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-2">
             <span>
               <strong>Termo legal correspondente:</strong> {resultado.opcaoSelecionada.ncm_sh_termo}{' '}
               (NCM pesquisado: {resultado.ncmFormatado})

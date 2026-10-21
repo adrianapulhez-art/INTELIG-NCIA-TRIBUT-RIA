@@ -93,13 +93,13 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
       {/* Cabeçalho do Bloco */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-300 flex items-center justify-center text-[#b87c14] shrink-0">
             <Users className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-xs sm:text-sm font-mono font-bold uppercase text-slate-900 tracking-wide flex items-center gap-2">
+            <h3 className="text-xs sm:text-sm font-mono font-bold uppercase text-[#261502] tracking-wide flex items-center gap-2">
               <span>Folha e Pró-labore ({regimeLabel})</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 normal-case font-normal">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-50 text-[#b87c14] border border-amber-300 normal-case font-normal">
                 Encargos Patronais Dedutíveis
               </span>
             </h3>
@@ -111,7 +111,7 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
           </div>
         </div>
         <div className="text-right shrink-0">
-          <span className="text-[11px] font-mono text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg inline-block font-semibold">
+          <span className="text-[11px] font-mono text-[#261502] bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-lg inline-block font-semibold">
             Encargos Patronais: <strong>{formatBRL(calculation.patronalChargesTotal)}</strong>
           </span>
         </div>
@@ -147,7 +147,7 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
                 setSalariesInput(parsed > 0 ? formatNumberBR(parsed) : '')
                 setPayrollSalaries(parsed)
               }}
-              className="pl-9 text-left sm:text-right bg-white border-slate-300 text-slate-900 font-mono text-xs focus:border-emerald-600 focus-visible:ring-emerald-500/20"
+              className="pl-9 text-left sm:text-right bg-white border-slate-300 text-slate-900 font-mono text-xs focus:border-amber-500 focus-visible:ring-amber-500/20"
             />
           </div>
           <span className="text-[10px] text-slate-500 font-mono block">
@@ -183,7 +183,7 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
                 setProLaboreInput(parsed > 0 ? formatNumberBR(parsed) : '')
                 setPayrollProLabore(parsed)
               }}
-              className="pl-9 text-left sm:text-right bg-white border-slate-300 text-slate-900 font-mono text-xs focus:border-emerald-600 focus-visible:ring-emerald-500/20"
+              className="pl-9 text-left sm:text-right bg-white border-slate-300 text-slate-900 font-mono text-xs focus:border-amber-500 focus-visible:ring-amber-500/20"
             />
           </div>
           <span className="text-[10px] text-slate-500 font-mono block">
@@ -192,25 +192,23 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
         </div>
       </div>
 
-      {/* Grid de Alíquotas Patronais (Borda verde quando automáticas, editáveis) */}
+      {/* Grid de Alíquotas Patronais (Borda âmbar quando automáticas, editáveis) */}
       <div className="space-y-2 pt-1">
         <div className="flex items-center justify-between">
           <span className="text-xs font-mono font-semibold uppercase text-slate-700 flex items-center gap-1.5">
-            <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+            <Building2 className="w-3.5 h-3.5 text-[#b87c14]" />
             Alíquotas dos Encargos Patronais (GPS / DCTFWeb)
           </span>
-          <span className="text-[11px] text-emerald-700 font-mono">
+          <span className="text-[11px] text-[#b87c14] font-mono">
             · preenchidas automaticamente (editáveis)
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* INSS Patronal */}
-          <div className="p-3 rounded-xl bg-slate-50 border border-emerald-200 space-y-1.5">
+          <div className="p-3 rounded-xl bg-slate-50 border border-amber-300 space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold text-emerald-800">
-                INSS Patronal (%)
-              </label>
+              <label className="text-[11px] font-semibold text-[#261502]">INSS Patronal (%)</label>
               <span className="text-[10px] text-slate-500 font-mono">Lei 8.212/91</span>
             </div>
             <div className="relative">
@@ -229,7 +227,7 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
                   setInssInput(parsed > 0 ? formatNumberBR(parsed) : '0,00')
                   setPayrollInssRate(parsed)
                 }}
-                className="pr-7 text-right bg-white border-slate-300 text-slate-900 font-mono text-xs focus:border-emerald-600 focus-visible:ring-emerald-500/20"
+                className="pr-7 text-right bg-white border-slate-300 text-slate-900 font-mono text-xs focus:border-amber-500 focus-visible:ring-amber-500/20"
               />
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400">
                 %
@@ -263,7 +261,7 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
                   setRatInput(parsed > 0 ? formatNumberBR(parsed) : '0,00')
                   setPayrollRatRate(parsed)
                 }}
-                className="pr-7 text-right bg-white border-slate-300 text-slate-900 font-mono text-xs focus:border-emerald-600 focus-visible:ring-emerald-500/20"
+                className="pr-7 text-right bg-white border-slate-300 text-slate-900 font-mono text-xs focus:border-amber-500 focus-visible:ring-amber-500/20"
               />
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400">
                 %
@@ -299,7 +297,7 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
                   setTerceirosInput(parsed > 0 ? formatNumberBR(parsed) : '0,00')
                   setPayrollTerceirosRate(parsed)
                 }}
-                className="pr-7 text-right bg-white border-slate-300 text-slate-900 font-mono text-xs focus:border-emerald-600 focus-visible:ring-emerald-500/20"
+                className="pr-7 text-right bg-white border-slate-300 text-slate-900 font-mono text-xs focus:border-amber-500 focus-visible:ring-amber-500/20"
               />
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400">
                 %
@@ -312,12 +310,12 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-mono">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-300 text-xs font-mono">
           <div className="flex items-center gap-1.5 text-slate-700">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <Sparkles className="w-3.5 h-3.5 text-[#b87c14]" />
             <span>
               Alíquota patronal combinada:{' '}
-              <strong className="text-emerald-700">
+              <strong className="text-[#b87c14]">
                 {formatNumberBR(calculation.totalPatronalRate)}%
               </strong>{' '}
               sobre a base total de {formatBRL(calculation.totalBase)}
@@ -325,7 +323,7 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
           </div>
           <div className="text-slate-700">
             Total de encargos mensais:{' '}
-            <strong className="text-emerald-700">
+            <strong className="text-[#b87c14]">
               {formatBRL(calculation.patronalChargesTotal)}
             </strong>
           </div>
@@ -373,7 +371,7 @@ export const PayrollSection: React.FC<PayrollSectionProps> = ({
             <span className="text-[10px] text-slate-500 block">
               Pró-labore líquido estimado do sócio
             </span>
-            <span className="text-emerald-700 font-semibold block mt-0.5">
+            <span className="text-[#b87c14] font-semibold block mt-0.5">
               {formatBRL(calculation.socioNetProLabore)}
             </span>
             <span className="text-[9px] text-slate-400 block">

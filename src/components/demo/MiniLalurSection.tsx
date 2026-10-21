@@ -104,10 +104,10 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
     <div className="space-y-4 pt-4 border-t border-slate-200">
       {/* Topo: Título, subtítulo e Botões de Adicionar Lançamento */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="border-l-4 border-emerald-500 pl-2.5">
+        <div className="border-l-4 border-[#e5b742] pl-2.5">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4 text-emerald-600" />
+            <h3 className="text-sm font-bold text-[#261502] flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4 text-[#b87c14]" />
               Mini-LALUR — Adições e Exclusões do Lucro Real
             </h3>
             <Badge className="bg-slate-100 text-slate-700 border-slate-200 text-[10px] font-mono h-4 px-1.5">
@@ -147,9 +147,9 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
             type="button"
             size="sm"
             onClick={() => onAddEntry('Nova adição fiscal', 0, 'addition')}
-            className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer transition-all shadow-xs"
+            className="h-8 text-xs bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-300 text-[#261502] hover:text-[#0f0700] font-bold cursor-pointer transition-all shadow-xs"
           >
-            <Plus className="w-3.5 h-3.5 mr-1 text-white" />+ Adição
+            <Plus className="w-3.5 h-3.5 mr-1 text-[#261502]" />+ Adição
           </Button>
 
           <Button
@@ -157,9 +157,9 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
             variant="outline"
             size="sm"
             onClick={() => onAddEntry('Nova exclusão fiscal', 0, 'exclusion')}
-            className="h-8 text-xs bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white border-slate-700 hover:bg-slate-800 cursor-pointer transition-all shadow-xs"
+            className="h-8 text-xs bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-[#fff5cc] border border-amber-500/40 hover:bg-[#3b2405] cursor-pointer transition-all shadow-xs font-bold"
           >
-            <Plus className="w-3.5 h-3.5 mr-1 text-white" />+ Exclusão
+            <Plus className="w-3.5 h-3.5 mr-1 text-[#e5b742]" />+ Exclusão
           </Button>
         </div>
       </div>
@@ -192,12 +192,12 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
                   title={`${ex.hint} · Sugestão: ${formatBRL(ex.suggestedValue)}`}
                   className={`group inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all border cursor-pointer active:scale-95 ${
                     isAdd
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 hover:bg-emerald-100 hover:border-emerald-400'
+                      ? 'bg-amber-50 border-amber-300 text-[#261502] hover:bg-amber-100 hover:border-amber-400'
                       : 'bg-slate-50 border-slate-300 text-slate-800 hover:bg-slate-100 hover:border-slate-400'
                   }`}
                 >
                   {isAdd ? (
-                    <ArrowUpRight className="w-3 h-3 text-emerald-600 shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    <ArrowUpRight className="w-3 h-3 text-[#b87c14] shrink-0 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                   ) : (
                     <ArrowDownRight className="w-3 h-3 text-slate-600 shrink-0 group-hover:translate-x-0.5 group-hover:translate-y-0.5 transition-transform" />
                   )}
@@ -222,7 +222,7 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
               <div
                 key={entry.id}
                 className={`flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 rounded-xl border transition-colors ${
-                  isAdd ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200'
+                  isAdd ? 'bg-amber-50/60 border-amber-200' : 'bg-slate-50 border-slate-200'
                 }`}
               >
                 {/* Seletor de Tipo (Adição ou Exclusão) */}
@@ -232,12 +232,12 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
                     onClick={() => onUpdateEntry(entry.id, 'type', 'addition')}
                     className={`px-2 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer ${
                       isAdd
-                        ? 'bg-emerald-600 border border-emerald-700 text-white shadow-xs'
+                        ? 'bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-300 text-[#261502] shadow-xs'
                         : 'bg-white border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                     title="Adição: soma à base tributável"
                   >
-                    <ArrowUpRight className="w-3 h-3" />
+                    <ArrowUpRight className="w-3 h-3 text-[#261502]" />
                     Adição (+)
                   </button>
 
@@ -246,12 +246,12 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
                     onClick={() => onUpdateEntry(entry.id, 'type', 'exclusion')}
                     className={`px-2 py-1 rounded-lg text-[11px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer ${
                       !isAdd
-                        ? 'bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] border border-slate-700 text-white shadow-xs'
+                        ? 'bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] border border-amber-500/40 text-[#fff5cc] shadow-xs'
                         : 'bg-white border border-slate-300 text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                     title="Exclusão: deduz da base tributável"
                   >
-                    <ArrowDownRight className="w-3 h-3" />
+                    <ArrowDownRight className="w-3 h-3 text-[#e5b742]" />
                     Exclusão (−)
                   </button>
                 </div>
@@ -262,7 +262,7 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
                   value={entry.description}
                   onChange={(e) => onUpdateEntry(entry.id, 'description', e.target.value)}
                   placeholder="Descrição do lançamento LALUR"
-                  className="flex-1 bg-white border-slate-300 text-slate-900 text-xs font-mono focus:border-emerald-600 focus-visible:ring-emerald-500/20"
+                  className="flex-1 bg-white border-slate-300 text-[#261502] text-xs font-mono focus:border-amber-500 focus-visible:ring-amber-500/20"
                 />
 
                 {/* Campo de Valor com Digitação Blindada (parseBRNumber determinístico) */}
@@ -282,7 +282,7 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
                       }}
                       placeholder="0,00"
                       className={`pl-8 text-right bg-white border-slate-300 text-xs font-mono font-bold ${
-                        isAdd ? 'text-emerald-700' : 'text-slate-800'
+                        isAdd ? 'text-[#b87c14]' : 'text-slate-800'
                       }`}
                     />
                   </div>
@@ -306,8 +306,8 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
             Nenhum lançamento de LALUR cadastrado no momento.
           </p>
           <p className="text-[11px] font-mono text-slate-500">
-            Clique em <strong className="text-emerald-700">+ Adição</strong>,{' '}
-            <strong className="text-slate-800">+ Exclusão</strong> ou em{' '}
+            Clique em <strong className="text-[#b87c14]">+ Adição</strong>,{' '}
+            <strong className="text-[#261502]">+ Exclusão</strong> ou em{' '}
             <strong className="text-amber-700">Ver simulações prontas</strong> para abrir exemplos
             de lançamento.
           </p>
@@ -318,15 +318,15 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
       <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono text-xs shadow-xs">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="w-2 h-2 rounded-full bg-[#e5b742]" />
             <span className="text-slate-600">Total de Adições (+):</span>
-            <strong className="text-emerald-700 font-bold">{formatBRL(totalAdditions)}</strong>
+            <strong className="text-[#b87c14] font-bold">{formatBRL(totalAdditions)}</strong>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-slate-700" />
+            <span className="w-2 h-2 rounded-full bg-[#3b2405]" />
             <span className="text-slate-600">Total de Exclusões (−):</span>
-            <strong className="text-slate-900 font-bold">{formatBRL(totalExclusions)}</strong>
+            <strong className="text-[#261502] font-bold">{formatBRL(totalExclusions)}</strong>
           </div>
         </div>
 
@@ -335,7 +335,7 @@ export const MiniLalurSection: React.FC<MiniLalurSectionProps> = ({
           <span
             className={`font-bold text-xs px-2 py-0.5 rounded border ${
               netLalurAdjustment > 0
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                ? 'bg-amber-50 border-amber-300 text-[#261502]'
                 : netLalurAdjustment < 0
                   ? 'bg-slate-100 border-slate-300 text-slate-800'
                   : 'bg-white border-slate-200 text-slate-600'

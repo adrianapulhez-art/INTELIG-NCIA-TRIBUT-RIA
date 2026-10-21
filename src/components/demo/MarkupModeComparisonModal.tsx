@@ -580,18 +580,18 @@ export function MarkupModeComparisonModal({
         <DialogHeader className="border-b border-slate-200 pb-3.5 space-y-1.5">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-300 flex items-center justify-center text-[#b87c14]">
                 <ArrowRightLeft className="w-4 h-4" />
               </div>
-              <DialogTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+              <DialogTitle className="text-base sm:text-lg font-bold text-[#261502] flex items-center gap-2">
                 <span>Comparação entre Modos de Precificação</span>
               </DialogTitle>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-mono uppercase">
+              <Badge className="bg-amber-100 text-[#261502] border border-amber-300 text-[11px] font-mono uppercase">
                 {regimeLabel}
               </Badge>
-              <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs">
+              <Badge className="bg-amber-50 text-[#261502] border border-amber-300 font-mono text-xs">
                 {productName}
               </Badge>
             </div>
@@ -606,7 +606,7 @@ export function MarkupModeComparisonModal({
 
         {/* Aviso de Isolamento por Regime */}
         <div className="flex items-start gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700">
-          <Info className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+          <Info className="w-3.5 h-3.5 text-[#b87c14] shrink-0 mt-0.5" />
           <span>
             Esta janela é <strong>estritamente informativa</strong> e limitada ao regime selecionado
             (<strong className="text-amber-800 uppercase">{currentRegime}</strong>). Ela não altera
@@ -629,19 +629,19 @@ export function MarkupModeComparisonModal({
         {/* Cards Lado a Lado: Modo Ativo vs Modo Alternativo */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
           {/* Card 1: Modo Ativo */}
-          <div className="p-4 rounded-2xl bg-emerald-50/40 border-2 border-emerald-300 space-y-3.5 shadow-sm">
-            <div className="flex items-center justify-between border-b border-emerald-200 pb-2.5">
+          <div className="p-4 rounded-2xl bg-amber-50/50 border-2 border-amber-300 space-y-3.5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-amber-200 pb-2.5">
               <div className="flex items-center gap-2">
                 {activeMode === 'liquid' ? (
-                  <Target className="w-4 h-4 text-emerald-700" />
+                  <Target className="w-4 h-4 text-[#b87c14]" />
                 ) : (
                   <Layers className="w-4 h-4 text-sky-700" />
                 )}
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-800">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#261502]">
                   {activeTriad.modeLabel}
                 </span>
               </div>
-              <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-mono">
+              <Badge className="bg-amber-100 text-[#261502] border border-amber-300 text-[10px] font-mono">
                 Ativo
               </Badge>
             </div>
@@ -662,13 +662,13 @@ export function MarkupModeComparisonModal({
               </div>
 
               {/* 2. Preço de Venda Resultante */}
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-0.5">
-                <span className="text-[10px] uppercase text-emerald-700 block font-semibold">
+              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 space-y-0.5">
+                <span className="text-[10px] uppercase text-[#b87c14] block font-semibold">
                   2. Preço de Venda Resultante
                 </span>
                 <div className="flex items-baseline justify-between">
                   <span className="text-slate-600 text-[11px]">Preço Sugerido (PV):</span>
-                  <span className="text-base font-black text-emerald-700">
+                  <span className="text-base font-black text-[#b87c14]">
                     {activeTriad.salePriceFormatted}
                   </span>
                 </div>
@@ -703,7 +703,7 @@ export function MarkupModeComparisonModal({
                     <span
                       className={
                         (activeTriad.lle || 0) >= 0
-                          ? 'text-emerald-700 font-bold'
+                          ? 'text-[#b87c14] font-bold'
                           : 'text-rose-700 font-bold'
                       }
                     >
@@ -724,7 +724,7 @@ export function MarkupModeComparisonModal({
                 {activeMode === 'liquid' ? (
                   <Layers className="w-4 h-4 text-sky-700" />
                 ) : (
-                  <Target className="w-4 h-4 text-emerald-700" />
+                  <Target className="w-4 h-4 text-[#b87c14]" />
                 )}
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-sky-800">
                   {alternativeTriad?.modeLabel || 'Modo Alternativo'}
@@ -829,18 +829,18 @@ export function MarkupModeComparisonModal({
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] text-white text-[11px] border-b border-slate-800">
+                <thead className="bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-[#fff5cc] text-[11px] border-b border-amber-900/50">
                   <tr>
                     <th className="py-2.5 px-3 font-semibold">Dimensão da Tríade</th>
-                    <th className="py-2.5 px-3 font-semibold text-emerald-300">
+                    <th className="py-2.5 px-3 font-semibold text-[#e5b742]">
                       Modo Ativo (
                       {activeTriad.mode === 'liquid' ? 'Receita Líquida' : 'Custo + Margem'})
                     </th>
-                    <th className="py-2.5 px-3 font-semibold text-sky-300">
+                    <th className="py-2.5 px-3 font-semibold text-amber-200">
                       Modo Alternativo (
                       {alternativeTriad.mode === 'liquid' ? 'Receita Líquida' : 'Custo + Margem'})
                     </th>
-                    <th className="py-2.5 px-3 font-semibold text-slate-200 text-center">
+                    <th className="py-2.5 px-3 font-semibold text-amber-100/90 text-center">
                       Convergência
                     </th>
                   </tr>
@@ -862,7 +862,7 @@ export function MarkupModeComparisonModal({
                   </tr>
                   <tr>
                     <td className="py-2.5 px-3 font-medium text-slate-600">Preço de Venda (PV)</td>
-                    <td className="py-2.5 px-3 font-black text-emerald-700 text-sm">
+                    <td className="py-2.5 px-3 font-black text-[#b87c14] text-sm">
                       {activeTriad.salePriceFormatted}
                     </td>
                     <td className="py-2.5 px-3 font-black text-sky-700 text-sm">
@@ -871,8 +871,8 @@ export function MarkupModeComparisonModal({
                     <td className="py-2.5 px-3 text-center">
                       {activeTriad.salePrice > 0 && alternativeTriad.salePrice > 0 ? (
                         Math.abs(activeTriad.salePrice - alternativeTriad.salePrice) < 0.05 ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-bold">
-                            <CheckCircle2 className="w-3 h-3" />
+                          <span className="inline-flex items-center gap-1 text-[10px] text-[#b87c14] font-bold">
+                            <CheckCircle2 className="w-3 h-3 text-[#b87c14]" />
                             Exato (100%)
                           </span>
                         ) : (
@@ -920,7 +920,7 @@ export function MarkupModeComparisonModal({
                       {alternativeTriad.netMarginFormatted}
                     </td>
                     <td className="py-2.5 px-3 text-center">
-                      <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 font-bold">
+                      <span className="inline-flex items-center gap-1 text-[10px] text-[#b87c14] font-bold">
                         <Sparkles className="w-3 h-3 text-amber-600" />
                         Métrica canônica
                       </span>
@@ -935,7 +935,7 @@ export function MarkupModeComparisonModal({
         {/* Premissa Honesta Explicada */}
         <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-600 space-y-1">
           <div className="flex items-center gap-1.5 text-slate-900 font-bold">
-            <HelpCircle className="w-3.5 h-3.5 text-emerald-700" />
+            <HelpCircle className="w-3.5 h-3.5 text-[#b87c14]" />
             <span>Independência lógica entre os modos de precificação</span>
           </div>
           <p>

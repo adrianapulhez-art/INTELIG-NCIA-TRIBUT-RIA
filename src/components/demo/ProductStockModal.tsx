@@ -83,8 +83,8 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto bg-slate-950 border border-slate-800 p-5 sm:p-6 text-slate-100 shadow-2xl">
-        <DialogHeader className="border-b border-slate-800/80 pb-3">
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto bg-[#1a0f03] border border-amber-900/60 p-5 sm:p-6 text-[#fff5cc] shadow-2xl">
+        <DialogHeader className="border-b border-amber-900/50 pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pr-6">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-400">
@@ -141,8 +141,8 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
         )}
 
         {/* QUADRO UNIFICADO: ESTOQUE FINAL (EF) & CMV APURADO */}
-        <div className="mt-4 p-4 rounded-2xl bg-slate-950/80 border border-amber-500/30 space-y-3 shadow-lg shadow-amber-500/5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+        <div className="mt-4 p-4 rounded-2xl bg-[#261502]/90 border border-amber-500/35 space-y-3 shadow-lg shadow-amber-500/5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-900/50 pb-2.5">
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
@@ -183,7 +183,7 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                   readOnly
                   disabled
                   value={formatNumberBR(effectiveFinalStockValue)}
-                  className="pl-9 bg-slate-950/70 border-amber-400/40 text-amber-300 font-mono text-sm font-bold cursor-default select-all"
+                  className="pl-9 bg-[#1a0f03]/90 border-amber-400/40 text-amber-300 font-mono text-sm font-bold cursor-default select-all"
                 />
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
@@ -211,7 +211,7 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                   readOnly
                   disabled
                   value={formatNumberBR(activeCmv)}
-                  className="pl-9 bg-slate-950/70 border-amber-400/40 text-amber-300 font-mono text-sm font-bold cursor-default select-all"
+                  className="pl-9 bg-[#1a0f03]/90 border-amber-400/40 text-amber-300 font-mono text-sm font-bold cursor-default select-all"
                 />
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
@@ -391,7 +391,7 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                     </div>
 
                     {/* Resumo Rápido da Posição */}
-                    <div className="flex items-center gap-3 bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800 font-mono text-xs">
+                    <div className="flex items-center gap-3 bg-[#261502]/90 px-3 py-2 rounded-lg border border-amber-900/50 font-mono text-xs">
                       <div>
                         <span className="text-[10px] text-slate-500 uppercase block">
                           Estoque Atual
@@ -422,7 +422,7 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                   </div>
 
                   {/* Edição Rápida do Estoque Inicial do Produto */}
-                  <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+                  <div className="p-3 rounded-lg bg-[#261502]/80 border border-amber-900/50 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
                     <span className="text-slate-300 font-semibold">
                       Estoque Inicial do Produto:
                     </span>
@@ -508,7 +508,7 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
 
                   <div className="overflow-x-auto rounded-lg border border-slate-800">
                     <table className="w-full text-left text-xs font-mono">
-                      <thead className="bg-slate-950/90 text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                      <thead className="bg-[#261502] text-amber-200/80 uppercase text-[10px] border-b border-amber-900/50">
                         <tr>
                           <th className="py-2 px-2.5">Tipo / Data</th>
                           <th className="py-2 px-2.5">Descrição</th>

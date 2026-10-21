@@ -49,7 +49,7 @@ function Par({ children }: { children: React.ReactNode }) {
 
 function TituloNota({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-900 border-l-3 border-emerald-500 pl-2">
+    <div className="text-xs font-mono font-bold uppercase tracking-wider text-[#261502] border-l-3 border-[#e5b742] pl-2">
       {children}
     </div>
   )
@@ -80,18 +80,18 @@ function TabelaMemoria({
       {linhas.map((l, i) => (
         <div
           key={i}
-          className={`flex items-center justify-between gap-2 px-2 py-1 rounded-md ${l.destaque ? 'bg-emerald-50 border border-emerald-300' : 'hover:bg-slate-50'}`}
+          className={`flex items-center justify-between gap-2 px-2 py-1 rounded-md ${l.destaque ? 'bg-amber-50 border border-amber-300' : 'hover:bg-slate-50'}`}
         >
           <span
-            className={`text-xs font-mono ${l.destaque ? 'font-bold text-emerald-950' : 'text-slate-700'}`}
+            className={`text-xs font-mono ${l.destaque ? 'font-bold text-[#261502]' : 'text-slate-700'}`}
           >
-            {l.label}
+            {l.termo}
           </span>
           <span
-            className={`text-xs font-mono ${l.destaque ? 'font-black text-emerald-800' : 'font-bold text-slate-900'}`}
+            className={`text-xs font-mono ${l.destaque ? 'font-black text-[#b87c14]' : 'font-bold text-slate-900'}`}
           >
             {l.valor}
-          </span>
+          </span>{' '}
         </div>
       ))}
     </div>
@@ -168,7 +168,7 @@ export function NotaExplicativaCelula({
 
   return (
     <div className="space-y-3">
-      <div className="text-xs font-mono font-bold uppercase text-slate-900 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5">
+      <div className="text-xs font-mono font-bold uppercase text-[#261502] bg-amber-50 border border-amber-300 rounded-lg p-2.5">
         ADQUIRENTE {nomeC.toUpperCase()} × FORNECEDOR {nomeF.toUpperCase()} · Exercício {exercicio}{' '}
         · {repasseTxt2}
       </div>
@@ -403,16 +403,16 @@ export function NotaCelulaTrigger({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-600 bg-emerald-50 px-2.5 py-1 text-xs font-mono font-bold text-emerald-800 hover:bg-emerald-100 cursor-pointer shadow-2xs"
+        className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-amber-400 bg-amber-50 px-2.5 py-1 text-xs font-mono font-bold text-[#261502] hover:bg-amber-100 cursor-pointer shadow-2xs"
       >
-        <FileText className="w-3.5 h-3.5 text-emerald-700" /> Notas explicativas
+        <FileText className="w-3.5 h-3.5 text-[#b87c14]" /> Notas explicativas
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
           <DialogHeader>
-            <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
-              <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-emerald-600" />
+            <div className="border-l-4 border-[#e5b742] pl-2.5 mb-1">
+              <DialogTitle className="text-base font-bold text-[#261502] flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#b87c14]" />
                 <span>
                   Nota explicativa — {REGIME_NOME[comprador]} × {REGIME_NOME[fornecedor]}
                 </span>
@@ -494,7 +494,7 @@ export function NotaExplicativaBloco({
 
   return (
     <div className="space-y-3">
-      <div className="text-xs font-mono font-bold uppercase text-slate-900 bg-emerald-50 border border-emerald-200 rounded-lg p-2.5">
+      <div className="text-xs font-mono font-bold uppercase text-[#261502] bg-amber-50 border border-amber-300 rounded-lg p-2.5">
         {titulo}
       </div>
 
@@ -691,11 +691,11 @@ export function NotaExplicativaCardDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
         <DialogHeader>
-          <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
-            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-600" />
-              <span>Nota explicativa — {titulo}</span>
-            </DialogTitle>
+          <div className="border-l-4 border-[#e5b742] pl-2.5 mb-1">
+            <DialogTitle className="text-sm font-bold text-[#261502] flex items-center gap-2">
+              <FileText className="w-5 h-5 text-[#b87c14]" />
+              {titulo}
+            </DialogTitle>{' '}
           </div>
           <DialogDescription className="text-xs text-slate-500">
             Relatório da situação deste card · Exercício {exercicio} · CBS{' '}
@@ -726,9 +726,9 @@ export function BotaoNotaCard({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-mono font-bold text-emerald-800 hover:bg-emerald-100 cursor-pointer shadow-2xs transition-colors"
+      className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-mono font-bold text-[#261502] hover:bg-amber-100 cursor-pointer shadow-2xs transition-colors"
     >
-      <FileText className="w-3.5 h-3.5 text-emerald-700" /> Notas explicativas
+      <FileText className="w-3.5 h-3.5 text-[#b87c14]" /> Notas explicativas
     </button>
   )
 }
