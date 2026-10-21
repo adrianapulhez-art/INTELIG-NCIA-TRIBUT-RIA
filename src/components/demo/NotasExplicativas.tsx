@@ -85,7 +85,7 @@ function TabelaMemoria({
           <span
             className={`text-xs font-mono ${l.destaque ? 'font-bold text-[#261502]' : 'text-slate-700'}`}
           >
-            {l.termo}
+            {l.label}
           </span>
           <span
             className={`text-xs font-mono ${l.destaque ? 'font-black text-[#b87c14]' : 'font-bold text-slate-900'}`}
