@@ -61,7 +61,7 @@ function parseInline(text: string): React.ReactNode[] {
       nodes.push(
         <code
           key={`code-${matchIndex}`}
-          className="px-1.5 py-0.5 rounded bg-emerald-950/70 border border-emerald-500/30 text-emerald-300 font-mono text-[11px]"
+          className="px-1.5 py-0.5 rounded bg-[#261502] border border-amber-500/30 text-[#fde047] font-mono text-[11px]"
         >
           {codeVal}
         </code>,
@@ -69,7 +69,7 @@ function parseInline(text: string): React.ReactNode[] {
     } else if (biVal1 !== undefined || biVal2 !== undefined) {
       const val = biVal1 ?? biVal2 ?? ''
       nodes.push(
-        <strong key={`bi-${matchIndex}`} className="font-semibold italic text-emerald-950">
+        <strong key={`bi-${matchIndex}`} className="font-semibold italic text-[#261502]">
           {val}
         </strong>,
       )
@@ -273,7 +273,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
               return (
                 <h2
                   key={idx}
-                  className="text-sm font-bold text-slate-900 tracking-tight pt-1 pb-0.5 border-b border-emerald-200"
+                  className="text-sm font-bold text-slate-900 tracking-tight pt-1 pb-0.5 border-b border-amber-200"
                 >
                   {parseInline(block.content || '')}
                 </h2>
@@ -283,14 +283,14 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
               return (
                 <h3
                   key={idx}
-                  className="text-xs sm:text-sm font-bold text-emerald-800 tracking-tight pt-1"
+                  className="text-xs sm:text-sm font-bold text-[#3b2405] tracking-tight pt-1"
                 >
                   {parseInline(block.content || '')}
                 </h3>
               )
             }
             return (
-              <h4 key={idx} className="text-xs font-semibold text-emerald-700 pt-0.5">
+              <h4 key={idx} className="text-xs font-semibold text-[#b87c14] pt-0.5">
                 {parseInline(block.content || '')}
               </h4>
             )
@@ -300,7 +300,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
             return (
               <blockquote
                 key={idx}
-                className="pl-3 py-1 my-1 border-l-2 border-emerald-500 bg-emerald-50 rounded-r text-xs text-slate-700 italic"
+                className="pl-3 py-1 my-1 border-l-2 border-amber-500 bg-amber-50 rounded-r text-xs text-slate-700 italic"
               >
                 {parseInline(block.content || '')}
               </blockquote>
@@ -314,7 +314,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
                     key={itemIdx}
                     className="flex items-start gap-2 text-xs sm:text-sm text-slate-700"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-2 shrink-0" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#b87c14] mt-2 shrink-0" />
                     <span className="flex-1">{parseInline(item)}</span>
                   </li>
                 ))}
@@ -329,7 +329,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content, className =
                     key={itemIdx}
                     className="flex items-start gap-2 text-xs sm:text-sm text-slate-700"
                   >
-                    <span className="text-[11px] font-mono font-bold text-emerald-700 mt-0.5 shrink-0 min-w-[1.2rem]">
+                    <span className="text-[11px] font-mono font-bold text-[#b87c14] mt-0.5 shrink-0 min-w-[1.2rem]">
                       {itemIdx + 1}.
                     </span>
                     <span className="flex-1">{parseInline(item)}</span>

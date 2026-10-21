@@ -73,7 +73,7 @@ const BLOCO_TITULOS: Record<number, string> = {
 /** Badge de dispositivo legal. */
 function ArtBadge({ dispositivo }: { dispositivo: string }) {
   return (
-    <span className="inline-flex items-center rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-mono font-bold text-emerald-800">
+    <span className="inline-flex items-center rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[9px] font-mono font-bold text-[#261502]">
       {dispositivo}
     </span>
   )
@@ -85,7 +85,7 @@ function ValidadeBadge({ fundamento }: { fundamento?: Fundamento }) {
   const map: Record<Fundamento['validade'], { label: string; cls: string }> = {
     integral: {
       label: 'vigência integral',
-      cls: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+      cls: 'border-amber-300 bg-amber-50 text-[#261502]',
     },
     condicionada: {
       label: 'validade condicionada',
@@ -153,15 +153,15 @@ function SideColumnArt({
         return (
           <div
             key={bloco}
-            className={`rounded-xl border p-3 space-y-1.5 ${forn ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200 bg-white'}`}
+            className={`rounded-xl border p-3 space-y-1.5 ${forn ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200 bg-white'}`}
           >
             <div className="flex items-center gap-1.5">
               <span
-                className={`text-[10px] font-mono font-black uppercase tracking-wider ${forn ? 'text-emerald-800' : 'text-slate-800'}`}
+                className={`text-[10px] font-mono font-black uppercase tracking-wider ${forn ? 'text-[#3b2405]' : 'text-slate-800'}`}
               >
                 {BLOCO_TITULOS[bloco] || `BLOCO ${bloco}`}
               </span>
-              <span className={`flex-1 h-px ${forn ? 'bg-emerald-200' : 'bg-slate-200'}`} />
+              <span className={`flex-1 h-px ${forn ? 'bg-amber-200' : 'bg-slate-200'}`} />
               <Badge className="text-[9px] bg-slate-100 text-slate-700 border-slate-200 font-mono">
                 {side.lines.filter((l) => l.bloco === bloco).length} linhas
               </Badge>
@@ -175,7 +175,7 @@ function SideColumnArt({
                       <button
                         type="button"
                         onClick={() => onOpenBloco(side, bloco)}
-                        className={`w-full inline-flex items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[10px] font-mono font-bold cursor-pointer transition-colors ${forn ? 'border-emerald-300 bg-emerald-100 text-emerald-900 hover:bg-emerald-200' : 'border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200'}`}
+                        className={`w-full inline-flex items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[10px] font-mono font-bold cursor-pointer transition-colors ${forn ? 'border-amber-300 bg-amber-100 text-[#261502] hover:bg-amber-200' : 'border-slate-300 bg-slate-100 text-slate-900 hover:bg-slate-200'}`}
                       >
                         <Calculator className="w-3 h-3" /> Memória + base legal
                       </button>
@@ -198,12 +198,12 @@ function SideColumnArt({
                 ) : (
                   <div
                     key={line.key}
-                    className={`rounded-lg px-2.5 py-1.5 space-y-1 ${line.subtotal ? (forn ? 'bg-emerald-100/70 border border-emerald-300' : 'bg-slate-100 border border-slate-300') : 'bg-slate-50 border border-slate-200'}`}
+                    className={`rounded-lg px-2.5 py-1.5 space-y-1 ${line.subtotal ? (forn ? 'bg-amber-100/70 border border-amber-300' : 'bg-slate-100 border border-slate-300') : 'bg-slate-50 border border-slate-200'}`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <span
-                          className={`text-[11px] font-mono font-semibold block ${line.kind === 'bruto' ? 'text-slate-900' : line.kind === 'credito' ? 'text-emerald-700' : line.kind === 'debito' ? 'text-amber-800' : 'text-slate-800'}`}
+                          className={`text-[11px] font-mono font-semibold block ${line.kind === 'bruto' ? 'text-slate-900' : line.kind === 'credito' ? 'text-[#b87c14]' : line.kind === 'debito' ? 'text-amber-800' : 'text-slate-800'}`}
                         >
                           {line.label}
                         </span>
@@ -214,7 +214,7 @@ function SideColumnArt({
                         )}
                       </div>
                       <span
-                        className={`text-[11px] font-mono font-bold shrink-0 ${line.value < 0 ? 'text-emerald-700' : line.subtotal ? 'text-slate-900' : 'text-slate-800'}`}
+                        className={`text-[11px] font-mono font-bold shrink-0 ${line.value < 0 ? 'text-[#b87c14]' : line.subtotal ? 'text-slate-900' : 'text-slate-800'}`}
                       >
                         {line.kind === 'nota' && line.value === 0 ? '—' : formatBRL(line.value)}
                       </span>
@@ -223,7 +223,7 @@ function SideColumnArt({
                       <button
                         type="button"
                         onClick={() => onOpenLine(line)}
-                        className="text-[9px] font-mono text-emerald-700 hover:text-emerald-800 font-bold underline underline-offset-2 cursor-pointer"
+                        className="text-[9px] font-mono text-[#b87c14] hover:text-[#5c3e06] font-bold underline underline-offset-2 cursor-pointer"
                       >
                         Abrir derivação
                       </button>
@@ -234,11 +234,11 @@ function SideColumnArt({
           </div>
         )
       })}
-      <div className="flex items-center justify-between rounded-lg border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 shadow-xs">
-        <span className="text-[10px] font-mono font-bold uppercase text-emerald-900">
+      <div className="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 shadow-xs">
+        <span className="text-[10px] font-mono font-bold uppercase text-[#261502]">
           {title.includes('HOJE') ? 'Custo unitário HOJE' : 'Custo unitário no exercício'}
         </span>
-        <span className="text-sm font-black font-mono text-emerald-800">
+        <span className="text-sm font-black font-mono text-[#261502]">
           {formatBRL(side.unitario)}/un
         </span>
       </div>
@@ -265,9 +265,9 @@ function CellMemoryDialogArt({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[88vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
         <DialogHeader>
-          <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
+          <div className="border-l-4 border-amber-500 pl-2.5 mb-1">
             <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-emerald-600" />
+              <Calculator className="w-5 h-5 text-[#b87c14]" />
               <span>Memória Art. 12 — {cellLabel}</span>
             </DialogTitle>
           </div>
@@ -328,9 +328,9 @@ function LineMemoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
         <DialogHeader>
-          <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
+          <div className="border-l-4 border-amber-500 pl-2.5 mb-1">
             <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-emerald-600" />
+              <Calculator className="w-5 h-5 text-[#b87c14]" />
               <span>{lineLabel}</span>
             </DialogTitle>
           </div>
@@ -340,7 +340,7 @@ function LineMemoryDialog({
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-mono font-bold text-slate-900">{line.label}</span>
-              <span className="text-[11px] font-mono font-bold text-emerald-700">
+              <span className="text-[11px] font-mono font-bold text-[#b87c14]">
                 {formatBRL(line.value)}
               </span>
             </div>
@@ -354,7 +354,7 @@ function LineMemoryDialog({
               className="rounded-lg border border-slate-200 bg-white p-2.5 space-y-1 shadow-2xs"
             >
               <div className="flex items-start gap-2">
-                <span className="text-[10px] font-mono font-black text-emerald-700 shrink-0">
+                <span className="text-[10px] font-mono font-black text-[#b87c14] shrink-0">
                   {p.ordem}.
                 </span>
                 <div className="min-w-0 space-y-0.5">
@@ -364,7 +364,7 @@ function LineMemoryDialog({
                   <div className="text-[10px] font-mono text-slate-600 break-words">
                     {p.expressao}
                   </div>
-                  <div className="text-[11px] font-mono font-bold text-emerald-700 break-words">
+                  <div className="text-[11px] font-mono font-bold text-[#b87c14] break-words">
                     = {p.resultado}
                   </div>
                   {p.fundamento && (
@@ -376,8 +376,8 @@ function LineMemoryDialog({
               </div>
             </div>
           ))}
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-2.5 space-y-1">
-            <div className="text-[10px] font-mono font-bold uppercase text-emerald-900">
+          <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-2.5 space-y-1">
+            <div className="text-[10px] font-mono font-bold uppercase text-[#261502]">
               Base legal
             </div>
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -424,9 +424,9 @@ function BlocoMemoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-white border border-slate-200 text-slate-900 p-6 shadow-xl">
         <DialogHeader>
-          <div className="border-l-4 border-emerald-500 pl-2.5 mb-1">
+          <div className="border-l-4 border-amber-500 pl-2.5 mb-1">
             <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-emerald-600" />
+              <Calculator className="w-5 h-5 text-[#b87c14]" />
               <span>Memória + base legal — {blocoLabel}</span>
             </DialogTitle>
           </div>
@@ -437,7 +437,7 @@ function BlocoMemoryDialog({
             <div key={line.key} className="space-y-1">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] font-mono font-bold text-slate-900">{line.label}</span>
-                <span className="text-[11px] font-mono font-bold text-emerald-700 shrink-0">
+                <span className="text-[11px] font-mono font-bold text-[#b87c14] shrink-0">
                   {line.kind === 'nota' && line.value === 0 ? '—' : formatBRL(line.value)}
                 </span>
               </div>
@@ -447,7 +447,7 @@ function BlocoMemoryDialog({
                   className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 space-y-1"
                 >
                   <div className="flex items-start gap-2">
-                    <span className="text-[10px] font-mono font-black text-emerald-700 shrink-0">
+                    <span className="text-[10px] font-mono font-black text-[#b87c14] shrink-0">
                       {p.ordem}.
                     </span>
                     <div className="min-w-0 space-y-0.5">
@@ -457,7 +457,7 @@ function BlocoMemoryDialog({
                       <div className="text-[10px] font-mono text-slate-600 break-words">
                         {p.expressao}
                       </div>
-                      <div className="text-[11px] font-mono font-bold text-emerald-700 break-words">
+                      <div className="text-[11px] font-mono font-bold text-[#b87c14] break-words">
                         = {p.resultado}
                       </div>
                       {p.fundamento && (
@@ -469,8 +469,8 @@ function BlocoMemoryDialog({
                   </div>
                 </div>
               ))}
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-2.5 space-y-1">
-                <div className="text-[10px] font-mono font-bold uppercase text-emerald-900">
+              <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-2.5 space-y-1">
+                <div className="text-[10px] font-mono font-bold uppercase text-[#261502]">
                   Base legal
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -596,8 +596,8 @@ export function CmvArt12Module() {
       {/* ================= Cabeçalho + seletor de exercício ================= */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200">
-          <div className="flex items-center gap-3 border-l-4 border-emerald-500 pl-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
+          <div className="flex items-center gap-3 border-l-4 border-amber-500 pl-2.5">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-[#b87c14] shrink-0">
               <CalendarClock className="w-5 h-5" />
             </div>
             <div>
@@ -625,7 +625,7 @@ export function CmvArt12Module() {
         {/* Nota legal do cabeçalho */}
         <div className="text-[11px] font-mono text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3 leading-relaxed space-y-2">
           <div>
-            <ShieldAlert className="w-3.5 h-3.5 text-emerald-700 inline mr-1.5 -mt-0.5" />
+            <ShieldAlert className="w-3.5 h-3.5 text-[#b87c14] inline mr-1.5 -mt-0.5" />
             Fundamento: LC 214/2025, art. 12, caput — base = valor da operação; §1º, IV — frete
             integra a base; §2º, I — IBS/CBS fora; §2º, II — IPI fora (todos os exercícios); §2º, V
             — ICMS/ISS/PIS/COFINS fora, vigência expressa 01/01/2026 a 31/12/2032. Frações do ICMS:
@@ -705,7 +705,7 @@ export function CmvArt12Module() {
             </div>
           </div>
           <div className="flex items-center gap-2 text-[11px] font-mono text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-200">
-            <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-600" />
+            <ShieldCheck className="w-4 h-4 shrink-0 text-[#b87c14]" />
             <span>
               {config.baseIcmsTransicao === 'fisco'
                 ? 'ICMS por dentro sobre operação + CBS + IBS (lacuna normativa) — nota maior. Cadeia plena fecha igual; muda o custo do comprador SN.'
@@ -730,7 +730,7 @@ export function CmvArt12Module() {
                   const v = Number(e.target.value)
                   setCbsOverride(Number.isFinite(v) && v > 0 ? v : undefined)
                 }}
-                className="w-24 h-8 text-xs font-mono bg-white border-slate-300 text-slate-900 focus-visible:ring-emerald-500"
+                className="w-24 h-8 text-xs font-mono bg-white border-slate-300 text-slate-900 focus-visible:ring-amber-500"
               />
               <span className="text-xs font-mono font-bold text-slate-700">%</span>
               <span className="inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-mono font-bold border-amber-300 bg-amber-50 text-amber-800">
@@ -740,7 +740,7 @@ export function CmvArt12Module() {
                 <button
                   type="button"
                   onClick={() => setCbsOverride(undefined)}
-                  className="text-xs font-medium text-emerald-700 hover:text-emerald-900 underline underline-offset-2 cursor-pointer ml-1"
+                  className="text-xs font-medium text-[#b87c14] hover:text-[#5c3e06] underline underline-offset-2 cursor-pointer ml-1"
                 >
                   voltar ao padrão 8,8%
                 </button>
@@ -749,7 +749,7 @@ export function CmvArt12Module() {
           ) : (
             <>
               <span className="text-sm font-mono font-bold text-slate-900">{row.cbsRate}%</span>
-              <span className="inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-mono font-bold border-emerald-200 bg-emerald-50 text-emerald-800">
+              <span className="inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-mono font-bold border-amber-300 bg-amber-50 text-[#261502]">
                 CRAVADA EM LEI (art. 342)
               </span>
             </>
@@ -781,7 +781,7 @@ export function CmvArt12Module() {
       </div>
       {/* ================= 1. CÉLULA ENXUTA NO TOPO (CHANCELADA PELA ADRI) ================= */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
-        <div className="border-l-4 border-emerald-500 pl-2.5">
+        <div className="border-l-4 border-amber-500 pl-2.5">
           <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900">
             Ambiente do Fornecedor · Organização dos Cenários de Cálculo
           </h4>
@@ -893,9 +893,9 @@ export function CmvArt12Module() {
             <div className="mx-1 sm:mx-3 p-3 sm:p-5 rounded-2xl bg-slate-100/90 border border-slate-200/90 shadow-inner space-y-5">
               {/* Cabeçalho da Camada Interna Recuada — Padrão DETALHES DA COMPRA / CENÁRIOS */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-300/70 pb-3.5">
-                <div className="border-l-4 border-emerald-600 pl-3">
+                <div className="border-l-4 border-amber-600 pl-3">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-300/50" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-amber-300/50" />
                     <h4 className="text-sm font-bold font-mono uppercase tracking-wider text-slate-900">
                       DETALHES DA COMPRA · CENÁRIOS DE CÁLCULOS · FORNECEDOR{' '}
                       {config.fornecedorRegime === 'real' ? 'LUCRO REAL' : 'LUCRO PRESUMIDO'}
@@ -910,7 +910,7 @@ export function CmvArt12Module() {
                   </p>
                 </div>
                 <div className="inline-flex items-center gap-2">
-                  <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 uppercase shadow-xs">
+                  <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-md border border-amber-300 bg-amber-50 text-[#261502] uppercase shadow-xs">
                     Ambiente Ativo: {REGIME_LABEL[config.fornecedorRegime]} ·{' '}
                     {config.fornecedorPerfil === 'comercio' ? 'Comércio' : 'Indústria'}
                   </span>
@@ -933,7 +933,7 @@ export function CmvArt12Module() {
                     type="checkbox"
                     checked={config.zfm}
                     onChange={(e) => setConfig((c) => ({ ...c, zfm: e.target.checked }))}
-                    className="w-4 h-4 accent-emerald-600 rounded"
+                    className="w-4 h-4 accent-amber-600 rounded"
                   />
                   <span>
                     Fornecedor industrial na Zona Franca de Manaus (mantém IPI — ADCT, art. 92-B)
@@ -948,14 +948,14 @@ export function CmvArt12Module() {
 
               {/* SEÇÃO A — ADQUIRENTE PLENO · com régua de repasse */}
               <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-white px-4 py-3 rounded-xl shadow-xs border border-emerald-700/60">
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-white px-4 py-3 rounded-xl shadow-xs border border-amber-700/60">
                   <div className="flex items-center gap-2.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-300/40 shrink-0" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#e5b742] ring-2 ring-amber-300/40 shrink-0" />
                     <span className="text-sm font-mono font-black uppercase tracking-wider text-white">
                       SEÇÃO A — ADQUIRENTE PLENO · COM RÉGUA DE REPASSE
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-emerald-100 bg-emerald-950/80 border border-emerald-600/70 px-2.5 py-1 rounded">
+                  <span className="text-[10px] font-mono font-bold text-amber-100 bg-[#3b2405]/80 border border-amber-600/70 px-2.5 py-1 rounded">
                     Base Limpa · Parcial 50% · Preço Cheio dentro do espelho
                   </span>
                 </div>
@@ -997,7 +997,7 @@ export function CmvArt12Module() {
                         }}
                         className={`rounded-2xl border text-left cursor-pointer transition-all overflow-hidden flex flex-col justify-between ${
                           isMenor
-                            ? 'border-emerald-600 ring-1 ring-emerald-500 shadow-xs'
+                            ? 'border-amber-600 ring-1 ring-amber-500 shadow-xs'
                             : 'border-slate-200 hover:border-slate-300'
                         }`}
                       >
@@ -1008,13 +1008,13 @@ export function CmvArt12Module() {
                               {REGIME_LABEL_FULL[comprador].toUpperCase()}
                             </span>
                             {isMenor && (
-                              <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-600 rounded px-1.5 py-0.5">
+                              <span className="text-[9px] font-mono font-bold text-[#fde047] bg-[#261502]/80 border border-amber-600 rounded px-1.5 py-0.5">
                                 MENOR
                               </span>
                             )}
                           </div>
                           <div className="space-y-0.5">
-                            <div className="text-[10px] font-mono font-bold uppercase text-emerald-300">
+                            <div className="text-[10px] font-mono font-bold uppercase text-[#e5b742]">
                               {repasseTxt}
                             </div>
                             <div className="text-[9px] font-mono text-slate-200">{repasseSub}</div>
@@ -1047,7 +1047,7 @@ export function CmvArt12Module() {
                                       ci.deltaPct > 0
                                         ? 'text-rose-700'
                                         : ci.deltaPct < 0
-                                          ? 'text-emerald-700'
+                                          ? 'text-[#b87c14]'
                                           : 'text-slate-500'
                                     }`}
                                   >
@@ -1069,7 +1069,7 @@ export function CmvArt12Module() {
                             )}
                           </div>
 
-                          <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
+                          <div className="text-[10px] font-mono text-[#b87c14] font-bold text-center pt-1 border-t border-slate-100">
                             Clique para abrir os 6 cards do cenário
                           </div>
                         </div>
@@ -1081,14 +1081,14 @@ export function CmvArt12Module() {
 
               {/* SEÇÃO B — ADQUIRENTE SIMPLES NACIONAL · CENÁRIO ÚNICO */}
               <div className="space-y-3 pt-2">
-                <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 text-white px-4 py-3 rounded-xl shadow-xs border border-emerald-700/60">
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-white px-4 py-3 rounded-xl shadow-xs border border-amber-700/60">
                   <div className="flex items-center gap-2.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-300/40 shrink-0" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#e5b742] ring-2 ring-amber-300/40 shrink-0" />
                     <span className="text-sm font-mono font-black uppercase tracking-wider text-white">
                       SEÇÃO B — ADQUIRENTE SIMPLES NACIONAL · CENÁRIO ÚNICO
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-emerald-100 bg-emerald-950/80 border border-emerald-600/70 px-2.5 py-1 rounded">
+                  <span className="text-[10px] font-mono font-bold text-amber-100 bg-[#3b2405]/80 border border-amber-600/70 px-2.5 py-1 rounded">
                     Sem régua de repasse · LC 123/2006 art. 23
                   </span>
                 </div>
@@ -1146,7 +1146,7 @@ export function CmvArt12Module() {
                             </span>
                           </div>
                           <div className="space-y-0.5">
-                            <div className="text-[10px] font-mono font-bold uppercase text-emerald-300">
+                            <div className="text-[10px] font-mono font-bold uppercase text-[#e5b742]">
                               Cenário Único (chancelado) · Sem repasse · LC 123/2006 art. 23
                             </div>
                             <div className="text-[10px] font-mono uppercase text-slate-200">
@@ -1178,7 +1178,7 @@ export function CmvArt12Module() {
                                       ci.deltaPct > 0
                                         ? 'text-rose-700'
                                         : ci.deltaPct < 0
-                                          ? 'text-emerald-700'
+                                          ? 'text-[#b87c14]'
                                           : 'text-slate-500'
                                     }`}
                                   >
@@ -1206,7 +1206,7 @@ export function CmvArt12Module() {
                               : 'LC 214/2025 art. 41: credita CBS e IBS integrais destacados; sem ICMS 18%.'}
                           </p>
 
-                          <div className="text-[10px] font-mono text-emerald-700 font-bold text-center pt-1 border-t border-slate-100">
+                          <div className="text-[10px] font-mono text-[#b87c14] font-bold text-center pt-1 border-t border-slate-100">
                             Clique para abrir o espelho direto (Cards 01, 02 e 03)
                           </div>
                         </div>

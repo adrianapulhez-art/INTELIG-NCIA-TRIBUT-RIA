@@ -527,7 +527,7 @@ export default function PurchasesPage() {
                         className="py-3 px-4 text-left font-bold text-white uppercase tracking-wider"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                          <span className="w-2 h-2 rounded-full bg-[#e5b742]" />
                           <span>Total das Compras (Σ)</span>
                         </div>
                       </td>

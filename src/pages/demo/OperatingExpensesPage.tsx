@@ -598,7 +598,7 @@ export default function OperatingExpensesPage() {
                             type="button"
                             size="sm"
                             onClick={() => handleOpenAddRevenue('small')}
-                            className="h-7 text-xs bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 cursor-pointer font-bold"
+                            className="h-7 text-xs bg-amber-50 text-[#3b2405] border border-amber-300 hover:bg-amber-100 cursor-pointer font-bold"
                           >
                             <Plus className="w-3.5 h-3.5 mr-1" />
                             Abrir Camada e Inserir Receita
@@ -624,7 +624,7 @@ export default function OperatingExpensesPage() {
                                   updateOperatingRevenue(item.id, 'description', e.target.value)
                                 }
                                 placeholder="Descrição da receita..."
-                                className="h-8 text-xs bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 placeholder:text-slate-400 font-sans"
+                                className="h-8 text-xs bg-white border-slate-300 focus:border-amber-600 focus:ring-1 focus:ring-amber-500 text-slate-900 placeholder:text-slate-400 font-sans"
                               />
                             </td>
                             {/* Discriminação contábil em badge */}
@@ -655,7 +655,7 @@ export default function OperatingExpensesPage() {
                                     )
                                   }
                                   placeholder="0,00"
-                                  className="h-8 text-xs pl-8 text-right bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 font-bold"
+                                  className="h-8 text-xs pl-8 text-right bg-white border-slate-300 focus:border-amber-600 focus:ring-1 focus:ring-amber-500 text-slate-900 font-bold"
                                 />
                               </div>
                             </td>
@@ -847,10 +847,10 @@ export default function OperatingExpensesPage() {
                   return (
                     <div
                       key={preset.id}
-                      className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 transition-all flex flex-col justify-between gap-1.5 group shadow-xs"
+                      className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-amber-400 transition-all flex flex-col justify-between gap-1.5 group shadow-xs"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-800 group-hover:text-emerald-800">
+                        <span className="text-xs font-semibold text-slate-800 group-hover:text-[#261502]">
                           {preset.label}
                         </span>
                         <Badge
@@ -895,7 +895,7 @@ export default function OperatingExpensesPage() {
             {/* SEÇÃO B: DISCRIMINAÇÃO E FORMULÁRIO MANUAL */}
             <div className="space-y-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
               <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
-                <Tag className="w-4 h-4 text-emerald-600" />
+                <Tag className="w-4 h-4 text-[#b87c14]" />
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-800">
                   Discriminação Contábil e Valores
                 </span>
@@ -913,20 +913,20 @@ export default function OperatingExpensesPage() {
                     value={expenseDescription}
                     onChange={(e) => setExpenseDescription(e.target.value)}
                     placeholder="Ex.: Aluguel do ponto, Energia elétrica, Honorários contábeis..."
-                    className="h-9 text-xs bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 placeholder:text-slate-400 font-sans"
+                    className="h-9 text-xs bg-white border-slate-300 focus:border-amber-600 focus:ring-1 focus:ring-amber-500 text-slate-900 placeholder:text-slate-400 font-sans"
                   />
                 </div>
 
                 {/* Campo 2: Discriminação / Categoria Contábil */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-mono text-slate-700 font-semibold flex items-center gap-1">
-                    <Layers className="w-3.5 h-3.5 text-emerald-600" />
+                    <Layers className="w-3.5 h-3.5 text-[#b87c14]" />
                     <span>Discriminação / Categoria</span>
                   </label>
                   <select
                     value={expenseCategory}
                     onChange={(e) => setExpenseCategory(e.target.value as OperatingExpenseCategory)}
-                    className="h-9 w-full text-xs bg-white border border-slate-300 rounded-md px-3 text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans cursor-pointer"
+                    className="h-9 w-full text-xs bg-white border border-slate-300 rounded-md px-3 text-slate-900 focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-500 font-sans cursor-pointer"
                   >
                     <option value="vendas">
                       Despesas com Vendas (comissões, fretes, marketing)
@@ -944,7 +944,7 @@ export default function OperatingExpensesPage() {
                 {/* Campo 3: Valor (R$) */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-mono text-slate-700 font-semibold flex items-center gap-1">
-                    <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                    <DollarSign className="w-3.5 h-3.5 text-[#b87c14]" />
                     <span>Valor da Despesa (R$)</span>
                   </label>
                   <div className="relative">
@@ -957,7 +957,7 @@ export default function OperatingExpensesPage() {
                       value={expenseValueStr}
                       onChange={(e) => setExpenseValueStr(e.target.value)}
                       placeholder="0,00"
-                      className="h-9 text-xs pl-8 text-right bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 font-bold font-mono"
+                      className="h-9 text-xs pl-8 text-right bg-white border-slate-300 focus:border-amber-600 focus:ring-1 focus:ring-amber-500 text-slate-900 font-bold font-mono"
                     />
                   </div>
                 </div>
@@ -965,7 +965,7 @@ export default function OperatingExpensesPage() {
 
               {/* Dica de dedutibilidade fiscal */}
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700 flex items-start gap-2">
-                <Info className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <Info className="w-4 h-4 text-[#b87c14] shrink-0 mt-0.5" />
                 <span>
                   <strong className="text-slate-900">Tratamento Fiscal:</strong> Despesas
                   operacionais necessárias e comprovadas deduzem o LAIR contábil em todos os regimes
@@ -994,7 +994,7 @@ export default function OperatingExpensesPage() {
                     type="button"
                     size="sm"
                     onClick={handleSaveCustomExpense}
-                    className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs cursor-pointer px-4"
+                    className="text-xs bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] hover:brightness-105 text-[#261502] font-black shadow-xs cursor-pointer px-4 border border-amber-200/90"
                   >
                     <Plus className="w-3.5 h-3.5 mr-1" />
                     Adicionar Despesa
@@ -1041,7 +1041,7 @@ export default function OperatingExpensesPage() {
             <div className="space-y-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  <Sparkles className="w-4 h-4 text-[#b87c14]" />
                   <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-800">
                     Exemplos Prontos do Dia a Dia Empresarial
                   </span>
@@ -1058,12 +1058,12 @@ export default function OperatingExpensesPage() {
                   onClick={() => setRevenueCompanySize('small')}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     revenueCompanySize === 'small'
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs ring-1 ring-emerald-400'
+                      ? 'bg-amber-50 border-amber-300 text-[#261502] shadow-xs ring-1 ring-amber-400'
                       : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 font-bold text-xs">
-                    <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <Building2 className="w-3.5 h-3.5 text-[#b87c14]" />
                     <span>Pequeno Porte</span>
                   </div>
                   <div className="text-[10px] text-slate-500 font-mono mt-0.5">ME / EPP</div>
@@ -1074,12 +1074,12 @@ export default function OperatingExpensesPage() {
                   onClick={() => setRevenueCompanySize('medium')}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     revenueCompanySize === 'medium'
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs ring-1 ring-emerald-400'
+                      ? 'bg-amber-50 border-amber-300 text-[#261502] shadow-xs ring-1 ring-amber-400'
                       : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 font-bold text-xs">
-                    <Building className="w-3.5 h-3.5 text-emerald-600" />
+                    <Building className="w-3.5 h-3.5 text-[#b87c14]" />
                     <span>Médio Porte</span>
                   </div>
                   <div className="text-[10px] text-slate-500 font-mono mt-0.5">Média Empresa</div>
@@ -1090,12 +1090,12 @@ export default function OperatingExpensesPage() {
                   onClick={() => setRevenueCompanySize('large')}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     revenueCompanySize === 'large'
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-xs ring-1 ring-emerald-400'
+                      ? 'bg-amber-50 border-amber-300 text-[#261502] shadow-xs ring-1 ring-amber-400'
                       : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 font-bold text-xs">
-                    <Landmark className="w-3.5 h-3.5 text-emerald-600" />
+                    <Landmark className="w-3.5 h-3.5 text-[#b87c14]" />
                     <span>Grande Porte</span>
                   </div>
                   <div className="text-[10px] text-slate-500 font-mono mt-0.5">
@@ -1116,10 +1116,10 @@ export default function OperatingExpensesPage() {
                   return (
                     <div
                       key={preset.id}
-                      className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-400 transition-all flex flex-col justify-between gap-1.5 group shadow-xs"
+                      className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-amber-400 transition-all flex flex-col justify-between gap-1.5 group shadow-xs"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-800 group-hover:text-emerald-800">
+                        <span className="text-xs font-semibold text-slate-800 group-hover:text-[#261502]">
                           {preset.label}
                         </span>
                         <Badge
@@ -1132,7 +1132,7 @@ export default function OperatingExpensesPage() {
                       <p className="text-[10px] text-slate-500 line-clamp-1">{preset.hint}</p>
 
                       <div className="flex items-center justify-between pt-1 border-t border-slate-100 font-mono text-xs">
-                        <span className="text-emerald-700 font-bold">
+                        <span className="text-[#b87c14] font-bold">
                           {formatBRL(preset.suggestedValue)}
                         </span>
                         <div className="flex items-center gap-1">
@@ -1147,7 +1147,7 @@ export default function OperatingExpensesPage() {
                           <button
                             type="button"
                             onClick={() => handleSelectRevenuePreset(preset, true)}
-                            className="text-[10px] px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors cursor-pointer flex items-center gap-0.5"
+                            className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] hover:brightness-105 text-[#261502] font-black transition-colors cursor-pointer flex items-center gap-0.5 border border-amber-200/90"
                             title="Inserir na tabela com 1 clique"
                           >
                             <Plus className="w-2.5 h-2.5" />
@@ -1164,7 +1164,7 @@ export default function OperatingExpensesPage() {
             {/* SEÇÃO B: DISCRIMINAÇÃO E FORMULÁRIO MANUAL */}
             <div className="space-y-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
               <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
-                <Tag className="w-4 h-4 text-emerald-600" />
+                <Tag className="w-4 h-4 text-[#b87c14]" />
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-800">
                   Discriminação Contábil e Valores
                 </span>
@@ -1175,27 +1175,27 @@ export default function OperatingExpensesPage() {
                 <div className="space-y-1 sm:col-span-2">
                   <label className="text-[11px] font-mono text-slate-700 font-semibold flex items-center gap-1">
                     <span>Descrição da Receita</span>
-                    <span className="text-emerald-600">*</span>
+                    <span className="text-[#b87c14]">*</span>
                   </label>
                   <Input
                     type="text"
                     value={revenueDescription}
                     onChange={(e) => setRevenueDescription(e.target.value)}
                     placeholder="Ex.: Rendimento de aplicação financeira, Aluguel de espaço ocioso..."
-                    className="h-9 text-xs bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 placeholder:text-slate-400 font-sans"
+                    className="h-9 text-xs bg-white border-slate-300 focus:border-amber-600 focus:ring-1 focus:ring-amber-500 text-slate-900 placeholder:text-slate-400 font-sans"
                   />
                 </div>
 
                 {/* Campo 2: Discriminação / Categoria Contábil */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-mono text-slate-700 font-semibold flex items-center gap-1">
-                    <Layers className="w-3.5 h-3.5 text-emerald-600" />
+                    <Layers className="w-3.5 h-3.5 text-[#b87c14]" />
                     <span>Discriminação / Categoria</span>
                   </label>
                   <select
                     value={revenueCategory}
                     onChange={(e) => setRevenueCategory(e.target.value as OperatingRevenueCategory)}
-                    className="h-9 w-full text-xs bg-white border border-slate-300 rounded-md px-3 text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans cursor-pointer"
+                    className="h-9 w-full text-xs bg-white border border-slate-300 rounded-md px-3 text-slate-900 focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-500 font-sans cursor-pointer"
                   >
                     <option value="financeiras">
                       Receitas Financeiras (aplicações em CDB/LCI, juros ativos, descontos obtidos)
@@ -1210,7 +1210,7 @@ export default function OperatingExpensesPage() {
                 {/* Campo 3: Valor (R$) */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-mono text-slate-700 font-semibold flex items-center gap-1">
-                    <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                    <DollarSign className="w-3.5 h-3.5 text-[#b87c14]" />
                     <span>Valor da Receita (R$)</span>
                   </label>
                   <div className="relative">
@@ -1223,7 +1223,7 @@ export default function OperatingExpensesPage() {
                       value={revenueValueStr}
                       onChange={(e) => setRevenueValueStr(e.target.value)}
                       placeholder="0,00"
-                      className="h-9 text-xs pl-8 text-right bg-white border-slate-300 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 text-slate-900 font-bold font-mono"
+                      className="h-9 text-xs pl-8 text-right bg-white border-slate-300 focus:border-amber-600 focus:ring-1 focus:ring-amber-500 text-slate-900 font-bold font-mono"
                     />
                   </div>
                 </div>
@@ -1231,7 +1231,7 @@ export default function OperatingExpensesPage() {
 
               {/* Dica de tributabilidade fiscal */}
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-mono text-slate-700 flex items-start gap-2">
-                <Info className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <Info className="w-4 h-4 text-[#b87c14] shrink-0 mt-0.5" />
                 <span>
                   <strong className="text-slate-900">Tratamento Fiscal:</strong> Receitas
                   operacionais e financeiras acrescem o Lucro Bruto para cálculo do LAIR contábil.
@@ -1261,7 +1261,7 @@ export default function OperatingExpensesPage() {
                     type="button"
                     size="sm"
                     onClick={handleSaveCustomRevenue}
-                    className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs cursor-pointer px-4"
+                    className="text-xs bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] hover:brightness-105 text-[#261502] font-black shadow-xs cursor-pointer px-4 border border-amber-200/90"
                   >
                     <Plus className="w-3.5 h-3.5 mr-1" />
                     Adicionar Receita
@@ -1280,7 +1280,7 @@ export default function OperatingExpensesPage() {
           <DialogHeader className="border-b border-slate-200 pb-3">
             <div className="flex items-center justify-between gap-3 pr-6">
               <DialogTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-[#b87c14] shrink-0">
                   <Users className="w-4 h-4" />
                 </div>
                 <span>Folha de Pagamento, Pró-labore e Encargos Patronais</span>
@@ -1288,7 +1288,7 @@ export default function OperatingExpensesPage() {
               <Badge
                 className={`text-[11px] font-mono ${
                   hasPayrollValues
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    ? 'bg-amber-50 text-[#3b2405] border border-amber-300'
                     : 'bg-slate-100 text-slate-600 border border-slate-200'
                 }`}
               >
@@ -1322,7 +1322,7 @@ export default function OperatingExpensesPage() {
           <div className="flex items-center justify-between pt-3 border-t border-slate-200">
             <span className="text-xs font-mono text-slate-600">
               Total Pessoal + Encargos:{' '}
-              <strong className="text-emerald-700 font-bold">
+              <strong className="text-[#3b2405] font-bold">
                 {formatBRL(payrollResult.totalLaborExpense)}
               </strong>
             </span>
@@ -1330,7 +1330,7 @@ export default function OperatingExpensesPage() {
               type="button"
               size="sm"
               onClick={() => setIsPayrollModalOpen(false)}
-              className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs cursor-pointer"
+              className="text-xs bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] hover:brightness-105 text-[#261502] font-black shadow-xs cursor-pointer border border-amber-200/90"
             >
               Concluir
             </Button>

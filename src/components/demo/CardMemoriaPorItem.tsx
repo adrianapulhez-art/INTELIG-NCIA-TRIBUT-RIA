@@ -46,7 +46,7 @@ function LinhaCard({ line }: { line: MemoryLineArt }) {
         )}
       </div>
       <span
-        className={`shrink-0 font-bold ${line.value < 0 ? 'text-emerald-700' : 'text-slate-900'}`}
+        className={`shrink-0 font-bold ${line.value < 0 ? 'text-[#b87c14]' : 'text-slate-900'}`}
       >
         {line.kind === 'nota' && line.value === 0 ? '—' : formatBRL(line.value)}
       </span>
@@ -145,8 +145,8 @@ export function CardMemoriaPorItem({
                 </Badge>
               )}
               {item.ncmPercentualReducao && item.ncmPercentualReducao > 0 ? (
-                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-mono text-[10px] font-bold">
-                  <Tag className="w-2.5 h-2.5 mr-1 text-emerald-600" />
+                <Badge className="bg-amber-100 text-[#3b2405] border-amber-300 font-mono text-[10px] font-bold">
+                  <Tag className="w-2.5 h-2.5 mr-1 text-[#b87c14]" />
                   redução {item.ncmAnexo || 'LC 214/25'} · {item.ncmArtigoOrigem || 'art. 125+'} ·{' '}
                   {item.ncmPercentualReducao}%
                 </Badge>
@@ -312,7 +312,7 @@ export function CardMemoriaPorItem({
                       {formatBRL(cell.exercicio.unitario)}/un
                     </span>
                     <span
-                      className={`text-[10px] font-mono font-bold ${cell.deltaPct > 0 ? 'text-rose-700' : cell.deltaPct < 0 ? 'text-emerald-700' : 'text-slate-500'}`}
+                      className={`text-[10px] font-mono font-bold ${cell.deltaPct > 0 ? 'text-rose-700' : cell.deltaPct < 0 ? 'text-[#b87c14]' : 'text-slate-500'}`}
                     >
                       {cell.deltaPct > 0 ? '+' : ''}
                       {formatNumberBR(cell.deltaPct)}% VS HOJE

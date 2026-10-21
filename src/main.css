@@ -325,10 +325,15 @@
 .sheen-gold {
   position: absolute;
   inset: -100%;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.7) 50%, transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.7) 50%,
+    transparent 100%
+  );
   transform: rotate(-45deg) translateX(-130%);
   transition: transform 0.7s ease-out;
-  pointer-events-none;
+  pointer-events: none;
 }
 
 /* Reflexo metálico especular */
@@ -337,8 +342,15 @@
   inset: 0;
   mix-blend-mode: overlay;
   opacity: 0.45;
-  background: linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%);
-  pointer-events-none;
+  background: linear-gradient(
+    90deg,
+    rgba(160, 105, 15, 0.4) 0%,
+    rgba(255, 248, 190, 0.95) 24%,
+    rgba(200, 140, 25, 0.2) 48%,
+    rgba(255, 250, 210, 0.95) 72%,
+    rgba(150, 95, 10, 0.5) 100%
+  );
+  pointer-events: none;
   transition: opacity 0.3s ease;
 }
 

@@ -548,7 +548,7 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                                     </span>
                                   )}
                                   {isEntry && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold">
                                       ENTRADA
                                     </span>
                                   )}
@@ -576,7 +576,7 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                                 </td>
                                 <td
                                   className={`py-2 px-2.5 text-right font-semibold ${
-                                    isExit ? 'text-amber-300' : 'text-emerald-300'
+                                    isExit ? 'text-amber-300' : 'text-[#e5b742]'
                                   }`}
                                 >
                                   {isExit ? `-${row.quantity}` : `+${row.quantity}`}
@@ -590,7 +590,7 @@ export const ProductStockModal: React.FC<ProductStockModalProps> = ({ open, onOp
                                 <td className="py-2 px-2.5 text-right font-bold text-white bg-slate-900/40">
                                   {row.stockBalanceQty} un.
                                 </td>
-                                <td className="py-2 px-2.5 text-right font-semibold text-emerald-400 bg-slate-900/40">
+                                <td className="py-2 px-2.5 text-right font-semibold text-[#e5b742] bg-slate-900/40">
                                   {formatBRL(row.averageCostAfter)}
                                 </td>
                                 <td className="py-2 px-2.5 text-right font-bold text-amber-300 bg-slate-900/40">

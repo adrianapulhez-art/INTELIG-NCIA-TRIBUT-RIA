@@ -820,12 +820,12 @@ export default function DreSimplesPage() {
             <div
               className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono ${
                 fatorRResult.isElegibleAnexo3
-                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                  ? 'bg-amber-50 border-amber-300 text-[#261502]'
                   : 'bg-amber-50 border-amber-300 text-amber-900'
               }`}
             >
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-[#b87c14]" />
                 <span className="font-medium">{fatorRResult.explanation}</span>
               </div>
 
