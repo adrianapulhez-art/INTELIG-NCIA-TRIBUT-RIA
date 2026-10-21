@@ -34,6 +34,7 @@ import { calculatePayroll } from '@/lib/payrollCalculations'
 import { PayrollSection } from '@/components/demo/PayrollSection'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/demo/MoneyInput'
 import { PageHero } from '@/components/demo/PageHero'
 import { SaveScenarioModal } from '@/components/demo/SaveScenarioModal'
 import {
@@ -472,22 +473,12 @@ export default function OperatingExpensesPage() {
                             {/* Valor monetário com campo interativo */}
                             <td className="py-2 px-3 text-right">
                               <div className="relative inline-block w-full">
-                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
-                                  R$
-                                </span>
-                                <Input
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={item.value === 0 ? '' : formatNumberBR(item.value)}
-                                  onChange={(e) =>
-                                    updateOperatingExpense(
-                                      item.id,
-                                      'value',
-                                      parseBRNumber(e.target.value),
-                                    )
-                                  }
+                                <MoneyInput
+                                  value={item.value}
+                                  onChange={(val) => updateOperatingExpense(item.id, 'value', val)}
                                   placeholder="0,00"
-                                  className="h-8 text-xs pl-8 text-right bg-white border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 text-slate-900 font-bold"
+                                  prefix="R$"
+                                  className="h-8 text-xs text-right bg-white border-slate-300 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 text-slate-900 font-bold"
                                 />
                               </div>
                             </td>
@@ -640,22 +631,12 @@ export default function OperatingExpensesPage() {
                             {/* Valor monetário com campo interativo */}
                             <td className="py-2 px-3 text-right">
                               <div className="relative inline-block w-full">
-                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
-                                  R$
-                                </span>
-                                <Input
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={item.value === 0 ? '' : formatNumberBR(item.value)}
-                                  onChange={(e) =>
-                                    updateOperatingRevenue(
-                                      item.id,
-                                      'value',
-                                      parseBRNumber(e.target.value),
-                                    )
-                                  }
+                                <MoneyInput
+                                  value={item.value}
+                                  onChange={(val) => updateOperatingRevenue(item.id, 'value', val)}
                                   placeholder="0,00"
-                                  className="h-8 text-xs pl-8 text-right bg-white border-slate-300 focus:border-amber-600 focus:ring-1 focus:ring-amber-500 text-slate-900 font-bold"
+                                  prefix="R$"
+                                  className="h-8 text-xs text-right bg-white border-slate-300 focus:border-amber-600 focus:ring-1 focus:ring-amber-500 text-slate-900 font-bold"
                                 />
                               </div>
                             </td>

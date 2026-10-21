@@ -28,6 +28,7 @@ import {
 import { calculatePgdas, SimplesAnexoId } from '@/lib/simplesCalculations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/demo/MoneyInput'
 import { Badge } from '@/components/ui/badge'
 import { TaxCompositionSection } from '@/components/demo/TaxCompositionSection'
 import { SubstituicaoTributariaSection } from '@/components/demo/SubstituicaoTributariaSection'
@@ -88,18 +89,7 @@ function ProductBaseValueInput({
   hasCompositionValues,
   onUpdate,
 }: ProductBaseValueInputProps) {
-  const [isFocused, setIsFocused] = useState(false)
   const regimeLabel = REGIME_DISPLAY_NAMES[regime]
-  const hasValue = value !== undefined && value > 0
-  const [text, setText] = useState<string>(hasValue ? formatNumberBR(value) : '')
-
-  useEffect(() => {
-    if (!isFocused) {
-      const currentValid = value !== undefined && value > 0
-      setText(currentValid ? formatNumberBR(value) : '')
-    }
-  }, [value, isFocused, regime])
-
   const isReadOnlyCost = !isLiquid && hasCompositionValues
 
   return (
@@ -123,32 +113,16 @@ function ProductBaseValueInput({
         {isLiquid && <span className="text-[10px] font-mono text-emerald-700">Manual</span>}
       </div>
       <div className="relative">
-        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono pointer-events-none">
-          R$
-        </span>
-        <Input
-          type="text"
-          placeholder="informe manualmente"
-          value={text}
+        <MoneyInput
+          value={value}
+          onChange={(val) => {
+            if (isReadOnlyCost) return
+            onUpdate(productId, isLiquid ? 'desiredNetRevenue' : 'cost', val)
+          }}
           readOnly={isReadOnlyCost}
-          onFocus={() => {
-            if (!isReadOnlyCost) setIsFocused(true)
-          }}
-          onChange={(e) => {
-            if (isReadOnlyCost) return
-            const raw = e.target.value
-            setText(raw)
-            const num = parseBRNumber(raw)
-            onUpdate(productId, isLiquid ? 'desiredNetRevenue' : 'cost', num)
-          }}
-          onBlur={(e) => {
-            setIsFocused(false)
-            if (isReadOnlyCost) return
-            const num = parseBRNumber(e.target.value)
-            setText(num > 0 ? formatNumberBR(num) : '')
-            onUpdate(productId, isLiquid ? 'desiredNetRevenue' : 'cost', num)
-          }}
-          className={`pl-8 text-right text-xs h-8 ${
+          placeholder="informe manualmente"
+          prefix="R$"
+          className={`text-right text-xs h-8 ${
             isReadOnlyCost
               ? 'border-emerald-300 text-emerald-800 bg-emerald-50 cursor-default focus:border-emerald-500'
               : 'field-input-interactive'

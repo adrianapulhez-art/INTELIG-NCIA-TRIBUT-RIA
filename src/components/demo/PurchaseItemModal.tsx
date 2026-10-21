@@ -9,10 +9,11 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/demo/MoneyInput'
 import {
   formatBRL,
-  formatNumberBR,
   formatPercentBR,
+  formatNumberBR,
   parseBRNumber,
   calculatePurchaseItemGrossTotal,
   calculatePurchaseItemNetPurchases,
@@ -487,20 +488,15 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                   Custo Unitário de Partida (R$)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
-                    R$
-                  </span>
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    value={initCostVal}
-                    onChange={(e) => setInitCostVal(e.target.value)}
-                    onBlur={() => {
-                      const parsed = parseBRNumber(initCostVal)
-                      setInitCostVal(parsed > 0 ? formatNumberBR(parsed) : '')
-                      handleUpdateStockInitial(currentInitialQty, parsed)
+                  <MoneyInput
+                    value={currentInitialUnitCost}
+                    onChange={(val) => {
+                      setInitCostVal(val > 0 ? formatNumberBR(val) : '')
+                      handleUpdateStockInitial(currentInitialQty, val)
                     }}
-                    className="pl-8 text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900 focus:border-amber-500"
+                    placeholder="0,00"
+                    prefix="R$"
+                    className="text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900 focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -595,26 +591,17 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                   Valor unitário da mercadoria (R$)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
-                    R$
-                  </span>
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    value={unitVal}
+                  <MoneyInput
+                    value={item.unitPrice}
+                    onChange={(val) => {
+                      setUnitVal(val > 0 ? formatNumberBR(val) : '')
+                      onUpdate(item.id, 'unitPrice', val)
+                    }}
                     onFocus={() => setUnitFocused(true)}
-                    onChange={(e) => {
-                      setUnitVal(e.target.value)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'unitPrice', parsed)
-                    }}
-                    onBlur={() => {
-                      setUnitFocused(false)
-                      const parsed = parseBRNumber(unitVal)
-                      onUpdate(item.id, 'unitPrice', parsed)
-                      setUnitVal(parsed > 0 ? formatNumberBR(parsed) : '')
-                    }}
-                    className="pl-8 text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900"
+                    onBlur={() => setUnitFocused(false)}
+                    placeholder="0,00"
+                    prefix="R$"
+                    className="text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900"
                   />
                 </div>
               </div>
@@ -625,26 +612,17 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                   Valor total da mercadoria (R$)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
-                    R$
-                  </span>
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    value={merchVal}
+                  <MoneyInput
+                    value={item.merchandiseValue}
+                    onChange={(val) => {
+                      setMerchVal(val > 0 ? formatNumberBR(val) : '')
+                      onUpdate(item.id, 'merchandiseValue', val)
+                    }}
                     onFocus={() => setMerchFocused(true)}
-                    onChange={(e) => {
-                      setMerchVal(e.target.value)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'merchandiseValue', parsed)
-                    }}
-                    onBlur={() => {
-                      setMerchFocused(false)
-                      const parsed = parseBRNumber(merchVal)
-                      onUpdate(item.id, 'merchandiseValue', parsed)
-                      setMerchVal(parsed > 0 ? formatNumberBR(parsed) : '')
-                    }}
-                    className="pl-8 text-right text-xs font-mono font-bold field-input-interactive bg-white border-slate-300 text-slate-900"
+                    onBlur={() => setMerchFocused(false)}
+                    placeholder="0,00"
+                    prefix="R$"
+                    className="text-right text-xs font-mono font-bold field-input-interactive bg-white border-slate-300 text-slate-900"
                   />
                 </div>
               </div>
@@ -735,26 +713,17 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                   Frete do item (R$)
                 </span>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
-                    R$
-                  </span>
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    value={freightValInput}
+                  <MoneyInput
+                    value={item.freightValue ?? 0}
+                    onChange={(val) => {
+                      setFreightValInput(val > 0 ? formatNumberBR(val) : '')
+                      onUpdate(item.id, 'freightValue', val)
+                    }}
                     onFocus={() => setFreightValFocused(true)}
-                    onChange={(e) => {
-                      setFreightValInput(e.target.value)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'freightValue', parsed)
-                    }}
-                    onBlur={() => {
-                      setFreightValFocused(false)
-                      const parsed = parseBRNumber(freightValInput)
-                      onUpdate(item.id, 'freightValue', parsed)
-                      setFreightValInput(parsed > 0 ? formatNumberBR(parsed) : '')
-                    }}
-                    className="pl-8 text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900"
+                    onBlur={() => setFreightValFocused(false)}
+                    placeholder="0,00"
+                    prefix="R$"
+                    className="text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900"
                   />
                 </div>
               </div>
@@ -816,27 +785,18 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
                   </label>
                 </div>
                 <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
-                    R$
-                  </span>
-                  <Input
-                    type="text"
+                  <MoneyInput
+                    value={item.stValue ?? 0}
                     disabled={!item.hasSt}
-                    placeholder="0,00"
-                    value={stValInput}
+                    onChange={(val) => {
+                      setStValInput(val > 0 ? formatNumberBR(val) : '')
+                      onUpdate(item.id, 'stValue', val)
+                    }}
                     onFocus={() => setStValFocused(true)}
-                    onChange={(e) => {
-                      setStValInput(e.target.value)
-                      const parsed = parseBRNumber(e.target.value)
-                      onUpdate(item.id, 'stValue', parsed)
-                    }}
-                    onBlur={() => {
-                      setStValFocused(false)
-                      const parsed = parseBRNumber(stValInput)
-                      onUpdate(item.id, 'stValue', parsed)
-                      setStValInput(parsed > 0 ? formatNumberBR(parsed) : '')
-                    }}
-                    className="pl-8 text-right bg-white border-slate-300 text-xs font-mono text-slate-900 disabled:opacity-40 disabled:bg-slate-100 focus:border-amber-500"
+                    onBlur={() => setStValFocused(false)}
+                    placeholder="0,00"
+                    prefix="R$"
+                    className="text-right bg-white border-slate-300 text-xs font-mono text-slate-900 disabled:opacity-40 disabled:bg-slate-100 focus:border-amber-500"
                   />
                 </div>
               </div>

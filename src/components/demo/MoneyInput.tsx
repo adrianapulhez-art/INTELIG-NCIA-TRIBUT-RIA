@@ -4,7 +4,7 @@ import { formatNumberBR, parseBRNumber } from '@/lib/taxCalculations'
 
 export interface MoneyInputProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
-  'value' | 'onChange'
+  'value' | 'onChange' | 'prefix'
 > {
   value: number | undefined | null
   onChange: (value: number) => void

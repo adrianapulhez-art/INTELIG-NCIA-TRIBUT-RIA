@@ -32,6 +32,7 @@ import { usePurchaseCollapseState } from '@/hooks/usePurchaseCollapseState'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/demo/MoneyInput'
 import { ScenarioManagerBar } from '@/components/demo/ScenarioManagerBar'
 import { PageHero } from '@/components/demo/PageHero'
 import { SubstituicaoTributariaSection } from '@/components/demo/SubstituicaoTributariaSection'
@@ -773,20 +774,12 @@ export default function PurchasesPage() {
                                 className="text-xs font-medium h-8 flex-1 field-input-interactive"
                               />
                               <div className="relative w-36 sm:w-44">
-                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
-                                  R$
-                                </span>
-                                <Input
-                                  type="text"
-                                  defaultValue={item.value > 0 ? formatNumberBR(item.value) : ''}
-                                  key={`ded-modal-${item.id}-${item.value}`}
-                                  onBlur={(e) => {
-                                    const parsed = parseBRNumber(e.target.value)
-                                    updateDeductionCost(item.id, 'value', parsed)
-                                    e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                                  }}
+                                <MoneyInput
+                                  value={item.value}
+                                  onChange={(val) => updateDeductionCost(item.id, 'value', val)}
                                   placeholder="0,00"
-                                  className="pl-7 text-right text-xs font-mono h-8 w-full field-input-interactive"
+                                  prefix="R$"
+                                  className="text-right text-xs font-mono h-8 w-full field-input-interactive"
                                 />
                               </div>
                               <button
@@ -824,24 +817,12 @@ export default function PurchasesPage() {
                           Base PIS s/ frete global (R$)
                         </span>
                         <div className="relative">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
-                            R$
-                          </span>
-                          <Input
-                            type="text"
+                          <MoneyInput
+                            value={pisFreightPurchasesBase}
+                            onChange={(val) => setPisFreightPurchasesBase(val)}
                             placeholder="0,00"
-                            defaultValue={
-                              pisFreightPurchasesBase > 0
-                                ? formatNumberBR(pisFreightPurchasesBase)
-                                : ''
-                            }
-                            key={`pisf-${pisFreightPurchasesBase}`}
-                            onBlur={(e) => {
-                              const parsed = parseBRNumber(e.target.value)
-                              setPisFreightPurchasesBase(parsed)
-                              e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                            }}
-                            className="pl-8 text-right text-xs font-mono field-input-interactive"
+                            prefix="R$"
+                            className="text-right text-xs font-mono field-input-interactive"
                           />
                         </div>
                       </div>
@@ -851,24 +832,12 @@ export default function PurchasesPage() {
                           Base COFINS s/ frete global (R$)
                         </span>
                         <div className="relative">
-                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-slate-400 pointer-events-none">
-                            R$
-                          </span>
-                          <Input
-                            type="text"
+                          <MoneyInput
+                            value={cofinsFreightPurchasesBase}
+                            onChange={(val) => setCofinsFreightPurchasesBase(val)}
                             placeholder="0,00"
-                            defaultValue={
-                              cofinsFreightPurchasesBase > 0
-                                ? formatNumberBR(cofinsFreightPurchasesBase)
-                                : ''
-                            }
-                            key={`coff-${cofinsFreightPurchasesBase}`}
-                            onBlur={(e) => {
-                              const parsed = parseBRNumber(e.target.value)
-                              setCofinsFreightPurchasesBase(parsed)
-                              e.target.value = parsed > 0 ? formatNumberBR(parsed) : ''
-                            }}
-                            className="pl-8 text-right text-xs font-mono field-input-interactive"
+                            prefix="R$"
+                            className="text-right text-xs font-mono field-input-interactive"
                           />
                         </div>
                       </div>
