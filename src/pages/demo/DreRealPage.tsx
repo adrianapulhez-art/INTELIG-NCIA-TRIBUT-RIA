@@ -2,7 +2,14 @@ import React, { useState } from 'react'
 import { DemoLayout } from '@/components/demo/DemoLayout'
 import { useTaxContext, ActivityType } from '@/contexts/TaxContext'
 import { useNavigate } from 'react-router-dom'
-import { Calculator, Link as LinkIcon, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react'
+import {
+  Calculator,
+  Link as LinkIcon,
+  CheckCircle2,
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+} from 'lucide-react'
 import { formatBRL, formatNumberBR, formatPercentBR, parseBRNumber } from '@/lib/taxCalculations'
 import { calculatePayroll } from '@/lib/payrollCalculations'
 import { Button } from '@/components/ui/button'
