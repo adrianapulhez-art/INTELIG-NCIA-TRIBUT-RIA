@@ -1065,183 +1065,19 @@ export function MarkupPosPage() {
                       </div>
                     </div>
 
-                    {/* 2. PREÇO DE VENDA SIMULADO (GRANDE DESTAQUE EM OURO) */}
-                    <div className="rounded-xl border border-amber-300/80 bg-gradient-to-b from-[#fff9eb] to-[#fdedc3]/50 p-3 text-center space-y-1 shadow-xs">
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5c3e06] block">
-                        {col.isSimplesHibrido
-                          ? 'Preço de Venda Unitário (Base)'
-                          : 'Preço de Venda Simulado / Nota Fiscal'}
-                      </span>
-                      <div className="text-xl font-black font-mono text-[#261502] tracking-tight">
-                        {formatBRL(col.precoVendaUnitario)}
-                      </div>
-                      <span className="text-[10px] font-mono text-slate-600 block">
-                        {col.key === 'snp' && (
-                          <>
-                            DAS {formatPercentBR(col.fatiasDas?.aliquotaTotalPct ?? 4)}% por dentro
-                            · Divisor SN {col.divisorPrincipal.toFixed(4)}
-                          </>
-                        )}
-                        {col.key === 'snh' && (
-                          <>
-                            DAS híbrido {formatPercentBR(col.fatiasDas?.aliquotaTotalPct ?? 3.38)}%
-                            · CBS/IBS por fora na nota
-                          </>
-                        )}
-                        {!col.isSimples && (
-                          <>
-                            BC {formatBRL(col.baseCalculoIbsCbs)} + CBS {formatBRL(col.cbsUnitario)}{' '}
-                            + IBS {formatBRL(col.ibsUnitario)} ÷ {fatorIcms.toFixed(2)}
-                          </>
-                        )}
-                      </span>
-                    </div>
-
-                    {/* 3. Tributos por Sistemática (Simples aberto em fatias vs LP/LR transição) */}
-                    {col.isSimples ? (
-                      <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-2.5 space-y-1.5 text-xs font-mono">
-                        <div className="flex justify-between items-center text-slate-700 font-bold border-b border-amber-200/60 pb-1">
-                          <span className="text-[10px] uppercase text-[#5c3e06]">
-                            {col.key === 'snp'
-                              ? 'DAS SN Puro (Por Dentro):'
-                              : 'DAS Híbrido (ICMS + Federais):'}
-                          </span>
-                          <span className="text-xs font-black text-[#261502]">
-                            {formatBRL(col.fatiasDas?.dasTotal ?? 0)} (
-                            {formatPercentBR(col.fatiasDas?.aliquotaTotalPct ?? 0)})
-                          </span>
-                        </div>
-                        {/* Fatias detalhadas do DAS */}
-                        <div className="space-y-0.5 text-[11px] text-slate-600 pl-1">
-                          <div className="flex justify-between">
-                            <span>
-                              · ICMS ({formatPercentBR(col.fatiasDas?.icmsPct ?? 34, 1)} da fatia):
-                            </span>
-                            <span className="font-semibold text-slate-800">
-                              {formatBRL(col.fatiasDas?.icmsValor ?? 0)}
-                            </span>
-                          </div>
-                          {col.key === 'snp' && (
-                            <>
-                              <div className="flex justify-between">
-                                <span>
-                                  · CBS ({formatPercentBR(col.fatiasDas?.cbsPct ?? 15.33, 2)} da
-                                  fatia):
-                                </span>
-                                <span className="font-semibold text-[#b87c14]">
-                                  {formatBRL(col.fatiasDas?.cbsValor ?? 0)}
-                                </span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>
-                                  · IBS ({formatPercentBR(col.fatiasDas?.ibsPct ?? 0.17, 2)} da
-                                  fatia):
-                                </span>
-                                <span className="font-semibold text-emerald-800">
-                                  {formatBRL(col.fatiasDas?.ibsValor ?? 0)}
-                                </span>
-                              </div>
-                            </>
-                          )}
-                          <div className="flex justify-between">
-                            <span>· Federais IRPJ/CSLL/CPP:</span>
-                            <span className="font-semibold text-slate-800">
-                              {formatBRL(col.fatiasDas?.federaisValor ?? 0)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* No híbrido: CBS e IBS por fora */}
-                        {col.isSimplesHibrido && (
-                          <div className="pt-1 border-t border-amber-200/60 space-y-0.5 text-[11px]">
-                            <div className="flex justify-between text-slate-600">
-                              <span>BC CBS/IBS (P − ICMS):</span>
-                              <span className="font-semibold text-slate-800">
-                                {formatBRL(col.baseCalculoIbsCbs)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-slate-600">
-                              <span>(+) CBS {formatPercentBR(cbsRateEfetivo)} (por fora):</span>
-                              <span className="font-bold text-[#b87c14]">
-                                {formatBRL(col.cbsUnitario)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-slate-600">
-                              <span>(+) IBS {formatPercentBR(ibsRateEfetivo)} (por fora):</span>
-                              <span className="font-bold text-emerald-800">
-                                {formatBRL(col.ibsUnitario)}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-2.5 space-y-1 text-xs font-mono">
-                        <div className="flex justify-between text-slate-600">
-                          <span>BC IBS/CBS (sem ICMS):</span>
-                          <span className="font-semibold text-slate-800">
-                            {formatBRL(col.baseCalculoIbsCbs)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-slate-600">
-                          <span>(+) CBS {formatPercentBR(cbsRateEfetivo)} (por fora):</span>
-                          <span className="font-bold text-[#b87c14]">
-                            {formatBRL(col.cbsUnitario)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-slate-600">
-                          <span>(+) IBS {formatPercentBR(ibsRateEfetivo)} (por fora):</span>
-                          <span className="font-bold text-emerald-800">
-                            {formatBRL(col.ibsUnitario)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-slate-700 pt-1 border-t border-amber-200/60 font-semibold">
-                          <span>(=) Valor sem ICMS:</span>
-                          <span>{formatBRL(col.valorSemIcms)}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 4. Fechamento Econômico */}
-                    <div className="space-y-1.5 text-xs font-mono pt-0.5">
-                      {!col.isSimples && (
-                        <div className="flex justify-between text-slate-600">
-                          <span>ICMS {formatPercentBR(icmsRateEfetivo)} (s/ base c/ IBS/CBS):</span>
-                          <span className="font-semibold text-slate-800">
-                            {formatBRL(col.icmsUnitario)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-slate-600">
-                        <span>Σ DV {formatPercentBR(somaDvPct)}:</span>
-                        <span className="font-semibold text-slate-800">
-                          {formatBRL(col.dvUnitarioTotal)}
+                    {/* 2. Total da Nota Fiscal e Lote (Totais Consolidados de Leitura Rápida) */}
+                    <div className="rounded-xl border border-amber-300/80 bg-slate-50/90 p-3 space-y-2 text-xs font-mono shadow-xs">
+                      <div className="flex items-baseline justify-between text-[#261502] font-black text-sm">
+                        <span className="text-xs uppercase tracking-tight text-slate-700">
+                          Nota Fiscal = Total:
+                        </span>
+                        <span className="text-base text-[#261502] font-black">
+                          {formatBRL(col.totalNotaUnitario)}
                         </span>
                       </div>
-                      <div className="flex justify-between text-slate-600">
-                        <span>Custo de Aquisição:</span>
-                        <span className="font-semibold text-slate-800">
-                          {formatBRL(col.custoUnitario)}
-                        </span>
-                      </div>
-                      <div className="pt-1 border-t border-slate-200 flex justify-between text-[#261502] font-bold">
-                        <span>Margem Líquida R$:</span>
-                        <span className="text-emerald-700">
-                          {formatBRL(col.lucroUnitarioRealizado)} (
-                          {formatPercentBR(col.margemEfetivaPct)})
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* 5. Total da Nota Fiscal e Lote */}
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 space-y-1 text-xs font-mono">
-                      <div className="flex justify-between text-[#261502] font-black">
-                        <span>Nota Fiscal = Total:</span>
-                        <span>{formatBRL(col.totalNotaUnitario)}</span>
-                      </div>
-                      <div className="flex justify-between text-[11px] text-slate-500 pt-0.5 border-t border-slate-200">
+                      <div className="flex justify-between text-xs text-slate-600 pt-1.5 border-t border-slate-200">
                         <span>Total Lote ({quantidadeVendidaEfetiva} un.):</span>
-                        <span className="font-bold text-slate-700">
+                        <span className="font-bold text-slate-800">
                           {formatBRL(col.totalNotaLote)}
                         </span>
                       </div>
@@ -1743,7 +1579,7 @@ export function MarkupPosPage() {
                               ? '7º'
                               : '7º'}
                         </td>
-                        <td className="py-2.5 px-3">Nota Fiscal = Total Cobrado</td>
+                        <td className="py-2.5 px-3">Nota Fiscal = Total Cobrado (Unitário)</td>
                         <td className="py-2.5 px-3 text-xs font-normal">
                           {itemMemoriaAtivo.key === 'snh'
                             ? 'Preço P + CBS por fora + IBS por fora destacados na nota fiscal.'
@@ -1751,6 +1587,27 @@ export function MarkupPosPage() {
                         </td>
                         <td className="py-2.5 px-3 text-right text-base">
                           {formatBRL(itemMemoriaAtivo.totalNotaUnitario)}
+                        </td>
+                      </tr>
+
+                      {/* TOTAL DO LOTE */}
+                      <tr className="bg-[#fff9eb] font-bold text-[#261502] text-xs">
+                        <td className="py-2 px-3">
+                          {itemMemoriaAtivo.key === 'snp'
+                            ? '5º'
+                            : itemMemoriaAtivo.key === 'snh'
+                              ? '8º'
+                              : '8º'}
+                        </td>
+                        <td className="py-2 px-3">
+                          Total do Lote Simulado ({quantidadeVendidaEfetiva} un.)
+                        </td>
+                        <td className="py-2 px-3 text-slate-600 text-[11px] font-normal">
+                          Nota Fiscal Total ({formatBRL(itemMemoriaAtivo.totalNotaUnitario)}) ×
+                          Quantidade ({quantidadeVendidaEfetiva} un.)
+                        </td>
+                        <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
+                          {formatBRL(itemMemoriaAtivo.totalNotaLote)}
                         </td>
                       </tr>
 
