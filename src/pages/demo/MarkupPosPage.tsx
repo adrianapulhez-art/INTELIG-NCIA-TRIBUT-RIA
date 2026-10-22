@@ -1,25 +1,26 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Calculator,
-  AlertTriangle,
+  ArrowRight,
+  Sparkles,
+  Info,
+  TrendingUp,
+  TrendingDown,
+  Layers,
+  FileText,
   Plus,
   Trash2,
-  CheckCircle2,
-  ArrowRight,
-  TrendingDown,
-  TrendingUp,
-  FileText,
-  Info,
-  Layers,
-  Sparkles,
-  ShoppingBag,
   PackageCheck,
+  ShoppingBag,
   Scale,
+  CheckCircle2,
+  AlertTriangle,
+  UserCheck,
 } from 'lucide-react'
-import { DemoLayout } from '@/components/demo/DemoLayout'
 import { PageHero } from '@/components/demo/PageHero'
 import { MoneyInput } from '@/components/demo/MoneyInput'
+import { DemoLayout } from '@/components/demo/DemoLayout'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -30,18 +31,8 @@ import {
 } from '@/components/ui/dialog'
 import { useTaxContext } from '@/contexts/TaxContext'
 import { formatBRL, formatNumberBR, formatPercentBR } from '@/lib/taxCalculations'
-import {
-  computeCellArt12,
-  CONFIG_PADRAO_ART12,
-  CRONOGRAMA_ART12,
-  CASO_CANONICO_ART12,
-  type CmvArt12Input,
-} from '@/lib/art12Calculations'
-import {
-  roundHalfUp,
-  calcularCelulaFornecedorPlenoXAdquirenteSn,
-  type ResultadoCelulaFornecedorPlenoXAdquirenteSn,
-} from '@/lib/art12SnCalculations'
+import { CASO_CANONICO_ART12, type CmvArt12Input } from '@/lib/art12Calculations'
+import { roundHalfUp } from '@/lib/art12SnCalculations'
 import {
   montarItensIntegracao,
   derivarCasoUnitario,
@@ -54,7 +45,11 @@ import {
   type DespesaVariavelVenda,
   type FornecedorPosKey,
   FORNECEDORES_META,
+  type ClienteRegimeKey,
+  CLIENTES_REGIME_META,
+  type MarkupPosColunaResultado,
 } from '@/lib/markupPosCalculations'
+import { lerEspelhoComprasCard03 } from '@/lib/leituraCard03Compras'
 
 /** Constantes de referência chanceladas pela Adri (proteção de ouro) */
 export const REFERENCIAS_MARKUP_POS = {
@@ -74,7 +69,6 @@ export function MarkupPosPage() {
   // --------------------------------------------------------------------------
   const produtoAtivo = useMemo(() => {
     if (!markupProducts || markupProducts.length === 0) return null
-    // Seleciona o primeiro produto que possui nome ou custo configurado
     const comDados = markupProducts.find((p) => p.name && p.name.trim().length > 0)
     return comDados || markupProducts[0]
   }, [markupProducts])
@@ -86,7 +80,7 @@ export function MarkupPosPage() {
   // --------------------------------------------------------------------------
   // 2. EIXO — CUSTO DO ADQUIRENTE (leitura ao vivo do Card 03 da página Compras)
   // --------------------------------------------------------------------------
-  const { itensOrigem, casoUnitario } = useMemo(() => {
+  const { casoUnitario } = useMemo(() => {
     const itens = montarItensIntegracao(purchasesItems || [])
     const caso = derivarCasoUnitario(itens)
     return { itensOrigem: itens, casoUnitario: caso }
@@ -96,94 +90,22 @@ export function MarkupPosPage() {
     casoUnitario.input && casoUnitario.item && casoUnitario.item.valorNota > 0,
   )
 
-  // Fallback para caso canônico na validação (quando não houver preenchimento na sessão)
   const inputEfetivo: CmvArt12Input = temComprasAtivas ? casoUnitario.input! : CASO_CANONICO_ART12
   const itemEfetivo: ItemIntegracaoArt12 | undefined = temComprasAtivas
     ? casoUnitario.item!
     : undefined
 
-  // Linha do cronograma oficial para 2027
-  const row2027 = useMemo(() => {
-    return CRONOGRAMA_ART12.find((r) => r.exercicio === 2027) || CRONOGRAMA_ART12[1]
-  }, [])
-
-  // Cálculo das 4 células de fornecedor para o adquirente Lucro Presumido em 2027
-  const custosAdquirente = useMemo(() => {
-    // 1. Célula LP (LP × LP)
-    const cellLp = computeCellArt12(
-      inputEfetivo,
-      {
-        ...CONFIG_PADRAO_ART12,
-        compradorRegime: 'presumido',
-        fornecedorRegime: 'presumido',
-      },
-      row2027,
-    )
-
-    // 2. Célula LR (LP × LR)
-    const cellLr = computeCellArt12(
-      inputEfetivo,
-      {
-        ...CONFIG_PADRAO_ART12,
-        compradorRegime: 'presumido',
-        fornecedorRegime: 'real',
-      },
-      row2027,
-    )
-
-    // 3. Célula SNP (LP × SN Puro — motor canônico calcularCelulaFornecedorPlenoXAdquirenteSn)
-    const celulaSnp: ResultadoCelulaFornecedorPlenoXAdquirenteSn =
-      calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_presumido', 'simples', itemEfetivo)
-
-    // 4. Célula SNH (LP × SN Híbrido — motor canônico calcularCelulaFornecedorPlenoXAdquirenteSn)
-    const celulaSnh: ResultadoCelulaFornecedorPlenoXAdquirenteSn =
-      calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_presumido', 'simples_hibrido', itemEfetivo)
-
-    return {
-      lp: {
-        custo2027: cellLp.exercicio.unitario,
-        custoHoje: cellLp.hoje.unitario,
-        deltaPct: cellLp.deltaPct,
-        comprasLiquidas2027: cellLp.exercicio.liquido,
-        notaCheia2027: cellLp.exercicio.bruto,
-        cellRaw: cellLp,
-      },
-      lr: {
-        custo2027: cellLr.exercicio.unitario,
-        custoHoje: cellLr.hoje.unitario,
-        deltaPct: cellLr.deltaPct,
-        comprasLiquidas2027: cellLr.exercicio.liquido,
-        notaCheia2027: cellLr.exercicio.bruto,
-        cellRaw: cellLr,
-      },
-      snp: {
-        custo2027: celulaSnp.exercicio2027.custoUnitario,
-        custoHoje: celulaSnp.hoje.custoUnitario,
-        deltaPct: celulaSnp.deltaPct,
-        comprasLiquidas2027: celulaSnp.exercicio2027.comprasLiquidas,
-        notaCheia2027: celulaSnp.exercicio2027.notaCheia,
-        celulaSnRaw: celulaSnp,
-      },
-      snh: {
-        custo2027: celulaSnh.exercicio2027.custoUnitario,
-        custoHoje: celulaSnh.hoje.custoUnitario,
-        deltaPct: celulaSnh.deltaPct,
-        comprasLiquidas2027: celulaSnh.exercicio2027.comprasLiquidas,
-        notaCheia2027: celulaSnh.exercicio2027.notaCheia,
-        celulaSnRaw: celulaSnh,
-      },
-    }
-  }, [inputEfetivo, itemEfetivo, row2027])
-
   // --------------------------------------------------------------------------
   // 3. PERSISTÊNCIA DOS VALORES DIGITADOS (POLÍTICA: "UM SALVAMENTO, UMA PÁGINA")
   // --------------------------------------------------------------------------
-  // Ao primeiro acesso (sem salvamento prévio), os campos nascem vazios (undefined)
-  // com placeholders de referência chancelados. O estado salvo restaura os valores
-  // digitados sem apagar na navegação ou reload.
   const estadoSalvoInicial = useMemo(() => carregarEstadoMarkupPos(), [])
 
-  // Botão selecionável do fornecedor principal
+  // Seletor LP/LR/SNP/SNH = REGIME DO CLIENTE DO CONTADOR (chancela Adri)
+  const [clienteRegime, setClienteRegime] = useState<ClienteRegimeKey>(
+    estadoSalvoInicial?.clienteRegimeSelecionado ?? 'lp',
+  )
+
+  // Fornecedor em foco (para detalhamento/destaque)
   const [fornecedorSelecionado, setFornecedorSelecionado] = useState<FornecedorPosKey>(
     estadoSalvoInicial?.fornecedorSelecionado ?? 'lp',
   )
@@ -221,7 +143,6 @@ export function MarkupPosPage() {
     setDespesasVariaveis((prev) => prev.filter((item) => item.id !== id))
   }
 
-  // Soma de DV e fator multiplicativo consolidado (vazio trata como 0%)
   const somaDvPct = useMemo(() => {
     return despesasVariaveis.reduce((acc, curr) => acc + (curr.aliquota ?? 0), 0)
   }, [despesasVariaveis])
@@ -236,28 +157,24 @@ export function MarkupPosPage() {
   }, [despesasVariaveis])
 
   // --------------------------------------------------------------------------
-  // 4. TRIBUTOS — COMPOSIÇÃO PÓS-REFORMA (campos nascem vazios; motor usa referência)
+  // 4. TRIBUTOS & PARÂMETROS EDITÁVEIS (Nascem vazios; motor usa valores de referência)
   // --------------------------------------------------------------------------
-  // ICMS editável na transição (LP/LR): nasce vazio (undefined), ref. 18,00%
   const [icmsRateInput, setIcmsRateInput] = useState<number | undefined>(
     estadoSalvoInicial?.icmsRateInput,
   )
   const icmsRateEfetivo = icmsRateInput ?? REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT
   const fatorIcms = useMemo(() => Math.max(0, 1 - icmsRateEfetivo / 100), [icmsRateEfetivo])
 
-  // CBS 2027: nasce vazio (undefined), ref. 26,50%
   const [cbsRateInput, setCbsRateInput] = useState<number | undefined>(
     estadoSalvoInicial?.cbsRateInput,
   )
   const cbsRateEfetivo = cbsRateInput ?? REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT
 
-  // IBS 2027: nasce vazio (undefined), ref. 0,10%
   const [ibsRateInput, setIbsRateInput] = useState<number | undefined>(
     estadoSalvoInicial?.ibsRateInput,
   )
   const ibsRateEfetivo = ibsRateInput ?? REFERENCIAS_MARKUP_POS.IBS_PADRAO_PCT
 
-  // Margem de lucro desejada %: nasce vazia (undefined), ref. 51,90%
   const margemReferencia = useMemo(() => {
     if (produtoAtivo && produtoAtivo.margin && produtoAtivo.margin > 0) {
       return produtoAtivo.margin
@@ -271,7 +188,6 @@ export function MarkupPosPage() {
   const margemLucroEfetiva = margemLucroInput ?? margemReferencia
   const fatorMargem = useMemo(() => Math.max(0, 1 - margemLucroEfetiva / 100), [margemLucroEfetiva])
 
-  // Quantidade vendida: nasce vazia (undefined), ref. 24 un.
   const quantidadeReferencia = useMemo(() => {
     if (produtoAtivo && produtoAtivo.quantity && produtoAtivo.quantity > 0) {
       return produtoAtivo.quantity
@@ -287,7 +203,7 @@ export function MarkupPosPage() {
       ? Math.round(quantidadeVendidaInput)
       : quantidadeReferencia
 
-  // EFEITO DE PERSISTÊNCIA AUTOMÁTICA (apenas o que o usuário digita é salvo)
+  // Efeito de persistência: preserva seleções e valores digitados (Política Adri: um salvamento, uma página)
   useEffect(() => {
     salvarEstadoMarkupPos({
       despesasVariaveis,
@@ -297,6 +213,7 @@ export function MarkupPosPage() {
       margemLucroInput,
       quantidadeVendidaInput,
       fornecedorSelecionado,
+      clienteRegimeSelecionado: clienteRegime,
     })
   }, [
     despesasVariaveis,
@@ -306,30 +223,42 @@ export function MarkupPosPage() {
     margemLucroInput,
     quantidadeVendidaInput,
     fornecedorSelecionado,
+    clienteRegime,
   ])
 
   // Parâmetros do Simples Nacional vindos do TaxContext
   const simplesAnexoAtivo = simplesAnexo || 'anexo_1'
   const simplesRbt12Ativo = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
 
-  // Divisor sem ICMS (comum para LP/LR e base de cálculo)
+  // --------------------------------------------------------------------------
+  // 5. LEITURA AO VIVO DO CARD 03 DA COMPRAS PARA O REGIME DO CLIENTE ESCOLHIDO
+  // FONTE ÚNICA DO CUSTO: não recalcula custo; consome os 4 motores da Compras
+  // --------------------------------------------------------------------------
+  const espelhoCard03Compras = useMemo(() => {
+    return lerEspelhoComprasCard03(clienteRegime, {
+      item: itemEfetivo,
+      inputPleno: inputEfetivo,
+      cbsRateOverride: cbsRateEfetivo,
+      ibsRateOverride: ibsRateEfetivo,
+    })
+  }, [clienteRegime, itemEfetivo, inputEfetivo, cbsRateEfetivo, ibsRateEfetivo])
+
+  // Divisor sem ICMS base (utilizado para a composição de LP e LR)
   const divisorSemIcms = useMemo(() => {
     const d = fatorDvConsolidado * fatorMargem
     return d > 0 ? d : 0.0001
   }, [fatorDvConsolidado, fatorMargem])
 
   // --------------------------------------------------------------------------
-  // SIMULAÇÃO COMPLETA DOS 4 FORNECEDORES LADO A LADO VIA MOTOR DEDICADO
-  // - LP e LR: Composição com ICMS da transição (art. 12 §2º V + RC 32303/2025).
-  // - SNP: Simples Nacional Puro — DAS por dentro (alíquota efetiva do anexo), fatias detalhadas, sem ICMS 18%.
-  // - SNH: Simples Nacional Híbrido — DAS híbrido (ICMS e federais), CBS/IBS por fora sobre base sem ICMS.
+  // 6. DERIVAÇÃO DA FORMAÇÃO DO PREÇO DE VENDA NAS REGRAS MARKUP DO CLIENTE
   // --------------------------------------------------------------------------
   const simulacaoQuatroColunas = useMemo(() => {
     const keys: FornecedorPosKey[] = ['lp', 'lr', 'snp', 'snh']
     return keys.map((key) => {
-      const custoInfo = custosAdquirente[key]
-      const resultado = calcularMarkupPosColuna({
+      const custoInfo = espelhoCard03Compras[key]
+      return calcularMarkupPosColuna({
         key,
+        clienteRegime,
         custoUnitario: custoInfo.custo2027,
         custoHoje: custoInfo.custoHoje,
         deltaCustoPct: custoInfo.deltaPct,
@@ -345,15 +274,12 @@ export function MarkupPosPage() {
         simplesAnexo: simplesAnexoAtivo,
         simplesRbt12: simplesRbt12Ativo,
         effectiveSimplesRbt12,
-      })
-
-      return {
-        ...resultado,
         custoInfo,
-      }
+      })
     })
   }, [
-    custosAdquirente,
+    espelhoCard03Compras,
+    clienteRegime,
     fatorDvConsolidado,
     somaDvPct,
     margemLucroEfetiva,
@@ -363,30 +289,109 @@ export function MarkupPosPage() {
     quantidadeVendidaEfetiva,
     simplesAnexoAtivo,
     simplesRbt12Ativo,
+    effectiveSimplesRbt12,
   ])
 
   // Estado do diálogo de memória de cálculo detalhada
   const [modalMemoriaFornecedor, setModalMemoriaFornecedor] = useState<FornecedorPosKey | null>(
     null,
   )
-  const itemMemoriaAtivo = useMemo(() => {
+  const itemMemoriaAtivo: MarkupPosColunaResultado | null = useMemo(() => {
     if (!modalMemoriaFornecedor) return null
     return simulacaoQuatroColunas.find((s) => s.key === modalMemoriaFornecedor) || null
   }, [modalMemoriaFornecedor, simulacaoQuatroColunas])
 
+  const clienteMetaAtiva = CLIENTES_REGIME_META[clienteRegime]
+
   return (
     <DemoLayout currentTab="markup-pos">
       <div className="space-y-6">
-        {/* PageHero no padrão visual IT */}
+        {/* PageHero no padrão visual nobre IT */}
         <PageHero
           title="CALCULADORA DE MARKUP — PÓS EC 132"
-          subtitle="Formação do Preço de Venda Pós-Reforma Tributária (2027+): Eixo no Novo Custo do Adquirente (Card 03 Compras), despesas variáveis, ICMS na transição e CBS por fora."
+          subtitle="Formação do Preço de Venda Pós-Reforma Tributária (2027+): Eixo no Novo Custo do Adquirente (Card 03 Compras), despesas variáveis editáveis e regras tributárias derivadas por regime do cliente."
           badge="ETAPA 6 · PRECIFICAÇÃO E MARKUP PÓS-REFORMA"
           icon={Calculator}
         />
 
         {/* ========================================================================= */}
-        {/* AVISOS DE INTEGRAÇÃO / ESTADO VAZIO (quando aplicável)                    */}
+        {/* SELETOR PRINCIPAL: REGIME DO CLIENTE DO CONTADOR (LP / LR / SNP / SNH)   */}
+        {/* ========================================================================= */}
+        <div className="rounded-2xl border-2 border-[#b87c14]/40 bg-gradient-to-r from-[#fbf8f2] via-white to-[#fdf9f1] p-5 shadow-sm space-y-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-900/10 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-b from-[#261502] to-[#472704] text-amber-200 flex items-center justify-center font-black text-sm shadow-xs">
+                <UserCheck className="w-5 h-5 text-amber-300" />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#b87c14] block">
+                  Regime do Cliente do Contador (Adquirente / Vendedor)
+                </span>
+                <h3 className="text-base font-black text-[#261502] tracking-tight">
+                  Selecione o Regime Tributário do Seu Cliente:
+                </h3>
+              </div>
+            </div>
+
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-[#3b2405] text-xs font-mono font-bold border border-amber-300 shadow-2xs">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#b87c14]" />
+              {clienteMetaAtiva.rotulo}
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-600 leading-relaxed font-sans">
+            O seletor abaixo define a <strong>perspectiva tributária do cliente</strong>. Para cada
+            regime selecionado, a calculadora lê automaticamente do <strong>Card 03</strong> da
+            Calculadora de Compras os 4 custos de aquisição por fornecedor (LP, LR, SNP e SNH) e
+            deriva as regras de formação do preço de venda (ICMS da transição com CBS/IBS por fora
+            para LP/LR ou sistemática do Simples Nacional DAS para SNP/SNH).
+          </p>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+            {(['lp', 'lr', 'snp', 'snh'] as const).map((key) => {
+              const ativo = clienteRegime === key
+              const meta = CLIENTES_REGIME_META[key]
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setClienteRegime(key)}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    ativo
+                      ? 'border-[#b87c14] bg-gradient-to-b from-[#fff9eb] via-white to-[#faeccb] shadow-md ring-2 ring-[#b87c14]/40 -translate-y-0.5'
+                      : 'border-slate-200 bg-white hover:border-amber-300 hover:bg-amber-50/40 shadow-2xs'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span
+                      className={`px-2.5 py-0.5 rounded text-xs font-mono font-black uppercase ${
+                        ativo
+                          ? 'bg-[#261502] text-amber-200'
+                          : 'bg-slate-100 text-slate-700 border border-slate-200'
+                      }`}
+                    >
+                      {meta.sigla}
+                    </span>
+                    {ativo && (
+                      <span className="text-[10px] font-mono font-bold text-amber-900 bg-amber-200/80 px-1.5 py-0.5 rounded border border-amber-400">
+                        Selecionado
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs font-bold text-[#261502] leading-tight block">
+                    {meta.rotulo.replace('Cliente ', '')}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono line-clamp-2 mt-1 leading-tight">
+                    {meta.descricao}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* AVISOS DE INTEGRAÇÃO / SINALIZAÇÃO DE SESSÃO                              */}
         {/* ========================================================================= */}
         {!temProdutoAtivo && (
           <div className="rounded-xl border border-amber-400/60 bg-amber-50/90 p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -396,7 +401,7 @@ export function MarkupPosPage() {
               </div>
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#3b2405]">
-                  Item 01 — Nenhum Produto Ativo na Calculadora Markup Pré-Reforma
+                  Nenhum Produto Ativo na Calculadora Markup Pré-Reforma
                 </h4>
                 <p className="text-xs text-slate-600 mt-0.5">
                   Esta calculadora extrai automaticamente o produto ativo da Calculadora de Markup.
@@ -424,13 +429,12 @@ export function MarkupPosPage() {
               </div>
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#3b2405]">
-                  Card 03 Compras — Operando com Caso Canônico de Validação
+                  Sem dados na sessão ativa da Calculadora de Compras
                 </h4>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  A Calculadora de Compras ainda não possui compras ativas na sessão. Os custos de
-                  2027 estão sendo calculados ao vivo sobre o{' '}
-                  <strong className="text-slate-900 font-semibold">Caso Canônico da Adri</strong>{' '}
-                  (LP 1.116,63 · LR 1.051,73 · SNP 1.482,94 · SNH 1.383,56).
+                  Exibindo o <strong>Caso Canônico Chancelado de Validação</strong> (Smartphone
+                  Galaxy S24 Ultra · Lote 30 un. · R$ 1.400/un. + Frete R$ 400). Para simular com a
+                  sua nota fiscal de compras, registre a operação na página Compras.
                 </p>
               </div>
             </div>
@@ -438,61 +442,53 @@ export function MarkupPosPage() {
               asChild
               variant="outline"
               size="sm"
-              className="border-amber-300 text-[#3b2405] hover:bg-amber-100 text-xs font-bold whitespace-nowrap cursor-pointer"
+              className="border-amber-300 text-[#3b2405] hover:bg-amber-100 font-bold text-xs cursor-pointer whitespace-nowrap"
             >
-              <Link to="/demo/compras">Preencher Compras</Link>
+              <Link to="/demo/reforma">
+                Ir para Compras <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              </Link>
             </Button>
           </div>
         )}
 
         {/* ========================================================================= */}
-        {/* BANNER 01 — PRODUTO DE REFERÊNCIA & EIXO DE CUSTO ADQUIRENTE 2027          */}
+        {/* CARD 01: EIXO — CUSTO DO ADQUIRENTE POR FORNECEDOR (CARD 03 COMPRAS)       */}
         {/* ========================================================================= */}
         <div className="rounded-2xl border border-amber-300/70 bg-white p-5 shadow-sm space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-900/10 pb-3.5">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] flex items-center justify-center text-[#261502] font-black text-xs shadow-xs">
-                01
+                03
               </div>
               <div>
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#b87c14] block">
-                  Produto Ativo da Integração Pré-Reforma
+                  FONTE ÚNICA DO CUSTO · LEITURA AO VIVO DO CARD 03 COMPRAS PÓS REFORMA
                 </span>
                 <h3 className="text-sm font-black text-[#261502] tracking-tight">
-                  {temProdutoAtivo
-                    ? produtoAtivo?.name
-                    : 'Smartphone Galaxy S24 Ultra (ou Produto de Referência)'}
+                  Novo Preço de Custo do Adquirente ({clienteMetaAtiva.sigla}) por Fornecedor (2027)
                 </h3>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-[#3b2405] text-[11px] font-mono font-bold border border-amber-300">
-                <CheckCircle2 className="w-3.5 h-3.5 text-[#b87c14]" />
-                Integração Automática Ativa
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-mono font-bold border border-emerald-300">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Motor Correto da Célula Integrado
               </span>
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="text-xs text-[#5c3e06] hover:text-[#261502] hover:bg-amber-50 h-7"
-              >
-                <Link to="/demo/markup">Editar na Markup</Link>
-              </Button>
             </div>
           </div>
 
-          {/* Cards dos 4 custos de adquirente Lucro Presumido 2027 (Card 03 Compras) */}
+          {/* Cards dos 4 custos lidos ao vivo para o cliente selecionado */}
           <div className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
                 <Scale className="w-4 h-4 text-[#b87c14]" />
                 <span className="text-xs font-mono font-bold uppercase text-[#3b2405]">
-                  Eixo do Adquirente 2027 — Leitura do Card 03 da Calculadora de Compras:
+                  4 Custos de Entrada para o Cliente {clienteMetaAtiva.sigla} (Card 03):
                 </span>
               </div>
               <span className="text-[11px] font-mono text-slate-500">
-                Adquirente Lucro Presumido · Exercício 2027 (PIS/COFINS extintos)
+                Exercício 2027 · Fonte Única = Zero Retrabalho
               </span>
             </div>
 
@@ -502,33 +498,33 @@ export function MarkupPosPage() {
                   {
                     key: 'lp' as FornecedorPosKey,
                     sigla: 'LP',
-                    titulo: 'CUSTO COM FORNECEDOR LP',
-                    desc: 'Lucro Presumido (integral)',
-                    info: custosAdquirente.lp,
+                    titulo: 'FORNECEDOR LP',
+                    desc: 'Lucro Presumido',
+                    info: espelhoCard03Compras.lp,
                     cor: 'border-amber-300 bg-amber-50/50',
                   },
                   {
                     key: 'lr' as FornecedorPosKey,
                     sigla: 'LR',
-                    titulo: 'CUSTO COM FORNECEDOR LR',
-                    desc: 'Lucro Real (Régua A neutra)',
-                    info: custosAdquirente.lr,
+                    titulo: 'FORNECEDOR LR',
+                    desc: 'Lucro Real',
+                    info: espelhoCard03Compras.lr,
                     cor: 'border-sky-300 bg-sky-50/50',
                   },
                   {
                     key: 'snp' as FornecedorPosKey,
                     sigla: 'SNP',
-                    titulo: 'CUSTO COM FORNECEDOR SNP',
+                    titulo: 'FORNECEDOR SNP',
                     desc: 'Simples Nacional Puro',
-                    info: custosAdquirente.snp,
+                    info: espelhoCard03Compras.snp,
                     cor: 'border-orange-300 bg-orange-50/50',
                   },
                   {
                     key: 'snh' as FornecedorPosKey,
                     sigla: 'SNH',
-                    titulo: 'CUSTO COM FORNECEDOR SNH',
+                    titulo: 'FORNECEDOR SNH',
                     desc: 'Simples Nacional Híbrido',
-                    info: custosAdquirente.snh,
+                    info: espelhoCard03Compras.snh,
                     cor: 'border-emerald-300 bg-emerald-50/50',
                   },
                 ] as const
@@ -567,14 +563,17 @@ export function MarkupPosPage() {
                     <span className="text-[11px] font-bold text-slate-800 uppercase block leading-tight">
                       {card.titulo}
                     </span>
-                    <span className="text-[10px] text-slate-500 font-mono block mb-2">
+                    <span className="text-[10px] text-slate-500 font-mono block mb-1">
                       {card.desc}
+                    </span>
+                    <span className="text-[9px] text-[#5c3e06] font-mono font-semibold block mb-2 bg-amber-100/60 rounded px-1.5 py-0.5 border border-amber-200">
+                      {card.info.rotuloMotor}
                     </span>
 
                     <div className="pt-2 border-t border-amber-900/10 flex items-baseline justify-between">
                       <div>
                         <span className="text-[10px] font-mono text-slate-500 block">
-                          Custo 2027:
+                          Custo 2027 (Card 03):
                         </span>
                         <span className="text-base font-black font-mono text-[#261502]">
                           {formatBRL(card.info.custo2027)}
@@ -596,42 +595,6 @@ export function MarkupPosPage() {
         </div>
 
         {/* ========================================================================= */}
-        {/* SELEÇÃO DO FORNECEDOR PRINCIPAL (BOTÕES SELECIONÁVEIS)                    */}
-        {/* ========================================================================= */}
-        <div className="rounded-xl border border-amber-300/60 bg-gradient-to-r from-amber-50/60 via-white to-amber-50/60 p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-black uppercase text-[#261502]">
-              Fornecedor Selecionado para Foco da Operação:
-            </span>
-            <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
-              (Os 4 custos continuam simulados lado a lado abaixo)
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            {(['lp', 'lr', 'snp', 'snh'] as const).map((key) => {
-              const ativo = fornecedorSelecionado === key
-              const meta = FORNECEDORES_META[key]
-              const custo = custosAdquirente[key].custo2027
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setFornecedorSelecionado(key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition-all cursor-pointer ${
-                    ativo
-                      ? 'bg-gradient-to-b from-[#ffd966] via-[#f5b014] to-[#8f5204] text-[#1a0c01] border border-amber-300 shadow-sm ring-1 ring-[#b87c14]/40 font-black'
-                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-amber-50/80 hover:text-[#261502]'
-                  }`}
-                >
-                  {meta.sigla} · {formatBRL(custo)}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
         {/* PARÂMETROS EDITÁVEIS: DESPESAS VARIÁVEIS, TRIBUTOS E MARGEM DE LUCRO       */}
         {/* ========================================================================= */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -648,7 +611,7 @@ export function MarkupPosPage() {
                       Despesas Variáveis (DV)
                     </h4>
                     <span className="text-[10px] text-slate-500 font-mono">
-                      Fator multiplicativo redutor (1 − %)
+                      Fator redutor consolidado (1 − %)
                     </span>
                   </div>
                 </div>
@@ -664,12 +627,12 @@ export function MarkupPosPage() {
                 </Button>
               </div>
 
-              {/* Lista de DVs editáveis */}
+              {/* Lista de DVs editáveis (nascem vazias) */}
               {despesasVariaveis.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-amber-300/80 bg-amber-50/40 p-4 text-center space-y-2">
                   <p className="text-xs text-slate-600 font-mono leading-relaxed">
                     Nenhuma despesa variável configurada. A lista nasce vazia para digitação manual
-                    do usuário (ex.: Frete de entrega 3,00%, Comissão 2,00%, Maquininha 2,50%).
+                    (ex.: Frete 3,00%, Comissão 2,00%, Maquininha 2,50%).
                   </p>
                   <Button
                     type="button"
@@ -753,7 +716,7 @@ export function MarkupPosPage() {
             </div>
           </div>
 
-          {/* CARD 02: TRIBUTOS PÓS-REFORMA (ICMS TRANSIÇÃO + CBS 2027 + IBS) */}
+          {/* CARD 02: TRIBUTOS NA SAÍDA (DEPENDENTES DO REGIME DO CLIENTE) */}
           <div className="rounded-2xl border border-amber-300/70 bg-white p-5 shadow-sm space-y-4 flex flex-col justify-between">
             <div className="space-y-3.5">
               <div className="border-b border-amber-900/10 pb-2.5 flex items-center justify-between">
@@ -763,111 +726,154 @@ export function MarkupPosPage() {
                   </div>
                   <div>
                     <h4 className="text-xs font-black uppercase text-[#261502] tracking-wider">
-                      Tributos na Venda (2027+)
+                      Tributos na Venda ({clienteMetaAtiva.sigla})
                     </h4>
                     <span className="text-[10px] text-slate-500 font-mono">
-                      PIS/COFINS extintos · ICMS transição · CBS e IBS por fora
+                      {clienteRegime === 'snp' || clienteRegime === 'snh'
+                        ? 'Sistemática Simples Nacional'
+                        : 'ICMS transição · CBS/IBS por fora'}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* ICMS na Transição */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800">
-                    ICMS na Venda (Transição):
-                  </label>
-                  <span className="text-xs font-mono font-semibold text-[#5c3e06]">
-                    Fator: {fatorIcms.toFixed(4)}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                  <div className="sm:col-span-7">
-                    <MoneyInput
-                      value={icmsRateInput}
-                      onChange={(val) => setIcmsRateInput(val)}
-                      decimals={2}
-                      placeholder="18,00"
-                      className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
-                      suffix="%"
-                    />
+              {/* Ramo 1: Simples Puro (SNP) */}
+              {clienteRegime === 'snp' && (
+                <div className="space-y-2 rounded-xl bg-orange-50/60 border border-orange-200 p-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-orange-900">
+                    <span>DAS Simples Nacional Puro:</span>
+                    <span className="font-mono">4,00% (Anexo I)</span>
                   </div>
-                  <div className="sm:col-span-5 text-right sm:text-left">
-                    <span className="text-xs font-mono text-slate-500 font-semibold block">
-                      Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT)}
-                    </span>
+                  <p className="text-[11px] text-slate-600 leading-relaxed font-mono">
+                    Conforme LC 123/2006 art. 18: recolhimento 100% unificado no DAS por dentro.
+                    <strong> NUNCA ICMS com alíquota cheia (18%)</strong> nem CBS/IBS por fora.
+                  </p>
+                  <div className="pt-2 border-t border-orange-200 text-[10px] text-slate-500 font-mono space-y-0.5">
+                    <div>Fatia ICMS no DAS: 34,00% (R$ 44,03)</div>
+                    <div>Fatia CBS no DAS: 15,33% (R$ 19,85)</div>
+                    <div>Fatia IBS no DAS: 0,17% (R$ 0,22)</div>
+                    <div>Fatia Federais: 50,50% (R$ 65,40)</div>
                   </div>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono block leading-tight">
-                  Subsiste na transição (fator redutor por dentro). Vazio usa a referência 18,00%
-                  sem zerar.
-                </span>
-              </div>
+              )}
 
-              {/* CBS 2027 com Sinalização Permanente */}
-              <div className="space-y-1.5 pt-1 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800">CBS 2027 (Por Fora):</label>
-                  <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
-                    Estimativa Senado
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                  <div className="sm:col-span-7">
-                    <MoneyInput
-                      value={cbsRateInput}
-                      onChange={(val) => setCbsRateInput(val)}
-                      decimals={2}
-                      placeholder="26,50"
-                      className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
-                      suffix="%"
-                    />
+              {/* Ramo 2: Simples Híbrido (SNH) */}
+              {clienteRegime === 'snh' && (
+                <div className="space-y-2 rounded-xl bg-emerald-50/60 border border-emerald-200 p-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-emerald-950">
+                    <span>DAS Híbrido por Dentro:</span>
+                    <span className="font-mono">3,38% (ICMS + Federais)</span>
                   </div>
-                  <div className="sm:col-span-5 text-right sm:text-left">
-                    <span className="text-xs font-mono text-slate-500 font-semibold block">
-                      Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT)}
-                    </span>
+                  <p className="text-[11px] text-slate-600 leading-relaxed font-mono">
+                    LC 214/2025 art. 41: CBS (26,50%) e IBS (0,10%) recolhidos pelo regime regular
+                    por fora sobre a base limpa de ICMS.
+                  </p>
+                  <div className="pt-2 border-t border-emerald-200 text-[10px] text-slate-500 font-mono space-y-0.5">
+                    <div>DAS Híbrido: 3,38% (Fator 0,430739 chancelado)</div>
+                    <div>CBS por fora: 26,50% s/ base sem ICMS</div>
+                    <div>IBS por fora: 0,10% s/ base sem ICMS</div>
                   </div>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono block leading-tight">
-                  Incidência por fora (LC 214 art. 12 §2º I). Vazio usa a referência 26,50% sem
-                  zerar.
-                </span>
-              </div>
+              )}
 
-              {/* IBS na Venda (LC 214/2025 art. 346 - alíquota teste 0,10% por fora) */}
-              <div className="space-y-1.5 pt-1 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800">
-                    IBS na Venda (Por Fora):
-                  </label>
-                  <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 rounded px-1.5 py-0.5">
-                    Alíquota-teste (LC 214 art. 346)
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                  <div className="sm:col-span-7">
-                    <MoneyInput
-                      value={ibsRateInput}
-                      onChange={(val) => setIbsRateInput(val)}
-                      decimals={2}
-                      placeholder="0,10"
-                      className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
-                      suffix="%"
-                    />
-                  </div>
-                  <div className="sm:col-span-5 text-right sm:text-left">
-                    <span className="text-xs font-mono text-slate-500 font-semibold block">
-                      Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.IBS_PADRAO_PCT)}
+              {/* Ramo 3: LP ou LR (Regime Regular com Transição) */}
+              {(clienteRegime === 'lp' || clienteRegime === 'lr') && (
+                <>
+                  {/* ICMS na Transição */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800">
+                        ICMS na Venda (Transição):
+                      </label>
+                      <span className="text-xs font-mono font-semibold text-[#5c3e06]">
+                        Fator: {fatorIcms.toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                      <div className="sm:col-span-7">
+                        <MoneyInput
+                          value={icmsRateInput}
+                          onChange={(val) => setIcmsRateInput(val)}
+                          decimals={2}
+                          placeholder="18,00"
+                          className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
+                          suffix="%"
+                        />
+                      </div>
+                      <div className="sm:col-span-5 text-right sm:text-left">
+                        <span className="text-xs font-mono text-slate-500 font-semibold block">
+                          Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT)}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono block leading-tight">
+                      Subsiste na transição (incide por último com base incluindo CBS/IBS). Vazio
+                      usa 18,00%.
                     </span>
                   </div>
-                </div>
-                <span className="text-[10px] text-slate-400 font-mono block leading-tight">
-                  Alíquota-teste fixada em lei (LC 214 art. 346). Somado por fora na nota final.
-                  Vazio usa 0,10% sem zerar.
-                </span>
-              </div>
+
+                  {/* CBS 2027 com Sinalização Permanente */}
+                  <div className="space-y-1.5 pt-1 border-t border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800">
+                        CBS 2027 (Por Fora):
+                      </label>
+                      <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
+                        Estimativa Senado
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                      <div className="sm:col-span-7">
+                        <MoneyInput
+                          value={cbsRateInput}
+                          onChange={(val) => setCbsRateInput(val)}
+                          decimals={2}
+                          placeholder="26,50"
+                          className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
+                          suffix="%"
+                        />
+                      </div>
+                      <div className="sm:col-span-5 text-right sm:text-left">
+                        <span className="text-xs font-mono text-slate-500 font-semibold block">
+                          Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT)}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono block leading-tight">
+                      Incidência por fora (LC 214 art. 12 §2º I). Vazio usa a referência 26,50%.
+                    </span>
+                  </div>
+
+                  {/* IBS na Venda */}
+                  <div className="space-y-1.5 pt-1 border-t border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800">
+                        IBS na Venda (Por Fora):
+                      </label>
+                      <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 rounded px-1.5 py-0.5">
+                        Alíquota-teste (art. 346)
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                      <div className="sm:col-span-7">
+                        <MoneyInput
+                          value={ibsRateInput}
+                          onChange={(val) => setIbsRateInput(val)}
+                          decimals={2}
+                          placeholder="0,10"
+                          className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
+                          suffix="%"
+                        />
+                      </div>
+                      <div className="sm:col-span-5 text-right sm:text-left">
+                        <span className="text-xs font-mono text-slate-500 font-semibold block">
+                          Ref. {formatPercentBR(REFERENCIAS_MARKUP_POS.IBS_PADRAO_PCT)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Sinalização Permanente chancelada pela Adri */}
@@ -966,44 +972,46 @@ export function MarkupPosPage() {
               </div>
             </div>
 
-            {/* Fator Divisor Multiplicativo do Preço (Legalmente Estruturado) */}
+            {/* Fator Divisor Multiplicativo */}
             <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-3.5 space-y-1.5 mt-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono uppercase text-slate-600 font-bold">
-                  Divisor sem ICMS (BC IBS/CBS):
+                  {clienteRegime === 'snp' || clienteRegime === 'snh'
+                    ? 'Divisor Simples Nacional:'
+                    : 'Divisor sem ICMS (BC IBS/CBS):'}
                 </span>
                 <span className="text-sm font-mono font-black text-[#261502]">
-                  {divisorSemIcms.toFixed(6)}
+                  {clienteRegime === 'snp'
+                    ? (fatorDvConsolidado * fatorMargem * 0.96).toFixed(6)
+                    : clienteRegime === 'snh'
+                      ? (fatorDvConsolidado * fatorMargem * (1 - 0.0338)).toFixed(6)
+                      : divisorSemIcms.toFixed(6)}
                 </span>
-              </div>
-              <div className="flex items-center justify-between text-xs font-mono text-slate-600 pt-1 border-t border-amber-900/10">
-                <span className="text-[10px] uppercase font-bold text-slate-500">
-                  Fator ICMS (1 − {formatPercentBR(icmsRateEfetivo)}):
-                </span>
-                <span className="font-bold text-[#5c3e06]">{fatorIcms.toFixed(4)}</span>
               </div>
               <p className="text-[10px] font-mono text-slate-500 leading-tight pt-0.5">
-                Passo 1: Divisor sem ICMS = Π(1 − % DV) × (1 − Margem). BC IBS/CBS = Custo ÷ Divisor
-                sem ICMS (art. 12, §2º, V). Preço/Nota = (BC + CBS + IBS) ÷ (1 − ICMS) (Sefaz-SP RC
-                32303/2025).
+                {clienteRegime === 'snp'
+                  ? 'Simples Nacional Puro: tudo unificado por dentro do DAS sem alíquota cheia (18%).'
+                  : clienteRegime === 'snh'
+                    ? 'Simples Nacional Híbrido: DAS híbrido por dentro (3,38%), CBS/IBS por fora sobre base sem ICMS.'
+                    : 'Regime Regular: Divisor sem ICMS = Π(1 − % DV) × (1 − Margem). ICMS por último com base incluindo CBS/IBS.'}
               </p>
             </div>
           </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* PREÇO DE VENDA SIMULADO — 4 COLUNAS LADO A LADO (LP · LR · SNP · SNH)     */}
+        {/* PREÇO DE VENDA SIMULADO — 4 COLUNAS LADO A LADO PARA O CLIENTE SELECIONADO */}
         {/* ========================================================================= */}
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#b87c14]" />
               <h3 className="text-sm font-black uppercase text-[#261502] tracking-wider">
-                Preço de Venda Simulado — Comparação Lado a Lado (4 Fornecedores):
+                Preço de Venda Derivado para o Cliente {clienteMetaAtiva.rotulo} (4 Fornecedores):
               </h3>
             </div>
             <span className="text-xs font-mono text-slate-500">
-              Padrão de Comparação da Casa · Adquirente Lucro Presumido · 2027
+              Formação de Preço Conforme Regime do Cliente · Exercício 2027
             </span>
           </div>
 
@@ -1032,19 +1040,19 @@ export function MarkupPosPage() {
                       )}
                     </div>
                     <h4 className="text-xs font-black text-[#261502] uppercase leading-tight">
-                      {col.meta.rotulo}
+                      Fornecedor {col.meta.rotulo}
                     </h4>
                     <p className="text-[10px] text-slate-500 font-mono leading-tight">
-                      {col.meta.descricao}
+                      {col.custoInfo?.rotuloMotor ?? col.meta.descricao}
                     </p>
                   </div>
 
                   {/* Corpo do Card */}
                   <div className="p-4 space-y-3.5 flex-1 flex flex-col justify-between">
-                    {/* 1. Custo Unitário de Aquisição (Card 03 Compras) */}
+                    {/* 1. Custo Unitário de Aquisição Lido do Card 03 Compras */}
                     <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 space-y-0.5">
                       <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                        <span>Custo Adquirente (2027):</span>
+                        <span>Custo Card 03 (2027):</span>
                         <span className="line-through text-slate-400">
                           {formatBRL(col.custoHoje)}
                         </span>
@@ -1065,7 +1073,7 @@ export function MarkupPosPage() {
                       </div>
                     </div>
 
-                    {/* 2. Total da Nota Fiscal e Lote (Totais Consolidados de Leitura Rápida) */}
+                    {/* 2. Total da Nota Fiscal e Lote */}
                     <div className="rounded-xl border border-amber-300/80 bg-slate-50/90 p-3 space-y-2 text-xs font-mono shadow-xs">
                       <div className="flex items-baseline justify-between text-[#261502] font-black text-sm">
                         <span className="text-xs uppercase tracking-tight text-slate-700">
@@ -1102,58 +1110,54 @@ export function MarkupPosPage() {
         </div>
 
         {/* ========================================================================= */}
-        {/* COMPOSIÇÃO DOS TRIBUTOS COM FUNDAMENTAÇÃO LEGAL (LC 214/2025)             */}
+        {/* COMPOSIÇÃO DOS TRIBUTOS COM FUNDAMENTAÇÃO LEGAL                           */}
         {/* ========================================================================= */}
         <div className="rounded-2xl border border-amber-300/70 bg-white p-5 shadow-sm space-y-3">
           <div className="flex items-center gap-2 border-b border-amber-900/10 pb-2.5">
             <Layers className="w-4 h-4 text-[#b87c14]" />
             <h4 className="text-xs font-black uppercase text-[#261502] tracking-wider">
-              Composição dos Tributos & Fundamentação Legal (LC 214/2025)
+              Composição dos Tributos & Fundamentação Legal por Regime do Cliente
             </h4>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono text-slate-700">
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-1">
               <span className="text-[10px] font-bold uppercase text-[#b87c14] block">
-                1. ICMS Fora da Base IBS/CBS
+                1. Cliente Lucro Presumido (LP)
               </span>
               <p className="text-[11px] leading-relaxed">
-                LC 214/2025, art. 12, §2º, V: ICMS, ISS e PIS/COFINS NÃO integram a base de cálculo
-                do IBS e da CBS durante 2026–2032. O divisor para apurar a BC do IBS/CBS é limpo de
-                ICMS: produto dos fatores de DV × fator da margem.
+                LC 214/2025, art. 12 §2º V: ICMS fora da base IBS/CBS. CBS e IBS por fora. ICMS
+                desembaraçado por último com base incluindo CBS/IBS (Sefaz-SP RC 32303/2025).
               </p>
             </div>
 
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-1">
               <span className="text-[10px] font-bold uppercase text-[#b87c14] block">
-                2. CBS & IBS "Por Fora"
+                2. Cliente Lucro Real (LR)
               </span>
               <p className="text-[11px] leading-relaxed">
-                LC 214/2025, art. 12, §2º, I: o próprio IBS e CBS não integram a própria base de
-                cálculo (incidência por fora). Calculados aplicando-se as alíquotas (CBS 26,50%
-                estimada e IBS 0,10% teste art. 346) diretamente sobre a BC líquida.
+                EC 132/2023 art. 22 I c/c LC 214/2025 art. 12: extinção de PIS/COFINS em 2027 iguala
+                a composição de preço na saída ao Lucro Presumido.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-1">
+              <span className="text-[10px] font-bold uppercase text-orange-800 block">
+                3. Cliente Simples Nacional Puro (SNP)
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                LC 123/2006 art. 18: recolhimento 100% unificado no DAS por dentro. NUNCA alíquota
+                cheia de ICMS (18%). Preço = Custo ÷ Divisor Simples Puro.
               </p>
             </div>
 
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-1">
               <span className="text-[10px] font-bold uppercase text-emerald-800 block">
-                3. IBS/CBS na Base do ICMS (Recíproca)
+                4. Cliente Simples Híbrido (SNH)
               </span>
               <p className="text-[11px] leading-relaxed">
-                Sefaz-SP RC 32303/2025 e RC 32931/2026: a exclusão do art. 12 §2º define a base dos
-                novos tributos, não a dos remanescentes. O IBS e a CBS integram a base do ICMS, que
-                incide por dentro sobre (BC + CBS + IBS) ÷ (1 − alíquota ICMS).
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-1">
-              <span className="text-[10px] font-bold uppercase text-[#b87c14] block">
-                4. PIS e COFINS Extintos (EC 132/2023)
-              </span>
-              <p className="text-[11px] leading-relaxed">
-                EC 132/2023, art. 22, I c/c LC 214/2025, art. 334, II: as contribuições ao PIS e
-                COFINS deixam de incidir a partir de 1º de janeiro de 2027, sendo totalmente
-                eliminadas da composição de formação de preço.
+                LC 214/2025 art. 41: opt-in CBS/IBS no regime regular. DAS híbrido por dentro (3,38%
+                = ICMS + federais), CBS e IBS por fora sobre base limpa de ICMS.
               </p>
             </div>
           </div>
@@ -1176,10 +1180,11 @@ export function MarkupPosPage() {
                 </div>
                 <div>
                   <DialogTitle className="text-base font-black text-[#261502] uppercase tracking-wide">
-                    Memória de Cálculo Completa — Fornecedor {itemMemoriaAtivo?.meta.sigla} (2027)
+                    Memória de Cálculo Completa — Fornecedor {itemMemoriaAtivo?.meta.sigla} ×
+                    Cliente {clienteMetaAtiva.sigla} (2027)
                   </DialogTitle>
                   <DialogDescription className="text-xs text-slate-500 font-mono">
-                    Abertura detalhada passo a passo conforme sistemática chancelada pela Adri
+                    Abertura passo a passo conforme sistemática chancelada pela Adri
                   </DialogDescription>
                 </div>
               </div>
@@ -1192,7 +1197,10 @@ export function MarkupPosPage() {
                   <div>
                     <span className="text-[10px] uppercase text-slate-500 block">Operação</span>
                     <span className="font-bold text-[#261502]">
-                      Fornecedor {itemMemoriaAtivo.meta.rotulo} × Adquirente Lucro Presumido
+                      Fornecedor {itemMemoriaAtivo.meta.rotulo} × Cliente {clienteMetaAtiva.rotulo}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block font-mono">
+                      Motor de Custo: {itemMemoriaAtivo.custoInfo?.rotuloMotor}
                     </span>
                   </div>
                   <div className="text-right">
@@ -1205,7 +1213,7 @@ export function MarkupPosPage() {
                   </div>
                 </div>
 
-                {/* Tabela de Passos Linha a Linha por Sistemática */}
+                {/* Tabela de Passos Linha a Linha */}
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
                   <table className="w-full border-collapse text-left">
                     <thead className="bg-[#261502] text-amber-200 text-[11px] uppercase tracking-wider">
@@ -1217,13 +1225,13 @@ export function MarkupPosPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 text-slate-800">
-                      {/* Passo 0: Custo do Adquirente */}
+                      {/* Passo 0: Custo do Card 03 da Compras */}
                       <tr className="bg-amber-50/40 font-bold text-[#261502]">
                         <td className="py-2 px-3">0º</td>
                         <td className="py-2 px-3">Custo de Aquisição (Card 03 Compras)</td>
                         <td className="py-2 px-3 text-slate-600 font-normal">
-                          Custo unitário apurado no Card 03 para o fornecedor{' '}
-                          {itemMemoriaAtivo.meta.sigla} (2027)
+                          {itemMemoriaAtivo.custoInfo?.fundamentoLegal ??
+                            'Lido diretamente do Card 03 da Calculadora de Compras Pós Reforma'}
                         </td>
                         <td className="py-2 px-3 text-right">
                           {formatBRL(itemMemoriaAtivo.custoUnitario)}
@@ -1235,7 +1243,7 @@ export function MarkupPosPage() {
                         <td className="py-2 px-3 font-bold text-[#261502]">1º</td>
                         <td className="py-2 px-3 font-semibold text-slate-800">
                           {itemMemoriaAtivo.isSimples
-                            ? `Divisor do Simples Nacional (${itemMemoriaAtivo.key === 'snp' ? 'SN Puro' : 'SN Híbrido'})`
+                            ? `Divisor do Simples Nacional (${itemMemoriaAtivo.clienteRegime === 'snp' ? 'SN Puro' : 'SN Híbrido'})`
                             : 'Divisor SEM ICMS'}
                         </td>
                         <td className="py-2 px-3 text-slate-600 text-[11px]">
@@ -1245,7 +1253,7 @@ export function MarkupPosPage() {
                               Nacional não usa ICMS 18% cheia.
                               <br />
                               Divisor = Π(1 − % DV) [{fatorDvConsolidado.toFixed(4)}] × (1 − Margem)
-                              [{fatorMargem.toFixed(4)}] × Fator DAS [
+                              [{fatorMargem.toFixed(4)}] × Fator Tributário [
                               {itemMemoriaAtivo.fatorTributarioEfetivo.toFixed(4)}].
                             </>
                           ) : (
@@ -1263,7 +1271,7 @@ export function MarkupPosPage() {
                         </td>
                       </tr>
 
-                      {/* Linhas detalhadas de DV se houver */}
+                      {/* Linhas de DV */}
                       {despesasVariaveis.map((dv, idx) => {
                         const aliq = dv.aliquota ?? 0
                         return (
@@ -1283,8 +1291,8 @@ export function MarkupPosPage() {
                         )
                       })}
 
-                      {/* RAMIFICAÇÃO: SNP (Simples Puro) */}
-                      {itemMemoriaAtivo.key === 'snp' && (
+                      {/* CLIENTE SIMPLES NACIONAL PURO (SNP) */}
+                      {itemMemoriaAtivo.clienteRegime === 'snp' && (
                         <>
                           <tr className="bg-amber-50/70 font-semibold text-slate-900">
                             <td className="py-2 px-3 font-bold text-[#261502]">2º</td>
@@ -1318,7 +1326,6 @@ export function MarkupPosPage() {
                             </td>
                           </tr>
 
-                          {/* Fatias detalhadas do DAS */}
                           <tr className="text-slate-600 text-[11px]">
                             <td className="py-1.5 px-3 text-slate-400 pl-6">3.1</td>
                             <td className="py-1.5 px-3">
@@ -1374,8 +1381,8 @@ export function MarkupPosPage() {
                         </>
                       )}
 
-                      {/* RAMIFICAÇÃO: SNH (Simples Híbrido) */}
-                      {itemMemoriaAtivo.key === 'snh' && (
+                      {/* CLIENTE SIMPLES NACIONAL HÍBRIDO (SNH) */}
+                      {itemMemoriaAtivo.clienteRegime === 'snh' && (
                         <>
                           <tr className="bg-amber-50/70 font-semibold text-slate-900">
                             <td className="py-2 px-3 font-bold text-[#261502]">2º</td>
@@ -1405,33 +1412,10 @@ export function MarkupPosPage() {
                               {formatPercentBR(itemMemoriaAtivo.fatiasDas?.icmsPct ?? 34, 1)}) +
                               Federais (
                               {formatPercentBR(itemMemoriaAtivo.fatiasDas?.federaisPct ?? 50.5, 2)}
-                              ).
-                              <br />
-                              CBS e IBS recolhidos pelo regime regular por fora (art. 41 LC 214).
+                              ). CBS e IBS por fora (art. 41 LC 214).
                             </td>
                             <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
                               {formatBRL(itemMemoriaAtivo.fatiasDas?.dasTotal ?? 0)}
-                            </td>
-                          </tr>
-
-                          <tr className="text-slate-600 text-[11px]">
-                            <td className="py-1.5 px-3 text-slate-400 pl-6">3.1</td>
-                            <td className="py-1.5 px-3">ICMS no DAS Híbrido</td>
-                            <td className="py-1.5 px-3 text-slate-500">
-                              Fração de ICMS recolhida no DAS híbrido
-                            </td>
-                            <td className="py-1.5 px-3 text-right font-mono font-semibold">
-                              {formatBRL(itemMemoriaAtivo.fatiasDas?.icmsValor ?? 0)}
-                            </td>
-                          </tr>
-                          <tr className="text-slate-600 text-[11px]">
-                            <td className="py-1.5 px-3 text-slate-400 pl-6">3.2</td>
-                            <td className="py-1.5 px-3">Federais IRPJ/CSLL/CPP no DAS Híbrido</td>
-                            <td className="py-1.5 px-3 text-slate-500">
-                              Parcela dos tributos federais no DAS híbrido
-                            </td>
-                            <td className="py-1.5 px-3 text-right font-mono font-semibold">
-                              {formatBRL(itemMemoriaAtivo.fatiasDas?.federaisValor ?? 0)}
                             </td>
                           </tr>
 
@@ -1480,8 +1464,9 @@ export function MarkupPosPage() {
                         </>
                       )}
 
-                      {/* RAMIFICAÇÃO: LP e LR (Composição Transição) */}
-                      {!itemMemoriaAtivo.isSimples && (
+                      {/* CLIENTE LUCRO PRESUMIDO OU LUCRO REAL */}
+                      {(itemMemoriaAtivo.clienteRegime === 'lp' ||
+                        itemMemoriaAtivo.clienteRegime === 'lr') && (
                         <>
                           <tr className="bg-amber-50/70 font-semibold text-slate-900">
                             <td className="py-2 px-3 font-bold text-[#261502]">2º</td>
@@ -1573,15 +1558,15 @@ export function MarkupPosPage() {
                       {/* NOTA FISCAL = TOTAL */}
                       <tr className="bg-[#fdedc3]/80 font-black text-[#261502] text-sm">
                         <td className="py-2.5 px-3">
-                          {itemMemoriaAtivo.key === 'snp'
+                          {itemMemoriaAtivo.clienteRegime === 'snp'
                             ? '4º'
-                            : itemMemoriaAtivo.key === 'snh'
+                            : itemMemoriaAtivo.clienteRegime === 'snh'
                               ? '7º'
                               : '7º'}
                         </td>
                         <td className="py-2.5 px-3">Nota Fiscal = Total Cobrado (Unitário)</td>
                         <td className="py-2.5 px-3 text-xs font-normal">
-                          {itemMemoriaAtivo.key === 'snh'
+                          {itemMemoriaAtivo.clienteRegime === 'snh'
                             ? 'Preço P + CBS por fora + IBS por fora destacados na nota fiscal.'
                             : 'Valor total faturado na nota fiscal ao adquirente.'}
                         </td>
@@ -1593,9 +1578,9 @@ export function MarkupPosPage() {
                       {/* TOTAL DO LOTE */}
                       <tr className="bg-[#fff9eb] font-bold text-[#261502] text-xs">
                         <td className="py-2 px-3">
-                          {itemMemoriaAtivo.key === 'snp'
+                          {itemMemoriaAtivo.clienteRegime === 'snp'
                             ? '5º'
-                            : itemMemoriaAtivo.key === 'snh'
+                            : itemMemoriaAtivo.clienteRegime === 'snh'
                               ? '8º'
                               : '8º'}
                         </td>
@@ -1640,16 +1625,16 @@ export function MarkupPosPage() {
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-slate-800 text-[11px]">
                     <Info className="w-3.5 h-3.5 text-[#b87c14]" />
-                    <span>Dispositivos Legais Aplicáveis:</span>
+                    <span>Dispositivos Legais Aplicáveis ao Cliente {clienteMetaAtiva.sigla}:</span>
                   </div>
                   <p className="text-[10px] text-slate-600 leading-relaxed">
-                    {itemMemoriaAtivo.meta.fundamento}
+                    {clienteMetaAtiva.fundamento}
                   </p>
                   <p className="text-[10px] text-slate-700 font-semibold leading-relaxed pt-1 border-t border-slate-200">
-                    Fundamentação da Composição Legal (Adri): LC 214/2025, art. 12, §2º, V (ICMS
-                    fora da base do IBS/CBS em 2026–2032); art. 12, §2º, I (CBS e IBS por fora da
-                    própria base); Sefaz-SP Respostas a Consultas 32303/2025 e 32931/2026 (IBS e CBS
-                    compõem a base de cálculo do ICMS).
+                    Fundamentação da Composição Legal (Adri): LC 214/2025 art. 12 §2º V (ICMS fora
+                    da base do IBS/CBS em 2026–2032); art. 12 §2º I (CBS e IBS por fora da própria
+                    base); Sefaz-SP Respostas a Consultas 32303/2025 e 32931/2026 (IBS e CBS compõem
+                    a base de cálculo do ICMS); LC 123/2006 art. 18 (Simples Nacional unificado).
                   </p>
                 </div>
               </div>

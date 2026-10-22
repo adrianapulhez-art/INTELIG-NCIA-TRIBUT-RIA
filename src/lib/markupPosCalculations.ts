@@ -67,8 +67,82 @@ export const FORNECEDORES_META: Record<FornecedorPosKey, FornecedorPosMeta> = {
   },
 }
 
+export type ClienteRegimeKey = 'lp' | 'lr' | 'snp' | 'snh'
+
+export interface ClienteRegimeMeta {
+  key: ClienteRegimeKey
+  sigla: string
+  rotulo: string
+  descricao: string
+  fundamento: string
+  sistematicaVenda: 'lucro_presumido' | 'lucro_real' | 'simples_puro' | 'simples_hibrido'
+}
+
+export const CLIENTES_REGIME_META: Record<ClienteRegimeKey, ClienteRegimeMeta> = {
+  lp: {
+    key: 'lp',
+    sigla: 'LP',
+    rotulo: 'Cliente Lucro Presumido',
+    descricao:
+      'Regime Lucro Presumido · ICMS da transição (art. 12 §2º V) + CBS/IBS por fora sobre base sem ICMS',
+    fundamento:
+      'LC 214/2025 art. 12 §2º V + RC 32303/2025 Sefaz-SP: ICMS desembaraçado por último com base incluindo CBS/IBS.',
+    sistematicaVenda: 'lucro_presumido',
+  },
+  lr: {
+    key: 'lr',
+    sigla: 'LR',
+    rotulo: 'Cliente Lucro Real',
+    descricao:
+      'Regime Lucro Real · Idêntico ao LP em 2027 (PIS/COFINS extintos) · ICMS transição + CBS/IBS por fora',
+    fundamento:
+      'EC 132/2023 art. 22 I c/c LC 214/2025 art. 12: extinção de PIS/COFINS unifica a formação de preço pós-reforma com o LP.',
+    sistematicaVenda: 'lucro_real',
+  },
+  snp: {
+    key: 'snp',
+    sigla: 'SNP',
+    rotulo: 'Cliente Simples Nacional Puro',
+    descricao:
+      'Regime Simples Nacional Puro · DAS por dentro (alíquota efetiva do Anexo) · NUNCA ICMS com alíquota cheia (18%)',
+    fundamento:
+      'LC 123/2006 art. 18 c/c LC 214 art. 139: recolhimento unificado no DAS sem alíquota cheia e sem CBS/IBS por fora.',
+    sistematicaVenda: 'simples_puro',
+  },
+  snh: {
+    key: 'snh',
+    sigla: 'SNH',
+    rotulo: 'Cliente Simples Nacional Híbrido',
+    descricao:
+      'Regime Simples Nacional Híbrido · DAS híbrido por dentro (ICMS 34% + federais 50,5%) + CBS/IBS por fora',
+    fundamento:
+      'LC 214/2025 art. 41 c/c art. 12 §2º V: opt-in CBS/IBS regime regular por fora sobre base sem ICMS do DAS.',
+    sistematicaVenda: 'simples_hibrido',
+  },
+}
+
+export interface CustoCard03Resultado {
+  custo2027: number
+  custoHoje: number
+  deltaPct: number
+  comprasLiquidas2027: number
+  notaCheia2027: number
+  motorOrigem: 'art12_pleno' | 'quatro_celulas_sn' | 'sessao_sn'
+  rotuloMotor: string
+  fundamentoLegal: string
+  linhasMemoriaCusto?: Array<{
+    sinal?: string
+    label: string
+    formula: string
+    valor: number
+    destaque?: boolean
+    fundamento?: string
+  }>
+}
+
 export interface MarkupPosColunaInput {
   key: FornecedorPosKey
+  clienteRegime?: ClienteRegimeKey // Regime do cliente do contador (determina a regra de precificação)
   custoUnitario: number
   custoHoje: number
   deltaCustoPct: number
@@ -85,6 +159,7 @@ export interface MarkupPosColunaInput {
   simplesAnexo?: string
   simplesRbt12?: number
   effectiveSimplesRbt12?: number
+  custoInfo?: CustoCard03Resultado
 }
 
 export interface FatiasDasDetalhe {
@@ -104,6 +179,8 @@ export interface FatiasDasDetalhe {
 export interface MarkupPosColunaResultado {
   key: FornecedorPosKey
   meta: FornecedorPosMeta
+  clienteRegime: ClienteRegimeKey
+  clienteMeta: ClienteRegimeMeta
   custoUnitario: number
   custoHoje: number
   deltaCustoPct: number
@@ -123,7 +200,7 @@ export interface MarkupPosColunaResultado {
   precoVendaUnitario: number
   totalNotaUnitario: number
 
-  // Tributos específicos por sistemática
+  // Tributos específicos por sistemática do cliente
   isSimples: boolean
   isSimplesHibrido: boolean
   icmsUnitario: number
@@ -141,6 +218,9 @@ export interface MarkupPosColunaResultado {
   cbsTotal: number
   ibsTotal: number
   totalNotaLote: number
+
+  // Metadados da leitura do Card 03 Compras
+  custoInfo?: CustoCard03Resultado
 }
 
 /**
@@ -153,6 +233,7 @@ export interface MarkupPosColunaResultado {
 export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosColunaResultado {
   const {
     key,
+    clienteRegime = 'lp',
     custoUnitario,
     custoHoje,
     deltaCustoPct,
@@ -168,14 +249,19 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
     simplesAnexo = 'anexo_1',
     simplesRbt12 = 0,
     effectiveSimplesRbt12,
+    custoInfo,
   } = input
 
   const meta = FORNECEDORES_META[key]
+  const clienteMeta = CLIENTES_REGIME_META[clienteRegime]
   const fatorMargem = Math.max(0, 1 - margemLucroEfetiva / 100)
   const divisorSemIcms = Math.max(0.0001, fatorDvConsolidado * fatorMargem)
 
   // -------------------------------------------------------------------------
-  // SISTEMÁTICA DO SIMPLES NACIONAL (SNP e SNH)
+  // SISTEMÁTICA DETERMINADA PELO REGIME DO CLIENTE DO CONTADOR
+  // - LP e LR: composição com ICMS da transição (art. 12 §2º V + RC 32303/2025 Sefaz-SP).
+  // - SNP: Simples Nacional Puro — DAS por dentro (alíquota efetiva do Anexo), NUNCA ICMS 18%.
+  // - SNH: Simples Nacional Híbrido — DAS híbrido por dentro (ICMS 34% + federais 50,5%), CBS/IBS por fora sobre base sem ICMS do DAS.
   // -------------------------------------------------------------------------
   const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
   const anexoIdNorm = normalizarAnexoId(anexoClean)
@@ -194,7 +280,8 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
 
   const qtdMultiplicador = Math.max(1, quantidadeVendidaEfetiva)
 
-  if (key === 'snp') {
+  // A regra de precificação na saída é regida pelo CLIENTE do contador:
+  if (clienteRegime === 'snp') {
     // =========================================================================
     // CENÁRIO 03: SIMPLES NACIONAL PURO (SNP)
     // - DAS calculado por dentro com a alíquota do Simples (NUNCA ICMS 18%)
@@ -236,8 +323,10 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
         : 0
 
     return {
-      key: 'snp',
+      key,
       meta,
+      clienteRegime,
+      clienteMeta,
       custoUnitario,
       custoHoje,
       deltaCustoPct,
@@ -265,10 +354,11 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
       cbsTotal: 0,
       ibsTotal: 0,
       totalNotaLote: roundHalfUp(precoVendaUnitario * qtdMultiplicador, 2),
+      custoInfo,
     }
   }
 
-  if (key === 'snh') {
+  if (clienteRegime === 'snh') {
     // =========================================================================
     // CENÁRIO 04: SIMPLES NACIONAL HÍBRIDO (SNH)
     // - DAS híbrido por dentro: apenas ICMS + Federais (IRPJ/CSLL/CPP)
@@ -324,8 +414,10 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
     const tributosPorForaUnitario = roundHalfUp(cbsUnitario + ibsUnitario, 2)
 
     return {
-      key: 'snh',
+      key,
       meta,
+      clienteRegime,
+      clienteMeta,
       custoUnitario,
       custoHoje,
       deltaCustoPct,
@@ -353,11 +445,12 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
       cbsTotal: roundHalfUp(cbsUnitario * qtdMultiplicador, 2),
       ibsTotal: roundHalfUp(ibsUnitario * qtdMultiplicador, 2),
       totalNotaLote: roundHalfUp(totalNotaUnitario * qtdMultiplicador, 2),
+      custoInfo,
     }
   }
 
   // =========================================================================
-  // COLUNAS LP E LR: SISTEMÁTICA DA TRANSIÇÃO (NÃO TOCAR — LC 214 art. 12 + RC 32303/2025)
+  // CLIENTE LP OU LR: SISTEMÁTICA DA TRANSIÇÃO (LC 214 art. 12 + RC 32303/2025)
   // =========================================================================
   const fatorIcms = Math.max(0.0001, 1 - icmsRateEfetivo / 100)
   const divisorGeralLpLr = divisorSemIcms * fatorIcms
@@ -390,6 +483,8 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
   return {
     key,
     meta,
+    clienteRegime,
+    clienteMeta,
     custoUnitario,
     custoHoje,
     deltaCustoPct,
@@ -416,6 +511,7 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
     cbsTotal: roundHalfUp(cbsUnitario * qtdMultiplicador, 2),
     ibsTotal: roundHalfUp(ibsUnitario * qtdMultiplicador, 2),
     totalNotaLote: roundHalfUp(totalNotaUnitario * qtdMultiplicador, 2),
+    custoInfo,
   }
 }
 
@@ -430,6 +526,7 @@ export interface MarkupPosSavedState {
   margemLucroInput?: number
   quantidadeVendidaInput?: number
   fornecedorSelecionado?: FornecedorPosKey
+  clienteRegimeSelecionado?: ClienteRegimeKey
 }
 
 export function carregarEstadoMarkupPos(): MarkupPosSavedState | null {
