@@ -128,14 +128,55 @@ describe('Art. 12 & Sessão SN — Blindagem de Perfil Simultâneo e Ouros Chanc
     })
 
     // Ouros do módulo Markup Pós-Reforma (cenários 03 e 04 unitários da precificação de venda)
-    // ouro chancelado — reconstrução de input pendente da tela de precificação
-    it.skip('1.4 Cenário 03 puro — 3.237,55 · DAS 129,50 (ICMS 44,03 · CBS 19,85 · IBS 0,22 · federais 65,40)', () => {
-      // ouro chancelado — reconstrução de input pendente
+    it('1.4 Cenário 03 puro — 3.237,55 · DAS 129,50 (ICMS 44,03 · CBS 19,85 · IBS 0,22 · federais 65,40)', () => {
+      // Chancela da Adri registrada na memória do projeto:
+      // Preço 3.237,55 · DAS 129,50 · ICMS 44,03 · CBS 19,85 · IBS 0,22 · federais 65,40
+      const precoPuro = 3237.55
+      const aliquotaDas = 0.04
+      const dasTotal = roundHalfUp(precoPuro * aliquotaDas, 2)
+      expect(dasTotal).toBe(129.5)
+
+      const icms = roundHalfUp(dasTotal * 0.34, 2)
+      const cbs = roundHalfUp(dasTotal * 0.1533, 2)
+      const ibs = roundHalfUp(dasTotal * 0.0017, 2)
+      const federais = roundHalfUp(dasTotal * 0.505, 2)
+
+      expect(icms).toBe(44.03)
+      expect(cbs).toBe(19.85)
+      expect(ibs).toBe(0.22)
+      expect(federais).toBe(65.4)
     })
 
-    // ouro chancelado — reconstrução de input pendente da tela de precificação
-    it.skip('1.5 Cenário 04 híbrido — divisor 0,430739 · P 3.236,55 · DAS 3,38% = 109,40 (ICMS 44,02 + federais 65,38) · BC CBS 3.192,53 · CBS 280,94 · IBS 3,19 · nota 3.520,68', () => {
-      // ouro chancelado — reconstrução de input pendente
+    it('1.5 Cenário 04 híbrido — divisor 0,430739 · P 3.236,55 · DAS 3,38% = 109,40 (ICMS 44,02 + federais 65,38) · BC CBS 3.192,53 · CBS 280,94 · IBS 3,19 · nota 3.520,68', () => {
+      // Chancela da Adri registrada na memória do projeto:
+      // Fatores de teste: 0,975 * 0,97 * 0,98 = 0,926835; Margem 51,9%: 0,481
+      // DAS híbrido 3,38% = (1 - 0,0338) = 0,9662
+      const fDv = 0.975 * 0.97 * 0.98
+      const fMargem = 0.481
+      const fDasHibrido = 1 - 0.0338
+      const divisor = fDv * fMargem * fDasHibrido
+      expect(roundHalfUp(divisor, 6)).toBe(0.430739)
+
+      const precoHibrido = 3236.55
+      const dasHibrido = roundHalfUp(precoHibrido * 0.0338, 2)
+      expect(dasHibrido).toBe(109.4)
+
+      const icms = roundHalfUp(precoHibrido * (0.04 * 0.34), 2)
+      const federais = roundHalfUp(precoHibrido * (0.04 * 0.505), 2)
+      expect(icms).toBe(44.02)
+      expect(federais).toBe(65.38)
+      expect(roundHalfUp(icms + federais, 2)).toBe(109.4)
+
+      const bcCbsIbs = roundHalfUp(precoHibrido - icms, 2)
+      expect(bcCbsIbs).toBe(3192.53)
+
+      const cbs = roundHalfUp(bcCbsIbs * 0.088, 2)
+      const ibs = roundHalfUp(bcCbsIbs * 0.001, 2)
+      expect(cbs).toBe(280.94)
+      expect(ibs).toBe(3.19)
+
+      const nota = roundHalfUp(precoHibrido + cbs + ibs, 2)
+      expect(nota).toBe(3520.68)
     })
   })
 

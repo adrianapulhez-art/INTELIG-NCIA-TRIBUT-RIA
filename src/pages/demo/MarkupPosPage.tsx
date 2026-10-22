@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Calculator,
@@ -47,6 +47,14 @@ import {
   derivarCasoUnitario,
   type ItemIntegracaoArt12,
 } from '@/lib/integracaoComprasArt12'
+import {
+  calcularMarkupPosColuna,
+  carregarEstadoMarkupPos,
+  salvarEstadoMarkupPos,
+  type DespesaVariavelVenda,
+  type FornecedorPosKey,
+  FORNECEDORES_META,
+} from '@/lib/markupPosCalculations'
 
 /** Constantes de referência chanceladas pela Adri (proteção de ouro) */
 export const REFERENCIAS_MARKUP_POS = {
@@ -57,60 +65,9 @@ export const REFERENCIAS_MARKUP_POS = {
   QUANTIDADE_PADRAO: 24, // 24 un. caso canônico
 } as const
 
-/** Tipo para cada linha de Despesa Variável de Venda editável */
-interface DespesaVariavelVenda {
-  id: string
-  descricao: string
-  aliquota?: number // em %, undefined quando vazio no campo
-}
-
-/** Chaves dos 4 fornecedores canônicos para adquirente Lucro Presumido */
-type FornecedorPosKey = 'lp' | 'lr' | 'snp' | 'snh'
-
-interface FornecedorPosMeta {
-  key: FornecedorPosKey
-  sigla: string
-  rotulo: string
-  descricao: string
-  fundamento: string
-}
-
-const FORNECEDORES_META: Record<FornecedorPosKey, FornecedorPosMeta> = {
-  lp: {
-    key: 'lp',
-    sigla: 'LP',
-    rotulo: 'Fornecedor Lucro Presumido',
-    descricao: 'Fornecedor LP · Carga plena na origem com repasse de base limpa (Art. 12 LC 214)',
-    fundamento:
-      'LC 214/2025, art. 12 + art. 47: crédito financeiro pleno anula CBS e IBS destacados.',
-  },
-  lr: {
-    key: 'lr',
-    sigla: 'LR',
-    rotulo: 'Fornecedor Lucro Real',
-    descricao: 'Fornecedor LR · Régua A neutra chancelada (reprecificação com crédito integral)',
-    fundamento: 'LC 214/2025, art. 12 + art. 47: creditamento amplo e desembute com divisor LR.',
-  },
-  snp: {
-    key: 'snp',
-    sigla: 'SNP',
-    rotulo: 'Fornecedor Simples Nacional Puro',
-    descricao: 'Fornecedor SN Puro · Sem apropriação de crédito de ICMS nem CBS/IBS (LC 123/2006)',
-    fundamento:
-      'LC 123/2006, art. 13 §1º c/c LC 214/2025 art. 47: destaque não creditável vira custo integral.',
-  },
-  snh: {
-    key: 'snh',
-    sigla: 'SNH',
-    rotulo: 'Fornecedor Simples Nacional Híbrido',
-    descricao: 'Fornecedor SN Híbrido · Crédito de CBS e IBS por opt-in regular (art. 41 LC 214)',
-    fundamento:
-      'LC 214/2025, art. 41 c/c art. 47 §2º: opção pelo regime regular confere crédito de CBS e IBS.',
-  },
-}
-
 export function MarkupPosPage() {
-  const { purchasesItems, markupProducts } = useTaxContext()
+  const { purchasesItems, markupProducts, simplesAnexo, simplesRbt12, effectiveSimplesRbt12 } =
+    useTaxContext()
 
   // --------------------------------------------------------------------------
   // 1. PRODUTO ATIVO (extraído automaticamente da Calculadora Markup pré-reforma)
@@ -219,16 +176,22 @@ export function MarkupPosPage() {
   }, [inputEfetivo, itemEfetivo, row2027])
 
   // --------------------------------------------------------------------------
-  // 3. BOTÕES SELECIONÁVEIS: LP · LR · SNP · SNH
+  // 3. PERSISTÊNCIA DOS VALORES DIGITADOS (POLÍTICA: "UM SALVAMENTO, UMA PÁGINA")
   // --------------------------------------------------------------------------
-  const [fornecedorSelecionado, setFornecedorSelecionado] = useState<FornecedorPosKey>('lp')
+  // Ao primeiro acesso (sem salvamento prévio), os campos nascem vazios (undefined)
+  // com placeholders de referência chancelados. O estado salvo restaura os valores
+  // digitados sem apagar na navegação ou reload.
+  const estadoSalvoInicial = useMemo(() => carregarEstadoMarkupPos(), [])
 
-  // --------------------------------------------------------------------------
-  // 4. DESPESAS VARIÁVEIS DE VENDA (DV) — editáveis
-  // --------------------------------------------------------------------------
-  // A lista de DV nasce VAZIA conforme solicitação expressa da Adri.
-  // As linhas do print eram apenas exemplo ilustrativo.
-  const [despesasVariaveis, setDespesasVariaveis] = useState<DespesaVariavelVenda[]>([])
+  // Botão selecionável do fornecedor principal
+  const [fornecedorSelecionado, setFornecedorSelecionado] = useState<FornecedorPosKey>(
+    estadoSalvoInicial?.fornecedorSelecionado ?? 'lp',
+  )
+
+  // Despesas variáveis de venda (DV) — lista persistida, vazia ao primeiro acesso
+  const [despesasVariaveis, setDespesasVariaveis] = useState<DespesaVariavelVenda[]>(
+    estadoSalvoInicial?.despesasVariaveis ?? [],
+  )
 
   const handleAddDv = () => {
     const novoId = `dv-${Date.now()}`
@@ -264,7 +227,6 @@ export function MarkupPosPage() {
   }, [despesasVariaveis])
 
   const fatorDvConsolidado = useMemo(() => {
-    // Multiplica (1 - aliquota/100) para cada DV; se não preenchido trata como 0% (fator 1.0000)
     let f = 1
     for (const dv of despesasVariaveis) {
       const aliq = dv.aliquota ?? 0
@@ -274,25 +236,28 @@ export function MarkupPosPage() {
   }, [despesasVariaveis])
 
   // --------------------------------------------------------------------------
-  // 5. TRIBUTOS — COMPOSIÇÃO PÓS-REFORMA (campos nascem vazios; motor usa referência)
+  // 4. TRIBUTOS — COMPOSIÇÃO PÓS-REFORMA (campos nascem vazios; motor usa referência)
   // --------------------------------------------------------------------------
-  // ICMS editável na transição: nasce vazio (undefined), placeholder "18,00%", motor usa 18,00% (fator 0,8200)
-  const [icmsRateInput, setIcmsRateInput] = useState<number | undefined>(undefined)
+  // ICMS editável na transição (LP/LR): nasce vazio (undefined), ref. 18,00%
+  const [icmsRateInput, setIcmsRateInput] = useState<number | undefined>(
+    estadoSalvoInicial?.icmsRateInput,
+  )
   const icmsRateEfetivo = icmsRateInput ?? REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT
   const fatorIcms = useMemo(() => Math.max(0, 1 - icmsRateEfetivo / 100), [icmsRateEfetivo])
 
-  // CBS 2027: nasce vazio (undefined), placeholder "26,50%", motor usa 26,50%
-  const [cbsRateInput, setCbsRateInput] = useState<number | undefined>(undefined)
+  // CBS 2027: nasce vazio (undefined), ref. 26,50%
+  const [cbsRateInput, setCbsRateInput] = useState<number | undefined>(
+    estadoSalvoInicial?.cbsRateInput,
+  )
   const cbsRateEfetivo = cbsRateInput ?? REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT
 
-  // IBS 2027 (alíquota-teste LC 214/2025 art. 346): nasce vazio (undefined), placeholder "0,10%", motor usa 0,10%
-  const [ibsRateInput, setIbsRateInput] = useState<number | undefined>(undefined)
+  // IBS 2027: nasce vazio (undefined), ref. 0,10%
+  const [ibsRateInput, setIbsRateInput] = useState<number | undefined>(
+    estadoSalvoInicial?.ibsRateInput,
+  )
   const ibsRateEfetivo = ibsRateInput ?? REFERENCIAS_MARKUP_POS.IBS_PADRAO_PCT
 
-  // --------------------------------------------------------------------------
-  // 6. FLUXO DE CÁLCULO — MARGEM, QUANTIDADE E PREÇO DE VENDA SIMULADO
-  // --------------------------------------------------------------------------
-  // Margem de lucro desejada %: nasce vazia (undefined), placeholder "51,90%", motor usa 51,90%
+  // Margem de lucro desejada %: nasce vazia (undefined), ref. 51,90%
   const margemReferencia = useMemo(() => {
     if (produtoAtivo && produtoAtivo.margin && produtoAtivo.margin > 0) {
       return produtoAtivo.margin
@@ -300,11 +265,13 @@ export function MarkupPosPage() {
     return REFERENCIAS_MARKUP_POS.MARGEM_PADRAO_PCT
   }, [produtoAtivo])
 
-  const [margemLucroInput, setMargemLucroInput] = useState<number | undefined>(undefined)
+  const [margemLucroInput, setMargemLucroInput] = useState<number | undefined>(
+    estadoSalvoInicial?.margemLucroInput,
+  )
   const margemLucroEfetiva = margemLucroInput ?? margemReferencia
   const fatorMargem = useMemo(() => Math.max(0, 1 - margemLucroEfetiva / 100), [margemLucroEfetiva])
 
-  // Quantidade vendida: nasce vazia (undefined), placeholder "24", motor usa 24
+  // Quantidade vendida: nasce vazia (undefined), ref. 24 un.
   const quantidadeReferencia = useMemo(() => {
     if (produtoAtivo && produtoAtivo.quantity && produtoAtivo.quantity > 0) {
       return produtoAtivo.quantity
@@ -313,133 +280,89 @@ export function MarkupPosPage() {
   }, [produtoAtivo])
 
   const [quantidadeVendidaInput, setQuantidadeVendidaInput] = useState<number | undefined>(
-    undefined,
+    estadoSalvoInicial?.quantidadeVendidaInput,
   )
   const quantidadeVendidaEfetiva =
     quantidadeVendidaInput !== undefined && quantidadeVendidaInput > 0
       ? Math.round(quantidadeVendidaInput)
       : quantidadeReferencia
 
-  // --------------------------------------------------------------------------
-  // COMPOSIÇÃO LEGAL CORRIGIDA (LC 214/2025 c/c Sefaz-SP RC 32303/2025 e RC 32931/2026)
-  // 1. Divisor SEM ICMS: Produto dos fatores DV (1 - % DV) * Fator Margem (1 - margem)
-  //    LC 214/2025, art. 12, §2º, V: ICMS não integra a base de cálculo do IBS/CBS na transição (2026-2032).
-  // 2. BC IBS/CBS = Custo do adquirente ÷ Divisor sem ICMS (valor da operação líquido de ICMS, IBS, CBS, DV e margem)
-  // 3. CBS = BC * alíquota CBS (por fora, art. 12, §2º, I)
-  // 4. IBS = BC * alíquota IBS (por fora, art. 12, §2º, I c/c art. 346)
-  // 5. Valor sem ICMS = BC + CBS + IBS
-  // 6. Preço de venda / Nota fiscal = Valor sem ICMS ÷ (1 - alíquota ICMS)
-  //    (IBS e CBS integram a base de cálculo do ICMS — Sefaz-SP RC 32303/2025 e RC 32931/2026)
-  //    ICMS destacado = Preço / Nota * alíquota ICMS
-  // 7. Nota fiscal = Preço final de venda.
-  // --------------------------------------------------------------------------
+  // EFEITO DE PERSISTÊNCIA AUTOMÁTICA (apenas o que o usuário digita é salvo)
+  useEffect(() => {
+    salvarEstadoMarkupPos({
+      despesasVariaveis,
+      icmsRateInput,
+      cbsRateInput,
+      ibsRateInput,
+      margemLucroInput,
+      quantidadeVendidaInput,
+      fornecedorSelecionado,
+    })
+  }, [
+    despesasVariaveis,
+    icmsRateInput,
+    cbsRateInput,
+    ibsRateInput,
+    margemLucroInput,
+    quantidadeVendidaInput,
+    fornecedorSelecionado,
+  ])
+
+  // Parâmetros do Simples Nacional vindos do TaxContext
+  const simplesAnexoAtivo = simplesAnexo || 'anexo_1'
+  const simplesRbt12Ativo = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
+
+  // Divisor sem ICMS (comum para LP/LR e base de cálculo)
   const divisorSemIcms = useMemo(() => {
     const d = fatorDvConsolidado * fatorMargem
     return d > 0 ? d : 0.0001
   }, [fatorDvConsolidado, fatorMargem])
 
-  // Divisor geral equivalente (Divisor sem ICMS × Fator ICMS)
-  const fatorDivisorGeral = useMemo(() => {
-    const f = divisorSemIcms * fatorIcms
-    return f > 0 ? f : 0.0001
-  }, [divisorSemIcms, fatorIcms])
-
-  // Simulação completa dos 4 fornecedores lado a lado
+  // --------------------------------------------------------------------------
+  // SIMULAÇÃO COMPLETA DOS 4 FORNECEDORES LADO A LADO VIA MOTOR DEDICADO
+  // - LP e LR: Composição com ICMS da transição (art. 12 §2º V + RC 32303/2025).
+  // - SNP: Simples Nacional Puro — DAS por dentro (alíquota efetiva do anexo), fatias detalhadas, sem ICMS 18%.
+  // - SNH: Simples Nacional Híbrido — DAS híbrido (ICMS e federais), CBS/IBS por fora sobre base sem ICMS.
+  // --------------------------------------------------------------------------
   const simulacaoQuatroColunas = useMemo(() => {
     const keys: FornecedorPosKey[] = ['lp', 'lr', 'snp', 'snh']
     return keys.map((key) => {
       const custoInfo = custosAdquirente[key]
-      const custoUnitario = custoInfo.custo2027
-
-      // Passo 1 e 2: Base de Cálculo do IBS/CBS = Custo ÷ Divisor sem ICMS
-      // Conforme LC 214/2025 art. 12, §2º, V, ICMS não entra na base do IBS/CBS
-      const baseCalculoIbsCbs =
-        divisorSemIcms > 0 ? roundHalfUp(custoUnitario / divisorSemIcms, 2) : 0
-
-      // Passo 3: CBS = BC × Alíquota CBS (por fora, art. 12, §2º, I)
-      const cbsUnitario = roundHalfUp(baseCalculoIbsCbs * (cbsRateEfetivo / 100), 2)
-
-      // Passo 4: IBS = BC × Alíquota IBS (por fora, art. 12, §2º, I c/c art. 346)
-      const ibsUnitario = roundHalfUp(baseCalculoIbsCbs * (ibsRateEfetivo / 100), 2)
-
-      // Passo 5: Valor sem ICMS = BC + CBS + IBS
-      const valorSemIcms = roundHalfUp(baseCalculoIbsCbs + cbsUnitario + ibsUnitario, 2)
-
-      // Passo 6: Preço de Venda / Nota Fiscal = Valor sem ICMS ÷ (1 − alíquota ICMS)
-      // Base do ICMS inclui IBS e CBS (Sefaz-SP RC 32303/2025 e RC 32931/2026)
-      const precoVendaUnitario =
-        fatorIcms > 0 ? roundHalfUp(valorSemIcms / fatorIcms, 2) : valorSemIcms
-
-      // ICMS destacado unitário = Nota/Preço × alíquota ICMS
-      const icmsUnitario = roundHalfUp(precoVendaUnitario * (icmsRateEfetivo / 100), 2)
-
-      // Despesas Variáveis sobre o Preço de Venda
-      const dvUnitarioTotal = roundHalfUp(precoVendaUnitario * (somaDvPct / 100), 2)
-
-      // Lucro Unitário Realizado
-      const lucroUnitarioRealizado = roundHalfUp(
-        precoVendaUnitario -
-          custoUnitario -
-          icmsUnitario -
-          dvUnitarioTotal -
-          cbsUnitario -
-          ibsUnitario,
-        2,
-      )
-
-      const margemEfetivaPct =
-        precoVendaUnitario > 0
-          ? roundHalfUp((lucroUnitarioRealizado / precoVendaUnitario) * 100, 2)
-          : 0
-
-      // Tributos por fora unitário
-      const tributosPorForaUnitario = roundHalfUp(cbsUnitario + ibsUnitario, 2)
-      const totalNotaUnitario = precoVendaUnitario
-
-      // Totais do Lote
-      const qtdMultiplicador = Math.max(1, quantidadeVendidaEfetiva)
-      const faturamentoTotal = roundHalfUp(precoVendaUnitario * qtdMultiplicador, 2)
-      const custoTotal = roundHalfUp(custoUnitario * qtdMultiplicador, 2)
-      const cbsTotal = roundHalfUp(cbsUnitario * qtdMultiplicador, 2)
-      const ibsTotal = roundHalfUp(ibsUnitario * qtdMultiplicador, 2)
-      const totalNotaLote = roundHalfUp(totalNotaUnitario * qtdMultiplicador, 2)
-
-      return {
+      const resultado = calcularMarkupPosColuna({
         key,
-        meta: FORNECEDORES_META[key],
-        custoUnitario,
+        custoUnitario: custoInfo.custo2027,
         custoHoje: custoInfo.custoHoje,
         deltaCustoPct: custoInfo.deltaPct,
         comprasLiquidasTotal: custoInfo.comprasLiquidas2027,
         notaCompraTotal: custoInfo.notaCheia2027,
-        baseCalculoIbsCbs,
-        cbsUnitario,
-        ibsUnitario,
-        valorSemIcms,
-        precoVendaUnitario,
-        totalNotaUnitario,
-        faturamentoTotal,
-        custoTotal,
-        icmsUnitario,
-        dvUnitarioTotal,
-        lucroUnitarioRealizado,
-        margemEfetivaPct,
-        tributosPorForaUnitario,
-        cbsTotal,
-        ibsTotal,
-        totalNotaLote,
+        fatorDvConsolidado,
+        somaDvPct,
+        margemLucroEfetiva,
+        icmsRateEfetivo,
+        cbsRateEfetivo,
+        ibsRateEfetivo,
+        quantidadeVendidaEfetiva,
+        simplesAnexo: simplesAnexoAtivo,
+        simplesRbt12: simplesRbt12Ativo,
+        effectiveSimplesRbt12,
+      })
+
+      return {
+        ...resultado,
         custoInfo,
       }
     })
   }, [
     custosAdquirente,
-    divisorSemIcms,
-    fatorIcms,
-    quantidadeVendidaEfetiva,
+    fatorDvConsolidado,
+    somaDvPct,
+    margemLucroEfetiva,
+    icmsRateEfetivo,
     cbsRateEfetivo,
     ibsRateEfetivo,
-    icmsRateEfetivo,
-    somaDvPct,
+    quantidadeVendidaEfetiva,
+    simplesAnexoAtivo,
+    simplesRbt12Ativo,
   ])
 
   // Estado do diálogo de memória de cálculo detalhada
@@ -1145,51 +1068,150 @@ export function MarkupPosPage() {
                     {/* 2. PREÇO DE VENDA SIMULADO (GRANDE DESTAQUE EM OURO) */}
                     <div className="rounded-xl border border-amber-300/80 bg-gradient-to-b from-[#fff9eb] to-[#fdedc3]/50 p-3 text-center space-y-1 shadow-xs">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#5c3e06] block">
-                        Preço de Venda Simulado / Nota Fiscal
+                        {col.isSimplesHibrido
+                          ? 'Preço de Venda Unitário (Base)'
+                          : 'Preço de Venda Simulado / Nota Fiscal'}
                       </span>
                       <div className="text-xl font-black font-mono text-[#261502] tracking-tight">
                         {formatBRL(col.precoVendaUnitario)}
                       </div>
                       <span className="text-[10px] font-mono text-slate-600 block">
-                        BC {formatBRL(col.baseCalculoIbsCbs)} + CBS {formatBRL(col.cbsUnitario)} +
-                        IBS {formatBRL(col.ibsUnitario)} ÷ {fatorIcms.toFixed(2)}
+                        {col.key === 'snp' && (
+                          <>
+                            DAS {formatPercentBR(col.fatiasDas?.aliquotaTotalPct ?? 4)}% por dentro
+                            · Divisor SN {col.divisorPrincipal.toFixed(4)}
+                          </>
+                        )}
+                        {col.key === 'snh' && (
+                          <>
+                            DAS híbrido {formatPercentBR(col.fatiasDas?.aliquotaTotalPct ?? 3.38)}%
+                            · CBS/IBS por fora na nota
+                          </>
+                        )}
+                        {!col.isSimples && (
+                          <>
+                            BC {formatBRL(col.baseCalculoIbsCbs)} + CBS {formatBRL(col.cbsUnitario)}{' '}
+                            + IBS {formatBRL(col.ibsUnitario)} ÷ {fatorIcms.toFixed(2)}
+                          </>
+                        )}
                       </span>
                     </div>
 
-                    {/* 3. Base do IBS/CBS & Tributos por fora */}
-                    <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-2.5 space-y-1 text-xs font-mono">
-                      <div className="flex justify-between text-slate-600">
-                        <span>BC IBS/CBS (sem ICMS):</span>
-                        <span className="font-semibold text-slate-800">
-                          {formatBRL(col.baseCalculoIbsCbs)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-slate-600">
-                        <span>(+) CBS {formatPercentBR(cbsRateEfetivo)} (por fora):</span>
-                        <span className="font-bold text-[#b87c14]">
-                          {formatBRL(col.cbsUnitario)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-slate-600">
-                        <span>(+) IBS {formatPercentBR(ibsRateEfetivo)} (por fora):</span>
-                        <span className="font-bold text-emerald-800">
-                          {formatBRL(col.ibsUnitario)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-slate-700 pt-1 border-t border-amber-200/60 font-semibold">
-                        <span>(=) Valor sem ICMS:</span>
-                        <span>{formatBRL(col.valorSemIcms)}</span>
-                      </div>
-                    </div>
+                    {/* 3. Tributos por Sistemática (Simples aberto em fatias vs LP/LR transição) */}
+                    {col.isSimples ? (
+                      <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-2.5 space-y-1.5 text-xs font-mono">
+                        <div className="flex justify-between items-center text-slate-700 font-bold border-b border-amber-200/60 pb-1">
+                          <span className="text-[10px] uppercase text-[#5c3e06]">
+                            {col.key === 'snp'
+                              ? 'DAS SN Puro (Por Dentro):'
+                              : 'DAS Híbrido (ICMS + Federais):'}
+                          </span>
+                          <span className="text-xs font-black text-[#261502]">
+                            {formatBRL(col.fatiasDas?.dasTotal ?? 0)} (
+                            {formatPercentBR(col.fatiasDas?.aliquotaTotalPct ?? 0)})
+                          </span>
+                        </div>
+                        {/* Fatias detalhadas do DAS */}
+                        <div className="space-y-0.5 text-[11px] text-slate-600 pl-1">
+                          <div className="flex justify-between">
+                            <span>
+                              · ICMS ({formatPercentBR(col.fatiasDas?.icmsPct ?? 34, 1)} da fatia):
+                            </span>
+                            <span className="font-semibold text-slate-800">
+                              {formatBRL(col.fatiasDas?.icmsValor ?? 0)}
+                            </span>
+                          </div>
+                          {col.key === 'snp' && (
+                            <>
+                              <div className="flex justify-between">
+                                <span>
+                                  · CBS ({formatPercentBR(col.fatiasDas?.cbsPct ?? 15.33, 2)} da
+                                  fatia):
+                                </span>
+                                <span className="font-semibold text-[#b87c14]">
+                                  {formatBRL(col.fatiasDas?.cbsValor ?? 0)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>
+                                  · IBS ({formatPercentBR(col.fatiasDas?.ibsPct ?? 0.17, 2)} da
+                                  fatia):
+                                </span>
+                                <span className="font-semibold text-emerald-800">
+                                  {formatBRL(col.fatiasDas?.ibsValor ?? 0)}
+                                </span>
+                              </div>
+                            </>
+                          )}
+                          <div className="flex justify-between">
+                            <span>· Federais IRPJ/CSLL/CPP:</span>
+                            <span className="font-semibold text-slate-800">
+                              {formatBRL(col.fatiasDas?.federaisValor ?? 0)}
+                            </span>
+                          </div>
+                        </div>
 
-                    {/* 4. ICMS & Fechamento da Nota Fiscal */}
-                    <div className="space-y-1.5 text-xs font-mono pt-0.5">
-                      <div className="flex justify-between text-slate-600">
-                        <span>ICMS {formatPercentBR(icmsRateEfetivo)} (s/ base c/ IBS/CBS):</span>
-                        <span className="font-semibold text-slate-800">
-                          {formatBRL(col.icmsUnitario)}
-                        </span>
+                        {/* No híbrido: CBS e IBS por fora */}
+                        {col.isSimplesHibrido && (
+                          <div className="pt-1 border-t border-amber-200/60 space-y-0.5 text-[11px]">
+                            <div className="flex justify-between text-slate-600">
+                              <span>BC CBS/IBS (P − ICMS):</span>
+                              <span className="font-semibold text-slate-800">
+                                {formatBRL(col.baseCalculoIbsCbs)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-slate-600">
+                              <span>(+) CBS {formatPercentBR(cbsRateEfetivo)} (por fora):</span>
+                              <span className="font-bold text-[#b87c14]">
+                                {formatBRL(col.cbsUnitario)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-slate-600">
+                              <span>(+) IBS {formatPercentBR(ibsRateEfetivo)} (por fora):</span>
+                              <span className="font-bold text-emerald-800">
+                                {formatBRL(col.ibsUnitario)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
+                    ) : (
+                      <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-2.5 space-y-1 text-xs font-mono">
+                        <div className="flex justify-between text-slate-600">
+                          <span>BC IBS/CBS (sem ICMS):</span>
+                          <span className="font-semibold text-slate-800">
+                            {formatBRL(col.baseCalculoIbsCbs)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-slate-600">
+                          <span>(+) CBS {formatPercentBR(cbsRateEfetivo)} (por fora):</span>
+                          <span className="font-bold text-[#b87c14]">
+                            {formatBRL(col.cbsUnitario)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-slate-600">
+                          <span>(+) IBS {formatPercentBR(ibsRateEfetivo)} (por fora):</span>
+                          <span className="font-bold text-emerald-800">
+                            {formatBRL(col.ibsUnitario)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-slate-700 pt-1 border-t border-amber-200/60 font-semibold">
+                          <span>(=) Valor sem ICMS:</span>
+                          <span>{formatBRL(col.valorSemIcms)}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 4. Fechamento Econômico */}
+                    <div className="space-y-1.5 text-xs font-mono pt-0.5">
+                      {!col.isSimples && (
+                        <div className="flex justify-between text-slate-600">
+                          <span>ICMS {formatPercentBR(icmsRateEfetivo)} (s/ base c/ IBS/CBS):</span>
+                          <span className="font-semibold text-slate-800">
+                            {formatBRL(col.icmsUnitario)}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between text-slate-600">
                         <span>Σ DV {formatPercentBR(somaDvPct)}:</span>
                         <span className="font-semibold text-slate-800">
@@ -1214,7 +1236,7 @@ export function MarkupPosPage() {
                     {/* 5. Total da Nota Fiscal e Lote */}
                     <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 space-y-1 text-xs font-mono">
                       <div className="flex justify-between text-[#261502] font-black">
-                        <span>Nota Fiscal = Preço Final:</span>
+                        <span>Nota Fiscal = Total:</span>
                         <span>{formatBRL(col.totalNotaUnitario)}</span>
                       </div>
                       <div className="flex justify-between text-[11px] text-slate-500 pt-0.5 border-t border-slate-200">
@@ -1347,7 +1369,7 @@ export function MarkupPosPage() {
                   </div>
                 </div>
 
-                {/* Tabela de Passos Linha a Linha (Estrutura Legal LC 214/2025 c/c RC 32303/2025) */}
+                {/* Tabela de Passos Linha a Linha por Sistemática */}
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
                   <table className="w-full border-collapse text-left">
                     <thead className="bg-[#261502] text-amber-200 text-[11px] uppercase tracking-wider">
@@ -1372,19 +1394,36 @@ export function MarkupPosPage() {
                         </td>
                       </tr>
 
-                      {/* Passo 1: Divisor sem ICMS */}
+                      {/* Passo 1: Divisor e Despesas Variáveis */}
                       <tr className="bg-slate-50">
                         <td className="py-2 px-3 font-bold text-[#261502]">1º</td>
-                        <td className="py-2 px-3 font-semibold text-slate-800">Divisor SEM ICMS</td>
+                        <td className="py-2 px-3 font-semibold text-slate-800">
+                          {itemMemoriaAtivo.isSimples
+                            ? `Divisor do Simples Nacional (${itemMemoriaAtivo.key === 'snp' ? 'SN Puro' : 'SN Híbrido'})`
+                            : 'Divisor SEM ICMS'}
+                        </td>
                         <td className="py-2 px-3 text-slate-600 text-[11px]">
-                          <strong>LC 214/2025, art. 12, §2º, V:</strong> ICMS não integra a base do
-                          IBS/CBS.
-                          <br />
-                          Produto dos fatores de DV ({fatorDvConsolidado.toFixed(4)}) × Fator Margem
-                          ({fatorMargem.toFixed(4)}). Não entra o fator do ICMS.
+                          {itemMemoriaAtivo.isSimples ? (
+                            <>
+                              <strong>LC 123/2006 c/c LC 214/2025:</strong> Empresa do Simples
+                              Nacional não usa ICMS 18% cheia.
+                              <br />
+                              Divisor = Π(1 − % DV) [{fatorDvConsolidado.toFixed(4)}] × (1 − Margem)
+                              [{fatorMargem.toFixed(4)}] × Fator DAS [
+                              {itemMemoriaAtivo.fatorTributarioEfetivo.toFixed(4)}].
+                            </>
+                          ) : (
+                            <>
+                              <strong>LC 214/2025, art. 12, §2º, V:</strong> ICMS não integra a base
+                              do IBS/CBS.
+                              <br />
+                              Produto dos fatores de DV ({fatorDvConsolidado.toFixed(4)}) × Fator
+                              Margem ({fatorMargem.toFixed(4)}). Não entra o fator do ICMS.
+                            </>
+                          )}
                         </td>
                         <td className="py-2 px-3 text-right font-mono font-bold text-[#b87c14]">
-                          {divisorSemIcms.toFixed(6)}
+                          {itemMemoriaAtivo.divisorPrincipal.toFixed(6)}
                         </td>
                       </tr>
 
@@ -1408,104 +1447,310 @@ export function MarkupPosPage() {
                         )
                       })}
 
-                      {/* Passo 2: Base de Cálculo do IBS/CBS */}
-                      <tr className="bg-amber-50/70 font-semibold text-slate-900">
-                        <td className="py-2 px-3 font-bold text-[#261502]">2º</td>
-                        <td className="py-2 px-3">Base de Cálculo do IBS e CBS</td>
-                        <td className="py-2 px-3 text-slate-600 text-[11px]">
-                          <strong>LC 214/2025, art. 12, caput e §2º, V:</strong> Valor da operação
-                          líquido de ICMS, IBS, CBS, DV e margem.
-                          <br />
-                          Fórmula: Custo do adquirente ÷ Divisor sem ICMS ={' '}
-                          {formatBRL(itemMemoriaAtivo.custoUnitario)} ÷ {divisorSemIcms.toFixed(6)}
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
-                          {formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}
-                        </td>
-                      </tr>
+                      {/* RAMIFICAÇÃO: SNP (Simples Puro) */}
+                      {itemMemoriaAtivo.key === 'snp' && (
+                        <>
+                          <tr className="bg-amber-50/70 font-semibold text-slate-900">
+                            <td className="py-2 px-3 font-bold text-[#261502]">2º</td>
+                            <td className="py-2 px-3">Preço de Venda Unitário P</td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              Custo de Aquisição ÷ Divisor do Simples Puro (tudo por dentro).
+                              <br />
+                              Fórmula: {formatBRL(itemMemoriaAtivo.custoUnitario)} ÷{' '}
+                              {itemMemoriaAtivo.divisorPrincipal.toFixed(6)}
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
+                              {formatBRL(itemMemoriaAtivo.precoVendaUnitario)}
+                            </td>
+                          </tr>
 
-                      {/* Passo 3: CBS por fora */}
-                      <tr>
-                        <td className="py-2 px-3 font-bold text-[#261502]">3º</td>
-                        <td className="py-2 px-3 font-semibold text-slate-800">
-                          CBS 2027 (Por Fora)
-                        </td>
-                        <td className="py-2 px-3 text-slate-600 text-[11px]">
-                          <strong>LC 214/2025, art. 12, §2º, I:</strong> CBS não integra a própria
-                          base.
-                          <br />
-                          Fórmula: BC ({formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}) × Alíquota
-                          CBS ({formatPercentBR(cbsRateEfetivo)})
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono font-bold text-[#b87c14]">
-                          {formatBRL(itemMemoriaAtivo.cbsUnitario)}
-                        </td>
-                      </tr>
+                          <tr className="bg-slate-50">
+                            <td className="py-2 px-3 font-bold text-[#261502]">3º</td>
+                            <td className="py-2 px-3 font-semibold text-slate-800">
+                              DAS do Simples Puro (
+                              {formatPercentBR(itemMemoriaAtivo.fatiasDas?.aliquotaTotalPct ?? 4)}%)
+                            </td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              <strong>LC 123/2006, art. 18:</strong> Recolhimento unificado no DAS
+                              sem alíquota cheia (sem ICMS 18%).
+                              <br />
+                              Preço {formatBRL(itemMemoriaAtivo.precoVendaUnitario)} ×{' '}
+                              {formatPercentBR(itemMemoriaAtivo.fatiasDas?.aliquotaTotalPct ?? 4)}%
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
+                              {formatBRL(itemMemoriaAtivo.fatiasDas?.dasTotal ?? 0)}
+                            </td>
+                          </tr>
 
-                      {/* Passo 4: IBS por fora */}
-                      <tr>
-                        <td className="py-2 px-3 font-bold text-[#261502]">4º</td>
-                        <td className="py-2 px-3 font-semibold text-slate-800">
-                          IBS na Venda (Por Fora)
-                        </td>
-                        <td className="py-2 px-3 text-slate-600 text-[11px]">
-                          <strong>LC 214/2025, art. 12, §2º, I c/c art. 346:</strong> IBS não
-                          integra a própria base (alíquota-teste).
-                          <br />
-                          Fórmula: BC ({formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}) × Alíquota
-                          IBS ({formatPercentBR(ibsRateEfetivo)})
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono font-bold text-emerald-800">
-                          {formatBRL(itemMemoriaAtivo.ibsUnitario)}
-                        </td>
-                      </tr>
+                          {/* Fatias detalhadas do DAS */}
+                          <tr className="text-slate-600 text-[11px]">
+                            <td className="py-1.5 px-3 text-slate-400 pl-6">3.1</td>
+                            <td className="py-1.5 px-3">
+                              Fatia ICMS no DAS (
+                              {formatPercentBR(itemMemoriaAtivo.fatiasDas?.icmsPct ?? 34, 1)})
+                            </td>
+                            <td className="py-1.5 px-3 text-slate-500">
+                              Parcela de ICMS unificada no DAS (art. 23 LC 123)
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-mono font-semibold">
+                              {formatBRL(itemMemoriaAtivo.fatiasDas?.icmsValor ?? 0)}
+                            </td>
+                          </tr>
+                          <tr className="text-slate-600 text-[11px]">
+                            <td className="py-1.5 px-3 text-slate-400 pl-6">3.2</td>
+                            <td className="py-1.5 px-3">
+                              Fatia CBS no DAS (
+                              {formatPercentBR(itemMemoriaAtivo.fatiasDas?.cbsPct ?? 15.33, 2)})
+                            </td>
+                            <td className="py-1.5 px-3 text-slate-500">
+                              Parcela federal unificada da CBS no DAS (transição 2027)
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-mono font-semibold text-[#b87c14]">
+                              {formatBRL(itemMemoriaAtivo.fatiasDas?.cbsValor ?? 0)}
+                            </td>
+                          </tr>
+                          <tr className="text-slate-600 text-[11px]">
+                            <td className="py-1.5 px-3 text-slate-400 pl-6">3.3</td>
+                            <td className="py-1.5 px-3">
+                              Fatia IBS no DAS (
+                              {formatPercentBR(itemMemoriaAtivo.fatiasDas?.ibsPct ?? 0.17, 2)})
+                            </td>
+                            <td className="py-1.5 px-3 text-slate-500">
+                              Parcela estadual/municipal unificada do IBS no DAS (transição 2027)
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-mono font-semibold text-emerald-800">
+                              {formatBRL(itemMemoriaAtivo.fatiasDas?.ibsValor ?? 0)}
+                            </td>
+                          </tr>
+                          <tr className="text-slate-600 text-[11px]">
+                            <td className="py-1.5 px-3 text-slate-400 pl-6">3.4</td>
+                            <td className="py-1.5 px-3">
+                              Fatia Federais IRPJ/CSLL/CPP (
+                              {formatPercentBR(itemMemoriaAtivo.fatiasDas?.federaisPct ?? 50.5, 2)})
+                            </td>
+                            <td className="py-1.5 px-3 text-slate-500">
+                              Tributos federais unificados no DAS
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-mono font-semibold">
+                              {formatBRL(itemMemoriaAtivo.fatiasDas?.federaisValor ?? 0)}
+                            </td>
+                          </tr>
+                        </>
+                      )}
 
-                      {/* Passo 5: Valor sem ICMS */}
-                      <tr className="bg-slate-50 font-semibold text-slate-900">
-                        <td className="py-2 px-3 font-bold text-[#261502]">5º</td>
-                        <td className="py-2 px-3">Valor da Operação sem ICMS</td>
-                        <td className="py-2 px-3 text-slate-600 text-[11px]">
-                          Soma da Base de Cálculo com os novos tributos por fora.
-                          <br />
-                          Fórmula: BC ({formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}) + CBS (
-                          {formatBRL(itemMemoriaAtivo.cbsUnitario)}) + IBS (
-                          {formatBRL(itemMemoriaAtivo.ibsUnitario)})
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono font-black text-slate-900">
-                          {formatBRL(itemMemoriaAtivo.valorSemIcms)}
-                        </td>
-                      </tr>
+                      {/* RAMIFICAÇÃO: SNH (Simples Híbrido) */}
+                      {itemMemoriaAtivo.key === 'snh' && (
+                        <>
+                          <tr className="bg-amber-50/70 font-semibold text-slate-900">
+                            <td className="py-2 px-3 font-bold text-[#261502]">2º</td>
+                            <td className="py-2 px-3">Preço Unitário Base P</td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              Custo de Aquisição ÷ Divisor SNH (com DAS híbrido por dentro).
+                              <br />
+                              Fórmula: {formatBRL(itemMemoriaAtivo.custoUnitario)} ÷{' '}
+                              {itemMemoriaAtivo.divisorPrincipal.toFixed(6)}
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
+                              {formatBRL(itemMemoriaAtivo.precoVendaUnitario)}
+                            </td>
+                          </tr>
 
-                      {/* Passo 6: ICMS com base incluindo IBS/CBS */}
-                      <tr className="bg-amber-50/40">
-                        <td className="py-2 px-3 font-bold text-[#261502]">6º</td>
-                        <td className="py-2 px-3 font-semibold text-slate-800">
-                          ICMS na Transição (Base inclui IBS/CBS)
-                        </td>
-                        <td className="py-2 px-3 text-slate-600 text-[11px]">
-                          <strong>Sefaz-SP RC 32303/2025 e RC 32931/2026:</strong> A assimetria é
-                          expressa: IBS e CBS integram a base do ICMS.
-                          <br />
-                          Preço / Nota = Valor sem ICMS ÷ (1 − alíquota ICMS) ={' '}
-                          {formatBRL(itemMemoriaAtivo.valorSemIcms)} ÷ {fatorIcms.toFixed(4)}.
-                          <br />
-                          ICMS destacado = Preço × {formatPercentBR(icmsRateEfetivo)} ={' '}
-                          {formatBRL(itemMemoriaAtivo.icmsUnitario)}.
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
-                          {formatBRL(itemMemoriaAtivo.icmsUnitario)}
-                        </td>
-                      </tr>
+                          <tr className="bg-slate-50">
+                            <td className="py-2 px-3 font-bold text-[#261502]">3º</td>
+                            <td className="py-2 px-3 font-semibold text-slate-800">
+                              DAS Híbrido por Dentro (
+                              {formatPercentBR(
+                                itemMemoriaAtivo.fatiasDas?.aliquotaTotalPct ?? 3.38,
+                              )}
+                              %)
+                            </td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              Apenas ICMS (
+                              {formatPercentBR(itemMemoriaAtivo.fatiasDas?.icmsPct ?? 34, 1)}) +
+                              Federais (
+                              {formatPercentBR(itemMemoriaAtivo.fatiasDas?.federaisPct ?? 50.5, 2)}
+                              ).
+                              <br />
+                              CBS e IBS recolhidos pelo regime regular por fora (art. 41 LC 214).
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
+                              {formatBRL(itemMemoriaAtivo.fatiasDas?.dasTotal ?? 0)}
+                            </td>
+                          </tr>
 
-                      {/* Passo 7: NOTA FISCAL = PREÇO FINAL */}
+                          <tr className="text-slate-600 text-[11px]">
+                            <td className="py-1.5 px-3 text-slate-400 pl-6">3.1</td>
+                            <td className="py-1.5 px-3">ICMS no DAS Híbrido</td>
+                            <td className="py-1.5 px-3 text-slate-500">
+                              Fração de ICMS recolhida no DAS híbrido
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-mono font-semibold">
+                              {formatBRL(itemMemoriaAtivo.fatiasDas?.icmsValor ?? 0)}
+                            </td>
+                          </tr>
+                          <tr className="text-slate-600 text-[11px]">
+                            <td className="py-1.5 px-3 text-slate-400 pl-6">3.2</td>
+                            <td className="py-1.5 px-3">Federais IRPJ/CSLL/CPP no DAS Híbrido</td>
+                            <td className="py-1.5 px-3 text-slate-500">
+                              Parcela dos tributos federais no DAS híbrido
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-mono font-semibold">
+                              {formatBRL(itemMemoriaAtivo.fatiasDas?.federaisValor ?? 0)}
+                            </td>
+                          </tr>
+
+                          <tr className="bg-amber-50/50">
+                            <td className="py-2 px-3 font-bold text-[#261502]">4º</td>
+                            <td className="py-2 px-3 font-semibold text-slate-800">
+                              Base de Cálculo CBS / IBS (Sem ICMS)
+                            </td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              <strong>LC 214/2025, art. 12, §2º, V:</strong> Preço P − ICMS do DAS ={' '}
+                              {formatBRL(itemMemoriaAtivo.precoVendaUnitario)} −{' '}
+                              {formatBRL(itemMemoriaAtivo.fatiasDas?.icmsValor ?? 0)}
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
+                              {formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}
+                            </td>
+                          </tr>
+
+                          <tr>
+                            <td className="py-2 px-3 font-bold text-[#261502]">5º</td>
+                            <td className="py-2 px-3 font-semibold text-slate-800">
+                              CBS por Fora ({formatPercentBR(cbsRateEfetivo)})
+                            </td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              BC ({formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}) ×{' '}
+                              {formatPercentBR(cbsRateEfetivo)}%
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-bold text-[#b87c14]">
+                              {formatBRL(itemMemoriaAtivo.cbsUnitario)}
+                            </td>
+                          </tr>
+
+                          <tr>
+                            <td className="py-2 px-3 font-bold text-[#261502]">6º</td>
+                            <td className="py-2 px-3 font-semibold text-slate-800">
+                              IBS por Fora ({formatPercentBR(ibsRateEfetivo)})
+                            </td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              BC ({formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}) ×{' '}
+                              {formatPercentBR(ibsRateEfetivo)}%
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-bold text-emerald-800">
+                              {formatBRL(itemMemoriaAtivo.ibsUnitario)}
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* RAMIFICAÇÃO: LP e LR (Composição Transição) */}
+                      {!itemMemoriaAtivo.isSimples && (
+                        <>
+                          <tr className="bg-amber-50/70 font-semibold text-slate-900">
+                            <td className="py-2 px-3 font-bold text-[#261502]">2º</td>
+                            <td className="py-2 px-3">Base de Cálculo do IBS e CBS</td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              <strong>LC 214/2025, art. 12, caput e §2º, V:</strong> Valor da
+                              operação líquido de ICMS, IBS, CBS, DV e margem.
+                              <br />
+                              Fórmula: Custo do adquirente ÷ Divisor sem ICMS ={' '}
+                              {formatBRL(itemMemoriaAtivo.custoUnitario)} ÷{' '}
+                              {divisorSemIcms.toFixed(6)}
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
+                              {formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}
+                            </td>
+                          </tr>
+
+                          <tr>
+                            <td className="py-2 px-3 font-bold text-[#261502]">3º</td>
+                            <td className="py-2 px-3 font-semibold text-slate-800">
+                              CBS 2027 (Por Fora)
+                            </td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              <strong>LC 214/2025, art. 12, §2º, I:</strong> CBS não integra a
+                              própria base.
+                              <br />
+                              Fórmula: BC ({formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}) ×
+                              Alíquota CBS ({formatPercentBR(cbsRateEfetivo)})
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-bold text-[#b87c14]">
+                              {formatBRL(itemMemoriaAtivo.cbsUnitario)}
+                            </td>
+                          </tr>
+
+                          <tr>
+                            <td className="py-2 px-3 font-bold text-[#261502]">4º</td>
+                            <td className="py-2 px-3 font-semibold text-slate-800">
+                              IBS na Venda (Por Fora)
+                            </td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              <strong>LC 214/2025, art. 12, §2º, I c/c art. 346:</strong> IBS não
+                              integra a própria base (alíquota-teste).
+                              <br />
+                              Fórmula: BC ({formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}) ×
+                              Alíquota IBS ({formatPercentBR(ibsRateEfetivo)})
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-bold text-emerald-800">
+                              {formatBRL(itemMemoriaAtivo.ibsUnitario)}
+                            </td>
+                          </tr>
+
+                          <tr className="bg-slate-50 font-semibold text-slate-900">
+                            <td className="py-2 px-3 font-bold text-[#261502]">5º</td>
+                            <td className="py-2 px-3">Valor da Operação sem ICMS</td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              Soma da Base de Cálculo com os novos tributos por fora.
+                              <br />
+                              Fórmula: BC ({formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}) + CBS (
+                              {formatBRL(itemMemoriaAtivo.cbsUnitario)}) + IBS (
+                              {formatBRL(itemMemoriaAtivo.ibsUnitario)})
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-black text-slate-900">
+                              {formatBRL(itemMemoriaAtivo.valorSemIcms)}
+                            </td>
+                          </tr>
+
+                          <tr className="bg-amber-50/40">
+                            <td className="py-2 px-3 font-bold text-[#261502]">6º</td>
+                            <td className="py-2 px-3 font-semibold text-slate-800">
+                              ICMS na Transição (Base inclui IBS/CBS)
+                            </td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              <strong>Sefaz-SP RC 32303/2025 e RC 32931/2026:</strong> A assimetria
+                              é expressa: IBS e CBS integram a base do ICMS.
+                              <br />
+                              Preço / Nota = Valor sem ICMS ÷ (1 − alíquota ICMS) ={' '}
+                              {formatBRL(itemMemoriaAtivo.valorSemIcms)} ÷ {fatorIcms.toFixed(4)}.
+                              <br />
+                              ICMS destacado = Preço × {formatPercentBR(icmsRateEfetivo)} ={' '}
+                              {formatBRL(itemMemoriaAtivo.icmsUnitario)}.
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                              {formatBRL(itemMemoriaAtivo.icmsUnitario)}
+                            </td>
+                          </tr>
+                        </>
+                      )}
+
+                      {/* NOTA FISCAL = TOTAL */}
                       <tr className="bg-[#fdedc3]/80 font-black text-[#261502] text-sm">
-                        <td className="py-2.5 px-3">7º</td>
-                        <td className="py-2.5 px-3">Nota Fiscal = Preço Final de Venda</td>
+                        <td className="py-2.5 px-3">
+                          {itemMemoriaAtivo.key === 'snp'
+                            ? '4º'
+                            : itemMemoriaAtivo.key === 'snh'
+                              ? '7º'
+                              : '7º'}
+                        </td>
+                        <td className="py-2.5 px-3">Nota Fiscal = Total Cobrado</td>
                         <td className="py-2.5 px-3 text-xs font-normal">
-                          Valor total faturado na nota fiscal ao adquirente.
+                          {itemMemoriaAtivo.key === 'snh'
+                            ? 'Preço P + CBS por fora + IBS por fora destacados na nota fiscal.'
+                            : 'Valor total faturado na nota fiscal ao adquirente.'}
                         </td>
                         <td className="py-2.5 px-3 text-right text-base">
-                          {formatBRL(itemMemoriaAtivo.precoVendaUnitario)}
+                          {formatBRL(itemMemoriaAtivo.totalNotaUnitario)}
                         </td>
                       </tr>
 
@@ -1515,11 +1760,15 @@ export function MarkupPosPage() {
                         <td className="py-2 px-3">Margem Líquida Realizada</td>
                         <td className="py-2 px-3 text-emerald-800 text-[11px] font-normal">
                           Preço ({formatBRL(itemMemoriaAtivo.precoVendaUnitario)}) − Custo (
-                          {formatBRL(itemMemoriaAtivo.custoUnitario)}) − ICMS (
-                          {formatBRL(itemMemoriaAtivo.icmsUnitario)}) − Σ DV (
-                          {formatBRL(itemMemoriaAtivo.dvUnitarioTotal)}) − CBS (
-                          {formatBRL(itemMemoriaAtivo.cbsUnitario)}) − IBS (
-                          {formatBRL(itemMemoriaAtivo.ibsUnitario)})
+                          {formatBRL(itemMemoriaAtivo.custoUnitario)}) − Tributos (
+                          {formatBRL(
+                            itemMemoriaAtivo.isSimples
+                              ? (itemMemoriaAtivo.fatiasDas?.dasTotal ?? 0)
+                              : itemMemoriaAtivo.icmsUnitario +
+                                  itemMemoriaAtivo.cbsUnitario +
+                                  itemMemoriaAtivo.ibsUnitario,
+                          )}
+                          ) − Σ DV ({formatBRL(itemMemoriaAtivo.dvUnitarioTotal)})
                         </td>
                         <td className="py-2 px-3 text-right font-mono font-black text-emerald-700">
                           {formatBRL(itemMemoriaAtivo.lucroUnitarioRealizado)} (

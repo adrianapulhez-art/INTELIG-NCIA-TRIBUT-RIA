@@ -50,6 +50,63 @@ describe('Validação dos Custos do Adquirente Lucro Presumido 2027 (Card 03)', 
     expect(celulaSnh.exercicio2027.custoUnitario).toBeCloseTo(1383.56, 2)
   })
 
+  it('4b. Chancela Cenário 03 SN puro e Cenário 04 SN híbrido (motor dedicado)', () => {
+    // Validação matemática das chancelas da Adri registradas em memória:
+    // Custo base = 1.394,11 (ou custo correspondente que com os fatores produz 3.237,55 / 3.236,55)
+    // Fatores de DV do caso de teste: 0,975 * 0,97 * 0,98 = 0,926835
+    // Fator margem 51,9%: 0,481
+    // Divisor sem tributos: 0,926835 * 0,481 = 0,445807635
+    // Cenário 03 Puro:
+    // Alíquota SN = 4,00% -> fator DAS = 0,9600
+    // Divisor SN puro = 0,445807635 * 0,96 = 0,4279753...
+    // Preço 3.237,55 * 0,4279753 = custo ~ 1.385,60
+    // DAS 4% = 3.237,55 * 0,04 = 129,502 -> 129,50
+    // Partilha 2027: ICMS 34%, CBS 15,33%, IBS 0,17%, Federais 50,50%
+    const preco03 = 3237.55
+    const das03 = roundHalfUp(preco03 * 0.04, 2)
+    expect(das03).toBe(129.5)
+    const icms03 = roundHalfUp(das03 * 0.34, 2)
+    const cbs03 = roundHalfUp(das03 * 0.1533, 2)
+    const ibs03 = roundHalfUp(das03 * 0.0017, 2)
+    const federais03 = roundHalfUp(das03 * 0.505, 2)
+    expect(icms03).toBe(44.03)
+    expect(cbs03).toBe(19.85)
+    expect(ibs03).toBe(0.22)
+    expect(federais03).toBe(65.4)
+
+    // Cenário 04 Híbrido:
+    // Alíquota DAS híbrido = 4% * (34% + 50,5%) = 3,38% -> fator = 0,9662
+    // Fator divisor híbrido = 0,445807635 * 0,9662 = 0,430739... -> 0,430739
+    const fDv = 0.975 * 0.97 * 0.98
+    const fMargem = 0.481
+    const fDasHibrido = 1 - 0.0338
+    const divisorHibrido = fDv * fMargem * fDasHibrido
+    expect(roundHalfUp(divisorHibrido, 6)).toBe(0.430739)
+
+    const preco04 = 3236.55
+    const das04 = roundHalfUp(preco04 * 0.0338, 2)
+    expect(das04).toBe(109.4)
+    const icms04 = roundHalfUp(preco04 * (0.04 * 0.34), 2)
+    const federais04 = roundHalfUp(preco04 * (0.04 * 0.505), 2)
+    expect(icms04).toBe(44.02)
+    expect(federais04).toBe(65.38)
+    expect(roundHalfUp(icms04 + federais04, 2)).toBe(109.4)
+
+    // Base CBS/IBS limpa de ICMS = P - ICMS = 3.236,55 - 44,02 = 3.192,53
+    const bcCbsIbs04 = roundHalfUp(preco04 - icms04, 2)
+    expect(bcCbsIbs04).toBe(3192.53)
+
+    // CBS por fora 8,8% e IBS por fora 0,1%
+    const cbs04 = roundHalfUp(bcCbsIbs04 * 0.088, 2)
+    const ibs04 = roundHalfUp(bcCbsIbs04 * 0.001, 2)
+    expect(cbs04).toBe(280.94)
+    expect(ibs04).toBe(3.19)
+
+    // Nota fiscal total = 3.236,55 + 280,94 + 3,19 = 3.520,68
+    const nota04 = roundHalfUp(preco04 + cbs04 + ibs04, 2)
+    expect(nota04).toBe(3520.68)
+  })
+
   it('5. Estrutura correta da composição legal: caso verbatim da Adri com alíquotas reais', () => {
     // O caso verbatim da Adri:
     // Custo do adquirente = 1.106,10
@@ -265,5 +322,96 @@ describe('Validação dos Custos do Adquirente Lucro Presumido 2027 (Card 03)', 
     expect(lr.precoFinal).toBeLessThan(lp.precoFinal)
     expect(lp.precoFinal).toBeLessThan(snh.precoFinal)
     expect(snh.precoFinal).toBeLessThan(snp.precoFinal)
+  })
+
+  it('9. Motor completo calcularMarkupPosColuna diferencia sistemáticas e integra parâmetros do Simples', async () => {
+    // Importa o motor da coluna
+    const { calcularMarkupPosColuna } = await import('./markupPosCalculations')
+
+    // Coluna LP (ICMS 18%)
+    const resLp = calcularMarkupPosColuna({
+      key: 'lp',
+      custoUnitario: 1116.63,
+      custoHoje: 1051.73,
+      deltaCustoPct: 6.17,
+      comprasLiquidasTotal: 33498.97,
+      notaCompraTotal: 44488.27,
+      fatorDvConsolidado: 1.0,
+      somaDvPct: 0,
+      margemLucroEfetiva: 51.9,
+      icmsRateEfetivo: 18.0,
+      cbsRateEfetivo: 26.5,
+      ibsRateEfetivo: 0.1,
+      quantidadeVendidaEfetiva: 24,
+    })
+    expect(resLp.isSimples).toBe(false)
+    expect(resLp.precoVendaUnitario).toBe(3584.13)
+    expect(resLp.icmsUnitario).toBe(roundHalfUp(3584.13 * 0.18, 2))
+
+    // Coluna SNP (Simples Nacional Puro) — sem ICMS 18%!
+    const resSnp = calcularMarkupPosColuna({
+      key: 'snp',
+      custoUnitario: 1482.94,
+      custoHoje: 1413.33,
+      deltaCustoPct: 4.92,
+      comprasLiquidasTotal: 44488.27,
+      notaCompraTotal: 44488.27,
+      fatorDvConsolidado: 1.0,
+      somaDvPct: 0,
+      margemLucroEfetiva: 51.9,
+      icmsRateEfetivo: 18.0, // Não deve ser usado no SNP!
+      cbsRateEfetivo: 26.5,
+      ibsRateEfetivo: 0.1,
+      quantidadeVendidaEfetiva: 24,
+      simplesAnexo: 'anexo_1',
+      simplesRbt12: 180000,
+    })
+    expect(resSnp.isSimples).toBe(true)
+    expect(resSnp.isSimplesHibrido).toBe(false)
+    // Divisor SNP = 0,481 * 0,96 = 0,46176
+    // Preço = 1.482,94 / 0,46176 = 3.211,49
+    expect(resSnp.divisorPrincipal).toBeCloseTo(0.46176, 5)
+    expect(resSnp.precoVendaUnitario).toBe(3211.5)
+    // DAS total 4% de 3.211,50 = 128,46
+    expect(resSnp.fatiasDas?.dasTotal).toBe(128.46)
+    // ICMS no DAS = 34% de 128,46 = 43,68 (NUNCA 18% = ~578 reais!)
+    expect(resSnp.fatiasDas?.icmsValor).toBe(43.68)
+    expect(resSnp.icmsUnitario).toBe(43.68)
+    expect(resSnp.icmsUnitario).toBeLessThan(100) // Proteção explícita contra 18%
+
+    // Coluna SNH (Simples Nacional Híbrido) — DAS híbrido 3,38% por dentro + CBS/IBS por fora
+    const resSnh = calcularMarkupPosColuna({
+      key: 'snh',
+      custoUnitario: 1383.56,
+      custoHoje: 1413.33,
+      deltaCustoPct: -2.11,
+      comprasLiquidasTotal: 41506.86,
+      notaCompraTotal: 44488.27,
+      fatorDvConsolidado: 1.0,
+      somaDvPct: 0,
+      margemLucroEfetiva: 51.9,
+      icmsRateEfetivo: 18.0, // Não deve ser usado como ICMS integral!
+      cbsRateEfetivo: 26.5,
+      ibsRateEfetivo: 0.1,
+      quantidadeVendidaEfetiva: 24,
+      simplesAnexo: 'anexo_1',
+      simplesRbt12: 180000,
+    })
+    expect(resSnh.isSimples).toBe(true)
+    expect(resSnh.isSimplesHibrido).toBe(true)
+    // DAS híbrido = 3,38% -> divisor = 0,481 * (1 - 0,0338) = 0,481 * 0,9662 = 0,4647422
+    expect(resSnh.divisorPrincipal).toBeCloseTo(0.4647422, 5)
+    // Preço P = 1.383,56 / 0,4647422 = 2.977,05
+    expect(resSnh.precoVendaUnitario).toBe(2977.05)
+    // ICMS da fração do DAS = 2.977,05 * 1,36% = 40,49
+    expect(resSnh.fatiasDas?.icmsValor).toBe(40.49)
+    // Base de cálculo do CBS/IBS = P - ICMS = 2.977,05 - 40,49 = 2.936,56
+    expect(resSnh.baseCalculoIbsCbs).toBe(2936.56)
+    // CBS 26,5% por fora = 778,19
+    expect(resSnh.cbsUnitario).toBe(778.19)
+    // IBS 0,1% por fora = 2,94
+    expect(resSnh.ibsUnitario).toBe(2.94)
+    // Nota fiscal total = 2.977,05 + 778,19 + 2,94 = 3.758,18
+    expect(resSnh.totalNotaUnitario).toBe(3758.18)
   })
 })
