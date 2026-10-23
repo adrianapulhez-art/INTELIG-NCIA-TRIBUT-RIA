@@ -285,6 +285,18 @@ describe('Blindagem da Calculadora de Markup Pós EC 132 (2027+) — Reestrutura
         fornecedorSelecionado: 'lr',
         icmsRateInput: 18,
         margemLucroInput: 45,
+        margemPorCard: {
+          lp: 50,
+          lr: 45,
+          snp: 40,
+          snh: 35,
+        },
+        quantidadePorCard: {
+          lp: 10,
+          lr: 20,
+          snp: 30,
+          snh: 40,
+        },
       })
 
       expect(mockStorage[STORAGE_KEY_MARKUP_POS]).toBeDefined()
@@ -292,6 +304,10 @@ describe('Blindagem da Calculadora de Markup Pós EC 132 (2027+) — Reestrutura
       expect(estado?.clienteRegimeSelecionado).toBe('snp')
       expect(estado?.fornecedorSelecionado).toBe('lr')
       expect(estado?.margemLucroInput).toBe(45)
+      expect(estado?.margemPorCard?.lr).toBe(45)
+      expect(estado?.margemPorCard?.snp).toBe(40)
+      expect(estado?.quantidadePorCard?.lp).toBe(10)
+      expect(estado?.quantidadePorCard?.snh).toBe(40)
 
       globalThis.localStorage = originalLocal
     })

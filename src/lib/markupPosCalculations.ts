@@ -522,8 +522,14 @@ export interface MarkupPosSavedState {
   icmsRateInput?: number
   cbsRateInput?: number
   ibsRateInput?: number
+  /** @deprecated legado global; migrado para margemPorCard */
   margemLucroInput?: number
+  /** @deprecated legado global; migrado para quantidadePorCard */
   quantidadeVendidaInput?: number
+  /** Margem de lucro individual por card de combinação de fornecedor (LP, LR, SNP, SNH) */
+  margemPorCard?: Partial<Record<FornecedorPosKey, number>>
+  /** Quantidade vendida individual por card de combinação de fornecedor (LP, LR, SNP, SNH) */
+  quantidadePorCard?: Partial<Record<FornecedorPosKey, number>>
   fornecedorSelecionado?: FornecedorPosKey
   clienteRegimeSelecionado?: ClienteRegimeKey
 }

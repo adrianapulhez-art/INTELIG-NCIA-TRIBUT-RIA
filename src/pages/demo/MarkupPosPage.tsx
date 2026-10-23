@@ -179,12 +179,6 @@ export function MarkupPosPage() {
     return REFERENCIAS_MARKUP_POS.MARGEM_PADRAO_PCT
   }, [produtoAtivo])
 
-  const [margemLucroInput, setMargemLucroInput] = useState<number | undefined>(
-    estadoSalvoInicial?.margemLucroInput,
-  )
-  const margemLucroEfetiva = margemLucroInput ?? margemReferencia
-  const fatorMargem = useMemo(() => Math.max(0, 1 - margemLucroEfetiva / 100), [margemLucroEfetiva])
-
   const quantidadeReferencia = useMemo(() => {
     if (produtoAtivo && produtoAtivo.quantity && produtoAtivo.quantity > 0) {
       return produtoAtivo.quantity
@@ -192,13 +186,41 @@ export function MarkupPosPage() {
     return REFERENCIAS_MARKUP_POS.QUANTIDADE_PADRAO
   }, [produtoAtivo])
 
-  const [quantidadeVendidaInput, setQuantidadeVendidaInput] = useState<number | undefined>(
-    estadoSalvoInicial?.quantidadeVendidaInput,
+  // Margem e Quantidade individuais por card (LP, LR, SNP, SNH)
+  // Migração suave: se houver estado legado com valores globais, adota como base inicial
+  const [margemPorCard, setMargemPorCard] = useState<Record<FornecedorPosKey, number | undefined>>(
+    () => {
+      const salvo = estadoSalvoInicial?.margemPorCard
+      const legada = estadoSalvoInicial?.margemLucroInput
+      return {
+        lp: salvo?.lp ?? legada,
+        lr: salvo?.lr ?? legada,
+        snp: salvo?.snp ?? legada,
+        snh: salvo?.snh ?? legada,
+      }
+    },
   )
-  const quantidadeVendidaEfetiva =
-    quantidadeVendidaInput !== undefined && quantidadeVendidaInput > 0
-      ? Math.round(quantidadeVendidaInput)
-      : quantidadeReferencia
+
+  const [quantidadePorCard, setQuantidadePorCard] = useState<
+    Record<FornecedorPosKey, number | undefined>
+  >(() => {
+    const salvo = estadoSalvoInicial?.quantidadePorCard
+    const legada = estadoSalvoInicial?.quantidadeVendidaInput
+    return {
+      lp: salvo?.lp ?? legada,
+      lr: salvo?.lr ?? legada,
+      snp: salvo?.snp ?? legada,
+      snh: salvo?.snh ?? legada,
+    }
+  })
+
+  const handleUpdateMargemCard = (key: FornecedorPosKey, val: number | undefined) => {
+    setMargemPorCard((prev) => ({ ...prev, [key]: val }))
+  }
+
+  const handleUpdateQuantidadeCard = (key: FornecedorPosKey, val: number | undefined) => {
+    setQuantidadePorCard((prev) => ({ ...prev, [key]: val }))
+  }
 
   // Efeito de persistência: preserva seleções e valores digitados (Política Adri: um salvamento, uma página)
   useEffect(() => {
@@ -207,8 +229,8 @@ export function MarkupPosPage() {
       icmsRateInput,
       cbsRateInput,
       ibsRateInput,
-      margemLucroInput,
-      quantidadeVendidaInput,
+      margemPorCard,
+      quantidadePorCard,
       fornecedorSelecionado,
       clienteRegimeSelecionado: clienteRegime,
     })
@@ -217,8 +239,8 @@ export function MarkupPosPage() {
     icmsRateInput,
     cbsRateInput,
     ibsRateInput,
-    margemLucroInput,
-    quantidadeVendidaInput,
+    margemPorCard,
+    quantidadePorCard,
     fornecedorSelecionado,
     clienteRegime,
   ])
@@ -240,19 +262,23 @@ export function MarkupPosPage() {
     })
   }, [clienteRegime, itemEfetivo, inputEfetivo, cbsRateEfetivo, ibsRateEfetivo])
 
-  // Divisor sem ICMS base (utilizado para a composição de LP e LR)
-  const divisorSemIcms = useMemo(() => {
-    const d = fatorDvConsolidado * fatorMargem
-    return d > 0 ? d : 0.0001
-  }, [fatorDvConsolidado, fatorMargem])
-
   // --------------------------------------------------------------------------
   // 6. DERIVAÇÃO DA FORMAÇÃO DO PREÇO DE VENDA NAS REGRAS MARKUP DO CLIENTE
+  // Cada coluna tem sua própria margem de lucro e quantidade vendida independentes
   // --------------------------------------------------------------------------
   const simulacaoQuatroColunas = useMemo(() => {
     const keys: FornecedorPosKey[] = ['lp', 'lr', 'snp', 'snh']
     return keys.map((key) => {
       const custoInfo = espelhoCard03Compras[key]
+      const margemDigitada = margemPorCard[key]
+      const margemEfetivaCard = margemDigitada ?? margemReferencia
+
+      const qtdDigitada = quantidadePorCard[key]
+      const quantidadeEfetivaCard =
+        qtdDigitada !== undefined && qtdDigitada > 0
+          ? Math.round(qtdDigitada)
+          : quantidadeReferencia
+
       return calcularMarkupPosColuna({
         key,
         clienteRegime,
@@ -263,11 +289,11 @@ export function MarkupPosPage() {
         notaCompraTotal: custoInfo.notaCheia2027,
         fatorDvConsolidado,
         somaDvPct,
-        margemLucroEfetiva,
+        margemLucroEfetiva: margemEfetivaCard,
         icmsRateEfetivo,
         cbsRateEfetivo,
         ibsRateEfetivo,
-        quantidadeVendidaEfetiva,
+        quantidadeVendidaEfetiva: quantidadeEfetivaCard,
         simplesAnexo: simplesAnexoAtivo,
         simplesRbt12: simplesRbt12Ativo,
         effectiveSimplesRbt12,
@@ -277,13 +303,15 @@ export function MarkupPosPage() {
   }, [
     espelhoCard03Compras,
     clienteRegime,
+    margemPorCard,
+    quantidadePorCard,
+    margemReferencia,
+    quantidadeReferencia,
     fatorDvConsolidado,
     somaDvPct,
-    margemLucroEfetiva,
     icmsRateEfetivo,
     cbsRateEfetivo,
     ibsRateEfetivo,
-    quantidadeVendidaEfetiva,
     simplesAnexoAtivo,
     simplesRbt12Ativo,
     effectiveSimplesRbt12,
@@ -449,9 +477,10 @@ export function MarkupPosPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* PARÂMETROS EDITÁVEIS: DESPESAS VARIÁVEIS, TRIBUTOS E MARGEM DE LUCRO       */}
+        {/* PARÂMETROS EDITÁVEIS: DESPESAS VARIÁVEIS E TRIBUTOS NA SAÍDA             */}
+        {/* (Margem e Quantidade agora são individuais por card de fornecedor)        */}
         {/* ========================================================================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* CARD 01: DESPESAS VARIÁVEIS DE VENDA (DV) */}
           <div className="rounded-2xl border border-amber-300/70 bg-white p-5 shadow-sm space-y-4 flex flex-col justify-between">
             <div className="space-y-2">
@@ -743,114 +772,6 @@ export function MarkupPosPage() {
               </p>
             </div>
           </div>
-
-          {/* CARD 03: MARGEM DE LUCRO DESEJADA, QUANTIDADE & FATOR DIVISOR */}
-          <div className="rounded-2xl border border-amber-300/70 bg-white p-5 shadow-sm space-y-4 flex flex-col justify-between">
-            <div className="space-y-3.5">
-              <div className="border-b border-amber-900/10 pb-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded bg-[#261502] text-amber-200 text-xs font-bold font-mono flex items-center justify-center">
-                    M
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black uppercase text-[#261502] tracking-wider">
-                      Margem & Quantidade
-                    </h4>
-                    <span className="text-[10px] text-slate-500 font-mono">
-                      Formação do Preço Simulado
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Margem de Lucro Desejada */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800">
-                    Margem de Lucro Desejada (%):
-                  </label>
-                  <span className="text-xs font-mono font-semibold text-[#5c3e06]">
-                    Fator: {fatorMargem.toFixed(4)}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                  <div className="sm:col-span-7">
-                    <MoneyInput
-                      value={margemLucroInput}
-                      onChange={(val) => setMargemLucroInput(val)}
-                      decimals={2}
-                      placeholder={formatNumberBR(margemReferencia, 2)}
-                      className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
-                      suffix="%"
-                    />
-                  </div>
-                  <div className="sm:col-span-5 text-right sm:text-left">
-                    <span className="text-xs font-mono text-slate-500 font-semibold block">
-                      Ref. {formatPercentBR(margemReferencia)}
-                    </span>
-                  </div>
-                </div>
-                <span className="text-[10px] text-slate-400 font-mono block leading-tight">
-                  Régua de referência {formatPercentBR(margemReferencia)}. Vazio mantém a referência
-                  sem zerar.
-                </span>
-              </div>
-
-              {/* Quantidade Vendida */}
-              <div className="space-y-1.5 pt-1 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-800">
-                    Quantidade Vendida (un.):
-                  </label>
-                  <span className="text-xs font-mono text-slate-500 font-semibold">
-                    Ref. {quantidadeReferencia} un.
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
-                  <div className="sm:col-span-7">
-                    <MoneyInput
-                      value={quantidadeVendidaInput}
-                      onChange={(val) => setQuantidadeVendidaInput(val)}
-                      decimals={0}
-                      className="h-9 text-xs font-mono font-bold field-input-brown text-[#261502]"
-                      placeholder={String(quantidadeReferencia)}
-                      suffix="un."
-                    />
-                  </div>
-                  <div className="sm:col-span-5 text-right sm:text-left">
-                    <span className="text-[10px] text-slate-400 font-mono block">
-                      Lote da operação
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Fator Divisor Multiplicativo */}
-            <div className="rounded-xl border border-amber-300 bg-amber-50/70 p-3.5 space-y-1.5 mt-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-slate-600 font-bold">
-                  {clienteRegime === 'snp' || clienteRegime === 'snh'
-                    ? 'Divisor Simples Nacional:'
-                    : 'Divisor da Operação:'}
-                </span>
-                <span className="text-sm font-mono font-black text-[#261502]">
-                  {clienteRegime === 'snp'
-                    ? (fatorDvConsolidado * fatorMargem * 0.96).toFixed(6)
-                    : clienteRegime === 'snh'
-                      ? (fatorDvConsolidado * fatorMargem * (1 - 0.0338)).toFixed(6)
-                      : (fatorDvConsolidado * fatorMargem).toFixed(6)}
-                </span>
-              </div>
-              <p className="text-[10px] font-mono text-slate-500 leading-tight pt-0.5">
-                {clienteRegime === 'snp'
-                  ? 'Simples Nacional Puro: tudo unificado por dentro do DAS sem alíquota cheia (18%).'
-                  : clienteRegime === 'snh'
-                    ? 'Simples Nacional Híbrido: DAS híbrido por dentro (3,38%), CBS/IBS por fora sobre base sem ICMS.'
-                    : 'Regime Regular: Divisor = Π(1 − % DV) × (1 − Margem) aplicado no custo ÷ divisor.'}
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* ========================================================================= */}
@@ -872,6 +793,11 @@ export function MarkupPosPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
             {simulacaoQuatroColunas.map((col) => {
               const isSelected = fornecedorSelecionado === col.key
+              const qtdCardEfetiva =
+                quantidadePorCard[col.key] !== undefined &&
+                (quantidadePorCard[col.key] as number) > 0
+                  ? Math.round(quantidadePorCard[col.key] as number)
+                  : quantidadeReferencia
               return (
                 <div
                   key={col.key}
@@ -894,7 +820,7 @@ export function MarkupPosPage() {
                       )}
                     </div>
                     <h4 className="text-xs font-black text-[#261502] uppercase leading-tight">
-                      Fornecedor {col.meta.rotulo}
+                      {col.meta.rotulo}
                     </h4>
                     <p className="text-[10px] text-slate-500 font-mono leading-tight">
                       {col.custoInfo?.rotuloMotor ?? col.meta.descricao}
@@ -904,26 +830,102 @@ export function MarkupPosPage() {
                   {/* Corpo do Card */}
                   <div className="p-4 space-y-3.5 flex-1 flex flex-col justify-between">
                     {/* 1. Custo Unitário de Aquisição Lido do Card 03 Compras */}
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 space-y-0.5">
-                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                        <span>Custo Card 03 (2027):</span>
-                        <span className="line-through text-slate-400">
-                          {formatBRL(col.custoHoje)}
-                        </span>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 space-y-2">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
+                          <span>Custo Card 03 (2027):</span>
+                          <span className="line-through text-slate-400">
+                            {formatBRL(col.custoHoje)}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-sm font-black font-mono text-[#261502]">
+                            {formatBRL(col.custoUnitario)}
+                            <span className="text-[10px] text-slate-500 font-normal">/un</span>
+                          </span>
+                          <span
+                            className={`text-[10px] font-mono font-bold ${
+                              col.deltaCustoPct >= 0 ? 'text-rose-700' : 'text-emerald-700'
+                            }`}
+                          >
+                            {col.deltaCustoPct >= 0 ? '+' : ''}
+                            {formatNumberBR(col.deltaCustoPct)}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-sm font-black font-mono text-[#261502]">
-                          {formatBRL(col.custoUnitario)}
-                          <span className="text-[10px] text-slate-500 font-normal">/un</span>
-                        </span>
-                        <span
-                          className={`text-[10px] font-mono font-bold ${
-                            col.deltaCustoPct >= 0 ? 'text-rose-700' : 'text-emerald-700'
-                          }`}
-                        >
-                          {col.deltaCustoPct >= 0 ? '+' : ''}
-                          {formatNumberBR(col.deltaCustoPct)}%
-                        </span>
+
+                      {/* Campos individuais por card: Margem de Lucro Desejada e Quantidade Vendida */}
+                      <div className="pt-2 border-t border-slate-200/80 space-y-2.5 font-sans">
+                        {/* Margem individual */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-bold text-slate-800">
+                              Margem de Lucro Desejada (%):
+                            </label>
+                            <span className="text-[10px] font-mono font-semibold text-[#5c3e06]">
+                              Fator:{' '}
+                              {(1 - (margemPorCard[col.key] ?? margemReferencia) / 100).toFixed(4)}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-12 gap-1.5 items-center">
+                            <div className="col-span-7">
+                              <MoneyInput
+                                value={margemPorCard[col.key]}
+                                onChange={(val) => handleUpdateMargemCard(col.key, val)}
+                                decimals={2}
+                                placeholder={formatNumberBR(margemReferencia, 2)}
+                                className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
+                                suffix="%"
+                              />
+                            </div>
+                            <div className="col-span-5 text-right">
+                              <span className="text-[10px] font-mono text-slate-500 font-semibold block whitespace-nowrap">
+                                Ref. {formatPercentBR(margemReferencia)}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[9px] text-slate-400 font-mono block leading-tight">
+                            Régua de referência {formatPercentBR(margemReferencia)}. Vazio mantém a
+                            referência sem zerar.
+                          </span>
+                        </div>
+
+                        {/* Quantidade individual */}
+                        <div className="space-y-1 pt-1 border-t border-slate-100">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-bold text-slate-800">
+                              Quantidade Vendida (un.):
+                            </label>
+                            <span className="text-[10px] font-mono text-slate-500 font-semibold">
+                              Ref. {quantidadeReferencia} un.
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-12 gap-1.5 items-center">
+                            <div className="col-span-7">
+                              <MoneyInput
+                                value={quantidadePorCard[col.key]}
+                                onChange={(val) => handleUpdateQuantidadeCard(col.key, val)}
+                                decimals={0}
+                                className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
+                                placeholder={String(quantidadeReferencia)}
+                                suffix="un."
+                              />
+                            </div>
+                            <div className="col-span-5 text-right">
+                              <span className="text-[10px] text-slate-400 font-mono block whitespace-nowrap">
+                                Lote operação
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Divisor do card */}
+                        <div className="rounded-lg bg-amber-50/80 border border-amber-200/70 p-1.5 flex items-center justify-between text-[10px] font-mono">
+                          <span className="font-semibold text-slate-700">Divisor Efetivo:</span>
+                          <span className="font-bold text-[#261502]">
+                            {col.divisorPrincipal.toFixed(6)}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
@@ -938,7 +940,7 @@ export function MarkupPosPage() {
                         </span>
                       </div>
                       <div className="flex justify-between text-xs text-slate-600 pt-1.5 border-t border-slate-200">
-                        <span>Total Lote ({quantidadeVendidaEfetiva} un.):</span>
+                        <span>Total Lote ({qtdCardEfetiva} un.):</span>
                         <span className="font-bold text-slate-800">
                           {formatBRL(col.totalNotaLote)}
                         </span>
@@ -1062,7 +1064,12 @@ export function MarkupPosPage() {
                       Lote Simulado
                     </span>
                     <span className="font-bold text-[#261502]">
-                      {quantidadeVendidaEfetiva} unidades
+                      {itemMemoriaAtivo &&
+                      quantidadePorCard[itemMemoriaAtivo.key] !== undefined &&
+                      (quantidadePorCard[itemMemoriaAtivo.key] as number) > 0
+                        ? Math.round(quantidadePorCard[itemMemoriaAtivo.key] as number)
+                        : quantidadeReferencia}{' '}
+                      unidades
                     </span>
                   </div>
                 </div>
@@ -1101,25 +1108,30 @@ export function MarkupPosPage() {
                             : 'Divisor Efetivo da Operação'}
                         </td>
                         <td className="py-2 px-3 text-slate-600 text-[11px]">
-                          {itemMemoriaAtivo.isSimples ? (
-                            <>
-                              <strong>LC 123/2006 c/c LC 214/2025:</strong> Empresa do Simples
-                              Nacional não usa ICMS 18% cheia.
-                              <br />
-                              Divisor = Π(1 − % DV) [{fatorDvConsolidado.toFixed(4)}] × (1 − Margem)
-                              [{fatorMargem.toFixed(4)}] × Fator Tributário [
-                              {itemMemoriaAtivo.fatorTributarioEfetivo.toFixed(4)}].
-                            </>
-                          ) : (
-                            <>
-                              <strong>LC 214/2025, art. 12, caput e §2º:</strong> Divisor aplicado
-                              na formação do preço de venda (fatores de despesas variáveis × fator
-                              margem).
-                              <br />
-                              Divisor = Π(1 − % DV) [{fatorDvConsolidado.toFixed(4)}] × (1 − Margem)
-                              [{fatorMargem.toFixed(4)}].
-                            </>
-                          )}
+                          {(() => {
+                            const margemCardAtivo =
+                              margemPorCard[itemMemoriaAtivo.key] ?? margemReferencia
+                            const fatorMargemCardAtivo = Math.max(0, 1 - margemCardAtivo / 100)
+                            return itemMemoriaAtivo.isSimples ? (
+                              <>
+                                <strong>LC 123/2006 c/c LC 214/2025:</strong> Empresa do Simples
+                                Nacional não usa ICMS 18% cheia.
+                                <br />
+                                Divisor = Π(1 − % DV) [{fatorDvConsolidado.toFixed(4)}] × (1 −
+                                Margem) [{fatorMargemCardAtivo.toFixed(4)}] × Fator Tributário [
+                                {itemMemoriaAtivo.fatorTributarioEfetivo.toFixed(4)}].
+                              </>
+                            ) : (
+                              <>
+                                <strong>LC 214/2025, art. 12, caput e §2º:</strong> Divisor aplicado
+                                na formação do preço de venda (fatores de despesas variáveis × fator
+                                margem).
+                                <br />
+                                Divisor = Π(1 − % DV) [{fatorDvConsolidado.toFixed(4)}] × (1 −
+                                Margem) [{fatorMargemCardAtivo.toFixed(4)}].
+                              </>
+                            )
+                          })()}
                         </td>
                         <td className="py-2 px-3 text-right font-mono font-bold text-[#b87c14]">
                           {itemMemoriaAtivo.divisorPrincipal.toFixed(6)}
@@ -1332,7 +1344,7 @@ export function MarkupPosPage() {
                               <br />
                               Fórmula: Custo do adquirente ÷ Divisor sem ICMS ={' '}
                               {formatBRL(itemMemoriaAtivo.custoUnitario)} ÷{' '}
-                              {divisorSemIcms.toFixed(6)}
+                              {itemMemoriaAtivo.divisorSemIcms.toFixed(6)}
                             </td>
                             <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
                               {formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}
@@ -1431,25 +1443,34 @@ export function MarkupPosPage() {
                       </tr>
 
                       {/* TOTAL DO LOTE */}
-                      <tr className="bg-[#fff9eb] font-bold text-[#261502] text-xs">
-                        <td className="py-2 px-3">
-                          {itemMemoriaAtivo.clienteRegime === 'snp'
-                            ? '5º'
-                            : itemMemoriaAtivo.clienteRegime === 'snh'
-                              ? '8º'
-                              : '8º'}
-                        </td>
-                        <td className="py-2 px-3">
-                          Total do Lote Simulado ({quantidadeVendidaEfetiva} un.)
-                        </td>
-                        <td className="py-2 px-3 text-slate-600 text-[11px] font-normal">
-                          Nota Fiscal Total ({formatBRL(itemMemoriaAtivo.totalNotaUnitario)}) ×
-                          Quantidade ({quantidadeVendidaEfetiva} un.)
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
-                          {formatBRL(itemMemoriaAtivo.totalNotaLote)}
-                        </td>
-                      </tr>
+                      {(() => {
+                        const qtdAtivaModal =
+                          quantidadePorCard[itemMemoriaAtivo.key] !== undefined &&
+                          (quantidadePorCard[itemMemoriaAtivo.key] as number) > 0
+                            ? Math.round(quantidadePorCard[itemMemoriaAtivo.key] as number)
+                            : quantidadeReferencia
+                        return (
+                          <tr className="bg-[#fff9eb] font-bold text-[#261502] text-xs">
+                            <td className="py-2 px-3">
+                              {itemMemoriaAtivo.clienteRegime === 'snp'
+                                ? '5º'
+                                : itemMemoriaAtivo.clienteRegime === 'snh'
+                                  ? '8º'
+                                  : '8º'}
+                            </td>
+                            <td className="py-2 px-3">
+                              Total do Lote Simulado ({qtdAtivaModal} un.)
+                            </td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px] font-normal">
+                              Nota Fiscal Total ({formatBRL(itemMemoriaAtivo.totalNotaUnitario)}) ×
+                              Quantidade ({qtdAtivaModal} un.)
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
+                              {formatBRL(itemMemoriaAtivo.totalNotaLote)}
+                            </td>
+                          </tr>
+                        )
+                      })()}
 
                       {/* Lucro e Margem Efetiva Realizada */}
                       <tr className="bg-emerald-50/60 font-semibold text-emerald-950">
