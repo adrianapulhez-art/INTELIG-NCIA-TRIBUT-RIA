@@ -978,14 +978,14 @@ export function MarkupPosPage() {
                 <span className="text-[10px] font-mono uppercase text-slate-600 font-bold">
                   {clienteRegime === 'snp' || clienteRegime === 'snh'
                     ? 'Divisor Simples Nacional:'
-                    : 'Divisor sem ICMS (BC IBS/CBS):'}
+                    : 'Divisor da Operação:'}
                 </span>
                 <span className="text-sm font-mono font-black text-[#261502]">
                   {clienteRegime === 'snp'
                     ? (fatorDvConsolidado * fatorMargem * 0.96).toFixed(6)
                     : clienteRegime === 'snh'
                       ? (fatorDvConsolidado * fatorMargem * (1 - 0.0338)).toFixed(6)
-                      : divisorSemIcms.toFixed(6)}
+                      : (fatorDvConsolidado * fatorMargem).toFixed(6)}
                 </span>
               </div>
               <p className="text-[10px] font-mono text-slate-500 leading-tight pt-0.5">
@@ -993,7 +993,7 @@ export function MarkupPosPage() {
                   ? 'Simples Nacional Puro: tudo unificado por dentro do DAS sem alíquota cheia (18%).'
                   : clienteRegime === 'snh'
                     ? 'Simples Nacional Híbrido: DAS híbrido por dentro (3,38%), CBS/IBS por fora sobre base sem ICMS.'
-                    : 'Regime Regular: Divisor sem ICMS = Π(1 − % DV) × (1 − Margem). ICMS por último com base incluindo CBS/IBS.'}
+                    : 'Regime Regular: Divisor = Π(1 − % DV) × (1 − Margem) aplicado no custo ÷ divisor.'}
               </p>
             </div>
           </div>
@@ -1184,7 +1184,7 @@ export function MarkupPosPage() {
                     Cliente {clienteMetaAtiva.sigla} (2027)
                   </DialogTitle>
                   <DialogDescription className="text-xs text-slate-500 font-mono">
-                    Abertura passo a passo conforme sistemática chancelada pela Adri
+                    Abertura passo a passo conforme sistemática legal aplicável
                   </DialogDescription>
                 </div>
               </div>
@@ -1244,7 +1244,7 @@ export function MarkupPosPage() {
                         <td className="py-2 px-3 font-semibold text-slate-800">
                           {itemMemoriaAtivo.isSimples
                             ? `Divisor do Simples Nacional (${itemMemoriaAtivo.clienteRegime === 'snp' ? 'SN Puro' : 'SN Híbrido'})`
-                            : 'Divisor SEM ICMS'}
+                            : 'Divisor Efetivo da Operação'}
                         </td>
                         <td className="py-2 px-3 text-slate-600 text-[11px]">
                           {itemMemoriaAtivo.isSimples ? (
@@ -1258,11 +1258,12 @@ export function MarkupPosPage() {
                             </>
                           ) : (
                             <>
-                              <strong>LC 214/2025, art. 12, §2º, V:</strong> ICMS não integra a base
-                              do IBS/CBS.
+                              <strong>LC 214/2025, art. 12, caput e §2º:</strong> Divisor aplicado
+                              na formação do preço de venda (fatores de despesas variáveis × fator
+                              margem).
                               <br />
-                              Produto dos fatores de DV ({fatorDvConsolidado.toFixed(4)}) × Fator
-                              Margem ({fatorMargem.toFixed(4)}). Não entra o fator do ICMS.
+                              Divisor = Π(1 − % DV) [{fatorDvConsolidado.toFixed(4)}] × (1 − Margem)
+                              [{fatorMargem.toFixed(4)}].
                             </>
                           )}
                         </td>
@@ -1631,10 +1632,10 @@ export function MarkupPosPage() {
                     {clienteMetaAtiva.fundamento}
                   </p>
                   <p className="text-[10px] text-slate-700 font-semibold leading-relaxed pt-1 border-t border-slate-200">
-                    Fundamentação da Composição Legal (Adri): LC 214/2025 art. 12 §2º V (ICMS fora
-                    da base do IBS/CBS em 2026–2032); art. 12 §2º I (CBS e IBS por fora da própria
-                    base); Sefaz-SP Respostas a Consultas 32303/2025 e 32931/2026 (IBS e CBS compõem
-                    a base de cálculo do ICMS); LC 123/2006 art. 18 (Simples Nacional unificado).
+                    Fundamentação Legal: LC 214/2025 art. 12 §2º V (ICMS fora da base do IBS/CBS em
+                    2026–2032); art. 12 §2º I (CBS e IBS por fora da própria base); Sefaz-SP
+                    Respostas a Consultas 32303/2025 e 32931/2026 (IBS e CBS compõem a base de
+                    cálculo do ICMS); LC 123/2006 art. 18 (Simples Nacional unificado).
                   </p>
                 </div>
               </div>

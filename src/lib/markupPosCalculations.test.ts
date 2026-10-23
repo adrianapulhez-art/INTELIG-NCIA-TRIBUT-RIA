@@ -115,7 +115,8 @@ describe('Blindagem da Calculadora de Markup Pós EC 132 (2027+) — Reestrutura
       expect(res.isSimplesHibrido).toBe(false)
       expect(res.clienteRegime).toBe('lp')
 
-      // Divisor sem ICMS = 1 - 0.519 = 0.481
+      // Divisor da operação = 1 - 0.519 = 0.481
+      expect(res.divisorPrincipal).toBe(0.481)
       expect(res.divisorSemIcms).toBe(0.481)
       // BC IBS/CBS = 1116.63 / 0.481 = 2321.48 (limpa de ICMS!)
       expect(res.baseCalculoIbsCbs).toBe(2321.48)

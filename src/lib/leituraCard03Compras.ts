@@ -275,7 +275,7 @@ export function lerEspelhoComprasCard03(
         motorOrigem: 'art12_pleno',
         rotuloMotor: 'Célula LR × LR Neutra Chancelada (Régua A)',
         fundamentoLegal:
-          'Chancela Adri: LR × LR neutro — reprecificação preserva receita líquida (31.551,96) e crédito lava destaque (Δ 0,00%).',
+          'LC 214/2025, art. 12 + art. 47: reprecificação preserva receita líquida (31.551,96) e crédito lava destaque (Δ 0,00%).',
         linhasMemoriaCusto: cellLrNeutro.card03.linhas.map((l) => ({
           sinal: l.sinal,
           label: l.label,

@@ -1,7 +1,7 @@
 import { roundHalfUp, calcularPartilhaExercicio, normalizarAnexoId } from './art12SnCalculations'
 import { calculatePgdas, SimplesAnexoId } from './simplesCalculations'
 
-/** Constantes de referência chanceladas pela Adri (proteção de ouro) */
+/** Constantes de referência (proteção de ouro) */
 export const REFERENCIAS_MARKUP_POS = {
   ICMS_PADRAO_PCT: 18.0, // Fator 0,8200 (transição LP/LR)
   CBS_PADRAO_PCT: 26.5, // 26,50% por fora (estimativa Senado)
@@ -41,7 +41,7 @@ export const FORNECEDORES_META: Record<FornecedorPosKey, FornecedorPosMeta> = {
     key: 'lr',
     sigla: 'LR',
     rotulo: 'Fornecedor Lucro Real',
-    descricao: 'Fornecedor LR · Régua A neutra chancelada (reprecificação com crédito integral)',
+    descricao: 'Fornecedor LR · Régua A neutra (reprecificação com crédito integral)',
     fundamento: 'LC 214/2025, art. 12 + art. 47: creditamento amplo e desembute com divisor LR.',
     regimeVenda: 'lucro_real',
   },
@@ -453,7 +453,6 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
   // CLIENTE LP OU LR: SISTEMÁTICA DA TRANSIÇÃO (LC 214 art. 12 + RC 32303/2025)
   // =========================================================================
   const fatorIcms = Math.max(0.0001, 1 - icmsRateEfetivo / 100)
-  const divisorGeralLpLr = divisorSemIcms * fatorIcms
 
   // 1. Base IBS/CBS = Custo ÷ Divisor sem ICMS
   const baseCalculoIbsCbs = roundHalfUp(custoUnitario / divisorSemIcms, 2)
@@ -490,7 +489,7 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
     deltaCustoPct,
     comprasLiquidasTotal,
     notaCompraTotal,
-    divisorPrincipal: divisorGeralLpLr,
+    divisorPrincipal: divisorSemIcms,
     divisorSemIcms,
     fatorTributarioEfetivo: fatorIcms,
     baseCalculoIbsCbs,
