@@ -5,15 +5,12 @@ import {
   ArrowRight,
   Sparkles,
   Info,
-  TrendingUp,
-  TrendingDown,
   Layers,
   FileText,
   Plus,
   Trash2,
   PackageCheck,
   ShoppingBag,
-  Scale,
   CheckCircle2,
   AlertTriangle,
   UserCheck,
@@ -450,149 +447,6 @@ export function MarkupPosPage() {
             </Button>
           </div>
         )}
-
-        {/* ========================================================================= */}
-        {/* CARD 01: EIXO — CUSTO DO ADQUIRENTE POR FORNECEDOR (CARD 03 COMPRAS)       */}
-        {/* ========================================================================= */}
-        <div className="rounded-2xl border border-amber-300/70 bg-white p-5 shadow-sm space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-900/10 pb-3.5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] flex items-center justify-center text-[#261502] font-black text-xs shadow-xs">
-                03
-              </div>
-              <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#b87c14] block">
-                  FONTE ÚNICA DO CUSTO · LEITURA AO VIVO DO CARD 03 COMPRAS PÓS REFORMA
-                </span>
-                <h3 className="text-sm font-black text-[#261502] tracking-tight">
-                  Novo Preço de Custo do Adquirente ({clienteMetaAtiva.sigla}) por Fornecedor (2027)
-                </h3>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-mono font-bold border border-emerald-300">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                Motor Correto da Célula Integrado
-              </span>
-            </div>
-          </div>
-
-          {/* Cards dos 4 custos lidos ao vivo para o cliente selecionado */}
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                <Scale className="w-4 h-4 text-[#b87c14]" />
-                <span className="text-xs font-mono font-bold uppercase text-[#3b2405]">
-                  4 Custos de Entrada para o Cliente {clienteMetaAtiva.sigla} (Card 03):
-                </span>
-              </div>
-              <span className="text-[11px] font-mono text-slate-500">
-                Exercício 2027 · Fonte Única = Zero Retrabalho
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {(
-                [
-                  {
-                    key: 'lp' as FornecedorPosKey,
-                    sigla: 'LP',
-                    titulo: 'FORNECEDOR LP',
-                    desc: 'Lucro Presumido',
-                    info: espelhoCard03Compras.lp,
-                    cor: 'border-amber-300 bg-amber-50/50',
-                  },
-                  {
-                    key: 'lr' as FornecedorPosKey,
-                    sigla: 'LR',
-                    titulo: 'FORNECEDOR LR',
-                    desc: 'Lucro Real',
-                    info: espelhoCard03Compras.lr,
-                    cor: 'border-sky-300 bg-sky-50/50',
-                  },
-                  {
-                    key: 'snp' as FornecedorPosKey,
-                    sigla: 'SNP',
-                    titulo: 'FORNECEDOR SNP',
-                    desc: 'Simples Nacional Puro',
-                    info: espelhoCard03Compras.snp,
-                    cor: 'border-orange-300 bg-orange-50/50',
-                  },
-                  {
-                    key: 'snh' as FornecedorPosKey,
-                    sigla: 'SNH',
-                    titulo: 'FORNECEDOR SNH',
-                    desc: 'Simples Nacional Híbrido',
-                    info: espelhoCard03Compras.snh,
-                    cor: 'border-emerald-300 bg-emerald-50/50',
-                  },
-                ] as const
-              ).map((card) => {
-                const isSelected = fornecedorSelecionado === card.key
-                const deltaPositivo = card.info.deltaPct >= 0
-                return (
-                  <div
-                    key={card.key}
-                    onClick={() => setFornecedorSelecionado(card.key)}
-                    className={`rounded-xl border p-3.5 cursor-pointer transition-all ${
-                      isSelected
-                        ? 'border-[#b87c14] bg-amber-50/90 shadow-md ring-2 ring-[#b87c14]/40 -translate-y-0.5'
-                        : `${card.cor} hover:border-[#b87c14]/50 hover:bg-white`
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-mono font-black uppercase text-[#261502] bg-white/80 border border-amber-300/80 px-2 py-0.5 rounded">
-                        {card.sigla}
-                      </span>
-                      <span
-                        className={`text-[10px] font-mono font-bold flex items-center gap-0.5 ${
-                          deltaPositivo ? 'text-rose-700' : 'text-emerald-700'
-                        }`}
-                      >
-                        {deltaPositivo ? (
-                          <TrendingUp className="w-3 h-3" />
-                        ) : (
-                          <TrendingDown className="w-3 h-3" />
-                        )}
-                        Δ {deltaPositivo ? '+' : ''}
-                        {formatNumberBR(card.info.deltaPct)}%
-                      </span>
-                    </div>
-
-                    <span className="text-[11px] font-bold text-slate-800 uppercase block leading-tight">
-                      {card.titulo}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-mono block mb-1">
-                      {card.desc}
-                    </span>
-                    <span className="text-[9px] text-[#5c3e06] font-mono font-semibold block mb-2 bg-amber-100/60 rounded px-1.5 py-0.5 border border-amber-200">
-                      {card.info.rotuloMotor}
-                    </span>
-
-                    <div className="pt-2 border-t border-amber-900/10 flex items-baseline justify-between">
-                      <div>
-                        <span className="text-[10px] font-mono text-slate-500 block">
-                          Custo 2027 (Card 03):
-                        </span>
-                        <span className="text-base font-black font-mono text-[#261502]">
-                          {formatBRL(card.info.custo2027)}
-                          <span className="text-[10px] text-slate-500 font-normal">/un</span>
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[9px] font-mono text-slate-400 block">HOJE 2026</span>
-                        <span className="text-[11px] font-mono text-slate-600 line-through">
-                          {formatBRL(card.info.custoHoje)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
 
         {/* ========================================================================= */}
         {/* PARÂMETROS EDITÁVEIS: DESPESAS VARIÁVEIS, TRIBUTOS E MARGEM DE LUCRO       */}
