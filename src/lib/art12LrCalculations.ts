@@ -86,7 +86,10 @@ export interface ResultadoCelulaLrXLr {
  * (−) IBS 31,55
  * = compras líquidas 31.551,96 · ÷ 30 = 1.051,73 · Δ 0,00% (célula neutra)
  */
-export function calcularCelulaLrXLr(item?: ItemIntegracaoArt12): ResultadoCelulaLrXLr {
+export function calcularCelulaLrXLr(
+  item?: ItemIntegracaoArt12,
+  cbsAliquotaPct: number = 8.8,
+): ResultadoCelulaLrXLr {
   const qtd = item?.quantity && item.quantity > 0 ? item.quantity : 30
   const mercHoje = item?.merchandiseValue !== undefined ? item.merchandiseValue : 42000.0
   const freteHoje = item?.freightValue !== undefined ? item.freightValue : 400.0
@@ -103,7 +106,6 @@ export function calcularCelulaLrXLr(item?: ItemIntegracaoArt12): ResultadoCelula
 
   // CARD 02 (Fornecedor LR 2027, Régua A)
   const receitaLiquidaPreservada = comprasLiquidasHoje // 31.551,96
-  const cbsAliquotaPct = 8.8
   const ibsAliquotaPct = 0.1
   const cbsDestacada = roundHalfUp((receitaLiquidaPreservada * cbsAliquotaPct) / 100, 2) // 2.776,57
   const ibsDestacado = roundHalfUp((receitaLiquidaPreservada * ibsAliquotaPct) / 100, 2) // 31,55
@@ -209,8 +211,8 @@ export function calcularCelulaLrXLr(item?: ItemIntegracaoArt12): ResultadoCelula
     },
     {
       sinal: '(+)',
-      label: 'CBS 8,80% por fora (destacada na nota fiscal)',
-      formula: `8,80% × R$ ${fmtSN(receitaLiquidaPreservada, 2)}`,
+      label: `CBS ${fmtSN(cbsAliquotaPct, 2)}% por fora (destacada na nota fiscal)`,
+      formula: `${fmtSN(cbsAliquotaPct, 2)}% × R$ ${fmtSN(receitaLiquidaPreservada, 2)}`,
       valor: cbsDestacada,
       fundamento:
         'LC 214/2025, art. 12, §2º, I e V: CBS não integra a própria base de cálculo (incidência por fora) e ICMS fora da base.',
@@ -252,7 +254,7 @@ export function calcularCelulaLrXLr(item?: ItemIntegracaoArt12): ResultadoCelula
   const card02: CardMemoriaQuatroCelulas = {
     numero: 'CARD 02',
     titulo: '2º FORMAÇÃO DO PREÇO PELO FORNECEDOR (LR · 2027 · RÉGUA A)',
-    subtitulo: `Receita líquida 31.551,96 + CBS 2.776,57 + IBS 31,55 ÷ 0,82 = Nota 41.902,54 (Divisor 0,3655)`,
+    subtitulo: `Receita líquida ${fmtSN(receitaLiquidaPreservada, 2)} + CBS ${fmtSN(cbsDestacada, 2)} + IBS ${fmtSN(ibsDestacado, 2)} ÷ 0,82 = Nota ${fmtSN(nota2027, 2)} (Divisor 0,3655)`,
     cor: 'violet',
     linhas: linhasCard02,
   }
@@ -275,7 +277,7 @@ export function calcularCelulaLrXLr(item?: ItemIntegracaoArt12): ResultadoCelula
     },
     {
       sinal: '(−)',
-      label: 'Crédito CBS 8,80% destacado na nota (por fora)',
+      label: `Crédito CBS ${fmtSN(cbsAliquotaPct, 2)}% destacado na nota (por fora)`,
       formula: `CBS destacada = R$ ${fmtSN(cbsDestacada, 2)}`,
       valor: -cbsDestacada,
       destaque: true,
@@ -322,7 +324,7 @@ export function calcularCelulaLrXLr(item?: ItemIntegracaoArt12): ResultadoCelula
   const card03: CardMemoriaQuatroCelulas = {
     numero: 'CARD 03',
     titulo: '3º FORMAÇÃO DO CUSTO PELO ADQUIRENTE (LR · 2027)',
-    subtitulo: `Nota 41.902,54 − ICMS 7.542,46 − CBS 2.776,57 − IBS 31,55 = 31.551,96 → R$ 1.051,73/un (Δ = 0,00%)`,
+    subtitulo: `Nota ${fmtSN(nota2027, 2)} − ICMS ${fmtSN(icmsDestacado2027, 2)} − CBS ${fmtSN(cbsDestacada, 2)} − IBS ${fmtSN(ibsDestacado, 2)} = ${fmtSN(comprasLiquidas2027, 2)} → R$ ${fmtSN(unitario2027, 2)}/un (Δ = ${fmtSN(deltaPct, 2)}%)`,
     cor: 'sky',
     linhas: linhasCard03,
   }

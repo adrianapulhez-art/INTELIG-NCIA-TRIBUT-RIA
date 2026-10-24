@@ -1660,6 +1660,7 @@ export function calcularCelulaFornecedorPlenoXAdquirenteSn(
   fornecedor: FornecedorPlenoRegime,
   adquirente: AdquirenteSnRegime,
   item?: ItemIntegracaoArt12,
+  cbsAliquota2027Pct: number = 8.8,
 ): ResultadoCelulaFornecedorPlenoXAdquirenteSn {
   const qtd = item?.quantity && item.quantity > 0 ? item.quantity : 30
   const mercHoje = item?.merchandiseValue !== undefined ? item.merchandiseValue : 42000.0
@@ -1719,7 +1720,6 @@ export function calcularCelulaFornecedorPlenoXAdquirenteSn(
   // ICMS destacado na nota 2027 = 44.488,27 × 18% = 8.007,8886 → half-up 8.007,89
   // -------------------------------------------------------------
   const baseLimpa2027 = 33498.97
-  const cbsAliquota2027Pct = 8.8
   const ibsAliquota2027Pct = 0.1
   const cbsDestacada2027 = roundHalfUp((baseLimpa2027 * cbsAliquota2027Pct) / 100, 2) // 2.947,91
   const ibsDestacado2027 = roundHalfUp((baseLimpa2027 * ibsAliquota2027Pct) / 100, 2) // 33,50
@@ -1858,8 +1858,8 @@ export function calcularCelulaFornecedorPlenoXAdquirenteSn(
     },
     {
       sinal: '(+)',
-      label: `CBS 8,80% por fora (destacada na nota fiscal)`,
-      formula: `8,80% × ${fmtSN(baseLimpa2027, 2)} = ${fmtSN(cbsDestacada2027, 2)}`,
+      label: `CBS ${fmtSN(cbsAliquota2027Pct, 2)}% por fora (destacada na nota fiscal)`,
+      formula: `${fmtSN(cbsAliquota2027Pct, 2)}% × ${fmtSN(baseLimpa2027, 2)} = ${fmtSN(cbsDestacada2027, 2)}`,
       valor: cbsDestacada2027,
       fundamento:
         'LC 214/2025, art. 12, §2º, I: CBS não integra a própria base de cálculo (incidência por fora).',
@@ -1902,7 +1902,7 @@ export function calcularCelulaFornecedorPlenoXAdquirenteSn(
   const card02: CardMemoriaQuatroCelulas = {
     numero: 'CARD 02',
     titulo: `2º FORMAÇÃO DO PREÇO PELO FORNECEDOR (${fornecedorSigla} · 2027)`,
-    subtitulo: `Base limpa 33.498,97 + CBS 8,8% + IBS 0,1% ÷ 0,82 (ICMS 18% por dentro) = Nota 44.488,27`,
+    subtitulo: `Base limpa ${fmtSN(baseLimpa2027, 2)} + CBS ${fmtSN(cbsAliquota2027Pct, 2)}% + IBS 0,1% ÷ 0,82 (ICMS 18% por dentro) = Nota ${fmtSN(notaCheia2027, 2)}`,
     cor: 'violet',
     linhas: linhasCard02,
   }
@@ -1995,8 +1995,8 @@ export function calcularCelulaFornecedorPlenoXAdquirenteSn(
     numero: 'CARD 03',
     titulo: `3º FORMAÇÃO DO CUSTO PELO ADQUIRENTE (${adquirenteSigla} · 2027)`,
     subtitulo: isPuro
-      ? `Nota 44.488,27 sem créditos = 44.488,27 → R$ 1.482,94/un (Δ = +4,92%)`
-      : `Nota 44.488,27 − CBS 2.947,91 − IBS 33,50 = 41.506,86 → R$ 1.383,56/un (Δ = −2,11%)`,
+      ? `Nota ${fmtSN(notaCheia2027, 2)} sem créditos = ${fmtSN(comprasLiquidas2027, 2)} → R$ ${fmtSN(unitario2027, 2)}/un (Δ = ${deltaPct >= 0 ? '+' : ''}${fmtSN(deltaPct, 2)}%)`
+      : `Nota ${fmtSN(notaCheia2027, 2)} − CBS ${fmtSN(cbsDestacada2027, 2)} − IBS ${fmtSN(ibsDestacado2027, 2)} = ${fmtSN(comprasLiquidas2027, 2)} → R$ ${fmtSN(unitario2027, 2)}/un (Δ = ${deltaPct >= 0 ? '+' : ''}${fmtSN(deltaPct, 2)}%)`,
     cor: 'orange',
     linhas: linhasCard03,
   }
@@ -2062,11 +2062,27 @@ export function calcularCelulaFornecedorPlenoXAdquirenteSn(
  */
 export function calcularQuatroCelulasComparacao(
   item?: ItemIntegracaoArt12,
+  cbsAliquota2027Pct: number = 8.8,
 ): ResultadoCelulaFornecedorPlenoXAdquirenteSn[] {
   return [
-    calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_presumido', 'simples', item),
-    calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_real', 'simples', item),
-    calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_presumido', 'simples_hibrido', item),
-    calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_real', 'simples_hibrido', item),
+    calcularCelulaFornecedorPlenoXAdquirenteSn(
+      'lucro_presumido',
+      'simples',
+      item,
+      cbsAliquota2027Pct,
+    ),
+    calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_real', 'simples', item, cbsAliquota2027Pct),
+    calcularCelulaFornecedorPlenoXAdquirenteSn(
+      'lucro_presumido',
+      'simples_hibrido',
+      item,
+      cbsAliquota2027Pct,
+    ),
+    calcularCelulaFornecedorPlenoXAdquirenteSn(
+      'lucro_real',
+      'simples_hibrido',
+      item,
+      cbsAliquota2027Pct,
+    ),
   ]
 }
