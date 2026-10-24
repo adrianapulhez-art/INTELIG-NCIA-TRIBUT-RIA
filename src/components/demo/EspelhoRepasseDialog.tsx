@@ -277,6 +277,7 @@ export function EspelhoRepasseDialog({
   onChangeRepassePct,
   onAbrirCelula,
   celulasPorItem,
+  cbsAliquotaPct = 8.8,
   onAbrirMemoriaItem,
 }: {
   input: CmvArt12Input
@@ -293,6 +294,8 @@ export function EspelhoRepasseDialog({
   onAbrirCelula: (comprador: RegimeId, fornecedor: RegimeId, cell: CellResultArt) => void
   /** MEMÓRIA POR ITEM dentro do card de repasse (pedido da CEO, 27/09). */
   celulasPorItem?: { item: ItemIntegracaoArt12; cell: CellResultArt }[]
+  /** Alíquota editável de CBS para os motores 2027+ (default 8.8). */
+  cbsAliquotaPct?: number
   onAbrirMemoriaItem?: (item: ItemIntegracaoArt12, cell: CellResultArt) => void
 }) {
   // Determina se o comprador ativo é optante do Simples Nacional (puro ou híbrido)
@@ -311,15 +314,17 @@ export function EspelhoRepasseDialog({
     'lucro_presumido',
     adquirenteSnRegime,
     itemReferencia,
+    cbsAliquotaPct,
   )
   const celulaLrSn = calcularCelulaFornecedorPlenoXAdquirenteSn(
     'lucro_real',
     adquirenteSnRegime,
     itemReferencia,
+    cbsAliquotaPct,
   )
 
   // Célula LR × LR chancelada (Régua A, neutra Δ 0,00%)
-  const celulaLrXLr = calcularCelulaLrXLr(itemReferencia)
+  const celulaLrXLr = calcularCelulaLrXLr(itemReferencia, cbsAliquotaPct)
 
   const celulasSnPorFornecedor: Record<
     'presumido' | 'real',

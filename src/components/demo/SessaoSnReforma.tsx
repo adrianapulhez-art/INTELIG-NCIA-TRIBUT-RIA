@@ -235,6 +235,7 @@ export function SessaoSnSection({
   row,
   exercicio,
   custoPlenoUnitario,
+  cbsAliquotaPct = 8.8,
   onAbrirMemoriaItem,
 }: {
   itensOrigem: ItemIntegracaoArt12[]
@@ -243,6 +244,8 @@ export function SessaoSnSection({
   exercicio: ExercicioKey
   /** Custo unitário da célula plena de referência (LP×LP chancelada) — régua da negociação. */
   custoPlenoUnitario: number
+  /** Alíquota editável de CBS para os motores 2027+ (default 8.8). */
+  cbsAliquotaPct?: number
   /** Abre a memória Art. 12 completa (dialog do módulo) para o híbrido. */
   onAbrirMemoriaItem?: (item: ItemIntegracaoArt12, cell: CellResultArt) => void
 }) {

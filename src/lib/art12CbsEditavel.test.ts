@@ -18,6 +18,9 @@ import {
   CBS_EDITAVEL_EXERCICIOS,
   CBS_DEFAULT,
 } from './art12Calculations'
+import { calcularCelulaFornecedorPlenoXAdquirenteSn } from './art12SnCalculations'
+import { calcularCelulaLrXLr } from './art12LrCalculations'
+import { lerEspelhoComprasCard03 } from './leituraCard03Compras'
 
 const row2027 = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027)!
 const row2028 = CRONOGRAMA_ART12.find((r) => r.exercicio === 2028)!
@@ -69,5 +72,85 @@ describe('CBS editável — default preserva os ouros chancelados', () => {
   it('IBS 2027-28 permanece 0,1% cravado em qualquer override (art. 344)', () => {
     const rowOv = aplicarOverrideCbsArt12(row2027, 9.5)
     expect(rowOv.ibsRate).toBe(0.1)
+  })
+
+  describe('4 Células Pleno × SN e Leitura Card 03 — propagação da alíquota editável', () => {
+    it('com default 8.8% os ouros canônicos se mantêm rigorosamente intactos', () => {
+      // 4 Células Pleno × SN com default 8.8
+      const celulaSnPuro = calcularCelulaFornecedorPlenoXAdquirenteSn(
+        'lucro_presumido',
+        'simples',
+        undefined,
+        8.8,
+      )
+      expect(celulaSnPuro.exercicio2027.notaCheia).toBeCloseTo(44488.27, 2)
+      expect(celulaSnPuro.exercicio2027.custoUnitario).toBeCloseTo(1482.94, 2)
+      expect(celulaSnPuro.exercicio2027.cbsDestacada).toBeCloseTo(2947.91, 2)
+
+      const celulaSnHib = calcularCelulaFornecedorPlenoXAdquirenteSn(
+        'lucro_presumido',
+        'simples_hibrido',
+        undefined,
+        8.8,
+      )
+      expect(celulaSnHib.exercicio2027.notaCheia).toBeCloseTo(44488.27, 2)
+      expect(celulaSnHib.exercicio2027.custoUnitario).toBeCloseTo(1383.56, 2)
+      expect(celulaSnHib.exercicio2027.cbsDestacada).toBeCloseTo(2947.91, 2)
+
+      // Motor LR × LR com default 8.8
+      const celulaLrXLr = calcularCelulaLrXLr(undefined, 8.8)
+      expect(celulaLrXLr.exercicio2027.custoUnitario).toBeCloseTo(1051.73, 2)
+      expect(celulaLrXLr.exercicio2027.cbsDestacada).toBeCloseTo(2776.57, 2)
+
+      // Leitura Card 03 com default 8.8
+      const espelhoLp = lerEspelhoComprasCard03('lp', { cbsAliquotaPct: 8.8 })
+      expect(espelhoLp.lp.custo2027).toBeCloseTo(1116.63, 2)
+      expect(espelhoLp.lr.custo2027).toBeCloseTo(1051.73, 2)
+
+      const espelhoSnp = lerEspelhoComprasCard03('snp', { cbsAliquotaPct: 8.8 })
+      expect(espelhoSnp.lp.custo2027).toBeCloseTo(1482.94, 2)
+      expect(espelhoSnp.lr.custo2027).toBeCloseTo(1482.94, 2)
+
+      const espelhoSnh = lerEspelhoComprasCard03('snh', { cbsAliquotaPct: 8.8 })
+      expect(espelhoSnh.lp.custo2027).toBeCloseTo(1383.56, 2)
+      expect(espelhoSnh.lr.custo2027).toBeCloseTo(1383.56, 2)
+    })
+
+    it('com alíquota 9.25% os resultados DIVERGEM comprovadamente dos ouros de 8.8%', () => {
+      const celulaSnPuro925 = calcularCelulaFornecedorPlenoXAdquirenteSn(
+        'lucro_presumido',
+        'simples',
+        undefined,
+        9.25,
+      )
+      // CBS destacada deve diferir do ouro 2.947,91
+      expect(celulaSnPuro925.exercicio2027.cbsDestacada).not.toBeCloseTo(2947.91, 2)
+      // Nota cheia deve diferir do ouro 44.488,27
+      expect(celulaSnPuro925.exercicio2027.notaCheia).not.toBeCloseTo(44488.27, 2)
+      // Custo unitário puro difere de 1.482,94
+      expect(celulaSnPuro925.exercicio2027.custoUnitario).not.toBeCloseTo(1482.94, 2)
+
+      const celulaSnHib925 = calcularCelulaFornecedorPlenoXAdquirenteSn(
+        'lucro_presumido',
+        'simples_hibrido',
+        undefined,
+        9.25,
+      )
+      expect(celulaSnHib925.exercicio2027.cbsDestacada).not.toBeCloseTo(2947.91, 2)
+      expect(celulaSnHib925.exercicio2027.custoUnitario).not.toBeCloseTo(1383.56, 2)
+
+      // LR × LR com 9.25%
+      const celulaLrXLr925 = calcularCelulaLrXLr(undefined, 9.25)
+      expect(celulaLrXLr925.exercicio2027.cbsDestacada).not.toBeCloseTo(2776.57, 2)
+
+      // Leitura Card 03 com 9.25% diverge dos ouros de 8.8%
+      const espelhoSnp925 = lerEspelhoComprasCard03('snp', { cbsAliquotaPct: 9.25 })
+      expect(espelhoSnp925.lp.custo2027).not.toBeCloseTo(1482.94, 2)
+      expect(espelhoSnp925.lr.custo2027).not.toBeCloseTo(1482.94, 2)
+
+      const espelhoSnh925 = lerEspelhoComprasCard03('snh', { cbsAliquotaPct: 9.25 })
+      expect(espelhoSnh925.lp.custo2027).not.toBeCloseTo(1383.56, 2)
+      expect(espelhoSnh925.lr.custo2027).not.toBeCloseTo(1383.56, 2)
+    })
   })
 })

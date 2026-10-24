@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   CalendarClock,
   RotateCcw,
@@ -501,7 +501,33 @@ export function CmvArt12Module() {
   const [config, setConfig] = useState<CellConfigArt>(CONFIG_PADRAO_ART12)
   // CBS EDITÁVEL (decisão da CEO, 04/10): só 2027/2028 — default 8,8% preserva os
   // ouros chancelados; o contador digita outra projeção ou a alíquota real do Senado.
-  const [cbsOverride, setCbsOverride] = useState<number | undefined>(undefined)
+  // Persistido sob a chave 'it_reforma_cbs_aliquota_v1' no localStorage.
+  const STORAGE_KEY_CBS_ALIQUOTA = 'it_reforma_cbs_aliquota_v1'
+  const [cbsOverride, setCbsOverride] = useState<number | undefined>(() => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return undefined
+      const raw = window.localStorage.getItem(STORAGE_KEY_CBS_ALIQUOTA)
+      if (!raw) return undefined
+      const parsed = Number(raw)
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+    } catch {
+      return undefined
+    }
+  })
+
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return
+      if (cbsOverride !== undefined && Number.isFinite(cbsOverride) && cbsOverride > 0) {
+        window.localStorage.setItem(STORAGE_KEY_CBS_ALIQUOTA, String(cbsOverride))
+      } else {
+        window.localStorage.removeItem(STORAGE_KEY_CBS_ALIQUOTA)
+      }
+    } catch {
+      // tolerar falhas de localStorage
+    }
+  }, [cbsOverride])
+
   const cbsEfetiva = cbsOverride ?? CBS_DEFAULT
   const cbsEditavelAqui = CBS_EDITAVEL_EXERCICIOS.includes(exercicio)
   // VÍNCULO AUTOMÁTICO (regra da CEO, 25/09): a célula lê a Calculadora de Compras
@@ -1240,6 +1266,7 @@ export function CmvArt12Module() {
         config={config}
         row={row}
         exercicio={exercicio}
+        cbsAliquotaPct={cbsOverride ?? CBS_DEFAULT}
         custoPlenoUnitario={
           computeCellArt12(input, { ...config, repasse: 'integral' }, row).exercicio.unitario
         }
@@ -1292,6 +1319,7 @@ export function CmvArt12Module() {
           onChangeRepassePct={(pct) => {
             setConfig((c) => ({ ...c, repassePct: pct }))
           }}
+          cbsAliquotaPct={cbsOverride ?? CBS_DEFAULT}
           celulasPorItem={celulasPorItem}
           onAbrirMemoriaItem={(item, cell) => {
             setEspelhoModal(null)

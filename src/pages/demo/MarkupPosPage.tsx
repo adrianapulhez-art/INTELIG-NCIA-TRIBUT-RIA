@@ -162,9 +162,21 @@ export function MarkupPosPage() {
   const icmsRateEfetivo = icmsRateInput ?? REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT
   const fatorIcms = useMemo(() => Math.max(0, 1 - icmsRateEfetivo / 100), [icmsRateEfetivo])
 
-  const [cbsRateInput, setCbsRateInput] = useState<number | undefined>(
-    estadoSalvoInicial?.cbsRateInput,
-  )
+  const [cbsRateInput, setCbsRateInput] = useState<number | undefined>(() => {
+    if (estadoSalvoInicial?.cbsRateInput !== undefined) return estadoSalvoInicial.cbsRateInput
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem('it_reforma_cbs_aliquota_v1')
+        if (raw) {
+          const num = Number(raw)
+          if (Number.isFinite(num) && num > 0) return num
+        }
+      }
+    } catch {
+      // tolerar falhas de localStorage
+    }
+    return undefined
+  })
   const cbsRateEfetivo = cbsRateInput ?? REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT
 
   const [ibsRateInput, setIbsRateInput] = useState<number | undefined>(
@@ -257,6 +269,7 @@ export function MarkupPosPage() {
     return lerEspelhoComprasCard03(clienteRegime, {
       item: itemEfetivo,
       inputPleno: inputEfetivo,
+      cbsAliquotaPct: cbsRateEfetivo,
       cbsRateOverride: cbsRateEfetivo,
       ibsRateOverride: ibsRateEfetivo,
     })

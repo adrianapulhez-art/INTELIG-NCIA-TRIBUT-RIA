@@ -3,6 +3,7 @@ import {
   CONFIG_PADRAO_ART12,
   CRONOGRAMA_ART12,
   CASO_CANONICO_ART12,
+  aplicarOverrideCbsArt12,
   type CmvArt12Input,
 } from './art12Calculations'
 import {
@@ -20,13 +21,13 @@ import type {
 } from './markupPosCalculations'
 
 export interface LeituraCard03Input {
-  item?: ItemIntegracaoArt12
   inputPleno?: CmvArt12Input
+  item?: ItemIntegracaoArt12
   perfilSN?: PerfilSN
+  cbsAliquotaPct?: number
   cbsRateOverride?: number
   ibsRateOverride?: number
 }
-
 export type EspelhoQuatroFornecedores = Record<FornecedorPosKey, CustoCard03Resultado>
 
 /**
@@ -61,7 +62,9 @@ export function lerEspelhoComprasCard03(
   clienteRegime: ClienteRegimeKey,
   input: LeituraCard03Input = {},
 ): EspelhoQuatroFornecedores {
-  const row2027 = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027) || CRONOGRAMA_ART12[1]
+  const cbsEfetivaPct = input.cbsAliquotaPct ?? input.cbsRateOverride
+  const rowBase2027 = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027) || CRONOGRAMA_ART12[1]
+  const row2027 = aplicarOverrideCbsArt12(rowBase2027, cbsEfetivaPct)
   const inputEfetivo = input.inputPleno ?? CASO_CANONICO_ART12
   const itemEfetivo = input.item
   const perfilSN = input.perfilSN ?? PERFIL_SN_NOTA_PADRAO
@@ -230,7 +233,7 @@ export function lerEspelhoComprasCard03(
     )
 
     // 2. Fornecedor LR (LR × LR) — Motor LR×LR neutro dedicado chancelado pela Adri
-    const cellLrNeutro = calcularCelulaLrXLr(itemParaMotores)
+    const cellLrNeutro = calcularCelulaLrXLr(itemParaMotores, cbsEfetivaPct)
 
     // 3. Fornecedor SNP (LR × SNP) — Sessão SN com adquirente 'real'
     // Custo de ouro hoje: 1.265,16 (soma créditos PIS/COFINS baseline ADI SRF 15/2007)
@@ -342,6 +345,7 @@ export function lerEspelhoComprasCard03(
       'lucro_presumido',
       'simples',
       itemParaMotores,
+      cbsEfetivaPct,
     )
 
     // 2. Fornecedor LR (LR × SNP) — Motor das 4 Células Pleno × SN (Card 03 ouro: 1.482,94)
@@ -349,6 +353,7 @@ export function lerEspelhoComprasCard03(
       'lucro_real',
       'simples',
       itemParaMotores,
+      cbsEfetivaPct,
     )
 
     // 3. Fornecedor SNP (SNP × SNP) — Sessão SN com adquirente 'simples' (zero crédito art. 13 §1º LC 123)
@@ -462,6 +467,7 @@ export function lerEspelhoComprasCard03(
     'lucro_presumido',
     'simples_hibrido',
     itemParaMotores,
+    cbsEfetivaPct,
   )
 
   // 2. Fornecedor LR (LR × SNH) — Motor das 4 Células Pleno × SN (Card 03 ouro: 1.383,56)
@@ -469,6 +475,7 @@ export function lerEspelhoComprasCard03(
     'lucro_real',
     'simples_hibrido',
     itemParaMotores,
+    cbsEfetivaPct,
   )
 
   // 3. Fornecedor SNP (SNP × SNH) — computeCellArt12 (simples_hibrido × simples)
