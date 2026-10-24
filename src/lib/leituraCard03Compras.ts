@@ -9,6 +9,7 @@ import {
 import {
   calcularCelulaFornecedorPlenoXAdquirenteSn,
   calcularSessaoSN,
+  obterPerfilSnEfetivo,
   PERFIL_SN_NOTA_PADRAO,
   type PerfilSN,
 } from './art12SnCalculations'
@@ -67,7 +68,7 @@ export function lerEspelhoComprasCard03(
   const row2027 = aplicarOverrideCbsArt12(rowBase2027, cbsEfetivaPct)
   const inputEfetivo = input.inputPleno ?? CASO_CANONICO_ART12
   const itemEfetivo = input.item
-  const perfilSN = input.perfilSN ?? PERFIL_SN_NOTA_PADRAO
+  const perfilSN = input.perfilSN ?? obterPerfilSnEfetivo(2027) ?? PERFIL_SN_NOTA_PADRAO
 
   // Fallback item sintético canônico se não houver item real da compras
   const itemCanonicoFallback: ItemIntegracaoArt12 = {

@@ -46,7 +46,7 @@ import {
   TABELA_OFICIAL_SN,
   type PerfilSN,
 } from './art12SnCalculations'
-import { montarItensIntegracao } from './integracaoComprasArt12'
+import { montarItensIntegracao, type ItemIntegracaoArt12 } from './integracaoComprasArt12'
 
 const itemCanônico = montarItensIntegracao([
   {
@@ -456,5 +456,92 @@ describe('Sessão SN na Reforma — Blindagem do Caso Canônico Corrigido (Padr�
     expect(cfg2029.fracaoCbsPct).toBe(15.33)
     expect(cfg2029.fracaoIrpjCsllCppPct).toBe(50.5)
     expect(cfg2029.statusLegal).toBe('PENDENTE_CONFIRMACAO')
+  })
+
+  it('12. Ouros Preservados — Default 1ª faixa e Anexo I (LC 123/2006)', () => {
+    // Com default 1ª faixa, fração 34,00% e alíquota 4%:
+    // DAS 1.696,00 · blocos 576,64 / 259,9968 / 2,8832 / 856,48 · crédito 839,52 · nota 44.488,27 · CBS 2.947,91 · custos 1.482,94/1.383,56/1.116,63/1.051,73
+    const r1 = calcularSessaoSN(itemCanônico, PERFIL_SN_NOTA_PADRAO)
+    expect(r1.dasEfetivo).toBe(1696.0)
+    expect(r1.icmsNota6).toBe(576.64)
+    expect(r1.cbsDAS6).toBe(259.9968)
+    expect(r1.ibsDAS6).toBe(2.8832)
+    expect(r1.irpjCsllCppDAS6).toBe(856.48)
+    expect(r1.parcelaCreditavelTotal6).toBe(839.52)
+
+    // Fórmulas na memória de cálculo
+    const memIcms = r1.memoria.find((m) => m.key === 'icmsnota')
+    expect(memIcms?.formula).toContain('Fração 34,00%')
+    expect(memIcms?.formula).toContain('Alíquota Efetiva 4,00%')
+  })
+
+  it('13. Teste 3ª Faixa (RBT12 720.000, Efetiva 7,575%, Fração 33,50%) sobre base 42.000', () => {
+    // 3ª faixa Anexo I: nominal 9,50%, dedução 13.860. RBT12 = 720.000
+    // Alíquota efetiva = ((720.000 × 9,5%) − 13.860) / 720.000 = (68.400 − 13.860) / 720.000 = 54.540 / 720.000 = 7,575%
+    const cfg3 = getTabelaOficialConfig(2027, 'anexo1', 3, 720000)
+    expect(cfg3.aliquotaEfetivaPct).toBe(7.575)
+    expect(cfg3.fracaoIcmsPct).toBe(33.5)
+    expect(cfg3.fracaoCbsPct).toBe(15.33)
+    expect(cfg3.fracaoIbsPct).toBe(0.17)
+    expect(cfg3.fracaoIrpjCsllCppPct).toBe(51.0)
+
+    const perfil3: PerfilSN = {
+      origem: 'tabela',
+      modo: 'anexo',
+      anexo: cfg3.anexo,
+      faixa: cfg3.faixa,
+      exercicio: 2027,
+      rbt12: 720000,
+      efetivaPct: cfg3.aliquotaEfetivaPct,
+      icmsFracPct: cfg3.fracaoIcmsPct,
+      cbsFracPct: cfg3.fracaoCbsPct,
+      ibsFracPct: cfg3.fracaoIbsPct,
+      irpjCsllCppFracPct: cfg3.fracaoIrpjCsllCppPct,
+      baseDoDas: 'bruta',
+      icmsNotaPct: 0,
+      cbsNotaPct: 0,
+      ibsNotaPct: 0,
+    }
+
+    // Item com base 42.000
+    const item42k: ItemIntegracaoArt12 = {
+      id: 'item-42k',
+      name: 'Item 42k',
+      quantity: 30,
+      merchandiseValue: 42000,
+      freightValue: 0,
+      icmsRate: 18,
+      icmsFreightRate: 18,
+      ipiRate: 0,
+      hasSt: false,
+      stValue: 0,
+      valorNota: 42000,
+      abcPct: 100,
+      classe: 'A',
+    }
+
+    const r3 = calcularSessaoSN(item42k, perfil3)
+
+    // Parcelas divergem conforme especificação:
+    // ICMS fração 33,50% × 7,575% = 2,537625%
+    // CBS 15,33% × 7,575% = 1,1612475%
+    // IBS 0,17% × 7,575% = 0,0128775%
+    // Sobre 42.000:
+    // ICMS: 42.000 × (0,335 × 0,07575) = 1.065,802500
+    // CBS: 42.000 × (0,1533 × 0,07575) = 487,723950
+    // IBS: 42.000 × (0,0017 × 0,07575) = 5,408550
+    expect(r3.icmsPct).toBeCloseTo(2.5376, 4)
+    expect(r3.cbsPct).toBeCloseTo(1.1612, 4)
+    expect(r3.ibsPct).toBeCloseTo(0.0129, 4)
+
+    expect(r3.icmsNota6).toBeCloseTo(1065.8025, 4)
+    expect(r3.cbsDAS6).toBeCloseTo(487.72395, 4)
+    expect(r3.ibsDAS6).toBeCloseTo(5.40855, 4)
+
+    // Fórmulas na memória
+    const memIcms3 = r3.memoria.find((m) => m.key === 'icmsnota')
+    expect(memIcms3?.formula).toContain('Fração 33,50%')
+    expect(memIcms3?.formula).toContain('Alíquota Efetiva 7,58%')
+    expect(memIcms3?.formula).toContain('1.065,802500')
   })
 })

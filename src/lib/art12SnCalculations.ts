@@ -926,6 +926,10 @@ export interface PerfilSN {
   exercicio: number
   rbt12: number
 
+  /** Identificador do anexo (ex: 'anexo1') e número da faixa (1..6) para recuperação precisa */
+  anexoId?: string
+  faixaNumero?: number
+
   /** Alíquota efetiva total (nominal da faixa − dedução ou fixada na 1ª faixa). */
   efetivaPct: number
 
@@ -937,6 +941,86 @@ export interface PerfilSN {
 
   /** Base do DAS: 'bruta' | 'liquida' (Res. CGSN 190/2026). Default 'bruta'. */
   baseDoDas?: BaseDoDas
+}
+
+/** Chave de persistência oficial no localStorage para a configuração da Sessão SN */
+export const STORAGE_KEY_SESSAO_SN_CONFIG = 'it_reforma_sessao_sn_config_v1'
+
+export interface SessaoSnConfigPersistida {
+  anexoId: string
+  faixaNum: number
+  rbt12: number
+  origem: OrigemPercentual
+  baseDoDas: BaseDoDas
+  valorIcmsInput?: string
+  valorCbsInput?: string
+  valorIbsInput?: string
+}
+
+/** Carrega a configuração da Sessão SN do localStorage de forma tolerante a falhas */
+export function carregarConfigSessaoSN(): SessaoSnConfigPersistida | null {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return null
+    // Tenta a chave canônica versionada ou legado sem v1
+    const raw =
+      window.localStorage.getItem(STORAGE_KEY_SESSAO_SN_CONFIG) ||
+      window.localStorage.getItem('it_reforma_sessao_sn_config')
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    return {
+      anexoId: typeof parsed.anexoId === 'string' ? parsed.anexoId : 'anexo1',
+      faixaNum: typeof parsed.faixaNum === 'number' ? Math.max(1, Math.min(6, parsed.faixaNum)) : 1,
+      rbt12: typeof parsed.rbt12 === 'number' && parsed.rbt12 > 0 ? parsed.rbt12 : 120000,
+      origem: parsed.origem === 'nota' ? 'nota' : 'tabela',
+      baseDoDas: parsed.baseDoDas === 'liquida' ? 'liquida' : 'bruta',
+      valorIcmsInput: typeof parsed.valorIcmsInput === 'string' ? parsed.valorIcmsInput : '',
+      valorCbsInput: typeof parsed.valorCbsInput === 'string' ? parsed.valorCbsInput : '',
+      valorIbsInput: typeof parsed.valorIbsInput === 'string' ? parsed.valorIbsInput : '',
+    }
+  } catch {
+    return null
+  }
+}
+
+/** Salva a configuração da Sessão SN no localStorage de forma resiliente */
+export function salvarConfigSessaoSN(config: SessaoSnConfigPersistida): void {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return
+    const str = JSON.stringify(config)
+    window.localStorage.setItem(STORAGE_KEY_SESSAO_SN_CONFIG, str)
+    // Mantém compatibilidade com a chave sem sufixo sugerida no enunciado
+    window.localStorage.setItem('it_reforma_sessao_sn_config', str)
+  } catch {
+    // silencioso para não quebrar em modo privado
+  }
+}
+
+/** Constrói um PerfilSN completo a partir da configuração persistida (ou default se inexistente) */
+export function obterPerfilSnEfetivo(exercicio = 2027): PerfilSN {
+  const salvo = carregarConfigSessaoSN()
+  if (!salvo) return PERFIL_SN_NOTA_PADRAO
+
+  const cfg = getTabelaOficialConfig(exercicio, salvo.anexoId, salvo.faixaNum, salvo.rbt12)
+  return {
+    origem: salvo.origem,
+    modo: salvo.origem === 'nota' ? 'nota' : 'anexo',
+    anexo: cfg.anexo,
+    faixa: cfg.faixa,
+    exercicio,
+    rbt12: salvo.rbt12,
+    anexoId: salvo.anexoId,
+    faixaNumero: salvo.faixaNum,
+    efetivaPct: cfg.aliquotaEfetivaPct,
+    icmsFracPct: cfg.fracaoIcmsPct,
+    cbsFracPct: cfg.fracaoCbsPct,
+    ibsFracPct: cfg.fracaoIbsPct,
+    irpjCsllCppFracPct: cfg.fracaoIrpjCsllCppPct,
+    baseDoDas: salvo.baseDoDas,
+    icmsNotaPct: 0,
+    cbsNotaPct: 0,
+    ibsNotaPct: 0,
+  }
 }
 
 /** Perfil padrão da sessão: Anexo I — 1ª faixa — 2027 (fonte de verdade oficial). */
@@ -1360,8 +1444,11 @@ export function calcularSessaoSN(
     // BLOCO 1: ICMS
     {
       key: 'icmsnota',
-      label: `· ICMS (${fmtSN(icmsPct, 4)}% do DAS)`,
-      formula: `${fmtSN(icmsPct, 4)}% × ${fmtSN(baseDasUtilizada6, 2)} = ${fmtMoney6(icmsNota6)} [Fração: ${fmtSN(icmsFracPct, 2)}%]`,
+      label: `1. Parcela ICMS (${fmtSN(icmsPct, 4)}%)`,
+      formula:
+        origem === 'nota'
+          ? `Alíquota da nota: ${fmtSN(icmsPct, 4)}% [da nota] × ${fmtSN(baseDasUtilizada6, 2)} = ${fmtMoney6(icmsNota6)}`
+          : `Fração ${fmtSN(icmsFracPct, 2)}% [${perfil.anexo || 'Anexo I'} · ${perfil.faixa || '1ª faixa'}] × Alíquota Efetiva ${fmtSN(efetivaPct, 2)}% = ${fmtMoney6(icmsNota6)}`,
       value: icmsNota,
       value6: icmsNota6,
       bloco: 'das_decomposto',
@@ -1370,8 +1457,11 @@ export function calcularSessaoSN(
     // BLOCO 2: CBS
     {
       key: 'cbsdas',
-      label: `· CBS (${fmtSN(cbsPct, 4)}% do DAS)`,
-      formula: `${fmtSN(cbsPct, 4)}% × ${fmtSN(baseDasUtilizada6, 2)} = ${fmtMoney6(cbsDAS6)} [Fração: ${fmtSN(cbsFracPct, 2)}%]`,
+      label: `2. Parcela CBS (${fmtSN(cbsPct, 4)}%)`,
+      formula:
+        origem === 'nota'
+          ? `Alíquota da nota: ${fmtSN(cbsPct, 4)}% [da nota] × ${fmtSN(baseDasUtilizada6, 2)} = ${fmtMoney6(cbsDAS6)}`
+          : `Fração ${fmtSN(cbsFracPct, 2)}% [${perfil.anexo || 'Anexo I'} · ${perfil.faixa || '1ª faixa'}] × Alíquota Efetiva ${fmtSN(efetivaPct, 2)}% = ${fmtMoney6(cbsDAS6)}`,
       value: cbsDAS,
       value6: cbsDAS6,
       bloco: 'das_decomposto',
@@ -1381,8 +1471,11 @@ export function calcularSessaoSN(
     // BLOCO 3: IBS
     {
       key: 'ibsdas',
-      label: `· IBS (${fmtSN(ibsPct, 4)}% do DAS)`,
-      formula: `${fmtSN(ibsPct, 4)}% × ${fmtSN(baseDasUtilizada6, 2)} = ${fmtMoney6(ibsDAS6)} [Fração: ${fmtSN(ibsFracPct, 2)}%]`,
+      label: `3. Parcela IBS (${fmtSN(ibsPct, 4)}%)`,
+      formula:
+        origem === 'nota'
+          ? `Alíquota da nota: ${fmtSN(ibsPct, 4)}% [da nota] × ${fmtSN(baseDasUtilizada6, 2)} = ${fmtMoney6(ibsDAS6)}`
+          : `Fração ${fmtSN(ibsFracPct, 2)}% [${perfil.anexo || 'Anexo I'} · ${perfil.faixa || '1ª faixa'}] × Alíquota Efetiva ${fmtSN(efetivaPct, 2)}% = ${fmtMoney6(ibsDAS6)}`,
       value: ibsDAS,
       value6: ibsDAS6,
       bloco: 'das_decomposto',
@@ -1391,8 +1484,11 @@ export function calcularSessaoSN(
     // BLOCO 4: IRPJ/CSLL/CPP (não gera crédito)
     {
       key: 'irpjcsllcppdas',
-      label: `· IRPJ / CSLL / CPP (${fmtSN(irpjCsllCppPct, 4)}% do DAS) — NÃO GERA CRÉDITO`,
-      formula: `${fmtSN(irpjCsllCppPct, 4)}% × ${fmtSN(baseDasUtilizada6, 2)} = ${fmtMoney6(irpjCsllCppDAS6)} [Fração: ${fmtSN(irpjCsllCppFracPct, 2)}%]`,
+      label: `4. Parcela IRPJ / CSLL / CPP (${fmtSN(irpjCsllCppPct, 4)}%) — NÃO GERA CRÉDITO`,
+      formula:
+        origem === 'nota'
+          ? `Alíquota residual: ${fmtSN(irpjCsllCppPct, 4)}% × ${fmtSN(baseDasUtilizada6, 2)} = ${fmtMoney6(irpjCsllCppDAS6)}`
+          : `Fração ${fmtSN(irpjCsllCppFracPct, 2)}% [${perfil.anexo || 'Anexo I'} · ${perfil.faixa || '1ª faixa'}] × Alíquota Efetiva ${fmtSN(efetivaPct, 2)}% = ${fmtMoney6(irpjCsllCppDAS6)}`,
       value: irpjCsllCppDAS,
       value6: irpjCsllCppDAS6,
       bloco: 'das_decomposto',

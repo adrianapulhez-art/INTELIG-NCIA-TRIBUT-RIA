@@ -20,11 +20,13 @@ import { Input } from '@/components/ui/input'
 import {
   ANEXOS_BASE_LC123,
   calcularSessaoSN,
+  carregarConfigSessaoSN,
   creditoEfetivoArt23,
   fmtSN,
   fmt6,
   getTabelaOficialConfig,
   PERFIL_SN_NOTA_PADRAO,
+  salvarConfigSessaoSN,
   TABELA_OFICIAL_SN,
   type ModoPreenchimentoSN,
   type OrigemPercentual,
@@ -261,16 +263,25 @@ export function SessaoSnSection({
   const [comparadorAberto, setComparadorAberto] = useState(false)
   const [manualAberto, setManualAberto] = useState(false)
 
+  // Leitura inicial tolerante do localStorage (com fallback ao perfil padrão da casa: 1ª faixa, 4%)
+  const configSalvaInicial = useMemo(() => carregarConfigSessaoSN(), [])
+
   // Estado da origem e parâmetros (Fase 1 e Fase 2)
-  const [origem, setOrigem] = useState<OrigemPercentual>('tabela') // default: estimativa da tabela oficial
+  const [origem, setOrigem] = useState<OrigemPercentual>(configSalvaInicial?.origem ?? 'tabela')
   const [camadaAnexoAberta, setCamadaAnexoAberta] = useState<boolean>(false) // Camada interna recuada para Tabela Oficial
   const [camadaCenariosAberta, setCamadaCenariosAberta] = useState<boolean>(false) // Camada interna recuada para Cenários de Cálculos SN
-  const [baseDoDas, setBaseDoDas] = useState<BaseDoDas>('bruta') // default: bruta
+  const [baseDoDas, setBaseDoDas] = useState<BaseDoDas>(configSalvaInicial?.baseDoDas ?? 'bruta')
 
   // Entradas em valores monetários (R$) destacados na NF-e (Pedido da Adri: campos em R$, nunca percentuais — reduzido para ICMS, CBS e IBS)
-  const [valorIcmsInput, setValorIcmsInput] = useState<string>('')
-  const [valorCbsInput, setValorCbsInput] = useState<string>('')
-  const [valorIbsInput, setValorIbsInput] = useState<string>('')
+  const [valorIcmsInput, setValorIcmsInput] = useState<string>(
+    configSalvaInicial?.valorIcmsInput ?? '',
+  )
+  const [valorCbsInput, setValorCbsInput] = useState<string>(
+    configSalvaInicial?.valorCbsInput ?? '',
+  )
+  const [valorIbsInput, setValorIbsInput] = useState<string>(
+    configSalvaInicial?.valorIbsInput ?? '',
+  )
 
   // Valores numéricos parseados com suporte a vírgula pt-BR (estado inicial vazio/zero)
   const valorIcmsNota = useMemo(() => Math.max(0, parseBRNumber(valorIcmsInput)), [valorIcmsInput])
@@ -303,24 +314,62 @@ export function SessaoSnSection({
   }, [valorIbsNota, totalNotaEmUso])
 
   // Parâmetros de tabela oficial (Seleção de Anexo I a V e Faixa 1 a 6)
-  const [anexoId, setAnexoId] = useState<string>('anexo1')
-  const [faixaNum, setFaixaNum] = useState<number>(1)
-  const [rbt12, setRbt12] = useState<number>(PERFIL_SN_NOTA_PADRAO.rbt12)
-  const [anexoNome, setAnexoNome] = useState<string>(PERFIL_SN_NOTA_PADRAO.anexo)
-  const [faixaNome, setFaixaNome] = useState<string>(PERFIL_SN_NOTA_PADRAO.faixa)
-  const [efetivaPct, setEfetivaPct] = useState<number>(PERFIL_SN_NOTA_PADRAO.efetivaPct)
-  const [icmsFracPct, setIcmsFracPct] = useState<number>(PERFIL_SN_NOTA_PADRAO.icmsFracPct)
-  const [cbsFracPct, setCbsFracPct] = useState<number>(PERFIL_SN_NOTA_PADRAO.cbsFracPct)
-  const [ibsFracPct, setIbsFracPct] = useState<number>(PERFIL_SN_NOTA_PADRAO.ibsFracPct)
+  const [anexoId, setAnexoId] = useState<string>(configSalvaInicial?.anexoId ?? 'anexo1')
+  const [faixaNum, setFaixaNum] = useState<number>(configSalvaInicial?.faixaNum ?? 1)
+  const [rbt12, setRbt12] = useState<number>(
+    configSalvaInicial?.rbt12 ?? PERFIL_SN_NOTA_PADRAO.rbt12,
+  )
+
+  // Configuração oficial calculada a partir dos parâmetros iniciais
+  const configTabelaInicial = useMemo(() => {
+    const ano = Number(exercicio) || 2027
+    const anexoIni = configSalvaInicial?.anexoId ?? 'anexo1'
+    const faixaIni = configSalvaInicial?.faixaNum ?? 1
+    const rbtIni = configSalvaInicial?.rbt12 ?? PERFIL_SN_NOTA_PADRAO.rbt12
+    return getTabelaOficialConfig(ano, anexoIni, faixaIni, rbtIni)
+  }, [configSalvaInicial, exercicio])
+
+  const [anexoNome, setAnexoNome] = useState<string>(
+    configTabelaInicial.anexo || PERFIL_SN_NOTA_PADRAO.anexo,
+  )
+  const [faixaNome, setFaixaNome] = useState<string>(
+    configTabelaInicial.faixa || PERFIL_SN_NOTA_PADRAO.faixa,
+  )
+  const [efetivaPct, setEfetivaPct] = useState<number>(
+    configTabelaInicial.aliquotaEfetivaPct ?? PERFIL_SN_NOTA_PADRAO.efetivaPct,
+  )
+  const [icmsFracPct, setIcmsFracPct] = useState<number>(
+    configTabelaInicial.fracaoIcmsPct ?? PERFIL_SN_NOTA_PADRAO.icmsFracPct,
+  )
+  const [cbsFracPct, setCbsFracPct] = useState<number>(
+    configTabelaInicial.fracaoCbsPct ?? PERFIL_SN_NOTA_PADRAO.cbsFracPct,
+  )
+  const [ibsFracPct, setIbsFracPct] = useState<number>(
+    configTabelaInicial.fracaoIbsPct ?? PERFIL_SN_NOTA_PADRAO.ibsFracPct,
+  )
   const [irpjCsllCppFracPct, setIrpjCsllCppFracPct] = useState<number>(
-    PERFIL_SN_NOTA_PADRAO.irpjCsllCppFracPct,
+    configTabelaInicial.fracaoIrpjCsllCppPct ?? PERFIL_SN_NOTA_PADRAO.irpjCsllCppFracPct,
   )
   const [statusLegalTabela, setStatusLegalTabela] = useState<'OFICIAL' | 'PENDENTE_CONFIRMACAO'>(
-    'OFICIAL',
+    configTabelaInicial.statusLegal || 'OFICIAL',
   )
   const [notaFonteTabela, setNotaFonteTabela] = useState<string>(
-    'LC 123/2006 Anexo I + LC 214/2025: chancelado pela Adri.',
+    configTabelaInicial.notaFonte || 'LC 123/2006 Anexo I + LC 214/2025: chancelado pela Adri.',
   )
+
+  // Persiste anexoId, faixaNum, rbt12, origem, baseDoDas e inputs no localStorage sempre que alterados
+  useEffect(() => {
+    salvarConfigSessaoSN({
+      anexoId,
+      faixaNum,
+      rbt12,
+      origem,
+      baseDoDas,
+      valorIcmsInput,
+      valorCbsInput,
+      valorIbsInput,
+    })
+  }, [anexoId, faixaNum, rbt12, origem, baseDoDas, valorIcmsInput, valorCbsInput, valorIbsInput])
 
   // Sincroniza parâmetros quando o exercício da página muda, ou quando usuário troca anexo/faixa/RBT12
   const atualizarTabela = (
@@ -1731,28 +1780,40 @@ export function SessaoSnSection({
                             // BLOCO 1
                             {
                               label: `1. Parcela ICMS (${fmtSN(itemAtivo.puro.r.icmsPct, 4)}%)`,
-                              formula: `Fração 34,00% × 4% = ${fmtSN(itemAtivo.puro.r.icmsNota6, 6)}`,
+                              formula:
+                                itemAtivo.puro.r.origemPercentuais === 'nota'
+                                  ? `Alíquota da nota: ${fmtSN(itemAtivo.puro.r.icmsPct, 4)}% [destaque da nota, art. 23 §2º] × ${fmtSN(itemAtivo.puro.r.baseDasUtilizada6, 2)} = ${fmtSN(itemAtivo.puro.r.icmsNota6, 6)}`
+                                  : `Fração ${fmtSN(itemAtivo.puro.r.perfil.icmsFracPct ?? icmsFracPct, 2)}% [${itemAtivo.puro.r.perfil.anexo || anexoNome} · ${itemAtivo.puro.r.perfil.faixa || faixaNome}] × Alíquota Efetiva ${fmtSN(itemAtivo.puro.r.efetivaPct, 2)}% = ${fmtSN(itemAtivo.puro.r.icmsNota6, 6)}`,
                               value: itemAtivo.puro.r.icmsNota,
                               value6: itemAtivo.puro.r.icmsNota6,
                             },
                             // BLOCO 2
                             {
                               label: `2. Parcela CBS (${fmtSN(itemAtivo.puro.r.cbsPct, 4)}%)`,
-                              formula: `Fração 15,33% × 4% = ${fmtSN(itemAtivo.puro.r.cbsDAS6, 6)}`,
+                              formula:
+                                itemAtivo.puro.r.origemPercentuais === 'nota'
+                                  ? `Alíquota da nota: ${fmtSN(itemAtivo.puro.r.cbsPct, 4)}% [destaque da nota, art. 23 §2º] × ${fmtSN(itemAtivo.puro.r.baseDasUtilizada6, 2)} = ${fmtSN(itemAtivo.puro.r.cbsDAS6, 6)}`
+                                  : `Fração ${fmtSN(itemAtivo.puro.r.perfil.cbsFracPct ?? cbsFracPct, 2)}% [${itemAtivo.puro.r.perfil.anexo || anexoNome} · ${itemAtivo.puro.r.perfil.faixa || faixaNome}] × Alíquota Efetiva ${fmtSN(itemAtivo.puro.r.efetivaPct, 2)}% = ${fmtSN(itemAtivo.puro.r.cbsDAS6, 6)}`,
                               value: itemAtivo.puro.r.cbsDAS,
                               value6: itemAtivo.puro.r.cbsDAS6,
                             },
                             // BLOCO 3
                             {
                               label: `3. Parcela IBS (${fmtSN(itemAtivo.puro.r.ibsPct, 4)}%)`,
-                              formula: `Fração 0,17% × 4% = ${fmtSN(itemAtivo.puro.r.ibsDAS6, 6)}`,
+                              formula:
+                                itemAtivo.puro.r.origemPercentuais === 'nota'
+                                  ? `Alíquota da nota: ${fmtSN(itemAtivo.puro.r.ibsPct, 4)}% [destaque da nota, art. 23 §2º] × ${fmtSN(itemAtivo.puro.r.baseDasUtilizada6, 2)} = ${fmtSN(itemAtivo.puro.r.ibsDAS6, 6)}`
+                                  : `Fração ${fmtSN(itemAtivo.puro.r.perfil.ibsFracPct ?? ibsFracPct, 2)}% [${itemAtivo.puro.r.perfil.anexo || anexoNome} · ${itemAtivo.puro.r.perfil.faixa || faixaNome}] × Alíquota Efetiva ${fmtSN(itemAtivo.puro.r.efetivaPct, 2)}% = ${fmtSN(itemAtivo.puro.r.ibsDAS6, 6)}`,
                               value: itemAtivo.puro.r.ibsDAS,
                               value6: itemAtivo.puro.r.ibsDAS6,
                             },
                             // BLOCO 4
                             {
                               label: `4. Parcela IRPJ / CSLL / CPP (${fmtSN(itemAtivo.puro.r.irpjCsllCppPct, 4)}%) — NÃO GERA CRÉDITO`,
-                              formula: `Fração 50,50% × 4% = ${fmtSN(itemAtivo.puro.r.irpjCsllCppDAS6, 6)}`,
+                              formula:
+                                itemAtivo.puro.r.origemPercentuais === 'nota'
+                                  ? `Alíquota residual: ${fmtSN(itemAtivo.puro.r.irpjCsllCppPct, 4)}% × ${fmtSN(itemAtivo.puro.r.baseDasUtilizada6, 2)} = ${fmtSN(itemAtivo.puro.r.irpjCsllCppDAS6, 6)}`
+                                  : `Fração ${fmtSN(itemAtivo.puro.r.perfil.irpjCsllCppFracPct ?? irpjCsllCppFracPct, 2)}% [${itemAtivo.puro.r.perfil.anexo || anexoNome} · ${itemAtivo.puro.r.perfil.faixa || faixaNome}] × Alíquota Efetiva ${fmtSN(itemAtivo.puro.r.efetivaPct, 2)}% = ${fmtSN(itemAtivo.puro.r.irpjCsllCppDAS6, 6)}`,
                               value: itemAtivo.puro.r.irpjCsllCppDAS,
                               value6: itemAtivo.puro.r.irpjCsllCppDAS6,
                             },
