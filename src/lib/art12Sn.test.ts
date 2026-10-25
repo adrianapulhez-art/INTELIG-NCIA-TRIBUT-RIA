@@ -544,4 +544,57 @@ describe('Sessão SN na Reforma — Blindagem do Caso Canônico Corrigido (Padr�
     expect(memIcms3?.formula).toContain('Alíquota Efetiva 7,58%')
     expect(memIcms3?.formula).toContain('1.065,802500')
   })
+
+  it('14. Blindagem Card 3º — Ramificação de crédito do adquirente no fornecedor SN puro', () => {
+    // Cenário canônico base 42.000 (sem frete): 30 unidades a 1.400,00
+    const item42kSemFrete: ItemIntegracaoArt12 = {
+      id: 'item-42k-sn',
+      name: 'Item 42k Simples',
+      quantity: 30,
+      merchandiseValue: 42000,
+      freightValue: 0,
+      icmsRate: 18,
+      icmsFreightRate: 18,
+      ipiRate: 0,
+      hasSt: false,
+      stValue: 0,
+      valorNota: 42000,
+      abcPct: 100,
+      classe: 'A',
+    }
+
+    const rSN = calcularSessaoSN(item42kSemFrete, PERFIL_SN_NOTA_PADRAO, 'simples')
+
+    // (a) Adquirente SNP × Fornecedor SNP:
+    // Custo = NOTA CHEIA (42.000,00 -> 1.400,00/un com 30 un.), zero crédito
+    const creditoSNP = creditoEfetivoArt23('simples', rSN)
+    expect(creditoSNP).toBe(0)
+    const custoLiquidoSNP = rSN.receitaBruta - creditoSNP
+    expect(custoLiquidoSNP).toBe(42000)
+    const custoUnitarioSNP = roundHalfUp(custoLiquidoSNP / 30, 2)
+    expect(custoUnitarioSNP).toBe(1400.0)
+
+    // (b) Adquirente SN Híbrido × Fornecedor SN:
+    // Crédito = APENAS cbsDAS + ibsDAS, sem ICMS (art. 41 LC 214/2025; art. 23 LC 123/2006)
+    // 42.000 × 4% × 15,33% = 257,544 (CBS) e 42.000 × 4% × 0,17% = 2,856 (IBS) -> 260,40
+    const creditoSNH = creditoEfetivoArt23('simples_hibrido', rSN)
+    const parcelaCbsIbsEsperada = roundHalfUp(rSN.cbsDAS + rSN.ibsDAS, 2)
+    expect(creditoSNH).toBe(parcelaCbsIbsEsperada)
+    expect(creditoSNH).toBeLessThan(rSN.parcelaCreditavelTotal)
+    // Garante que ICMS não entrou no crédito do híbrido
+    expect(creditoSNH).toBe(roundHalfUp(rSN.parcelaCreditavelTotal - rSN.icmsNota, 2))
+    const custoLiquidoSNH = rSN.receitaBruta - creditoSNH
+    expect(custoLiquidoSNH).toBe(roundHalfUp(42000 - parcelaCbsIbsEsperada, 2))
+    const custoUnitarioSNH = roundHalfUp(custoLiquidoSNH / 30, 2)
+    expect(custoUnitarioSNH).toBeCloseTo((42000 - parcelaCbsIbsEsperada) / 30, 2)
+
+    // (c) Adquirentes LP e LR mantêm parcela cheia do art. 23 (ICMS + CBS + IBS)
+    const creditoLP = creditoEfetivoArt23('presumido', rSN)
+    expect(creditoLP).toBe(rSN.parcelaCreditavelTotal)
+    expect(creditoLP).toBe(roundHalfUp(rSN.icmsNota + rSN.cbsDAS + rSN.ibsDAS, 2))
+
+    const creditoLR = creditoEfetivoArt23('real', rSN)
+    expect(creditoLR).toBe(rSN.parcelaCreditavelTotal)
+    expect(creditoLR).toBe(roundHalfUp(rSN.icmsNota + rSN.cbsDAS + rSN.ibsDAS, 2))
+  })
 })

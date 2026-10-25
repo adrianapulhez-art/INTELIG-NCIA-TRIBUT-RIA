@@ -26,6 +26,7 @@ import {
   fmt6,
   getTabelaOficialConfig,
   PERFIL_SN_NOTA_PADRAO,
+  roundHalfUp,
   salvarConfigSessaoSN,
   TABELA_OFICIAL_SN,
   type ModoPreenchimentoSN,
@@ -1845,63 +1846,169 @@ export function SessaoSnSection({
 
                       {/* CARD 3º — CUSTO DO ADQUIRENTE (CONSUMO DA PARCELA CREDITÁVEL) */}
                       {fornecedorSN === 'puro' ? (
-                        <CardMemoriaCanonical
-                          titulo={`CARD 3º — CUSTO DO ADQUIRENTE COM PARCELA CREDITÁVEL (ART. 23) · ${itemAtivo.item.name || 'item'}`}
-                          cor="orange"
-                          linhas={[
-                            {
-                              label: 'Base da Parcela Creditável',
-                              formula: `Base: ${fmtSN(itemAtivo.puro.r.baseDasUtilizada6, 6)}`,
-                              value: itemAtivo.puro.r.baseDasUtilizada,
-                              value6: itemAtivo.puro.r.baseDasUtilizada6,
-                            },
-                            {
-                              label: `(+) Crédito ICMS da nota (${fmtSN(itemAtivo.puro.r.icmsPct, 4)}%)`,
-                              formula: `${fmtSN(itemAtivo.puro.r.icmsNota6, 6)} [${itemAtivo.puro.r.origemRotulo}]`,
-                              value: itemAtivo.puro.r.icmsNota,
-                              value6: itemAtivo.puro.r.icmsNota6,
-                            },
-                            {
-                              label: `(+) Crédito CBS do DAS (${fmtSN(itemAtivo.puro.r.cbsPct, 4)}%)`,
-                              formula: `${fmtSN(itemAtivo.puro.r.cbsDAS6, 6)}`,
-                              value: itemAtivo.puro.r.cbsDAS,
-                              value6: itemAtivo.puro.r.cbsDAS6,
-                            },
-                            {
-                              label: `(+) Crédito IBS do DAS (${fmtSN(itemAtivo.puro.r.ibsPct, 4)}%)`,
-                              formula: `${fmtSN(itemAtivo.puro.r.ibsDAS6, 6)}`,
-                              value: itemAtivo.puro.r.ibsDAS,
-                              value6: itemAtivo.puro.r.ibsDAS6,
-                            },
-                            {
-                              label: '(=) PARCELA CREDITÁVEL TOTAL (ICMS + CBS + IBS)',
-                              formula: `${fmtSN(itemAtivo.puro.r.icmsNota6, 6)} + ${fmtSN(itemAtivo.puro.r.cbsDAS6, 6)} + ${fmtSN(itemAtivo.puro.r.ibsDAS6, 6)} = ${fmtSN(itemAtivo.puro.r.parcelaCreditavelTotal6, 6)}`,
-                              value: itemAtivo.puro.r.parcelaCreditavelTotal,
-                              value6: itemAtivo.puro.r.parcelaCreditavelTotal6,
-                              destaque: true,
-                            },
-                            {
-                              label: '(÷) Crédito por unidade',
-                              formula: `${fmtSN(itemAtivo.puro.r.parcelaCreditavelTotal6, 6)} ÷ ${itemAtivo.item.quantity} un.`,
-                              value: itemAtivo.puro.r.creditoUnidade,
-                              value6: itemAtivo.puro.r.creditoUnidade6,
-                            },
-                            {
-                              label: '(=) CUSTO LÍQUIDO (NOTA − PARCELA CREDITÁVEL)',
-                              formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} − ${fmtSN(itemAtivo.puro.r.parcelaCreditavelTotal6, 6)} = ${fmtSN(itemAtivo.puro.r.custoLiquido6, 6)}`,
-                              value: itemAtivo.puro.r.custoLiquido,
-                              value6: itemAtivo.puro.r.custoLiquido6,
-                              destaque: true,
-                            },
-                            {
-                              label: '(÷) CUSTO UNITÁRIO LÍQUIDO',
-                              formula: `${fmtSN(itemAtivo.puro.r.custoLiquido6, 6)} ÷ ${itemAtivo.item.quantity} un. = ${fmt6(itemAtivo.puro.r.custoUnitarioLiquido6)}`,
-                              value: itemAtivo.puro.r.custoUnitarioLiquido,
-                              value6: itemAtivo.puro.r.custoUnitarioLiquido6,
-                              destaque: true,
-                            },
-                          ]}
-                        />
+                        adquirente === 'simples' ? (
+                          <CardMemoriaCanonical
+                            titulo={`CARD 3º — CUSTO DO ADQUIRENTE SIMPLES NACIONAL PURO · ${itemAtivo.item.name || 'item'}`}
+                            cor="orange"
+                            linhas={[
+                              {
+                                label: '(+) Valor da operação (nota cheia)',
+                                formula: `${fmtSN(itemAtivo.item.merchandiseValue)} (mercadorias) + ${fmtSN(itemAtivo.item.freightValue)} (frete) = ${fmtSN(itemAtivo.puro.r.receitaBruta)} (${itemAtivo.item.quantity} un.)`,
+                                value: itemAtivo.puro.r.receitaBruta,
+                                value6: itemAtivo.puro.r.receitaBruta6,
+                              },
+                              {
+                                label: '(−) Crédito do adquirente',
+                                formula:
+                                  '0,00 [LC 123/2006, art. 13, §1º: vedado ao optante do Simples Nacional tomar crédito na aquisição — dedução na apuração do DAS, não crédito na compra]',
+                                value: 0,
+                                value6: 0,
+                              },
+                              {
+                                label: '(=) CUSTO DO ADQUIRENTE (NOTA CHEIA)',
+                                formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} − 0,00 = ${fmtSN(itemAtivo.puro.r.receitaBruta)}`,
+                                value: itemAtivo.puro.r.receitaBruta,
+                                value6: itemAtivo.puro.r.receitaBruta6,
+                                destaque: true,
+                              },
+                              {
+                                label: '(÷) CUSTO UNITÁRIO',
+                                formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} ÷ ${itemAtivo.item.quantity} un. = ${fmtSN(roundHalfUp(itemAtivo.puro.r.receitaBruta / Math.max(1, itemAtivo.item.quantity), 2))}`,
+                                value: roundHalfUp(
+                                  itemAtivo.puro.r.receitaBruta /
+                                    Math.max(1, itemAtivo.item.quantity),
+                                  2,
+                                ),
+                                value6:
+                                  itemAtivo.puro.r.receitaBruta6 /
+                                  Math.max(1, itemAtivo.item.quantity),
+                                destaque: true,
+                              },
+                            ]}
+                          />
+                        ) : adquirente === 'simples_hibrido' ? (
+                          (() => {
+                            const parcelaCbsIbs6 =
+                              itemAtivo.puro.r.cbsDAS6 + itemAtivo.puro.r.ibsDAS6
+                            const parcelaCbsIbs = roundHalfUp(
+                              itemAtivo.puro.r.cbsDAS + itemAtivo.puro.r.ibsDAS,
+                              2,
+                            )
+                            const creditoUnidade6 =
+                              parcelaCbsIbs6 / Math.max(1, itemAtivo.item.quantity)
+                            const creditoUnidade = roundHalfUp(creditoUnidade6, 2)
+                            const custoLiquidoHib6 = itemAtivo.puro.r.receitaBruta6 - parcelaCbsIbs6
+                            const custoLiquidoHib = roundHalfUp(custoLiquidoHib6, 2)
+                            const custoUnitarioHib6 =
+                              custoLiquidoHib6 / Math.max(1, itemAtivo.item.quantity)
+                            const custoUnitarioHib = roundHalfUp(custoUnitarioHib6, 2)
+                            return (
+                              <CardMemoriaCanonical
+                                titulo={`CARD 3º — CUSTO DO ADQUIRENTE SIMPLES NACIONAL HÍBRIDO (CBS + IBS) · ${itemAtivo.item.name || 'item'}`}
+                                cor="orange"
+                                linhas={[
+                                  {
+                                    label: `(+) Crédito CBS do DAS (${fmtSN(itemAtivo.puro.r.cbsPct, 4)}%)`,
+                                    formula: `${fmtSN(itemAtivo.puro.r.cbsDAS6, 6)} [LC 214/2025, art. 41; LC 123/2006, art. 23, §1º]`,
+                                    value: itemAtivo.puro.r.cbsDAS,
+                                    value6: itemAtivo.puro.r.cbsDAS6,
+                                  },
+                                  {
+                                    label: `(+) Crédito IBS do DAS (${fmtSN(itemAtivo.puro.r.ibsPct, 4)}%)`,
+                                    formula: `${fmtSN(itemAtivo.puro.r.ibsDAS6, 6)} [LC 214/2025, art. 41; LC 123/2006, art. 23, §1º]`,
+                                    value: itemAtivo.puro.r.ibsDAS,
+                                    value6: itemAtivo.puro.r.ibsDAS6,
+                                  },
+                                  {
+                                    label: '(=) PARCELA CREDITÁVEL (CBS + IBS)',
+                                    formula: `${fmtSN(itemAtivo.puro.r.cbsDAS6, 6)} + ${fmtSN(itemAtivo.puro.r.ibsDAS6, 6)} = ${fmtSN(parcelaCbsIbs6, 6)} [sem ICMS — art. 23, §1º LC 123/2006]`,
+                                    value: parcelaCbsIbs,
+                                    value6: parcelaCbsIbs6,
+                                    destaque: true,
+                                  },
+                                  {
+                                    label: '(÷) Crédito por unidade',
+                                    formula: `${fmtSN(parcelaCbsIbs6, 6)} ÷ ${itemAtivo.item.quantity} un. = ${fmt6(creditoUnidade6)}`,
+                                    value: creditoUnidade,
+                                    value6: creditoUnidade6,
+                                  },
+                                  {
+                                    label: '(=) CUSTO LÍQUIDO (NOTA − CBS − IBS)',
+                                    formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} − ${fmtSN(parcelaCbsIbs6, 6)} = ${fmtSN(custoLiquidoHib6, 6)}`,
+                                    value: custoLiquidoHib,
+                                    value6: custoLiquidoHib6,
+                                    destaque: true,
+                                  },
+                                  {
+                                    label: '(÷) CUSTO UNITÁRIO LÍQUIDO',
+                                    formula: `${fmtSN(custoLiquidoHib6, 6)} ÷ ${itemAtivo.item.quantity} un. = ${fmt6(custoUnitarioHib6)}`,
+                                    value: custoUnitarioHib,
+                                    value6: custoUnitarioHib6,
+                                    destaque: true,
+                                  },
+                                ]}
+                              />
+                            )
+                          })()
+                        ) : (
+                          <CardMemoriaCanonical
+                            titulo={`CARD 3º — CUSTO DO ADQUIRENTE COM PARCELA CREDITÁVEL (ART. 23) · ${itemAtivo.item.name || 'item'}`}
+                            cor="orange"
+                            linhas={[
+                              {
+                                label: 'Base da Parcela Creditável',
+                                formula: `Base: ${fmtSN(itemAtivo.puro.r.baseDasUtilizada6, 6)}`,
+                                value: itemAtivo.puro.r.baseDasUtilizada,
+                                value6: itemAtivo.puro.r.baseDasUtilizada6,
+                              },
+                              {
+                                label: `(+) Crédito ICMS da nota (${fmtSN(itemAtivo.puro.r.icmsPct, 4)}%)`,
+                                formula: `${fmtSN(itemAtivo.puro.r.icmsNota6, 6)} [${itemAtivo.puro.r.origemRotulo}]`,
+                                value: itemAtivo.puro.r.icmsNota,
+                                value6: itemAtivo.puro.r.icmsNota6,
+                              },
+                              {
+                                label: `(+) Crédito CBS do DAS (${fmtSN(itemAtivo.puro.r.cbsPct, 4)}%)`,
+                                formula: `${fmtSN(itemAtivo.puro.r.cbsDAS6, 6)}`,
+                                value: itemAtivo.puro.r.cbsDAS,
+                                value6: itemAtivo.puro.r.cbsDAS6,
+                              },
+                              {
+                                label: `(+) Crédito IBS do DAS (${fmtSN(itemAtivo.puro.r.ibsPct, 4)}%)`,
+                                formula: `${fmtSN(itemAtivo.puro.r.ibsDAS6, 6)}`,
+                                value: itemAtivo.puro.r.ibsDAS,
+                                value6: itemAtivo.puro.r.ibsDAS6,
+                              },
+                              {
+                                label: '(=) PARCELA CREDITÁVEL TOTAL (ICMS + CBS + IBS)',
+                                formula: `${fmtSN(itemAtivo.puro.r.icmsNota6, 6)} + ${fmtSN(itemAtivo.puro.r.cbsDAS6, 6)} + ${fmtSN(itemAtivo.puro.r.ibsDAS6, 6)} = ${fmtSN(itemAtivo.puro.r.parcelaCreditavelTotal6, 6)}`,
+                                value: itemAtivo.puro.r.parcelaCreditavelTotal,
+                                value6: itemAtivo.puro.r.parcelaCreditavelTotal6,
+                                destaque: true,
+                              },
+                              {
+                                label: '(÷) Crédito por unidade',
+                                formula: `${fmtSN(itemAtivo.puro.r.parcelaCreditavelTotal6, 6)} ÷ ${itemAtivo.item.quantity} un.`,
+                                value: itemAtivo.puro.r.creditoUnidade,
+                                value6: itemAtivo.puro.r.creditoUnidade6,
+                              },
+                              {
+                                label: '(=) CUSTO LÍQUIDO (NOTA − PARCELA CREDITÁVEL)',
+                                formula: `${fmtSN(itemAtivo.puro.r.receitaBruta)} − ${fmtSN(itemAtivo.puro.r.parcelaCreditavelTotal6, 6)} = ${fmtSN(itemAtivo.puro.r.custoLiquido6, 6)}`,
+                                value: itemAtivo.puro.r.custoLiquido,
+                                value6: itemAtivo.puro.r.custoLiquido6,
+                                destaque: true,
+                              },
+                              {
+                                label: '(÷) CUSTO UNITÁRIO LÍQUIDO',
+                                formula: `${fmtSN(itemAtivo.puro.r.custoLiquido6, 6)} ÷ ${itemAtivo.item.quantity} un. = ${fmt6(itemAtivo.puro.r.custoUnitarioLiquido6)}`,
+                                value: itemAtivo.puro.r.custoUnitarioLiquido,
+                                value6: itemAtivo.puro.r.custoUnitarioLiquido6,
+                                destaque: true,
+                              },
+                            ]}
+                          />
+                        )
                       ) : (
                         <CardMemoriaCanonical
                           titulo={`CARD 3º — CUSTO DO ADQUIRENTE COM AJUSTE PÓS-REFORMA · ${itemAtivo.item.name || 'item'}`}
