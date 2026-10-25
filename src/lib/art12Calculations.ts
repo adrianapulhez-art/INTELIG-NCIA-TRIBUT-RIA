@@ -339,10 +339,10 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
 
   const icmsMerc = r2(merc * (input.icmsRate / 100))
   const icmsFrete = r2(frete * (input.icmsFreightRate / 100))
-  // HOJE não conhece o híbrido (opção a partir de 2027): fornecedor SN-híbrido = SN padrão;
-  // comprador SN-híbrido = SN padrão (sem créditos hoje).
-  const fornecedorEmite =
-    config.fornecedorRegime !== 'simples' && config.fornecedorRegime !== 'simples_hibrido'
+  // Adquirente pleno (LP/LR) comprando de SN HÍBRIDO — a nota de HOJE do
+  // híbrido traz ICMS destacado à alíquota cheia, com crédito integral do adquirente.
+  // SN puro permanece sem destaque (LC 123, art. 23, §2º). Comprador SN/SNH segue sem crédito.
+  const fornecedorEmite = config.fornecedorRegime !== 'simples'
   const pleno =
     config.compradorRegime !== 'simples' &&
     config.compradorRegime !== 'simples_hibrido' &&
