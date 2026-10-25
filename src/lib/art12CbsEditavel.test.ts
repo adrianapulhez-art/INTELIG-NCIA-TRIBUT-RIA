@@ -109,11 +109,11 @@ describe('CBS editável — default preserva os ouros chancelados', () => {
 
       const espelhoSnp = lerEspelhoComprasCard03('snp', { cbsAliquotaPct: 8.8 })
       expect(espelhoSnp.lp.custo2027).toBeCloseTo(1482.94, 2)
-      expect(espelhoSnp.lr.custo2027).toBeCloseTo(1482.94, 2)
+      expect(espelhoSnp.lr.custo2027).toBeCloseTo(1396.75, 2)
 
       const espelhoSnh = lerEspelhoComprasCard03('snh', { cbsAliquotaPct: 8.8 })
       expect(espelhoSnh.lp.custo2027).toBeCloseTo(1383.56, 2)
-      expect(espelhoSnh.lr.custo2027).toBeCloseTo(1383.56, 2)
+      expect(espelhoSnh.lr.custo2027).toBeCloseTo(1303.15, 2)
     })
 
     it('com alíquota 9.25% os resultados DIVERGEM comprovadamente dos ouros de 8.8%', () => {
@@ -146,11 +146,11 @@ describe('CBS editável — default preserva os ouros chancelados', () => {
       // Leitura Card 03 com 9.25% diverge dos ouros de 8.8%
       const espelhoSnp925 = lerEspelhoComprasCard03('snp', { cbsAliquotaPct: 9.25 })
       expect(espelhoSnp925.lp.custo2027).not.toBeCloseTo(1482.94, 2)
-      expect(espelhoSnp925.lr.custo2027).not.toBeCloseTo(1482.94, 2)
+      expect(espelhoSnp925.lr.custo2027).not.toBeCloseTo(1396.75, 2)
 
       const espelhoSnh925 = lerEspelhoComprasCard03('snh', { cbsAliquotaPct: 9.25 })
       expect(espelhoSnh925.lp.custo2027).not.toBeCloseTo(1383.56, 2)
-      expect(espelhoSnh925.lr.custo2027).not.toBeCloseTo(1383.56, 2)
+      expect(espelhoSnh925.lr.custo2027).not.toBeCloseTo(1303.15, 2)
     })
   })
 })

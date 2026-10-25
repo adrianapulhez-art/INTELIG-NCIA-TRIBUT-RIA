@@ -78,16 +78,28 @@ describe('Blindagem das 4 Novas Células — Fornecedor LP/LR × Adquirente SN P
     expect(celula.deltaPct).toBe(4.92)
   })
 
-  it('2. Célula LR × SN puro é IDÊNTICA à LP × SN puro (1.413,33 / 1.482,94 / +4,92%)', () => {
+  it('2. Célula LR × SN puro migrada para Régua A: base limpa 31.551,96 · nota 2027 41.902,54 · custo 1.396,75 (−1,17%)', () => {
     const celula = calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_real', 'simples', itemCanonico)
 
+    // HOJE 2026: compras líquidas = 42.400,00 (unitário 1.413,33)
     expect(celula.hoje.comprasLiquidas).toBe(42400.0)
     expect(celula.hoje.custoUnitario).toBe(1413.33)
-    expect(celula.exercicio2027.notaCheia).toBe(44488.27)
+
+    // FORNECEDOR 2027 (Régua A):
+    // Base limpa = 42.400 − 7.632 − 573,67 − 2.642,37 = 31.551,96
+    expect(celula.exercicio2027.baseLimpa).toBe(31551.96)
+    expect(celula.exercicio2027.cbsDestacada).toBe(2776.57)
+    expect(celula.exercicio2027.ibsDestacado).toBe(31.55)
+    expect(celula.exercicio2027.subtotalAntesIcms).toBe(34360.08)
+    expect(celula.exercicio2027.divisorIcms).toBe(0.82)
+    expect(celula.exercicio2027.notaCheia).toBe(41902.54)
+    expect(celula.exercicio2027.icmsDestacadoNota).toBe(7542.46)
+
+    // ADQUIRENTE SN PURO 2027 (ZERO CRÉDITOS):
     expect(celula.exercicio2027.totalCreditos).toBe(0.0)
-    expect(celula.exercicio2027.comprasLiquidas).toBe(44488.27)
-    expect(celula.exercicio2027.custoUnitario).toBe(1482.94)
-    expect(celula.deltaPct).toBe(4.92)
+    expect(celula.exercicio2027.comprasLiquidas).toBe(41902.54)
+    expect(celula.exercicio2027.custoUnitario).toBe(1396.75) // 41.902,54 ÷ 30
+    expect(celula.deltaPct).toBe(-1.17)
   })
 
   it('3. Célula LP × SN híbrido fecha exatamente nos valores de ouro chancelados (1.413,33 / 1.383,56 / −2,11%)', () => {
@@ -132,7 +144,7 @@ describe('Blindagem das 4 Novas Células — Fornecedor LP/LR × Adquirente SN P
     expect(celula.deltaPct).toBe(-2.11)
   })
 
-  it('4. Célula LR × SN híbrido é IDÊNTICA à LP × SN híbrido (1.413,33 / 1.383,56 / −2,11%)', () => {
+  it('4. Célula LR × SN híbrido migrada para Régua A: base limpa 31.551,96 · nota 41.902,54 · custo 1.303,15 (−7,80%)', () => {
     const celula = calcularCelulaFornecedorPlenoXAdquirenteSn(
       'lucro_real',
       'simples_hibrido',
@@ -141,14 +153,15 @@ describe('Blindagem das 4 Novas Células — Fornecedor LP/LR × Adquirente SN P
 
     expect(celula.hoje.comprasLiquidas).toBe(42400.0)
     expect(celula.hoje.custoUnitario).toBe(1413.33)
-    expect(celula.exercicio2027.notaCheia).toBe(44488.27)
-    expect(celula.exercicio2027.cbsCredito).toBe(2947.91)
-    expect(celula.exercicio2027.ibsCredito).toBe(33.5)
+    expect(celula.exercicio2027.baseLimpa).toBe(31551.96)
+    expect(celula.exercicio2027.notaCheia).toBe(41902.54)
+    expect(celula.exercicio2027.cbsCredito).toBe(2776.57)
+    expect(celula.exercicio2027.ibsCredito).toBe(31.55)
     expect(celula.exercicio2027.icmsCredito).toBe(0.0)
-    expect(celula.exercicio2027.totalCreditos).toBe(2981.41)
-    expect(celula.exercicio2027.comprasLiquidas).toBe(41506.86)
-    expect(celula.exercicio2027.custoUnitario).toBe(1383.56)
-    expect(celula.deltaPct).toBe(-2.11)
+    expect(celula.exercicio2027.totalCreditos).toBe(2808.12)
+    expect(celula.exercicio2027.comprasLiquidas).toBe(39094.42)
+    expect(celula.exercicio2027.custoUnitario).toBe(1303.15) // 39.094,42 ÷ 30
+    expect(celula.deltaPct).toBe(-7.8)
   })
 
   it('5. Regras jurídicas chanceladas estão refletidas na memória linha a linha dos 3 cards', () => {
@@ -219,15 +232,15 @@ describe('Blindagem das 4 Novas Células — Fornecedor LP/LR × Adquirente SN P
     expect(lista[0].deltaPct).toBe(4.92)
 
     expect(lista[1].hoje.custoUnitario).toBe(1413.33)
-    expect(lista[1].exercicio2027.custoUnitario).toBe(1482.94)
-    expect(lista[1].deltaPct).toBe(4.92)
+    expect(lista[1].exercicio2027.custoUnitario).toBe(1396.75)
+    expect(lista[1].deltaPct).toBe(-1.17)
 
     expect(lista[2].hoje.custoUnitario).toBe(1413.33)
     expect(lista[2].exercicio2027.custoUnitario).toBe(1383.56)
     expect(lista[2].deltaPct).toBe(-2.11)
 
     expect(lista[3].hoje.custoUnitario).toBe(1413.33)
-    expect(lista[3].exercicio2027.custoUnitario).toBe(1383.56)
-    expect(lista[3].deltaPct).toBe(-2.11)
+    expect(lista[3].exercicio2027.custoUnitario).toBe(1303.15)
+    expect(lista[3].deltaPct).toBe(-7.8)
   })
 })

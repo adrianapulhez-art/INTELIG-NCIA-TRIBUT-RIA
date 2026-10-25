@@ -62,7 +62,8 @@ describe('Blindagem da Calculadora de Markup Pós EC 132 (2027+) — Reestrutura
       expect(espelhoSnp.lp.custo2027).toBe(1482.94)
       expect(espelhoSnp.lp.motorOrigem).toBe('quatro_celulas_sn')
 
-      expect(espelhoSnp.lr.custo2027).toBe(1482.94)
+      // Fornecedor LR reprecifica pela Régua A preservando receita líquida 31.551,96 -> nota 41.902,54 -> custo 1.396,75
+      expect(espelhoSnp.lr.custo2027).toBe(1396.75)
       expect(espelhoSnp.lr.motorOrigem).toBe('quatro_celulas_sn')
 
       // Sessão SN puro × puro (zero crédito)
@@ -80,7 +81,8 @@ describe('Blindagem da Calculadora de Markup Pós EC 132 (2027+) — Reestrutura
       expect(espelhoSnh.lp.custo2027).toBe(1383.56)
       expect(espelhoSnh.lp.motorOrigem).toBe('quatro_celulas_sn')
 
-      expect(espelhoSnh.lr.custo2027).toBe(1383.56)
+      // Fornecedor LR reprecifica pela Régua A -> nota 41.902,54 − CBS 2.776,57 − IBS 31,55 = 39.094,42 -> custo 1.303,15
+      expect(espelhoSnh.lr.custo2027).toBe(1303.15)
       expect(espelhoSnh.lr.motorOrigem).toBe('quatro_celulas_sn')
 
       // Compras de SNP e SNH no regime regular de CBS/IBS

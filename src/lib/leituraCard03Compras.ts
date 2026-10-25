@@ -402,7 +402,7 @@ export function lerEspelhoComprasCard03(
         motorOrigem: 'quatro_celulas_sn',
         rotuloMotor: '4 Células Pleno × SN (LR × SN Puro)',
         fundamentoLegal:
-          'LC 123/2006 art. 13 §1º: sem crédito de PIS/COFINS nem CBS/IBS — custo idêntico à compra de LP (1.482,94).',
+          'LC 123/2006 art. 13 §1º c/c LC 214/2025 art. 12 §2º V: sem crédito no optante puro — custo igual à nota formada pela Régua A do fornecedor LR.',
         linhasMemoriaCusto: celulaSnpLr.card03.linhas.map((l) => ({
           sinal: l.sinal,
           label: l.label,
@@ -532,7 +532,7 @@ export function lerEspelhoComprasCard03(
       motorOrigem: 'quatro_celulas_sn',
       rotuloMotor: '4 Células Pleno × SN (LR × SN Híbrido)',
       fundamentoLegal:
-        'LC 214/2025 art. 41: idêntico à compra de LP — credita CBS e IBS destacados, sem ICMS 18% (1.383,56).',
+        'LC 214/2025 art. 41: credita CBS e IBS destacados na nota formada pela Régua A do fornecedor LR, sem ICMS 18%.',
       linhasMemoriaCusto: celulaSnhLr.card03.linhas.map((l) => ({
         sinal: l.sinal,
         label: l.label,

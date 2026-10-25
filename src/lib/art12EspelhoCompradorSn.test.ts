@@ -51,7 +51,7 @@ describe('Espelho Repasse — Comprador SN / SN Híbrido (Chancela Adri)', () =>
     expect(res.exercicio2027.comprasLiquidas).toBeCloseTo(44488.27, 2)
   })
 
-  it('célula LR × SN puro gera rigorosamente os mesmos valores (LP e LR indiferentes)', () => {
+  it('célula LR × SN puro gera valores alinhados à Régua A (base limpa 31.551,96 · custo 1.396,75 · Δ −1,17%)', () => {
     const res = calcularCelulaFornecedorPlenoXAdquirenteSn(
       'lucro_real',
       'simples',
@@ -59,8 +59,10 @@ describe('Espelho Repasse — Comprador SN / SN Híbrido (Chancela Adri)', () =>
     )
 
     expect(res.hoje.custoUnitario).toBeCloseTo(1413.33, 2)
-    expect(res.exercicio2027.custoUnitario).toBeCloseTo(1482.94, 2)
-    expect(res.deltaPct).toBeCloseTo(4.92, 2)
+    expect(res.exercicio2027.baseLimpa).toBeCloseTo(31551.96, 2)
+    expect(res.exercicio2027.notaCheia).toBeCloseTo(41902.54, 2)
+    expect(res.exercicio2027.custoUnitario).toBeCloseTo(1396.75, 2)
+    expect(res.deltaPct).toBeCloseTo(-1.17, 2)
   })
 
   it('célula LP × SN híbrido gera HOJE 1.413,33 e 2027 1.383,56 (−2,11%) com deduções CBS e IBS', () => {
@@ -81,7 +83,7 @@ describe('Espelho Repasse — Comprador SN / SN Híbrido (Chancela Adri)', () =>
     expect(res.deltaPct).toBeCloseTo(-2.11, 2)
   })
 
-  it('célula LR × SN híbrido coincide com LP × SN híbrido em 2027', () => {
+  it('célula LR × SN híbrido alinhada à Régua A (base limpa 31.551,96 · nota 41.902,54 · custo 1.303,15 · Δ −7,80%)', () => {
     const res = calcularCelulaFornecedorPlenoXAdquirenteSn(
       'lucro_real',
       'simples_hibrido',
@@ -89,8 +91,10 @@ describe('Espelho Repasse — Comprador SN / SN Híbrido (Chancela Adri)', () =>
     )
 
     expect(res.hoje.custoUnitario).toBeCloseTo(1413.33, 2)
-    expect(res.exercicio2027.custoUnitario).toBeCloseTo(1383.56, 2)
-    expect(res.deltaPct).toBeCloseTo(-2.11, 2)
+    expect(res.exercicio2027.baseLimpa).toBeCloseTo(31551.96, 2)
+    expect(res.exercicio2027.notaCheia).toBeCloseTo(41902.54, 2)
+    expect(res.exercicio2027.custoUnitario).toBeCloseTo(1303.15, 2)
+    expect(res.deltaPct).toBeCloseTo(-7.8, 2)
   })
 
   it('Cards 01, 02 e 03 contêm fundamentação legal expressa entre colchetes', () => {
@@ -197,6 +201,50 @@ describe('Espelho Repasse — Comprador SN / SN Híbrido (Chancela Adri)', () =>
     expect(linhaBaseLimpa).toBeDefined()
     expect(linhaBaseLimpa?.formula).toBe(
       '42.000,00 − ICMS 7.560,00 − PIS 0,65% (223,86) − COFINS 3% (1.033,20) = 33.182,94',
+    )
+    expect(linhaBaseLimpa?.fundamento).toBe(
+      'LC 214/2025, art. 12, §2º, V: dedução do ICMS e de PIS/COFINS da base do IBS/CBS; receita líquida do fornecedor preservada na reprecificação.',
+    )
+  })
+
+  it('Item da Adri com fornecedor LR × adquirente SN puro gera baseLimpa 31.254,30 (Régua A) e nota 41.507,04', () => {
+    const itemAdri = montarItensIntegracao([
+      {
+        id: 'purch-adri-lr',
+        name: 'Item Sessão Adri LR',
+        quantity: 30,
+        merchandiseValue: 42000,
+        freightValue: 0,
+        icmsRate: 18,
+        icmsFreightRate: 0,
+        ipiRate: 0,
+        hasSt: false,
+        stValue: 0,
+      },
+    ])[0]
+
+    const res = calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_real', 'simples', itemAdri)
+
+    // 1. Base limpa LR: 42.000 − 7.560 − 568,26 (PIS 1,65%) − 2.617,44 (COFINS 7,60%) = 31.254,30
+    expect(res.exercicio2027.baseLimpa).toBe(31254.3)
+
+    // 2. CBS = 31.254,30 × 8,8% = 2.750,3784 → 2.750,38
+    expect(res.exercicio2027.cbsDestacada).toBe(2750.38)
+
+    // 3. IBS = 31.254,30 × 0,1% = 31,2543 → 31,25
+    expect(res.exercicio2027.ibsDestacado).toBe(31.25)
+
+    // 4. Subtotal = 31.254,30 + 2.750,38 + 31,25 = 34.035,93
+    expect(res.exercicio2027.subtotalAntesIcms).toBe(34035.93)
+
+    // 5. Nota = 34.035,93 ÷ 0,82 = 41.507,2317... → 41.507,23
+    expect(res.exercicio2027.notaCheia).toBe(41507.23)
+
+    // 6. CARD 02 memória linha a linha
+    const linhaBaseLimpa = res.card02.linhas.find((l) => l.label.includes('Base líquida de venda'))
+    expect(linhaBaseLimpa).toBeDefined()
+    expect(linhaBaseLimpa?.formula).toBe(
+      '42.000,00 − ICMS 7.560,00 − PIS 1,65% (568,26) − COFINS 7,60% (2.617,44) = 31.254,30',
     )
     expect(linhaBaseLimpa?.fundamento).toBe(
       'LC 214/2025, art. 12, §2º, V: dedução do ICMS e de PIS/COFINS da base do IBS/CBS; receita líquida do fornecedor preservada na reprecificação.',

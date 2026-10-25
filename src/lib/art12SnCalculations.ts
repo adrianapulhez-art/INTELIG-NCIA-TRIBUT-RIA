@@ -1808,12 +1808,16 @@ export function calcularCelulaFornecedorPlenoXAdquirenteSn(
   // FORMAÇÃO DO PREÇO PELO FORNECEDOR EM 2027 (Card 02):
   // Base líquida 2027 do fornecedor LP: RBV − ICMS 18% − PIS 0,65% − COFINS 3% (cumulativos,
   // sobre a base desonerada de ICMS — LC 214/2025, art. 12, §2º, V; EC 132/2023, art. 22, I).
-  // Regra da régua: o fornecedor reprecifica preservando a própria receita líquida.
-  // Para o item canônico (nota 42.400): 42.400 − 7.632 − 225,99 − 1.043,04 = 33.498,97 (ouro preservado).
+  // Base líquida 2027 do fornecedor LR: RBV − ICMS 18% − PIS 1,65% − COFINS 7,60% (não cumulativos,
+  // sobre a base desonerada de ICMS — LC 214/2025, art. 12, §2º, V; EC 132/2023, art. 22, I).
+  // Regra da régua: o fornecedor reprecifica preservando a própria receita líquida (Régua A).
+  // Para o item canônico (nota 42.400):
+  // - LP: 42.400 − 7.632 − 225,99 − 1.043,04 = 33.498,97 (ouro preservado).
+  // - LR: 42.400 − 7.632 − 573,67 − 2.642,37 = 31.551,96 (alinhado à Régua A).
   // -------------------------------------------------------------
   const baseLimpa2027 = isLP
     ? roundHalfUp(notaHoje - icmsNotaHoje - pisFornecedorLPHoje - cofinsFornecedorLPHoje, 2)
-    : 33498.97 // fornecedor LR: invariante chancelada mantida (pendência régua A, fora do escopo)
+    : roundHalfUp(notaHoje - icmsNotaHoje - pisFornecedorLRHoje - cofinsFornecedorLRHoje, 2)
   const ibsAliquota2027Pct = 0.1
   const cbsDestacada2027 = roundHalfUp((baseLimpa2027 * cbsAliquota2027Pct) / 100, 2) // 2.947,91
   const ibsDestacado2027 = roundHalfUp((baseLimpa2027 * ibsAliquota2027Pct) / 100, 2) // 33,50
@@ -1946,7 +1950,7 @@ export function calcularCelulaFornecedorPlenoXAdquirenteSn(
       label: 'Base líquida de venda do fornecedor em 2027 (referência limpa)',
       formula: isLP
         ? `${fmtSN(notaHoje, 2)} − ICMS ${fmtSN(icmsNotaHoje, 2)} − PIS 0,65% (${fmtSN(pisFornecedorLPHoje, 2)}) − COFINS 3% (${fmtSN(cofinsFornecedorLPHoje, 2)}) = ${fmtSN(baseLimpa2027, 2)}`
-        : `R$ ${fmtSN(baseLimpa2027, 2)} (invariante do Art. 12: receita preservada após extinção de PIS/COFINS)`,
+        : `${fmtSN(notaHoje, 2)} − ICMS ${fmtSN(icmsNotaHoje, 2)} − PIS 1,65% (${fmtSN(pisFornecedorLRHoje, 2)}) − COFINS 7,60% (${fmtSN(cofinsFornecedorLRHoje, 2)}) = ${fmtSN(baseLimpa2027, 2)}`,
       valor: baseLimpa2027,
       destaque: true,
       fundamento:
@@ -1991,7 +1995,7 @@ export function calcularCelulaFornecedorPlenoXAdquirenteSn(
       destaque: true,
       fundamento: isLP
         ? 'Preço formado pelo fornecedor LP em 2027 (PIS/COFINS extintos; CBS + IBS por fora).'
-        : 'Preço formado pelo fornecedor LR em 2027 (idêntico ao LP: PIS/COFINS já extintos; CBS + IBS por fora).',
+        : 'Preço formado pelo fornecedor LR em 2027 (PIS/COFINS extintos; CBS + IBS por fora; reprecificação preservando a receita líquida da Régua A).',
     },
   ]
 
@@ -2082,8 +2086,12 @@ export function calcularCelulaFornecedorPlenoXAdquirenteSn(
       valor: deltaPct,
       destaque: true,
       fundamento: isPuro
-        ? 'Aumento de +4,92%: a nota do fornecedor encarece para embute de ICMS sobre CBS/IBS e o SN puro não credita nada.'
-        : 'Redução de −2,11%: embora não credite ICMS, o crédito pleno de CBS e IBS supera a variação da nota de compra.',
+        ? isLP
+          ? 'Aumento de +4,92%: a nota do fornecedor encarece para embute de ICMS sobre CBS/IBS e o SN puro não credita nada.'
+          : `Variação de ${deltaPct >= 0 ? '+' : ''}${fmtSN(deltaPct, 2)}%: reprecificação do fornecedor LR pela Régua A preservando a receita líquida (${fmtSN(baseLimpa2027, 2)}) com nota de ${fmtSN(notaCheia2027, 2)} e o SN puro não credita nada.`
+        : isLP
+          ? 'Redução de −2,11%: embora não credite ICMS, o crédito pleno de CBS e IBS supera a variação da nota de compra.'
+          : `Redução de ${deltaPct >= 0 ? '+' : ''}${fmtSN(deltaPct, 2)}%: reprecificação do fornecedor LR pela Régua A com crédito pleno de CBS e IBS destacados na nota.`,
     },
   ]
 
