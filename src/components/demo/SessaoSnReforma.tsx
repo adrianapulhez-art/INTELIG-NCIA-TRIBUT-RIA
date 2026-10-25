@@ -442,13 +442,16 @@ export function SessaoSnSection({
   const resultados = useMemo(() => {
     if (itens.length === 0) return []
     return itens.map((item) => {
-      // --- SN PURO: nota congelada + parcela creditável do art. 23 (motor da sessão)
-      const r = calcularSessaoSN(item, perfil, adquirente)
-      const cellHojePuro = computeCellArt12Item(
+      // --- BASELINE PLENO (Card 1º-A: sempre compra de fornecedor pleno de referência)
+      const fornecedorPlenoRegime: RegimeId = adquirente === 'real' ? 'real' : 'presumido'
+      const cellHojePleno = computeCellArt12Item(
         item,
-        { ...cfgBase, compradorRegime: adquirente, fornecedorRegime: adquirente },
+        { ...cfgBase, compradorRegime: adquirente, fornecedorRegime: fornecedorPlenoRegime },
         row,
       )
+
+      // --- SN PURO: nota congelada + parcela creditável do art. 23 (motor da sessão)
+      const r = calcularSessaoSN(item, perfil, adquirente)
 
       // Regra de crédito: consome a parcela creditável isolada (não a efetiva cheia)
       const creditoEfetivo = creditoEfetivoArt23(adquirente, r)
@@ -487,14 +490,14 @@ export function SessaoSnSection({
           r,
           creditoEfetivo,
           cellHojeUnitario: r.custoUnitarioHojeSN,
-          cellHojeLinhas: cellHojePuro.hoje.lines,
+          cellHojeLinhas: cellHojePleno.hoje.lines,
         },
         hibrido: {
           unitario: cellHib.exercicio.unitario,
           deltaPct: cellHib.deltaPct,
           cell: cellHib,
           cellHojeUnitario: cellHib.hoje.unitario,
-          cellHojeLinhas: cellHib.hoje.lines,
+          cellHojeLinhas: cellHojePleno.hoje.lines,
         },
       }
     })
@@ -1640,9 +1643,7 @@ export function SessaoSnSection({
                       <CardMemoriaCanonical
                         titulo={`CARD 1º-A — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 · COMPRA DE FORNECEDOR PLENO (baseline de referência) · ${itemAtivo.item.name || 'item'}`}
                         cor="emerald"
-                        linhas={itemAtivo[
-                          fornecedorSN === 'puro' ? 'puro' : 'hibrido'
-                        ].cellHojeLinhas.map((l: MemoryLineArt) => ({
+                        linhas={itemAtivo.puro.cellHojeLinhas.map((l: MemoryLineArt) => ({
                           label: l.label,
                           formula: l.formula,
                           value: l.value,

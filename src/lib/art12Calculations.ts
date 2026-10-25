@@ -393,7 +393,7 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
     key: 'piscofins',
     label: '(−) Crédito PIS/COFINS (1,65% + 7,6%)',
     formula: tomaCreditoLR
-      ? `${fmt(basePis)} × (1,65% + 7,6% = ${fmt(creditoPisParcela)} + ${fmt(creditoCofinsParcela)}) (base sem ICMS — tese do século)`
+      ? `${fmt(basePis)} × (1,65% + 7,6% = ${fmt(creditoPisParcela)} + ${fmt(creditoCofinsParcela)}) (base sem ICMS — tese do século · ADI SRF 15/2007 + SC COSIT 297/2019)`
       : config.compradorRegime === 'simples' || config.compradorRegime === 'simples_hibrido'
         ? 'Comprador SN — sem crédito'
         : config.compradorRegime === 'presumido'
@@ -402,7 +402,14 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
     value: -creditoPis,
     kind: 'credito',
     bloco: 2,
-    fundamento: semFund,
+    fundamento: tomaCreditoLR
+      ? {
+          dispositivo: 'ADI SRF 15/2007 + SC COSIT 297/2019',
+          efeito: 'crédito não-cumulativo PIS 1,65% e COFINS 7,60% sobre aquisição de PJ',
+          validade: 'integral',
+          nota: 'Base desonerada de ICMS (tese do século, STF RE 574.706).',
+        }
+      : semFund,
   })
 
   const tomaIpi = temIpi && config.compradorPerfil === 'industria'

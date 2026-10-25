@@ -112,4 +112,75 @@ describe('CÁLCULO POR ITEM — ouros conferidos (CEO, 27/09)', () => {
     const cells = computeCellsPorItem([], { ...CONFIG_PADRAO_ART12 }, row2027)
     expect(cells).toHaveLength(0)
   })
+
+  it('Card 1º-A: baseline pleno com adquirente Lucro Real vs Lucro Presumido', () => {
+    // Caso canônico Samsung 30 un × 1.400 = 42.000 mercadoria, 400 frete, ICMS 18%, sem IPI (ou revenda)
+    const itemCanonico: ItemIntegracaoArt12 = {
+      id: 'samsung-item',
+      name: 'Samsung Galaxy A54',
+      quantity: 30,
+      merchandiseValue: 42000,
+      freightValue: 400,
+      icmsRate: 18,
+      icmsFreightRate: 18,
+      ipiRate: 0,
+      hasSt: false,
+      stValue: 0,
+      valorNota: 42400,
+      abcPct: 100,
+      classe: 'A',
+    }
+
+    // 1) Baseline pleno com adquirente Lucro Real (fornecedor pleno: real)
+    const cellLR = computeCellArt12Item(
+      itemCanonico,
+      {
+        ...CONFIG_PADRAO_ART12,
+        compradorRegime: 'real',
+        fornecedorRegime: 'real',
+        compradorPerfil: 'comercio',
+      },
+      row2027,
+    )
+
+    // Base sem ICMS: 42.400 - 18% (7.632) = 34.768,00
+    // Créditos LR: ICMS 7.632,00 + PIS 1,65% (573,67) + COFINS 7,60% (2.642,37) = 10.848,04
+    // Compras líquidas LR = 42.400 - 10.848,04 = 31.551,96
+    // Custo unitário LR = 31.551,96 / 30 = 1.051,73
+    expect(cellLR.hoje.liquido).toBe(31551.96)
+    expect(cellLR.hoje.unitario).toBe(1051.73)
+
+    // Memória discriminada com 3 créditos
+    const icmsLine = cellLR.hoje.lines.find((l) => l.key === 'icms')
+    const icmsFreteLine = cellLR.hoje.lines.find((l) => l.key === 'icms_frete')
+    const pisCofinsLine = cellLR.hoje.lines.find((l) => l.key === 'piscofins')
+
+    expect(icmsLine).toBeDefined()
+    expect(Math.abs(icmsLine!.value)).toBe(7560)
+    expect(icmsFreteLine).toBeDefined()
+    expect(Math.abs(icmsFreteLine!.value)).toBe(72)
+    expect(pisCofinsLine).toBeDefined()
+    expect(Math.abs(pisCofinsLine!.value)).toBe(3216.04) // 573.67 + 2642.37
+    expect(pisCofinsLine!.formula).toContain('573,67')
+    expect(pisCofinsLine!.formula).toContain('2.642,37')
+    expect(pisCofinsLine!.formula).toContain('34.768,00')
+    expect(pisCofinsLine!.formula).toContain('ADI SRF 15/2007 + SC COSIT 297/2019')
+
+    // 2) Baseline pleno com adquirente Lucro Presumido (fornecedor pleno: presumido)
+    const cellLP = computeCellArt12Item(
+      itemCanonico,
+      {
+        ...CONFIG_PADRAO_ART12,
+        compradorRegime: 'presumido',
+        fornecedorRegime: 'presumido',
+        compradorPerfil: 'comercio',
+      },
+      row2027,
+    )
+
+    // Compras líquidas LP = 42.400 - 7.632 = 34.768,00
+    // Custo unitário LP = 34.768,00 / 30 = 1.158,93
+    expect(cellLP.hoje.liquido).toBe(34768)
+    expect(cellLP.hoje.unitario).toBe(1158.93)
+  })
 })
