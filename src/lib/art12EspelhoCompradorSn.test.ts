@@ -134,4 +134,72 @@ describe('Espelho Repasse — Comprador SN / SN Híbrido (Chancela Adri)', () =>
       expect(u).not.toBeCloseTo(1539.12, 2)
     }
   })
+
+  it('Ouro preservado: item default (merc 42.000, frete 400) × fornecedor LP × adquirente SN puro e SN híbrido', () => {
+    const resPuro = calcularCelulaFornecedorPlenoXAdquirenteSn(
+      'lucro_presumido',
+      'simples',
+      CASO_CANONICO_ITEM,
+    )
+    expect(resPuro.exercicio2027.baseLimpa).toBeCloseTo(33498.97, 2)
+    expect(resPuro.exercicio2027.cbsDestacada).toBeCloseTo(2947.91, 2)
+    expect(resPuro.exercicio2027.ibsDestacado).toBeCloseTo(33.5, 2)
+    expect(resPuro.exercicio2027.notaCheia).toBeCloseTo(44488.27, 2)
+    expect(resPuro.exercicio2027.custoUnitario).toBeCloseTo(1482.94, 2)
+
+    const resHib = calcularCelulaFornecedorPlenoXAdquirenteSn(
+      'lucro_presumido',
+      'simples_hibrido',
+      CASO_CANONICO_ITEM,
+    )
+    expect(resHib.exercicio2027.custoUnitario).toBeCloseTo(1383.56, 2)
+  })
+
+  it('Item da Adri: item merc 42.000, frete 0 × fornecedor LP × adquirente SN puro gera baseLimpa 33.182,94 e relações coerentes', () => {
+    const itemAdri = montarItensIntegracao([
+      {
+        id: 'purch-adri',
+        name: 'Item Sessão Adri',
+        quantity: 30,
+        merchandiseValue: 42000,
+        freightValue: 0,
+        icmsRate: 18,
+        icmsFreightRate: 0,
+        ipiRate: 0,
+        hasSt: false,
+        stValue: 0,
+      },
+    ])[0]
+
+    const res = calcularCelulaFornecedorPlenoXAdquirenteSn('lucro_presumido', 'simples', itemAdri)
+
+    // 1. Base limpa dinâmica chancelada pela Adri:
+    // RBV 42.000 − ICMS 7.560 − PIS 223,86 − COFINS 1.033,20 = 33.182,94
+    expect(res.exercicio2027.baseLimpa).toBe(33182.94)
+
+    // 2. CBS = base × alíquota (8,8%): 33.182,94 × 0,088 = 2.920,09872 → 2.920,10
+    expect(res.exercicio2027.cbsDestacada).toBe(2920.1)
+
+    // 3. IBS = base × alíquota (0,1%): 33.182,94 × 0,001 = 33,18294 → 33,18
+    expect(res.exercicio2027.ibsDestacado).toBe(33.18)
+
+    // 4. Subtotal = base + CBS + IBS: 33.182,94 + 2.920,10 + 33,18 = 36.136,22
+    expect(res.exercicio2027.subtotalAntesIcms).toBe(36136.22)
+
+    // 5. Nota = subtotal ÷ 0,82: 36.136,22 ÷ 0,82 = 44.068,56097... → 44.068,56
+    expect(res.exercicio2027.notaCheia).toBe(44068.56)
+
+    // 6. Custo unitário SN puro = nota ÷ 30: 44.068,56 ÷ 30 = 1.468,952 → 1.468,95
+    expect(res.exercicio2027.custoUnitario).toBe(1468.95)
+
+    // 7. CARD 02 memória linha a linha dinâmica com fundamentação da lei
+    const linhaBaseLimpa = res.card02.linhas.find((l) => l.label.includes('Base líquida de venda'))
+    expect(linhaBaseLimpa).toBeDefined()
+    expect(linhaBaseLimpa?.formula).toBe(
+      '42.000,00 − ICMS 7.560,00 − PIS 0,65% (223,86) − COFINS 3% (1.033,20) = 33.182,94',
+    )
+    expect(linhaBaseLimpa?.fundamento).toBe(
+      'LC 214/2025, art. 12, §2º, V: dedução do ICMS e de PIS/COFINS da base do IBS/CBS; receita líquida do fornecedor preservada na reprecificação.',
+    )
+  })
 })

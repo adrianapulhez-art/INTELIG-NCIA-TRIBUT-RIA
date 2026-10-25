@@ -1806,16 +1806,14 @@ export function calcularCelulaFornecedorPlenoXAdquirenteSn(
 
   // -------------------------------------------------------------
   // FORMAÇÃO DO PREÇO PELO FORNECEDOR EM 2027 (Card 02):
-  // Base líquida de referência = 33.498,97 (invariante chancelada do Art. 12)
-  // Alíquotas 2027: CBS 8,8% (referência menos 0,1 p.p. de teste IBS), IBS 0,1%
-  // CBS destacada por fora: 33.498,97 × 8,8% = 2.947,90936 → half-up 2.947,91
-  // IBS destacado por fora: 33.498,97 × 0,1% = 33,49897 → half-up 33,50
-  // Subtotal antes do ICMS = 33.498,97 + 2.947,91 + 33,50 = 36.480,38
-  // Desembute do ICMS 18% por dentro: divisor = (1 − 0,18) = 0,82
-  // Preço da nota 2027 = 36.480,38 ÷ 0,82 = 44.488,26829... → half-up 44.488,27
-  // ICMS destacado na nota 2027 = 44.488,27 × 18% = 8.007,8886 → half-up 8.007,89
+  // Base líquida 2027 do fornecedor LP: RBV − ICMS 18% − PIS 0,65% − COFINS 3% (cumulativos,
+  // sobre a base desonerada de ICMS — LC 214/2025, art. 12, §2º, V; EC 132/2023, art. 22, I).
+  // Regra da régua: o fornecedor reprecifica preservando a própria receita líquida.
+  // Para o item canônico (nota 42.400): 42.400 − 7.632 − 225,99 − 1.043,04 = 33.498,97 (ouro preservado).
   // -------------------------------------------------------------
-  const baseLimpa2027 = 33498.97
+  const baseLimpa2027 = isLP
+    ? roundHalfUp(notaHoje - icmsNotaHoje - pisFornecedorLPHoje - cofinsFornecedorLPHoje, 2)
+    : 33498.97 // fornecedor LR: invariante chancelada mantida (pendência régua A, fora do escopo)
   const ibsAliquota2027Pct = 0.1
   const cbsDestacada2027 = roundHalfUp((baseLimpa2027 * cbsAliquota2027Pct) / 100, 2) // 2.947,91
   const ibsDestacado2027 = roundHalfUp((baseLimpa2027 * ibsAliquota2027Pct) / 100, 2) // 33,50
@@ -1946,11 +1944,13 @@ export function calcularCelulaFornecedorPlenoXAdquirenteSn(
     {
       sinal: '(=)',
       label: 'Base líquida de venda do fornecedor em 2027 (referência limpa)',
-      formula: `R$ ${fmtSN(baseLimpa2027, 2)} (invariante do Art. 12: receita preservada após extinção de PIS/COFINS)`,
+      formula: isLP
+        ? `${fmtSN(notaHoje, 2)} − ICMS ${fmtSN(icmsNotaHoje, 2)} − PIS 0,65% (${fmtSN(pisFornecedorLPHoje, 2)}) − COFINS 3% (${fmtSN(cofinsFornecedorLPHoje, 2)}) = ${fmtSN(baseLimpa2027, 2)}`
+        : `R$ ${fmtSN(baseLimpa2027, 2)} (invariante do Art. 12: receita preservada após extinção de PIS/COFINS)`,
       valor: baseLimpa2027,
       destaque: true,
       fundamento:
-        'LC 214/2025, art. 12, §2º, V: dedução do ICMS e de PIS/COFINS da base do IBS/CBS.',
+        'LC 214/2025, art. 12, §2º, V: dedução do ICMS e de PIS/COFINS da base do IBS/CBS; receita líquida do fornecedor preservada na reprecificação.',
     },
     {
       sinal: '(+)',
