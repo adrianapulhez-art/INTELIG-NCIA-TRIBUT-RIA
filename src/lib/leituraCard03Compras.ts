@@ -39,13 +39,13 @@ export type EspelhoQuatroFornecedores = Record<FornecedorPosKey, CustoCard03Resu
  *    - Fornecedor LP: Art. 12 pleno (comprador presumido × fornecedor presumido) -> Card 03: 1.116,63 (ouro)
  *    - Fornecedor LR: Art. 12 pleno (comprador presumido × fornecedor real) -> Card 03: 1.051,73 (ouro)
  *    - Fornecedor SNP: Sessão SN com adquirente 'presumido' (art. 23 LC 123) -> Card 03: 1.394,11 (ouro canônico)
- *    - Fornecedor SNH: Célula Pleno × SNH (art. 41 LC 214) / computeCellArt12 -> Card 03: 1.413,33 (ouro matriz)
+ *    - Fornecedor SNH: Células Pleno × SN (LP × SN Híbrido — cenário 04) -> Card 03 da Compras
  *
  * 2. Adquirente LR:
  *    - Fornecedor LP: Art. 12 pleno (comprador real × fornecedor presumido) -> Card 03: 1.116,63 (ouro)
  *    - Fornecedor LR: Motor LR×LR neutro (calcularCelulaLrXLr) -> Card 03: 1.051,73 (ouro Δ 0,00%)
  *    - Fornecedor SNP: Sessão SN com adquirente 'real' (crédito PIS/COFINS baseline) -> Card 03: 1.265,16 (ouro)
- *    - Fornecedor SNH: computeCellArt12 (real × simples_hibrido) -> Card 03: 1.413,33 (ouro matriz)
+ *    - Fornecedor SNH: Células Pleno × SN (LR × SN Híbrido — cenário 04) -> Card 03 da Compras
  *
  * 3. Adquirente SNP:
  *    - Fornecedor LP: 4 Células (calcularCelulaFornecedorPlenoXAdquirenteSn LP×SNP) -> Card 03: 1.482,94 (ouro)
@@ -121,16 +121,12 @@ export function lerEspelhoComprasCard03(
     // Custo unitário de ouro: 1.394,11 (fração do DAS 1,36% aproveitada pelo LP art. 23 LC 123)
     const resSessaoSnp = calcularSessaoSN(itemParaMotores, perfilSN, 'presumido')
 
-    // 4. Fornecedor SNH (LP × SNH) — computeCellArt12 (presumido × simples_hibrido)
-    // Custo de ouro: 1.413,33 (lava CBS/IBS no crédito)
-    const cellSnh = computeCellArt12(
-      inputEfetivo,
-      {
-        ...CONFIG_PADRAO_ART12,
-        compradorRegime: 'presumido',
-        fornecedorRegime: 'simples_hibrido',
-      },
-      row2027,
+    // 4. Fornecedor SNH (LP × SNH) — Células Pleno × SN (cenário 04)
+    const cellSnh = calcularCelulaFornecedorPlenoXAdquirenteSn(
+      'lucro_presumido',
+      'simples_hibrido',
+      itemParaMotores,
+      cbsEfetivaPct,
     )
 
     return {
@@ -198,21 +194,22 @@ export function lerEspelhoComprasCard03(
         })),
       },
       snh: {
-        custo2027: cellSnh.exercicio.unitario,
-        custoHoje: cellSnh.hoje.unitario,
+        custo2027: cellSnh.exercicio2027.custoUnitario,
+        custoHoje: cellSnh.hoje.custoUnitario,
         deltaPct: cellSnh.deltaPct,
-        comprasLiquidas2027: cellSnh.exercicio.liquido,
-        notaCheia2027: cellSnh.exercicio.bruto,
-        motorOrigem: 'art12_pleno',
-        rotuloMotor: 'Matriz Art. 12 (LP × SN Híbrido)',
+        comprasLiquidas2027: cellSnh.exercicio2027.comprasLiquidas,
+        notaCheia2027: cellSnh.exercicio2027.notaCheia,
+        motorOrigem: 'quatro_celulas_sn',
+        rotuloMotor: 'Células Pleno × SN (LP × SN Híbrido — cenário 04)',
         fundamentoLegal:
-          'LC 214/2025 art. 41 c/c art. 47: fornecedor SN híbrido destaca CBS/IBS por fora e comprador LP apropria crédito integral.',
-        linhasMemoriaCusto: cellSnh.exercicio.lines.map((l) => ({
+          'LC 214/2025 art. 41 c/c art. 47 / art. 23 LC 123 — crédito só CBS+IBS, nunca ICMS 18%',
+        linhasMemoriaCusto: cellSnh.card03.linhas.map((l) => ({
+          sinal: l.sinal,
           label: l.label,
           formula: l.formula,
-          valor: l.value,
-          destaque: Boolean(l.subtotal),
-          fundamento: l.fundamento.dispositivo,
+          valor: l.valor,
+          destaque: l.destaque,
+          fundamento: l.fundamento,
         })),
       },
     }
@@ -240,15 +237,12 @@ export function lerEspelhoComprasCard03(
     // Custo de ouro hoje: 1.265,16 (soma créditos PIS/COFINS baseline ADI SRF 15/2007)
     const resSessaoSnpLr = calcularSessaoSN(itemParaMotores, perfilSN, 'real')
 
-    // 4. Fornecedor SNH (LR × SNH) — computeCellArt12 (real × simples_hibrido)
-    const cellSnh = computeCellArt12(
-      inputEfetivo,
-      {
-        ...CONFIG_PADRAO_ART12,
-        compradorRegime: 'real',
-        fornecedorRegime: 'simples_hibrido',
-      },
-      row2027,
+    // 4. Fornecedor SNH (LR × SNH) — Células Pleno × SN (cenário 04)
+    const cellSnh = calcularCelulaFornecedorPlenoXAdquirenteSn(
+      'lucro_real',
+      'simples_hibrido',
+      itemParaMotores,
+      cbsEfetivaPct,
     )
 
     return {
@@ -317,21 +311,22 @@ export function lerEspelhoComprasCard03(
         })),
       },
       snh: {
-        custo2027: cellSnh.exercicio.unitario,
-        custoHoje: cellSnh.hoje.unitario,
+        custo2027: cellSnh.exercicio2027.custoUnitario,
+        custoHoje: cellSnh.hoje.custoUnitario,
         deltaPct: cellSnh.deltaPct,
-        comprasLiquidas2027: cellSnh.exercicio.liquido,
-        notaCheia2027: cellSnh.exercicio.bruto,
-        motorOrigem: 'art12_pleno',
-        rotuloMotor: 'Matriz Art. 12 (LR × SN Híbrido)',
+        comprasLiquidas2027: cellSnh.exercicio2027.comprasLiquidas,
+        notaCheia2027: cellSnh.exercicio2027.notaCheia,
+        motorOrigem: 'quatro_celulas_sn',
+        rotuloMotor: 'Células Pleno × SN (LR × SN Híbrido — cenário 04)',
         fundamentoLegal:
-          'LC 214/2025 art. 41 c/c art. 47: crédito financeiro de CBS e IBS pelo adquirente LR.',
-        linhasMemoriaCusto: cellSnh.exercicio.lines.map((l) => ({
+          'LC 214/2025 art. 41 c/c art. 47 / art. 23 LC 123 — crédito só CBS+IBS, nunca ICMS 18%',
+        linhasMemoriaCusto: cellSnh.card03.linhas.map((l) => ({
+          sinal: l.sinal,
           label: l.label,
           formula: l.formula,
-          valor: l.value,
-          destaque: Boolean(l.subtotal),
-          fundamento: l.fundamento.dispositivo,
+          valor: l.valor,
+          destaque: l.destaque,
+          fundamento: l.fundamento,
         })),
       },
     }
