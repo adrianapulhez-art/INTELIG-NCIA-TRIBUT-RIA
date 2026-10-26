@@ -553,7 +553,7 @@ export async function updateClientScenarioWithVersion(params: {
     const localUpdated: ClientSavedScenarioRecord = {
       ...base,
       snapshot: cleanSnapshot,
-      versions: base.versions || localList[foundIndex].versions,
+      versions: result?.record.versions || base.versions || localList[foundIndex].versions,
       updated: now,
     }
     localList[foundIndex] = localUpdated

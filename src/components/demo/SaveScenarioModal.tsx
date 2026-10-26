@@ -261,10 +261,17 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   // Gravar cenário
   const handleSaveScenario = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    // CEO 02/10: no fluxo de atualizar, o NOME vem da simulação escolhida (campo oculto
-    // no formulário) — a exigência de nome só vale para cenário novo.
-    const name = scenarioName.trim()
-    if (!name && saveDest !== 'atualizar') {
+    // CEO 02/10: no fluxo de atualizar, sincroniza o NOME da simulação escolhida se ainda estiver vazio
+    let name = scenarioName.trim()
+    if (saveDest === 'atualizar') {
+      if (targetScenarioId && !name) {
+        const targetObj = scenarios.find((s) => s.id === targetScenarioId)
+        if (targetObj?.name) {
+          name = targetObj.name
+          setScenarioName(targetObj.name)
+        }
+      }
+    } else if (!name) {
       showFeedback('error', 'Defina um nome identificador para o cenário.')
       return
     }
@@ -548,6 +555,20 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     }
   }
 
+  // Verificação resiliente de compatibilidade de escopo:
+  // Se o escopo do modal for 'reforma' ou se o cenário não tiver escopo definido ou tiver escopo genérico,
+  // permite que o usuário selecione e atualize a simulação sem bloquear o dropdown.
+  const isScenarioMatchingScope = useCallback(
+    (scenarioScope: string | undefined, currentScope: string) => {
+      const normalizedScenarioScope = scenarioScope || 'despesas-operacionais'
+      if (normalizedScenarioScope === currentScope) return true
+      if (currentScope === 'reforma') return true
+      if (!scenarioScope) return true
+      return false
+    },
+    [],
+  )
+
   // Cenários filtrados
   // MATRIZ (CEO, 02/10): cada aba-matriz mostra SÓ o escopo dela, em linhas.
   // A aba 'gravar' (formulário) é acessada por botão próprio.
@@ -555,7 +576,9 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     const q = searchQuery.toLowerCase().trim()
     return scenarios.filter((s) => {
       const matchScope =
-        activeTab === 'gravar' || (s.scope || 'despesas-operacionais') === activeTab
+        activeTab === 'gravar' ||
+        (s.scope || 'despesas-operacionais') === activeTab ||
+        (activeTab === 'despesas-operacionais' && !s.scope)
       const matchSearch =
         !q ||
         s.name.toLowerCase().includes(q) ||
@@ -566,9 +589,8 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   }, [scenarios, searchQuery, activeTab])
 
   // Contagem de cenários por cliente ativo
-  // CEO 02/10: contagem por ESCOPO da página + fallback por nome do cliente.
-  // Corrige o bug E2E 02/10: cenário gravado com sucesso mas contador ficava em 0,
-  // e o bloco "Destino do Salvamento" (portão do ATUALIZAR) nunca aparecia.
+  // CEO 02/10: contagem resiliente por cliente e compatibilidade de escopo.
+  // Corrige o bug da Adri em /demo/reforma para permitir atualizar simulações existentes.
   const activeClientScenariosCount = useMemo(() => {
     if (!selectedClientId) return 0
     const currentClient = clients.find((c) => c.id === selectedClientId)
@@ -576,9 +598,9 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
       (s) =>
         (s.client === selectedClientId ||
           (!!currentClient && !!s.clientName && s.clientName === currentClient.name)) &&
-        (s.scope || 'despesas-operacionais') === scope,
+        isScenarioMatchingScope(s.scope, scope),
     ).length
-  }, [scenarios, selectedClientId, clients, scope])
+  }, [scenarios, selectedClientId, clients, scope, isScenarioMatchingScope])
 
   const formatDate = (isoString?: string) => {
     if (!isoString) return '—'
@@ -928,7 +950,16 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                       </label>
                       <select
                         value={targetScenarioId}
-                        onChange={(e) => setTargetScenarioId(e.target.value)}
+                        onChange={(e) => {
+                          const newId = e.target.value
+                          setTargetScenarioId(newId)
+                          if (newId) {
+                            const found = scenarios.find((s) => s.id === newId)
+                            if (found?.name) {
+                              setScenarioName(found.name)
+                            }
+                          }
+                        }}
                         className="w-full h-9 text-xs bg-slate-900 border border-slate-700 rounded-lg px-3 text-slate-100 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-sans cursor-pointer"
                       >
                         <option value="">Escolher simulação...</option>
@@ -940,7 +971,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
                               (!!currentClient &&
                                 !!s.clientName &&
                                 s.clientName === currentClient.name)
-                            return mesmoCliente && (s.scope || 'despesas-operacionais') === scope
+                            return mesmoCliente && isScenarioMatchingScope(s.scope, scope)
                           })
                           .map((s) => (
                             <option key={s.id} value={s.id}>
