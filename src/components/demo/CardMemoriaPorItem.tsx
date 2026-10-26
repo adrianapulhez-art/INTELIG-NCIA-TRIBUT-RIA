@@ -82,7 +82,25 @@ export function CardMemoriaPorItem({
       ? `PARCIAL ${formatNumberBR(config.repassePct)}% · ganho dividido`
       : REPASSE_TITULO[mode]
   const repasseSub = REPASSE_SUBTITULO[mode]
-  const cfg = configOverride ?? config
+  const rawCfg = configOverride ?? config
+  const tipoFornecedorSN =
+    rawCfg.perfilFornecedorSN?.tipo === 'hibrido' || rawCfg.fornecedorRegime === 'simples_hibrido'
+      ? ('hibrido' as const)
+      : ('puro' as const)
+  const cfg: CellConfigArt = {
+    ...rawCfg,
+    fornecedorRegime:
+      rawCfg.fornecedorRegime === 'simples_hibrido'
+        ? 'simples_hibrido'
+        : rawCfg.fornecedorRegime === 'simples'
+          ? tipoFornecedorSN === 'hibrido'
+            ? 'simples_hibrido'
+            : 'simples'
+          : rawCfg.fornecedorRegime,
+    perfilFornecedorSN: rawCfg.perfilFornecedorSN
+      ? { ...rawCfg.perfilFornecedorSN, tipo: tipoFornecedorSN }
+      : undefined,
+  }
   const nomeRegime = (r: string) =>
     r === 'presumido'
       ? 'Lucro Presumido'

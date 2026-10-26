@@ -152,6 +152,7 @@ export interface CellConfigArt {
     faixa: string
     efetivaPct: number
     icmsFracPct: number // fração da alíquota efetiva destinada ao ICMS no anexo
+    tipo?: 'puro' | 'hibrido'
   }
 }
 export const PERFIL_SN_PADRAO = {
@@ -159,6 +160,7 @@ export const PERFIL_SN_PADRAO = {
   faixa: '1ª faixa (RBT12 até R$ 180.000,00)',
   efetivaPct: 4.0,
   icmsFracPct: 34.0,
+  tipo: 'puro' as const,
 }
 
 export const CONFIG_PADRAO_ART12: CellConfigArt = {
@@ -342,7 +344,15 @@ export function computeHojeArt12(input: CmvArt12Input, config: CellConfigArt): S
   // Adquirente pleno (LP/LR) comprando de SN HÍBRIDO — a nota de HOJE do
   // híbrido traz ICMS destacado à alíquota cheia, com crédito integral do adquirente.
   // SN puro permanece sem destaque (LC 123, art. 23, §2º). Comprador SN/SNH segue sem crédito.
-  const fornecedorEmite = config.fornecedorRegime !== 'simples'
+  // Híbrido SOMENTE quando explicitamente 'hibrido'; sem perfil explícito/undefined = 'puro'.
+  const isFornecedorHibridoHoje =
+    config.fornecedorRegime === 'simples_hibrido' || config.perfilFornecedorSN?.tipo === 'hibrido'
+  const isFornecedorSN =
+    config.fornecedorRegime === 'simples' ||
+    config.fornecedorRegime === 'simples_hibrido' ||
+    config.perfilFornecedorSN?.tipo === 'puro' ||
+    config.perfilFornecedorSN?.tipo === 'hibrido'
+  const fornecedorEmite = isFornecedorHibridoHoje || !isFornecedorSN
   const pleno =
     config.compradorRegime !== 'simples' &&
     config.compradorRegime !== 'simples_hibrido' &&
@@ -473,8 +483,12 @@ export function computeExercicioArt12(
   const merc = r2(input.quantity * input.unitPrice * f)
   const frete = r2(input.freightValue * f)
 
-  const fornecedorSN = config.fornecedorRegime === 'simples'
-  const fornecedorSNHib = config.fornecedorRegime === 'simples_hibrido'
+  // Híbrido SOMENTE quando explicitamente 'hibrido'. Sem perfil explícito/undefined = 'puro'.
+  const fornecedorSNHib =
+    config.fornecedorRegime === 'simples_hibrido' || config.perfilFornecedorSN?.tipo === 'hibrido'
+  const fornecedorSN =
+    !fornecedorSNHib &&
+    (config.fornecedorRegime === 'simples' || config.perfilFornecedorSN?.tipo === 'puro')
   const compradorSN = config.compradorRegime === 'simples'
   const compradorSNHib = config.compradorRegime === 'simples_hibrido'
   const pleno = !fornecedorSN && !fornecedorSNHib && !compradorSN && !compradorSNHib
@@ -1683,14 +1697,21 @@ export function computeCellArt12(
   const deltaPct = hoje.unitario > 0 ? r2((exercicio.unitario / hoje.unitario - 1) * 100) : 0
   const semaforo: Semaforo = deltaPct <= -0.5 ? 'verde' : deltaPct < 0.5 ? 'ambar' : 'vermelho'
 
-  const pleno = config.compradorRegime !== 'simples' && config.fornecedorRegime !== 'simples'
+  const isFornecedorHibrido =
+    config.fornecedorRegime === 'simples_hibrido' || config.perfilFornecedorSN?.tipo === 'hibrido'
+  const isFornecedorSN =
+    config.fornecedorRegime === 'simples' ||
+    config.perfilFornecedorSN?.tipo === 'puro' ||
+    isFornecedorHibrido
+  const pleno =
+    config.compradorRegime !== 'simples' && config.fornecedorRegime !== 'simples' && !isFornecedorSN
   let porque: string
   if (!row.habilitado) {
     porque = 'Pendente de definição — sem cálculo.'
-  } else if (config.fornecedorRegime === 'simples_hibrido') {
+  } else if (isFornecedorHibrido) {
     porque =
       'Fornecedor SN híbrido: nota congelada + IBS/CBS destacados por fora (LC 214/2025, art. 41) — o destaque gera crédito ao adquirente pleno. Premissa IT: base do IBS/CBS sem ICMS.'
-  } else if (config.fornecedorRegime === 'simples') {
+  } else if (config.fornecedorRegime === 'simples' || config.perfilFornecedorSN?.tipo === 'puro') {
     porque =
       'Fornecedor SN: nota congelada (LC 123/2006), sem repasse e sem destaque. O custo do comprador muda apenas pelo lado dos créditos próprios.'
   } else if (config.compradorRegime === 'simples_hibrido') {

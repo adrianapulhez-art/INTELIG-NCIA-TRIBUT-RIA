@@ -435,8 +435,20 @@ export function SessaoSnSection({
   )
 
   const cfgBase: CellConfigArt = useMemo(
-    () => ({ ...config, repasse, repassePct }),
-    [config, repasse, repassePct],
+    () => ({
+      ...config,
+      repasse,
+      repassePct,
+      fornecedorRegime: fornecedorSN === 'hibrido' ? 'simples_hibrido' : 'simples',
+      perfilFornecedorSN: {
+        anexo: perfil.anexo,
+        faixa: perfil.faixa,
+        efetivaPct: perfil.efetivaPct,
+        icmsFracPct: perfil.icmsFracPct,
+        tipo: fornecedorSN,
+      },
+    }),
+    [config, repasse, repassePct, fornecedorSN, perfil],
   )
 
   // RESULTADO POR ITEM — OS DOIS FORNECEDORES SEMPRE (comparação lado a lado)
@@ -452,8 +464,14 @@ export function SessaoSnSection({
       )
 
       // --- SN PURO: nota congelada + parcela creditável do art. 23 (motor da sessão)
+      const perfilFornecedorSNPuro = {
+        anexo: perfil.anexo,
+        faixa: perfil.faixa,
+        efetivaPct: perfil.efetivaPct,
+        icmsFracPct: perfil.icmsFracPct,
+        tipo: 'puro' as const,
+      }
       const r = calcularSessaoSN(item, perfil, adquirente)
-
       // Regra de crédito: consome a parcela creditável isolada (não a efetiva cheia)
       const creditoEfetivo = creditoEfetivoArt23(adquirente, r)
       const custoLiquidoPuro = r.receitaBruta - creditoEfetivo
@@ -466,11 +484,12 @@ export function SessaoSnSection({
           : 0
 
       // --- SN HÍBRIDO: motor Art. 12 chancelado
-      const perfilFornecedorSN = {
+      const perfilFornecedorSNHib = {
         anexo: perfil.anexo,
         faixa: perfil.faixa,
         efetivaPct: perfil.efetivaPct,
         icmsFracPct: perfil.icmsFracPct,
+        tipo: 'hibrido' as const,
       }
       const cellHib = computeCellArt12Item(
         item,
@@ -478,7 +497,7 @@ export function SessaoSnSection({
           ...cfgBase,
           compradorRegime: adquirente,
           fornecedorRegime: 'simples_hibrido',
-          perfilFornecedorSN,
+          perfilFornecedorSN: perfilFornecedorSNHib,
         },
         row,
       )
@@ -492,6 +511,12 @@ export function SessaoSnSection({
           creditoEfetivo,
           cellHojeUnitario: r.custoUnitarioHojeSN,
           cellHojeLinhas: cellHojePleno.hoje.lines,
+          configOverride: {
+            ...cfgBase,
+            compradorRegime: adquirente,
+            fornecedorRegime: 'simples' as RegimeId,
+            perfilFornecedorSN: perfilFornecedorSNPuro,
+          },
         },
         hibrido: {
           unitario: cellHib.exercicio.unitario,
@@ -499,6 +524,12 @@ export function SessaoSnSection({
           cell: cellHib,
           cellHojeUnitario: cellHib.hoje.unitario,
           cellHojeLinhas: cellHojePleno.hoje.lines,
+          configOverride: {
+            ...cfgBase,
+            compradorRegime: adquirente,
+            fornecedorRegime: 'simples_hibrido' as RegimeId,
+            perfilFornecedorSN: perfilFornecedorSNHib,
+          },
         },
       }
     })
