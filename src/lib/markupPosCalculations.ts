@@ -22,6 +22,8 @@ export interface FornecedorPosMeta {
   key: FornecedorPosKey
   sigla: string
   rotulo: string
+  tituloCard: string
+  subtituloAquisicao: string
   descricao: string
   fundamento: string
   regimeVenda: 'lucro_presumido' | 'lucro_real' | 'simples_puro' | 'simples_hibrido'
@@ -32,6 +34,8 @@ export const FORNECEDORES_META: Record<FornecedorPosKey, FornecedorPosMeta> = {
     key: 'lp',
     sigla: 'LP',
     rotulo: 'Fornecedor Lucro Presumido',
+    tituloCard: 'CUSTOS DE ENTRADA',
+    subtituloAquisicao: 'AQUISIÇÕES DE FORNECEDOR LUCRO PRESUMIDO',
     descricao: 'Fornecedor LP · Carga plena na origem com repasse de base limpa (Art. 12 LC 214)',
     fundamento:
       'LC 214/2025, art. 12 + art. 47: crédito financeiro pleno anula CBS e IBS destacados.',
@@ -41,6 +45,8 @@ export const FORNECEDORES_META: Record<FornecedorPosKey, FornecedorPosMeta> = {
     key: 'lr',
     sigla: 'LR',
     rotulo: 'Fornecedor Lucro Real',
+    tituloCard: 'CUSTOS DE ENTRADA',
+    subtituloAquisicao: 'AQUISIÇÕES DE FORNECEDOR LUCRO REAL',
     descricao: 'Fornecedor LR · Régua A neutra (reprecificação com crédito integral)',
     fundamento: 'LC 214/2025, art. 12 + art. 47: creditamento amplo e desembute com divisor LR.',
     regimeVenda: 'lucro_real',
@@ -49,6 +55,8 @@ export const FORNECEDORES_META: Record<FornecedorPosKey, FornecedorPosMeta> = {
     key: 'snp',
     sigla: 'SNP',
     rotulo: 'Fornecedor Simples Nacional Puro',
+    tituloCard: 'CUSTOS DE ENTRADA',
+    subtituloAquisicao: 'AQUISIÇÕES DE FORNECEDOR SIMPLES NACIONAL',
     descricao:
       'Fornecedor SN Puro · Sistemática do Simples Nacional (LC 123/2006): DAS por dentro, sem ICMS 18%',
     fundamento:
@@ -59,6 +67,8 @@ export const FORNECEDORES_META: Record<FornecedorPosKey, FornecedorPosMeta> = {
     key: 'snh',
     sigla: 'SNH',
     rotulo: 'Fornecedor Simples Nacional Híbrido',
+    tituloCard: 'CUSTOS DE ENTRADA',
+    subtituloAquisicao: 'AQUISIÇÕES DE FORNECEDOR SIMPLES NACIONAL HÍBRIDO',
     descricao:
       'Fornecedor SN Híbrido · Opt-in CBS/IBS regime regular (art. 41 LC 214) + DAS híbrido (ICMS e federais)',
     fundamento:

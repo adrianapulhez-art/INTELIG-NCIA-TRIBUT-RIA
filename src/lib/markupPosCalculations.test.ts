@@ -320,5 +320,25 @@ describe('Blindagem da Calculadora de Markup Pós EC 132 (2027+) — Reestrutura
       expect(CLIENTES_REGIME_META.lp.fundamento).toContain('LC 214/2025')
       expect(CLIENTES_REGIME_META.snh.fundamento).toContain('art. 41')
     })
+
+    it('FORNECEDORES_META possui identificação visual didática chancelada pela Adri (Título CUSTOS DE ENTRADA + Subtítulo AQUISIÇÕES DE FORNECEDOR ...)', () => {
+      expect(FORNECEDORES_META.lp.tituloCard).toBe('CUSTOS DE ENTRADA')
+      expect(FORNECEDORES_META.lp.subtituloAquisicao).toBe(
+        'AQUISIÇÕES DE FORNECEDOR LUCRO PRESUMIDO',
+      )
+
+      expect(FORNECEDORES_META.lr.tituloCard).toBe('CUSTOS DE ENTRADA')
+      expect(FORNECEDORES_META.lr.subtituloAquisicao).toBe('AQUISIÇÕES DE FORNECEDOR LUCRO REAL')
+
+      expect(FORNECEDORES_META.snp.tituloCard).toBe('CUSTOS DE ENTRADA')
+      expect(FORNECEDORES_META.snp.subtituloAquisicao).toBe(
+        'AQUISIÇÕES DE FORNECEDOR SIMPLES NACIONAL',
+      )
+
+      expect(FORNECEDORES_META.snh.tituloCard).toBe('CUSTOS DE ENTRADA')
+      expect(FORNECEDORES_META.snh.subtituloAquisicao).toBe(
+        'AQUISIÇÕES DE FORNECEDOR SIMPLES NACIONAL HÍBRIDO',
+      )
+    })
   })
 })

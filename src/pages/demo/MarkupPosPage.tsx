@@ -832,8 +832,11 @@ export function MarkupPosPage() {
                         </span>
                       )}
                     </div>
-                    <h4 className="text-xs font-black text-[#261502] uppercase leading-tight">
-                      {col.meta.rotulo}
+                    <h3 className="text-sm font-black text-[#261502] uppercase tracking-wide leading-tight">
+                      {col.meta.tituloCard || 'CUSTOS DE ENTRADA'}
+                    </h3>
+                    <h4 className="text-xs font-black text-[#5c3e06] uppercase leading-tight">
+                      {col.meta.subtituloAquisicao || col.meta.rotulo}
                     </h4>
                     <p className="text-[10px] text-slate-500 font-mono leading-tight">
                       {col.custoInfo?.rotuloMotor ?? col.meta.descricao}
