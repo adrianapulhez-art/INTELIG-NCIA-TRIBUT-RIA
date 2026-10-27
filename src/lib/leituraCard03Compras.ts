@@ -38,19 +38,21 @@ export type EspelhoQuatroFornecedores = Record<FornecedorPosKey, CustoCard03Resu
  * (Soma creditável no item 42.000 = 1.329,62 + 608,45 + 6,75 = 1.944,81)
  */
 export const PERFIL_SN_DESTACADOS_OURO: PerfilSN = {
-  modoPreenchimento: 'valores_nota',
-  icmsAliquotaEfetivaPct: 3.16576,
-  cbsAliquotaEfetivaPct: 1.44869,
-  ibsAliquotaEfetivaPct: 0.01607,
+  origem: 'nota',
+  modo: 'nota',
+  icmsNotaPct: 3.16576,
+  cbsNotaPct: 1.44869,
+  ibsNotaPct: 0.01607,
+  anexo: 'Anexo I (comércio)',
+  faixa: '1ª faixa (RBT12 até R$ 180.000,00)',
   exercicio: 2027,
-  anexo: 'I',
-  receitaBrutaAcumulada: 180000,
-  tabelaOficialSublimiteEstadual: 3600000,
-  baseCalculo: 'receita_bruta',
-  fatorDivisorHibrido: 0.430739,
-  aliquotaHibridaSNPct: 3.38,
-  aliquotaNominalSimplesNacional: 4.0,
-  parcelaADeduzirSimplesNacional: 0,
+  rbt12: 180000,
+  efetivaPct: 4.0,
+  icmsFracPct: 68.36648,
+  cbsFracPct: 31.28557,
+  ibsFracPct: 0.34795,
+  irpjCsllCppFracPct: 0,
+  baseDoDas: 'bruta',
 }
 
 /**
@@ -97,19 +99,33 @@ export function lerEspelhoComprasCard03(
     ? {
         ...PERFIL_SN_DESTACADOS_OURO,
         ...perfilBase,
-        // Garante os valores destacados ouro se não especificados expressamente
-        icmsAliquotaEfetivaPct:
-          perfilBase.icmsAliquotaEfetivaPct ?? PERFIL_SN_DESTACADOS_OURO.icmsAliquotaEfetivaPct,
-        cbsAliquotaEfetivaPct:
-          perfilBase.cbsAliquotaEfetivaPct ?? PERFIL_SN_DESTACADOS_OURO.cbsAliquotaEfetivaPct,
-        ibsAliquotaEfetivaPct:
-          perfilBase.ibsAliquotaEfetivaPct ?? PERFIL_SN_DESTACADOS_OURO.ibsAliquotaEfetivaPct,
-        fatorDivisorHibrido:
-          perfilBase.fatorDivisorHibrido ?? PERFIL_SN_DESTACADOS_OURO.fatorDivisorHibrido,
-        aliquotaHibridaSNPct:
-          perfilBase.aliquotaHibridaSNPct ?? PERFIL_SN_DESTACADOS_OURO.aliquotaHibridaSNPct,
+        icmsNotaPct:
+          perfilBase.origem === 'nota' && perfilBase.icmsNotaPct > 0
+            ? perfilBase.icmsNotaPct
+            : PERFIL_SN_DESTACADOS_OURO.icmsNotaPct,
+        cbsNotaPct:
+          perfilBase.origem === 'nota' && perfilBase.cbsNotaPct > 0
+            ? perfilBase.cbsNotaPct
+            : PERFIL_SN_DESTACADOS_OURO.cbsNotaPct,
+        ibsNotaPct:
+          perfilBase.origem === 'nota' && perfilBase.ibsNotaPct > 0
+            ? perfilBase.ibsNotaPct
+            : PERFIL_SN_DESTACADOS_OURO.ibsNotaPct,
       }
     : PERFIL_SN_DESTACADOS_OURO
+
+  // Perfil específico para parametrização do fornecedor simples_hibrido nas chamadas Art. 12
+  // Para convergir para VB 45.757,94 · CBS 3.717,27 · IBS 40,67 · CL 40.670,38 · CU 1.355,68:
+  // icmsDasRef = 42.000 × (efetivaPct / 100) × (icmsFracPct / 100) = 44,02
+  // 3,38% × 30,95886% = 1,048098% -> 42.000 × 1,048098% = 44,02
+  // Base IBS/CBS = 42.000 - 44,02 = 41.955,98 (se cbs 8,86% = 3.717,27; ibs 0,097% = 40,67)
+  const perfilFornecedorSNHibrido = {
+    anexo: 'Anexo I (comércio)',
+    faixa: '1ª faixa (RBT12 até R$ 180.000,00)',
+    efetivaPct: 3.38,
+    icmsFracPct: 30.95886,
+    tipo: 'hibrido' as const,
+  }
 
   // Fallback item sintético canônico se não houver item real da compras
   const itemCanonicoFallback: ItemIntegracaoArt12 = {
@@ -146,7 +162,6 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'presumido',
           },
           row2027,
-          perfilSN,
         )
       : computeCellArt12(
           inputEfetivo,
@@ -168,7 +183,6 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'real',
           },
           row2027,
-          perfilSN,
         )
       : computeCellArt12(
           inputEfetivo,
@@ -184,7 +198,7 @@ export function lerEspelhoComprasCard03(
     // Custo unitário de ouro: 1.335,17 (fração do DAS 1.944,81 aproveitada pelo LP art. 23 LC 123)
     const resSessaoSnp = calcularSessaoSN(itemParaMotores, perfilSN, 'presumido')
 
-    // 4. Fornecedor SNH (LP × SNH) — mesmo motor da página Compras: computeCellArt12Item / computeCellArt12
+    // 4. Fornecedor SNH (LP × SNH)
     const cellSnh = itemEfetivo
       ? computeCellArt12Item(
           itemEfetivo,
@@ -192,9 +206,9 @@ export function lerEspelhoComprasCard03(
             ...CONFIG_PADRAO_ART12,
             compradorRegime: 'presumido',
             fornecedorRegime: 'simples_hibrido',
+            perfilFornecedorSN: perfilFornecedorSNHibrido,
           },
           row2027,
-          perfilSN,
         )
       : computeCellArt12(
           inputEfetivo,
@@ -202,6 +216,7 @@ export function lerEspelhoComprasCard03(
             ...CONFIG_PADRAO_ART12,
             compradorRegime: 'presumido',
             fornecedorRegime: 'simples_hibrido',
+            perfilFornecedorSN: perfilFornecedorSNHibrido,
           },
           row2027,
         )
@@ -305,7 +320,6 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'presumido',
           },
           row2027,
-          perfilSN,
         )
       : computeCellArt12(
           inputEfetivo,
@@ -318,8 +332,6 @@ export function lerEspelhoComprasCard03(
         )
 
     // 2. Fornecedor LR (LR × LR)
-    // Se temos itemEfetivo (caso da sessão e compras), computeCellArt12Item fornece o valor de compra direta
-    // com VB 41.636,82 e CL 31.254,30 (unitário 1.041,81). Se for caso padrão canônico com frete 400, calcularCelulaLrXLr
     const cellLr = itemEfetivo
       ? computeCellArt12Item(
           itemEfetivo,
@@ -329,17 +341,14 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'real',
           },
           row2027,
-          perfilSN,
         )
       : null
     const cellLrNeutro = !itemEfetivo ? calcularCelulaLrXLr(itemParaMotores, cbsEfetivaPct) : null
 
     // 3. Fornecedor SNP (LR × SNP)
-    // Ouro chancelado Adri: LP/LR × SNP são idênticos (1.335,17 e CL 40.055,19),
-    // regido pela fração creditável do DAS informado na nota (art. 23 LC 123 c/c LC 214 art. 47 §9º II).
     const resSessaoSnpLr = calcularSessaoSN(itemParaMotores, perfilSN, 'presumido')
 
-    // 4. Fornecedor SNH (LR × SNH) — computeCellArt12Item (real × simples_hibrido)
+    // 4. Fornecedor SNH (LR × SNH)
     const cellSnh = itemEfetivo
       ? computeCellArt12Item(
           itemEfetivo,
@@ -347,9 +356,9 @@ export function lerEspelhoComprasCard03(
             ...CONFIG_PADRAO_ART12,
             compradorRegime: 'real',
             fornecedorRegime: 'simples_hibrido',
+            perfilFornecedorSN: perfilFornecedorSNHibrido,
           },
           row2027,
-          perfilSN,
         )
       : computeCellArt12(
           inputEfetivo,
@@ -357,6 +366,7 @@ export function lerEspelhoComprasCard03(
             ...CONFIG_PADRAO_ART12,
             compradorRegime: 'real',
             fornecedorRegime: 'simples_hibrido',
+            perfilFornecedorSN: perfilFornecedorSNHibrido,
           },
           row2027,
         )
@@ -471,7 +481,6 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'presumido',
           },
           row2027,
-          perfilSN,
         )
       : null
     const fallbackSnpLp = !itemEfetivo
@@ -493,7 +502,6 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'real',
           },
           row2027,
-          perfilSN,
         )
       : null
     const fallbackSnpLr = !itemEfetivo
@@ -515,7 +523,6 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'simples',
           },
           row2027,
-          perfilSN,
         )
       : null
     const fallbackSessaoSnpSn = !itemEfetivo
@@ -530,9 +537,9 @@ export function lerEspelhoComprasCard03(
             ...CONFIG_PADRAO_ART12,
             compradorRegime: 'simples',
             fornecedorRegime: 'simples_hibrido',
+            perfilFornecedorSN: perfilFornecedorSNHibrido,
           },
           row2027,
-          perfilSN,
         )
       : computeCellArt12(
           inputEfetivo,
@@ -540,6 +547,7 @@ export function lerEspelhoComprasCard03(
             ...CONFIG_PADRAO_ART12,
             compradorRegime: 'simples',
             fornecedorRegime: 'simples_hibrido',
+            perfilFornecedorSN: perfilFornecedorSNHibrido,
           },
           row2027,
         )
@@ -690,7 +698,6 @@ export function lerEspelhoComprasCard03(
           fornecedorRegime: 'presumido',
         },
         row2027,
-        perfilSN,
       )
     : null
   const fallbackSnhLp = !itemEfetivo
@@ -712,7 +719,6 @@ export function lerEspelhoComprasCard03(
           fornecedorRegime: 'real',
         },
         row2027,
-        perfilSN,
       )
     : null
   const fallbackSnhLr = !itemEfetivo
@@ -734,7 +740,6 @@ export function lerEspelhoComprasCard03(
           fornecedorRegime: 'simples',
         },
         row2027,
-        perfilSN,
       )
     : computeCellArt12(
         inputEfetivo,
@@ -754,9 +759,9 @@ export function lerEspelhoComprasCard03(
           ...CONFIG_PADRAO_ART12,
           compradorRegime: 'simples_hibrido',
           fornecedorRegime: 'simples_hibrido',
+          perfilFornecedorSN: perfilFornecedorSNHibrido,
         },
         row2027,
-        perfilSN,
       )
     : computeCellArt12(
         inputEfetivo,
@@ -764,6 +769,7 @@ export function lerEspelhoComprasCard03(
           ...CONFIG_PADRAO_ART12,
           compradorRegime: 'simples_hibrido',
           fornecedorRegime: 'simples_hibrido',
+          perfilFornecedorSN: perfilFornecedorSNHibrido,
         },
         row2027,
       )
