@@ -433,7 +433,7 @@ export interface TaxStateSnapshot {
 export interface TaxContextType {
   // Snapshot export/load para sincronização com banco de dados
   getSnapshot: () => TaxStateSnapshot
-  loadSnapshot: (snapshot: TaxStateSnapshot) => void
+  loadSnapshot: (snapshot: TaxStateSnapshot, scope?: string) => void
 
   // Regime compartilhado entre Markup, Compras e DREs
   regime: TaxRegime
@@ -842,6 +842,7 @@ export interface TaxContextType {
     cliente: string
     nome: string
     snapshot: TaxStateSnapshot
+    scope?: string
   }) => void
   /** Remove o cenário ativo das telas (estado volta ao zerado). */
   desativarCenario: () => void
@@ -865,6 +866,11 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // REGIME
   const [regime, setRegimeState] = useState<TaxRegime>('presumido')
+
+  // Espelho do regime para callbacks com deps [] (loadSnapshot com escopo não altera o regime,
+  // mas precisa saber qual é o regime ATIVO para preencher os mapas por regime).
+  const regimeRef = React.useRef<TaxRegime>(regime)
+  regimeRef.current = regime
 
   const setRegime = useCallback((newRegime: TaxRegime) => {
     recordUndoSnapshot()
@@ -3933,9 +3939,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         cliente: string
         nome: string
         snapshot: TaxStateSnapshot
+        scope?: string
       }
       if (!salvo?.snapshot) return
-      loadSnapshot(salvo.snapshot)
+      loadSnapshot(salvo.snapshot, salvo.scope)
       setCenarioAtivoState({ id: salvo.id, cliente: salvo.cliente, nome: salvo.nome })
     } catch (err) {
       console.warn('Falha ao hidratar cenário ativo:', err)
@@ -3945,14 +3952,22 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   /** Ativa: grava no navegador + registra como ativo. Snapshot congelado (imune a edições posteriores). */
   const ativarCenario = useCallback(
-    (info: { id: string; cliente: string; nome: string; snapshot: TaxStateSnapshot }) => {
+    (info: {
+      id: string
+      cliente: string
+      nome: string
+      snapshot: TaxStateSnapshot
+      scope?: string
+    }) => {
       try {
         localStorage.setItem(CENARIO_ATIVO_KEY, JSON.stringify({ ...info }))
       } catch (err) {
         console.warn('Falha ao persistir cenário ativo:', err)
       }
       setCenarioAtivoState({ id: info.id, cliente: info.cliente, nome: info.nome })
-      loadSnapshot(info.snapshot)
+      // POLÍTICA "UM SALVAMENTO, UMA PÁGINA" (chancela Adri): o escopo do cenário salvo
+      // delimita o que a restauração alimenta — sem escopo, mantém a carga total.
+      loadSnapshot(info.snapshot, info.scope)
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -4126,10 +4141,215 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }
 
-  // Carregar snapshot vindo do banco ou undo/redo e sobrescrever todos os campos
-  const loadSnapshot = useCallback((snapshot: TaxStateSnapshot) => {
+  // Carregar snapshot vindo do banco ou undo/redo.
+  // POLÍTICA "UM SALVAMENTO, UMA PÁGINA" (chancela Adri): quando o escopo do cenário salvo
+  // é informado ('despesas-operacionais' | 'compras' | 'markup'), alimenta SOMENTE o estado
+  // da página correspondente; o regime fica FORA do isolamento (padrão Lucro Presumido,
+  // só muda manualmente). Sem escopo, mantém a carga total original (undo/redo, legado).
+  const loadSnapshot = useCallback((snapshot: TaxStateSnapshot, scope?: string) => {
     if (!snapshot) return
 
+    // ---------- ESCOPO 'despesas-operacionais': só despesas/receitas operacionais ----------
+    if (scope === 'despesas-operacionais') {
+      if (Array.isArray(snapshot.operatingExpenses)) {
+        setOperatingExpenses(
+          snapshot.operatingExpenses.map((e) => ({
+            ...e,
+            value:
+              typeof e.value === 'number' && Number.isFinite(e.value) ? Math.max(0, e.value) : 0,
+            category: e.category || 'administrativas',
+          })),
+        )
+      } else {
+        setOperatingExpenses([])
+      }
+      if (Array.isArray(snapshot.operatingRevenues)) {
+        setOperatingRevenues(
+          snapshot.operatingRevenues.map((r) => ({
+            ...r,
+            value:
+              typeof r.value === 'number' && Number.isFinite(r.value) ? Math.max(0, r.value) : 0,
+            category: r.category || 'outras',
+          })),
+        )
+      } else {
+        setOperatingRevenues([])
+      }
+      return
+    }
+
+    // ---------- ESCOPO 'compras': só itens de compras, estoques, fretes e deduções ----------
+    if (scope === 'compras') {
+      let loadedHasItems = false
+      if (Array.isArray(snapshot.purchasesItems) && snapshot.purchasesItems.length > 0) {
+        loadedHasItems = true
+        setPurchasesItems(
+          snapshot.purchasesItems.map((item) => ({
+            ...item,
+            freightValue: item.freightValue ?? 0,
+            icmsFreightRate: item.icmsFreightRate ?? 0,
+            icmsFreightValue: item.icmsFreightValue ?? 0,
+          })),
+        )
+      } else {
+        // Migração de compra legada (mesma regra da carga total)
+        const legacyFirstCost =
+          Array.isArray(snapshot.additionalCosts) && snapshot.additionalCosts[0]
+        const legacyMerch = legacyFirstCost && legacyFirstCost.value ? legacyFirstCost.value : 0
+        if (legacyMerch > 0) {
+          loadedHasItems = true
+        }
+        setPurchasesItems([
+          {
+            id: 'purch-1',
+            name: 'Item 1',
+            quantity: snapshot.totalPurchasesQuantity || 0,
+            unitPrice: 0,
+            merchandiseValue: legacyMerch,
+            freightValue: 0,
+            icmsFreightRate: 0,
+            ipiRate: snapshot.nonRecoverableTaxRate ?? 0,
+            icmsRate: snapshot.icmsPurchasesRate ?? 0,
+            icmsFreightValue: 0,
+            hasSt: false,
+            stValue: 0,
+            calculatedIpi: 0,
+            calculatedIcms: 0,
+            calculatedPis: 0,
+            calculatedCofins: 0,
+            costPresumido: 0,
+            costReal: 0,
+            costSimples: 0,
+            unitCostPresumido: 0,
+            unitCostReal: 0,
+            unitCostSimples: 0,
+          },
+        ])
+      }
+
+      setInitialInventory(snapshot.initialInventory ?? 0)
+      setFinalInventory(snapshot.finalInventory ?? 0)
+      setAutoInventoryDeduction(Boolean(snapshot.autoInventoryDeduction))
+      setInitialInventoryUnits(snapshot.initialInventoryUnits ?? 0)
+
+      const rawCosts =
+        Array.isArray(snapshot.additionalCosts) && snapshot.additionalCosts.length > 0
+          ? snapshot.additionalCosts
+          : [{ id: '1', description: 'Frete e seguro s/ compras', value: 0 }]
+
+      const sanitizedCosts = rawCosts.map((cost) => {
+        if (
+          cost.description &&
+          cost.description.trim().toLowerCase() === 'compras brutas' &&
+          loadedHasItems
+        ) {
+          return { ...cost, value: 0 }
+        }
+        return cost
+      })
+      setAdditionalCosts(sanitizedCosts)
+      setNonRecoverableTaxBase(snapshot.nonRecoverableTaxBase ?? 0)
+      setNonRecoverableTaxRate(snapshot.nonRecoverableTaxRate ?? 0)
+      setDeductionCosts(
+        Array.isArray(snapshot.deductionCosts) && snapshot.deductionCosts.length > 0
+          ? snapshot.deductionCosts
+          : [{ id: '1', description: 'Devoluções / abatimentos / descontos', value: 0 }],
+      )
+      setIcmsPurchasesBase(snapshot.icmsPurchasesBase ?? 0)
+      setIcmsPurchasesRate(snapshot.icmsPurchasesRate ?? 0)
+      setIcmsFreightPurchasesBase(snapshot.icmsFreightPurchasesBase ?? 0)
+      setIcmsFreightPurchasesRate(snapshot.icmsFreightPurchasesRate ?? 0)
+      setPisPurchasesBase(snapshot.pisPurchasesBase ?? 0)
+      setPisExcludedIcmsManual(
+        snapshot.pisExcludedIcmsManual !== undefined ? snapshot.pisExcludedIcmsManual : null,
+      )
+      setCofinsPurchasesBase(snapshot.cofinsPurchasesBase ?? 0)
+      setCofinsExcludedIcmsManual(
+        snapshot.cofinsExcludedIcmsManual !== undefined ? snapshot.cofinsExcludedIcmsManual : null,
+      )
+      setPisFreightPurchasesBase(snapshot.pisFreightPurchasesBase ?? 0)
+      setCofinsFreightPurchasesBase(snapshot.cofinsFreightPurchasesBase ?? 0)
+      return
+    }
+
+    // ---------- ESCOPO 'markup': só produtos de markup, RL/margens e resultados ----------
+    if (scope === 'markup') {
+      if (snapshot.markupMode) setMarkupModeState(snapshot.markupMode)
+      const rawRL = snapshot.desiredNetRevenue ?? 0
+      const scopedRLByRegime: DesiredLiquidRevenueByRegime = snapshot.desiredLiquidRevenueByRegime
+        ? {
+            simples: Number(snapshot.desiredLiquidRevenueByRegime.simples) || 0,
+            presumido: Number(snapshot.desiredLiquidRevenueByRegime.presumido) || 0,
+            real: Number(snapshot.desiredLiquidRevenueByRegime.real) || 0,
+          }
+        : {
+            simples: rawRL,
+            presumido: rawRL,
+            real: rawRL,
+          }
+      setDesiredLiquidRevenueByRegimeState(scopedRLByRegime)
+      const rawMargin = snapshot.additionalMargin ?? 0
+      const scopedMarginByRegime: DesiredProfitMarginByRegime = snapshot.marginByRegime
+        ? {
+            simples:
+              snapshot.marginByRegime.simples !== undefined
+                ? Number(snapshot.marginByRegime.simples)
+                : undefined,
+            presumido:
+              snapshot.marginByRegime.presumido !== undefined
+                ? Number(snapshot.marginByRegime.presumido)
+                : undefined,
+            real:
+              snapshot.marginByRegime.real !== undefined
+                ? Number(snapshot.marginByRegime.real)
+                : undefined,
+          }
+        : rawMargin > 0
+          ? {
+              simples: rawMargin,
+              presumido: rawMargin,
+              real: rawMargin,
+            }
+          : {}
+      setMarginByRegimeState(scopedMarginByRegime)
+      setDesiredNetRevenueState(scopedRLByRegime[regimeRef.current] ?? rawRL)
+      setAdditionalMargin(scopedMarginByRegime[regimeRef.current] ?? rawMargin)
+      setIcmsRateMarkup(snapshot.icmsRateMarkup ?? 0)
+      setCustomTaxesMarkup(
+        Array.isArray(snapshot.customTaxesMarkup) ? snapshot.customTaxesMarkup : [],
+      )
+      if (Array.isArray(snapshot.variableExpenses) && snapshot.variableExpenses.length > 0) {
+        setVariableExpenses(
+          snapshot.variableExpenses.map((dv) => ({
+            ...dv,
+            rate:
+              typeof dv.rate === 'number' && Number.isFinite(dv.rate) ? Math.max(0, dv.rate) : 0,
+          })),
+        )
+      }
+      if (Array.isArray(snapshot.markupProducts) && snapshot.markupProducts.length > 0) {
+        setMarkupProducts(
+          snapshot.markupProducts.map((p) => ({
+            ...p,
+            costComposition: p.costComposition || {
+              directCosts: [],
+              indirectCosts: [],
+              fixedCosts: [],
+            },
+          })),
+        )
+      }
+      setSimulatedSalePrice(snapshot.simulatedSalePrice ?? 0)
+      setSimulatedTaxFactorTotal(snapshot.simulatedTaxFactorTotal ?? 0)
+      setSimulatedCompleteFactor(snapshot.simulatedCompleteFactor ?? 0)
+      setIsMarkupSimulated(Boolean(snapshot.isMarkupSimulated))
+      setTotalConsolidatedRevenue(snapshot.totalConsolidatedRevenue ?? 0)
+      setTotalConsolidatedQuantity(snapshot.totalConsolidatedQuantity ?? 0)
+      setTotalConsolidatedCost(snapshot.totalConsolidatedCost ?? 0)
+      return
+    }
+
+    // ---------- CARGA TOTAL (sem escopo) — comportamento original preservado ----------
     if (snapshot.regime) {
       setRegime(snapshot.regime)
     } else {

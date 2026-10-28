@@ -648,6 +648,7 @@ export default function ClientsPage() {
                                         cliente: sc.client || '',
                                         nome: sc.name,
                                         snapshot: sc.snapshot,
+                                        scope: sc.scope,
                                       })
                                       showFeedback(
                                         'success',

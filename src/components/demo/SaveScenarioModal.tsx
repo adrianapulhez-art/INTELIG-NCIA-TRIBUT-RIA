@@ -368,6 +368,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   }
 
   // Restaurar cenário para a tela — agora ATIVA: persiste no navegador + hidrata no boot
+  // com escopo propagado (política chancelada "um salvamento, uma página").
   const handleRestore = (item: ClientSavedScenarioRecord) => {
     try {
       ativarCenario({
@@ -375,6 +376,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         cliente: item.clientName || 'Cliente',
         nome: item.name,
         snapshot: item.snapshot,
+        scope: item.scope,
       })
       setRestoredId(item.id)
       const clientLabel = item.clientName ? ` (Cliente: ${item.clientName})` : ''
@@ -421,6 +423,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   }
 
   // Restaurar uma VERSÃO (data) do histórico: hidrata o snapshot daquela data
+  // com escopo propagado (política chancelada "um salvamento, uma página").
   const handleRestoreVersion = (sc: ClientSavedScenarioRecord, v: ScenarioVersion) => {
     try {
       ativarCenario({
@@ -428,6 +431,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
         cliente: sc.clientName || 'Cliente',
         nome: `${sc.name} — v${v.n}`,
         snapshot: v.snapshot,
+        scope: v.scope || sc.scope,
       })
       setRestoredId(`${sc.id}-v${v.n}`)
       showFeedback('success', `Salvamento v${v.n} de "${sc.name}" restaurado no formulário e DREs!`)
