@@ -162,21 +162,9 @@ export function MarkupPosPage() {
   const icmsRateEfetivo = icmsRateInput ?? REFERENCIAS_MARKUP_POS.ICMS_PADRAO_PCT
   const fatorIcms = useMemo(() => Math.max(0, 1 - icmsRateEfetivo / 100), [icmsRateEfetivo])
 
-  const [cbsRateInput, setCbsRateInput] = useState<number | undefined>(() => {
-    if (estadoSalvoInicial?.cbsRateInput !== undefined) return estadoSalvoInicial.cbsRateInput
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const raw = window.localStorage.getItem('it_reforma_cbs_aliquota_v1')
-        if (raw) {
-          const num = Number(raw)
-          if (Number.isFinite(num) && num > 0) return num
-        }
-      }
-    } catch {
-      // tolerar falhas de localStorage
-    }
-    return undefined
-  })
+  const [cbsRateInput, setCbsRateInput] = useState<number | undefined>(
+    estadoSalvoInicial?.cbsRateInput,
+  )
   const cbsRateEfetivo = cbsRateInput ?? REFERENCIAS_MARKUP_POS.CBS_PADRAO_PCT
 
   const [ibsRateInput, setIbsRateInput] = useState<number | undefined>(
@@ -264,16 +252,31 @@ export function MarkupPosPage() {
   // --------------------------------------------------------------------------
   // 5. LEITURA AO VIVO DO CARD 03 DA COMPRAS PARA O REGIME DO CLIENTE ESCOLHIDO
   // FONTE ÚNICA DO CUSTO: não recalcula custo; consome os 4 motores da Compras
+  // O lado da compra usa a mesma CBS da página Compras (chave it_reforma_cbs_aliquota_v1, fallback 8,8%)
+  // e NUNCA recebe cbsRateOverride / ibsRateOverride da venda.
   // --------------------------------------------------------------------------
+  const cbsComprasEfetiva = useMemo(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem('it_reforma_cbs_aliquota_v1')
+        if (raw) {
+          const num = Number(raw)
+          if (Number.isFinite(num) && num > 0) return num
+        }
+      }
+    } catch {
+      // tolerar falhas de localStorage
+    }
+    return 8.8
+  }, [])
+
   const espelhoCard03Compras = useMemo(() => {
     return lerEspelhoComprasCard03(clienteRegime, {
       item: itemEfetivo,
       inputPleno: inputEfetivo,
-      cbsAliquotaPct: cbsRateEfetivo,
-      cbsRateOverride: cbsRateEfetivo,
-      ibsRateOverride: ibsRateEfetivo,
+      cbsAliquotaPct: cbsComprasEfetiva,
     })
-  }, [clienteRegime, itemEfetivo, inputEfetivo, cbsRateEfetivo, ibsRateEfetivo])
+  }, [clienteRegime, itemEfetivo, inputEfetivo, cbsComprasEfetiva])
 
   // --------------------------------------------------------------------------
   // 6. DERIVAÇÃO DA FORMAÇÃO DO PREÇO DE VENDA NAS REGRAS MARKUP DO CLIENTE
