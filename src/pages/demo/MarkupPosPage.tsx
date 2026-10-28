@@ -333,9 +333,6 @@ export function MarkupPosPage() {
     effectiveSimplesRbt12,
   ])
 
-  // Controle de exibição do exemplo didático / caso de validação quando sessão estiver vazia
-  const [mostrarExemploValidacao, setMostrarExemploValidacao] = useState<boolean>(false)
-
   // Estado do diálogo de memória de cálculo detalhada
   const [modalMemoriaFornecedor, setModalMemoriaFornecedor] = useState<FornecedorPosKey | null>(
     null,
@@ -498,17 +495,6 @@ export function MarkupPosPage() {
                   <Link to="/demo/reforma">
                     Alimentar Compras <ArrowRight className="w-3.5 h-3.5 ml-1" />
                   </Link>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setMostrarExemploValidacao((prev) => !prev)}
-                  className="border-amber-300 text-[#3b2405] hover:bg-amber-100/70 font-semibold text-xs cursor-pointer whitespace-nowrap flex-1 sm:flex-initial"
-                >
-                  {mostrarExemploValidacao
-                    ? 'Ocultar Exemplo Didático'
-                    : 'Consultar Exemplo de Validação'}
                 </Button>
               </div>
             </div>
@@ -1040,17 +1026,6 @@ export function MarkupPosPage() {
                     <ShoppingBag className="w-4 h-4 mr-1.5" /> Cadastrar Operação em Compras
                   </Link>
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setMostrarExemploValidacao((prev) => !prev)}
-                  className="border-amber-300 text-[#3b2405] hover:bg-amber-50 font-bold text-xs cursor-pointer"
-                >
-                  <FileText className="w-4 h-4 mr-1.5 text-[#b87c14]" />
-                  {mostrarExemploValidacao
-                    ? 'Ocultar Exemplo de Validação'
-                    : 'Ver Exemplo Chancelado de Validação'}
-                </Button>
               </div>
 
               {/* Cards representativos vazios (Placeholders com traços) */}
@@ -1087,74 +1062,6 @@ export function MarkupPosPage() {
                 })}
               </div>
             </div>
-
-            {/* Seção retrátil opcional com o caso canônico claramente rotulado como exemplo */}
-            {mostrarExemploValidacao && (
-              <div className="rounded-2xl border-2 border-amber-300/80 bg-gradient-to-b from-amber-50/50 via-white to-amber-50/30 p-5 shadow-sm space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-900/10 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase bg-amber-800 text-amber-100">
-                      Exemplo Chancelado de Validação
-                    </span>
-                    <h4 className="text-xs font-black uppercase text-[#261502] tracking-wider">
-                      Smartphone Galaxy S24 Ultra · Lote 30 un. · R$ 1.400/un. + Frete R$ 400
-                    </h4>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded border border-amber-300">
-                    Apenas Consulta Didática (Não Altera a Sessão)
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-600 leading-relaxed font-sans">
-                  Estes valores representam a régua oficial de calibração matemática e validação
-                  chancelada. Eles não fazem parte da sua sessão ativa no momento.
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
-                  {simulacaoQuatroColunas.map((col) => {
-                    return (
-                      <div
-                        key={`exemplo-${col.key}`}
-                        className="rounded-xl border border-amber-200 bg-white p-3.5 space-y-2.5 shadow-2xs opacity-95"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase bg-[#261502] text-amber-200">
-                            {col.meta.sigla}
-                          </span>
-                          <span className="text-[9px] font-mono font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded border border-amber-300">
-                            Exemplo
-                          </span>
-                        </div>
-                        <div>
-                          <div className="text-[10px] font-mono text-slate-500">
-                            Custo Card 03:{' '}
-                            <span className="font-bold text-[#261502]">
-                              {formatBRL(col.custoUnitario)}
-                            </span>
-                          </div>
-                          <div className="text-xs font-mono font-black text-[#261502] mt-1 flex justify-between items-baseline">
-                            <span className="text-[10px] uppercase text-slate-600">
-                              Nota Unitária:
-                            </span>
-                            <span>{formatBRL(col.totalNotaUnitario)}</span>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setModalMemoriaFornecedor(col.key)}
-                          className="w-full text-[11px] font-bold text-[#3b2405] hover:bg-amber-100/60 h-7 p-0 cursor-pointer"
-                        >
-                          <FileText className="w-3 h-3 mr-1 text-[#b87c14]" /> Ver Memória do
-                          Exemplo
-                        </Button>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
