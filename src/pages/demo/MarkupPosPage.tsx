@@ -330,6 +330,9 @@ export function MarkupPosPage() {
     effectiveSimplesRbt12,
   ])
 
+  // Controle de exibição do exemplo didático / caso de validação quando sessão estiver vazia
+  const [mostrarExemploValidacao, setMostrarExemploValidacao] = useState<boolean>(false)
+
   // Estado do diálogo de memória de cálculo detalhada
   const [modalMemoriaFornecedor, setModalMemoriaFornecedor] = useState<FornecedorPosKey | null>(
     null,
@@ -460,32 +463,52 @@ export function MarkupPosPage() {
         )}
 
         {!temComprasAtivas && (
-          <div className="rounded-xl border border-amber-300/80 bg-amber-50/70 p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-amber-100 text-[#5c3e06]">
-                <ShoppingBag className="w-5 h-5" />
+          <div className="rounded-2xl border-2 border-dashed border-amber-400 bg-gradient-to-r from-amber-50/90 via-[#fffdf9] to-amber-50/70 p-5 shadow-sm space-y-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="p-2.5 rounded-xl bg-amber-200/80 text-[#422806] shrink-0 shadow-xs">
+                  <ShoppingBag className="w-6 h-6 text-[#8f5204]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-200/90 text-[#422806] border border-amber-300">
+                      Sessão Limpa / Aguardando Dados
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-black uppercase tracking-wide text-[#261502] mt-1">
+                    Nenhum Item Ativo na Calculadora de Compras
+                  </h4>
+                  <p className="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed">
+                    A Calculadora de Markup Pós-Reforma é integrada <strong>ao vivo</strong> com a
+                    Calculadora de Compras (Card 03). Como a lista de compras está vazia ou foi
+                    limpa, os cards abaixo aguardam a entrada de dados reais para formar o preço de
+                    venda.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#3b2405]">
-                  Sem dados na sessão ativa da Calculadora de Compras
-                </h4>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  Exibindo o <strong>Caso Canônico Chancelado de Validação</strong> (Smartphone
-                  Galaxy S24 Ultra · Lote 30 un. · R$ 1.400/un. + Frete R$ 400). Para simular com a
-                  sua nota fiscal de compras, registre a operação na página Compras.
-                </p>
+              <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
+                <Button
+                  asChild
+                  size="sm"
+                  className="bg-gradient-to-b from-[#ffd966] via-[#f5b014] to-[#8f5204] text-[#1a0c01] font-bold text-xs shadow-xs hover:brightness-110 cursor-pointer whitespace-nowrap flex-1 sm:flex-initial"
+                >
+                  <Link to="/demo/reforma">
+                    Alimentar Compras <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMostrarExemploValidacao((prev) => !prev)}
+                  className="border-amber-300 text-[#3b2405] hover:bg-amber-100/70 font-semibold text-xs cursor-pointer whitespace-nowrap flex-1 sm:flex-initial"
+                >
+                  {mostrarExemploValidacao
+                    ? 'Ocultar Exemplo Didático'
+                    : 'Consultar Exemplo de Validação'}
+                </Button>
               </div>
             </div>
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="border-amber-300 text-[#3b2405] hover:bg-amber-100 font-bold text-xs cursor-pointer whitespace-nowrap"
-            >
-              <Link to="/demo/reforma">
-                Ir para Compras <ArrowRight className="w-3.5 h-3.5 ml-1" />
-              </Link>
-            </Button>
           </div>
         )}
 
@@ -790,196 +813,347 @@ export function MarkupPosPage() {
         {/* ========================================================================= */}
         {/* PREÇO DE VENDA SIMULADO — 4 COLUNAS LADO A LADO PARA O CLIENTE SELECIONADO */}
         {/* ========================================================================= */}
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#b87c14]" />
-              <h3 className="text-sm font-black uppercase text-[#261502] tracking-wider">
-                Preço de Venda Derivado para o Cliente {clienteMetaAtiva.rotulo} (4 Fornecedores):
-              </h3>
+        {temComprasAtivas ? (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#b87c14]" />
+                <h3 className="text-sm font-black uppercase text-[#261502] tracking-wider">
+                  Preço de Venda Derivado para o Cliente {clienteMetaAtiva.rotulo} (4 Fornecedores):
+                </h3>
+              </div>
+              <span className="text-xs font-mono text-slate-500">
+                Formação de Preço Conforme Regime do Cliente · Exercício 2027
+              </span>
             </div>
-            <span className="text-xs font-mono text-slate-500">
-              Formação de Preço Conforme Regime do Cliente · Exercício 2027
-            </span>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
-            {simulacaoQuatroColunas.map((col) => {
-              const isSelected = fornecedorSelecionado === col.key
-              const qtdCardEfetiva =
-                quantidadePorCard[col.key] !== undefined &&
-                (quantidadePorCard[col.key] as number) > 0
-                  ? Math.round(quantidadePorCard[col.key] as number)
-                  : quantidadeReferencia
-              return (
-                <div
-                  key={col.key}
-                  className={`rounded-2xl border transition-all flex flex-col justify-between overflow-hidden ${
-                    isSelected
-                      ? 'border-[#b87c14] bg-white shadow-xl ring-2 ring-[#b87c14]/50'
-                      : 'border-slate-200 bg-white shadow-xs hover:border-amber-300 hover:shadow-md'
-                  }`}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+              {simulacaoQuatroColunas.map((col) => {
+                const isSelected = fornecedorSelecionado === col.key
+                const qtdCardEfetiva =
+                  quantidadePorCard[col.key] !== undefined &&
+                  (quantidadePorCard[col.key] as number) > 0
+                    ? Math.round(quantidadePorCard[col.key] as number)
+                    : quantidadeReferencia
+                return (
+                  <div
+                    key={col.key}
+                    className={`rounded-2xl border transition-all flex flex-col justify-between overflow-hidden ${
+                      isSelected
+                        ? 'border-[#b87c14] bg-white shadow-xl ring-2 ring-[#b87c14]/50'
+                        : 'border-slate-200 bg-white shadow-xs hover:border-amber-300 hover:shadow-md'
+                    }`}
+                  >
+                    {/* Topo do Card */}
+                    <div className="p-4 border-b border-amber-900/10 bg-gradient-to-b from-amber-50/50 to-transparent space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded text-[11px] font-mono font-black uppercase bg-[#261502] text-amber-200">
+                          {col.meta.sigla}
+                        </span>
+                        {isSelected && (
+                          <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
+                            Ativo no Foco
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-sm font-black text-[#261502] uppercase tracking-wide leading-tight">
+                        {col.meta.tituloCard || 'CUSTOS DE ENTRADA'}
+                      </h3>
+                      <h4 className="text-xs font-black text-[#5c3e06] uppercase leading-tight">
+                        {col.meta.subtituloAquisicao || col.meta.rotulo}
+                      </h4>
+                      <p className="text-[10px] text-slate-500 font-mono leading-tight">
+                        {col.custoInfo?.rotuloMotor ?? col.meta.descricao}
+                      </p>
+                    </div>
+
+                    {/* Corpo do Card */}
+                    <div className="p-4 space-y-3.5 flex-1 flex flex-col justify-between">
+                      {/* 1. Custo Unitário de Aquisição Lido do Card 03 Compras */}
+                      <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 space-y-2">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
+                            <span>Custo Card 03 (2027):</span>
+                            <span className="line-through text-slate-400">
+                              {formatBRL(col.custoHoje)}
+                            </span>
+                          </div>
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-sm font-black font-mono text-[#261502]">
+                              {formatBRL(col.custoUnitario)}
+                              <span className="text-[10px] text-slate-500 font-normal">/un</span>
+                            </span>
+                            <span
+                              className={`text-[10px] font-mono font-bold ${
+                                col.deltaCustoPct >= 0 ? 'text-rose-700' : 'text-emerald-700'
+                              }`}
+                            >
+                              {col.deltaCustoPct >= 0 ? '+' : ''}
+                              {formatNumberBR(col.deltaCustoPct)}%
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Campos individuais por card: Margem de Lucro Desejada e Quantidade Vendida */}
+                        <div className="pt-2 border-t border-slate-200/80 space-y-2.5 font-sans">
+                          {/* Margem individual */}
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[11px] font-bold text-slate-800">
+                                Margem de Lucro Desejada (%):
+                              </label>
+                              <span className="text-[10px] font-mono font-semibold text-[#5c3e06]">
+                                Fator:{' '}
+                                {(1 - (margemPorCard[col.key] ?? margemReferencia) / 100).toFixed(
+                                  4,
+                                )}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-12 gap-1.5 items-center">
+                              <div className="col-span-7">
+                                <MoneyInput
+                                  value={margemPorCard[col.key]}
+                                  onChange={(val) => handleUpdateMargemCard(col.key, val)}
+                                  decimals={2}
+                                  placeholder={formatNumberBR(margemReferencia, 2)}
+                                  className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
+                                  suffix="%"
+                                />
+                              </div>
+                              <div className="col-span-5 text-right">
+                                <span className="text-[10px] font-mono text-slate-500 font-semibold block whitespace-nowrap">
+                                  Ref. {formatPercentBR(margemReferencia)}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="text-[9px] text-slate-400 font-mono block leading-tight">
+                              Régua de referência {formatPercentBR(margemReferencia)}. Vazio mantém
+                              a referência sem zerar.
+                            </span>
+                          </div>
+
+                          {/* Quantidade individual */}
+                          <div className="space-y-1 pt-1 border-t border-slate-100">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[11px] font-bold text-slate-800">
+                                Quantidade Vendida (un.):
+                              </label>
+                              <span className="text-[10px] font-mono text-slate-500 font-semibold">
+                                Ref. {quantidadeReferencia} un.
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-12 gap-1.5 items-center">
+                              <div className="col-span-7">
+                                <MoneyInput
+                                  value={quantidadePorCard[col.key]}
+                                  onChange={(val) => handleUpdateQuantidadeCard(col.key, val)}
+                                  decimals={0}
+                                  className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
+                                  placeholder={String(quantidadeReferencia)}
+                                  suffix="un."
+                                />
+                              </div>
+                              <div className="col-span-5 text-right">
+                                <span className="text-[10px] text-slate-400 font-mono block whitespace-nowrap">
+                                  Lote operação
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Divisor do card */}
+                          <div className="rounded-lg bg-amber-50/80 border border-amber-200/70 p-1.5 flex items-center justify-between text-[10px] font-mono">
+                            <span className="font-semibold text-slate-700">Divisor Efetivo:</span>
+                            <span className="font-bold text-[#261502]">
+                              {col.divisorPrincipal.toFixed(6)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 2. Total da Nota Fiscal e Lote */}
+                      <div className="rounded-xl border border-amber-300/80 bg-slate-50/90 p-3 space-y-2 text-xs font-mono shadow-xs">
+                        <div className="flex items-baseline justify-between text-[#261502] font-black text-sm">
+                          <span className="text-xs uppercase tracking-tight text-slate-700">
+                            Nota Fiscal = Total:
+                          </span>
+                          <span className="text-base text-[#261502] font-black">
+                            {formatBRL(col.totalNotaUnitario)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs text-slate-600 pt-1.5 border-t border-slate-200">
+                          <span>Total Lote ({qtdCardEfetiva} un.):</span>
+                          <span className="font-bold text-slate-800">
+                            {formatBRL(col.totalNotaLote)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Botão para Ver Memória de Cálculo Completa */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setModalMemoriaFornecedor(col.key)}
+                        className="w-full text-xs font-bold border-amber-300/80 text-[#3b2405] hover:bg-amber-100 hover:text-[#261502] h-8 cursor-pointer mt-1"
+                      >
+                        <FileText className="w-3.5 h-3.5 mr-1 text-[#b87c14]" />
+                        Ver Memória Linha a Linha
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ) : (
+          /* ========================================================================= */
+          /* ESTADO VAZIO COERENTE — SEM DADOS FIXOS NOS CARDS DE RESULTADO             */
+          /* ========================================================================= */
+          <div className="space-y-4">
+            <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-8 text-center space-y-4 shadow-2xs">
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 text-[#b87c14] flex items-center justify-center shadow-xs">
+                <Calculator className="w-7 h-7 text-[#8f5204]" />
+              </div>
+              <div className="max-w-xl mx-auto space-y-1.5">
+                <h3 className="text-base font-black uppercase tracking-tight text-[#261502]">
+                  Nenhum Preço Derivado Disponível no Momento
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed font-sans">
+                  A formação de preço do <strong>Markup Pós-Reforma</strong> depende da entrada do
+                  novo custo de aquisição apurado no{' '}
+                  <strong>Card 03 da Calculadora de Compras</strong>. Como a sessão foi limpa ou não
+                  possui notas fiscais de entrada cadastradas, os 4 cards de fornecedores aguardam a
+                  alimentação dos dados para calcular com precisão.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <Button
+                  asChild
+                  className="bg-gradient-to-b from-[#ffd966] via-[#f5b014] to-[#8f5204] text-[#1a0c01] font-bold text-xs shadow-xs hover:brightness-110 cursor-pointer"
                 >
-                  {/* Topo do Card */}
-                  <div className="p-4 border-b border-amber-900/10 bg-gradient-to-b from-amber-50/50 to-transparent space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded text-[11px] font-mono font-black uppercase bg-[#261502] text-amber-200">
-                        {col.meta.sigla}
-                      </span>
-                      {isSelected && (
-                        <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
-                          Ativo no Foco
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-sm font-black text-[#261502] uppercase tracking-wide leading-tight">
-                      {col.meta.tituloCard || 'CUSTOS DE ENTRADA'}
-                    </h3>
-                    <h4 className="text-xs font-black text-[#5c3e06] uppercase leading-tight">
-                      {col.meta.subtituloAquisicao || col.meta.rotulo}
-                    </h4>
-                    <p className="text-[10px] text-slate-500 font-mono leading-tight">
-                      {col.custoInfo?.rotuloMotor ?? col.meta.descricao}
-                    </p>
-                  </div>
+                  <Link to="/demo/reforma">
+                    <ShoppingBag className="w-4 h-4 mr-1.5" /> Cadastrar Operação em Compras
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMostrarExemploValidacao((prev) => !prev)}
+                  className="border-amber-300 text-[#3b2405] hover:bg-amber-50 font-bold text-xs cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 mr-1.5 text-[#b87c14]" />
+                  {mostrarExemploValidacao
+                    ? 'Ocultar Exemplo de Validação'
+                    : 'Ver Exemplo Chancelado de Validação'}
+                </Button>
+              </div>
 
-                  {/* Corpo do Card */}
-                  <div className="p-4 space-y-3.5 flex-1 flex flex-col justify-between">
-                    {/* 1. Custo Unitário de Aquisição Lido do Card 03 Compras */}
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 space-y-2">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                          <span>Custo Card 03 (2027):</span>
-                          <span className="line-through text-slate-400">
-                            {formatBRL(col.custoHoje)}
-                          </span>
-                        </div>
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-sm font-black font-mono text-[#261502]">
-                            {formatBRL(col.custoUnitario)}
-                            <span className="text-[10px] text-slate-500 font-normal">/un</span>
-                          </span>
-                          <span
-                            className={`text-[10px] font-mono font-bold ${
-                              col.deltaCustoPct >= 0 ? 'text-rose-700' : 'text-emerald-700'
-                            }`}
-                          >
-                            {col.deltaCustoPct >= 0 ? '+' : ''}
-                            {formatNumberBR(col.deltaCustoPct)}%
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Campos individuais por card: Margem de Lucro Desejada e Quantidade Vendida */}
-                      <div className="pt-2 border-t border-slate-200/80 space-y-2.5 font-sans">
-                        {/* Margem individual */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <label className="text-[11px] font-bold text-slate-800">
-                              Margem de Lucro Desejada (%):
-                            </label>
-                            <span className="text-[10px] font-mono font-semibold text-[#5c3e06]">
-                              Fator:{' '}
-                              {(1 - (margemPorCard[col.key] ?? margemReferencia) / 100).toFixed(4)}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-12 gap-1.5 items-center">
-                            <div className="col-span-7">
-                              <MoneyInput
-                                value={margemPorCard[col.key]}
-                                onChange={(val) => handleUpdateMargemCard(col.key, val)}
-                                decimals={2}
-                                placeholder={formatNumberBR(margemReferencia, 2)}
-                                className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
-                                suffix="%"
-                              />
-                            </div>
-                            <div className="col-span-5 text-right">
-                              <span className="text-[10px] font-mono text-slate-500 font-semibold block whitespace-nowrap">
-                                Ref. {formatPercentBR(margemReferencia)}
-                              </span>
-                            </div>
-                          </div>
-                          <span className="text-[9px] text-slate-400 font-mono block leading-tight">
-                            Régua de referência {formatPercentBR(margemReferencia)}. Vazio mantém a
-                            referência sem zerar.
-                          </span>
-                        </div>
-
-                        {/* Quantidade individual */}
-                        <div className="space-y-1 pt-1 border-t border-slate-100">
-                          <div className="flex items-center justify-between">
-                            <label className="text-[11px] font-bold text-slate-800">
-                              Quantidade Vendida (un.):
-                            </label>
-                            <span className="text-[10px] font-mono text-slate-500 font-semibold">
-                              Ref. {quantidadeReferencia} un.
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-12 gap-1.5 items-center">
-                            <div className="col-span-7">
-                              <MoneyInput
-                                value={quantidadePorCard[col.key]}
-                                onChange={(val) => handleUpdateQuantidadeCard(col.key, val)}
-                                decimals={0}
-                                className="h-8 text-xs font-mono font-bold field-input-brown text-[#261502]"
-                                placeholder={String(quantidadeReferencia)}
-                                suffix="un."
-                              />
-                            </div>
-                            <div className="col-span-5 text-right">
-                              <span className="text-[10px] text-slate-400 font-mono block whitespace-nowrap">
-                                Lote operação
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Divisor do card */}
-                        <div className="rounded-lg bg-amber-50/80 border border-amber-200/70 p-1.5 flex items-center justify-between text-[10px] font-mono">
-                          <span className="font-semibold text-slate-700">Divisor Efetivo:</span>
-                          <span className="font-bold text-[#261502]">
-                            {col.divisorPrincipal.toFixed(6)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 2. Total da Nota Fiscal e Lote */}
-                    <div className="rounded-xl border border-amber-300/80 bg-slate-50/90 p-3 space-y-2 text-xs font-mono shadow-xs">
-                      <div className="flex items-baseline justify-between text-[#261502] font-black text-sm">
-                        <span className="text-xs uppercase tracking-tight text-slate-700">
-                          Nota Fiscal = Total:
-                        </span>
-                        <span className="text-base text-[#261502] font-black">
-                          {formatBRL(col.totalNotaUnitario)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs text-slate-600 pt-1.5 border-t border-slate-200">
-                        <span>Total Lote ({qtdCardEfetiva} un.):</span>
-                        <span className="font-bold text-slate-800">
-                          {formatBRL(col.totalNotaLote)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Botão para Ver Memória de Cálculo Completa */}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setModalMemoriaFornecedor(col.key)}
-                      className="w-full text-xs font-bold border-amber-300/80 text-[#3b2405] hover:bg-amber-100 hover:text-[#261502] h-8 cursor-pointer mt-1"
+              {/* Cards representativos vazios (Placeholders com traços) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-4 text-left">
+                {(['lp', 'lr', 'snp', 'snh'] as const).map((key) => {
+                  const meta = CLIENTES_REGIME_META[key]
+                  return (
+                    <div
+                      key={key}
+                      className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-4 space-y-3"
                     >
-                      <FileText className="w-3.5 h-3.5 mr-1 text-[#b87c14]" />
-                      Ver Memória Linha a Linha
-                    </Button>
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase bg-slate-200 text-slate-700">
+                          {meta.sigla}
+                        </span>
+                        <span className="text-[10px] font-mono font-bold text-slate-400">
+                          Aguardando
+                        </span>
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-black text-slate-700 uppercase">
+                          Fornecedor {meta.sigla}
+                        </h5>
+                        <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                          Custo 2027: <span className="font-bold text-slate-600">—</span>
+                        </p>
+                      </div>
+                      <div className="pt-2 border-t border-slate-200/80 flex items-baseline justify-between text-xs font-mono">
+                        <span className="text-slate-500 text-[11px]">Preço Derivado:</span>
+                        <span className="font-black text-slate-400 text-sm">—</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Seção retrátil opcional com o caso canônico claramente rotulado como exemplo */}
+            {mostrarExemploValidacao && (
+              <div className="rounded-2xl border-2 border-amber-300/80 bg-gradient-to-b from-amber-50/50 via-white to-amber-50/30 p-5 shadow-sm space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-900/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase bg-amber-800 text-amber-100">
+                      Exemplo Chancelado de Validação
+                    </span>
+                    <h4 className="text-xs font-black uppercase text-[#261502] tracking-wider">
+                      Smartphone Galaxy S24 Ultra · Lote 30 un. · R$ 1.400/un. + Frete R$ 400
+                    </h4>
                   </div>
+                  <span className="text-[10px] font-mono font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded border border-amber-300">
+                    Apenas Consulta Didática (Não Altera a Sessão)
+                  </span>
                 </div>
-              )
-            })}
+
+                <p className="text-xs text-slate-600 leading-relaxed font-sans">
+                  Estes valores representam a régua oficial de calibração matemática e validação
+                  chancelada. Eles não fazem parte da sua sessão ativa no momento.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+                  {simulacaoQuatroColunas.map((col) => {
+                    return (
+                      <div
+                        key={`exemplo-${col.key}`}
+                        className="rounded-xl border border-amber-200 bg-white p-3.5 space-y-2.5 shadow-2xs opacity-95"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase bg-[#261502] text-amber-200">
+                            {col.meta.sigla}
+                          </span>
+                          <span className="text-[9px] font-mono font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded border border-amber-300">
+                            Exemplo
+                          </span>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-mono text-slate-500">
+                            Custo Card 03:{' '}
+                            <span className="font-bold text-[#261502]">
+                              {formatBRL(col.custoUnitario)}
+                            </span>
+                          </div>
+                          <div className="text-xs font-mono font-black text-[#261502] mt-1 flex justify-between items-baseline">
+                            <span className="text-[10px] uppercase text-slate-600">
+                              Nota Unitária:
+                            </span>
+                            <span>{formatBRL(col.totalNotaUnitario)}</span>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setModalMemoriaFornecedor(col.key)}
+                          className="w-full text-[11px] font-bold text-[#3b2405] hover:bg-amber-100/60 h-7 p-0 cursor-pointer"
+                        >
+                          <FileText className="w-3 h-3 mr-1 text-[#b87c14]" /> Ver Memória do
+                          Exemplo
+                        </Button>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* ========================================================================= */}
         {/* COMPOSIÇÃO DOS TRIBUTOS COM FUNDAMENTAÇÃO LEGAL                           */}
