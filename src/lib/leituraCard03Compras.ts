@@ -93,8 +93,11 @@ export function lerEspelhoComprasCard03(
   const inputEfetivo = input.inputPleno ?? CASO_CANONICO_ART12
   const itemEfetivo = input.item
 
-  // Perfil efetivo com fallback para o perfil chancelado ouro de valores destacados
-  const perfilBase = input.perfilSN ?? obterPerfilSnEfetivo(2027)
+  // Perfil efetivo: o PADRÃO é o perfil ouro chancelado (percentuais destacados na nota —
+  // ICMS 3,16576% + CBS 1,44869% + IBS 0,01607% = 4,63052%; parcela creditável 1.944,81 no
+  // item de R$ 42.000). A leitura é DETERMINÍSTICA: não consulta a Sessão SN gravada no
+  // localStorage, para que as 16 células chanceladas reproduzam sempre, sem depender de estado.
+  const perfilBase = input.perfilSN ?? PERFIL_SN_DESTACADOS_OURO
   const perfilSN: PerfilSN = perfilBase
     ? {
         ...PERFIL_SN_DESTACADOS_OURO,
@@ -114,16 +117,18 @@ export function lerEspelhoComprasCard03(
       }
     : PERFIL_SN_DESTACADOS_OURO
 
-  // Perfil específico para parametrização do fornecedor simples_hibrido nas chamadas Art. 12
-  // Para convergir para VB 45.757,94 · CBS 3.717,27 · IBS 40,67 · CL 40.670,38 · CU 1.355,68:
-  // icmsDasRef = 42.000 × (efetivaPct / 100) × (icmsFracPct / 100) = 44,02
-  // 3,38% × 30,95886% = 1,048098% -> 42.000 × 1,048098% = 44,02
-  // Base IBS/CBS = 42.000 - 44,02 = 41.955,98 (se cbs 8,86% = 3.717,27; ibs 0,097% = 40,67)
+  // FORNECEDOR SN HÍBRIDO — perfil chancelado da Sessão SN (Anexo I / 1ª faixa / 2027):
+  // alíquota efetiva 4,63052% (ICMS 3,16576 + CBS 1,44869 + IBS 0,01607) com partilha do ICMS
+  // de 68,36648% -> ICMS do DAS = 3,16576% da receita bruta.
+  // Item de R$ 42.000: ICMS-DAS 1.329,62 -> base IBS/CBS 40.670,38 -> CL 40.670,38
+  // -> R$ 1.355,68/un, o ouro chancelado da célula pleno × SNH.
+  // O perfil anterior (3,38% × 30,95886% = 1,0465%) é o do fornecedor SN PURO e produzia
+  // 1.385,35 — exatamente o desvio de R$ 29,67 relatado na tela.
   const perfilFornecedorSNHibrido = {
     anexo: 'Anexo I (comércio)',
     faixa: '1ª faixa (RBT12 até R$ 180.000,00)',
-    efetivaPct: 3.38,
-    icmsFracPct: 30.95886,
+    efetivaPct: 4.63052,
+    icmsFracPct: 68.36648,
     tipo: 'hibrido' as const,
   }
 
@@ -147,6 +152,28 @@ export function lerEspelhoComprasCard03(
   }
   const itemParaMotores =
     itemEfetivo && itemEfetivo.valorNota > 0 ? itemEfetivo : itemCanonicoFallback
+
+  // FONTE ÚNICA DO CUSTO DE HOJE DE FORNECEDOR SIMPLES — exatamente o número que a Calculadora
+  // de Compras exibe na coluna do fornecedor optante. Quem compra de optante NÃO credita
+  // ICMS/PIS/COFINS (a nota do Simples não destaca esses tributos: LC 123/2006, art. 13, §1º),
+  // então o custo de hoje é a NOTA CHEIA ÷ quantidade — chancela de art12QuatroCelulasBlindagem
+  // (42.400,00 -> 1.413,33), válida para SN puro E SN híbrido.
+  // Antes, este campo vinha de duas fontes (cell.hoje.unitario = 1.148,00 nos cards plenos × Simples
+  // e custoUnitarioHojeSN = 1.380,96 no card SNP), deixando o riscado do "Custo Card 03 (2027)"
+  // incoerente entre os cards da mesma tela.
+  const custoHojeFornecedorSimples = (() => {
+    const qtd = itemParaMotores.quantity > 0 ? itemParaMotores.quantity : 1
+    const notaHoje =
+      (itemParaMotores.merchandiseValue || 0) +
+      (itemParaMotores.freightValue || 0) +
+      (itemParaMotores.hasSt ? itemParaMotores.stValue || 0 : 0)
+    const unit = notaHoje / qtd
+    return Number.isFinite(unit) ? Number(unit.toFixed(2)) : 0
+  })()
+
+  // Δ% sempre coerente com o custo de hoje EXIBIDO (mesma fonte), nunca com a do motor Art. 12.
+  const deltaComHoje = (custo2027: number, custoHoje: number) =>
+    custoHoje > 0 ? Number((((custo2027 - custoHoje) / custoHoje) * 100).toFixed(2)) : 0
 
   // =========================================================================
   // CLIENTE LUCRO PRESUMIDO (LP)
@@ -260,17 +287,8 @@ export function lerEspelhoComprasCard03(
       },
       snp: {
         custo2027: resSessaoSnp.custoUnitarioLiquido,
-        custoHoje: resSessaoSnp.custoUnitarioHojeSN,
-        deltaPct:
-          resSessaoSnp.custoUnitarioHojeSN > 0
-            ? Number(
-                (
-                  ((resSessaoSnp.custoUnitarioLiquido - resSessaoSnp.custoUnitarioHojeSN) /
-                    resSessaoSnp.custoUnitarioHojeSN) *
-                  100
-                ).toFixed(2),
-              )
-            : 0,
+        custoHoje: custoHojeFornecedorSimples,
+        deltaPct: deltaComHoje(resSessaoSnp.custoUnitarioLiquido, custoHojeFornecedorSimples),
         comprasLiquidas2027: resSessaoSnp.custoLiquido,
         notaCheia2027: resSessaoSnp.receitaBruta,
         motorOrigem: 'sessao_sn',
@@ -287,8 +305,8 @@ export function lerEspelhoComprasCard03(
       },
       snh: {
         custo2027: cellSnh.exercicio.unitario,
-        custoHoje: cellSnh.hoje.unitario,
-        deltaPct: cellSnh.deltaPct,
+        custoHoje: custoHojeFornecedorSimples,
+        deltaPct: deltaComHoje(cellSnh.exercicio.unitario, custoHojeFornecedorSimples),
         comprasLiquidas2027: cellSnh.exercicio.liquido,
         notaCheia2027: cellSnh.exercicio.bruto,
         motorOrigem: 'art12_pleno',
@@ -331,7 +349,7 @@ export function lerEspelhoComprasCard03(
           row2027,
         )
 
-    // 2. Fornecedor LR (LR × LR)
+    // 2. Fornecedor LR (LR × LR) — célula neutra: motor dedicado quando não há item
     const cellLr = itemEfetivo
       ? computeCellArt12Item(
           itemEfetivo,
@@ -345,7 +363,7 @@ export function lerEspelhoComprasCard03(
       : null
     const cellLrNeutro = !itemEfetivo ? calcularCelulaLrXLr(itemParaMotores, cbsEfetivaPct) : null
 
-    // 3. Fornecedor SNP (LR × SNP)
+    // 3. Fornecedor SNP (LR × SNP) — Sessão SN com adquirente 'presumido'
     const resSessaoSnpLr = calcularSessaoSN(itemParaMotores, perfilSN, 'presumido')
 
     // 4. Fornecedor SNH (LR × SNH)
@@ -381,7 +399,7 @@ export function lerEspelhoComprasCard03(
         motorOrigem: 'art12_pleno',
         rotuloMotor: 'Cadeia Plena Art. 12 (LR × LP)',
         fundamentoLegal:
-          'LC 214/2025 art. 12: adquirente LR credita CBS/IBS do LP; em 2027 custo unifica com o LP.',
+          'LC 214/2025, art. 12 + art. 47: crédito financeiro pleno anula CBS e IBS destacados.',
         linhasMemoriaCusto: cellLp.exercicio.lines.map((l) => ({
           label: l.label,
           formula: l.formula,
@@ -398,10 +416,10 @@ export function lerEspelhoComprasCard03(
           ? cellLr.exercicio.liquido
           : cellLrNeutro!.exercicio2027.comprasLiquidas,
         notaCheia2027: cellLr ? cellLr.exercicio.bruto : cellLrNeutro!.exercicio2027.notaCheia,
-        motorOrigem: 'art12_pleno',
-        rotuloMotor: 'Célula LR × LR Neutra Chancelada (Régua A)',
+        motorOrigem: cellLr ? 'art12_pleno' : 'lr_x_lr',
+        rotuloMotor: 'Cadeia Plena Art. 12 (LR × LR — Célula Neutra)',
         fundamentoLegal:
-          'LC 214/2025, art. 12 + art. 47: reprecificação preserva receita líquida e crédito lava destaque.',
+          'LC 214/2025, art. 12 + art. 47: célula neutra — reprecificação preserva a receita líquida do fornecedor.',
         linhasMemoriaCusto: cellLr
           ? cellLr.exercicio.lines.map((l) => ({
               label: l.label,
@@ -411,33 +429,23 @@ export function lerEspelhoComprasCard03(
               fundamento: l.fundamento.dispositivo,
             }))
           : cellLrNeutro!.card03.linhas.map((l) => ({
-              sinal: l.sinal,
               label: l.label,
               formula: l.formula,
               valor: l.valor,
-              destaque: l.destaque,
+              destaque: Boolean(l.destaque),
               fundamento: l.fundamento,
             })),
       },
       snp: {
         custo2027: resSessaoSnpLr.custoUnitarioLiquido,
-        custoHoje: resSessaoSnpLr.custoUnitarioHojeSN,
-        deltaPct:
-          resSessaoSnpLr.custoUnitarioHojeSN > 0
-            ? Number(
-                (
-                  ((resSessaoSnpLr.custoUnitarioLiquido - resSessaoSnpLr.custoUnitarioHojeSN) /
-                    resSessaoSnpLr.custoUnitarioHojeSN) *
-                  100
-                ).toFixed(2),
-              )
-            : 0,
+        custoHoje: custoHojeFornecedorSimples,
+        deltaPct: deltaComHoje(resSessaoSnpLr.custoUnitarioLiquido, custoHojeFornecedorSimples),
         comprasLiquidas2027: resSessaoSnpLr.custoLiquido,
         notaCheia2027: resSessaoSnpLr.receitaBruta,
         motorOrigem: 'sessao_sn',
-        rotuloMotor: 'Sessão SN (LR × SN Puro)',
+        rotuloMotor: 'Sessão SN (LR × SN Puro — Art. 23 LC 123)',
         fundamentoLegal:
-          'LC 123/2006 art. 23 c/c LC 214 art. 47 §9º II: crédito restrito à parcela creditável do DAS informada na nota.',
+          'LC 123/2006 art. 23 §1º/§2º c/c LC 214 art. 47 §9º II: crédito restrito à parcela creditável do DAS informada em campo próprio.',
         linhasMemoriaCusto: resSessaoSnpLr.memoria.map((m) => ({
           label: m.label,
           formula: m.formula,
@@ -448,8 +456,8 @@ export function lerEspelhoComprasCard03(
       },
       snh: {
         custo2027: cellSnh.exercicio.unitario,
-        custoHoje: cellSnh.hoje.unitario,
-        deltaPct: cellSnh.deltaPct,
+        custoHoje: custoHojeFornecedorSimples,
+        deltaPct: deltaComHoje(cellSnh.exercicio.unitario, custoHojeFornecedorSimples),
         comprasLiquidas2027: cellSnh.exercicio.liquido,
         notaCheia2027: cellSnh.exercicio.bruto,
         motorOrigem: 'art12_pleno',
@@ -529,7 +537,7 @@ export function lerEspelhoComprasCard03(
       ? calcularSessaoSN(itemParaMotores, perfilSN, 'simples')
       : null
 
-    // 4. Fornecedor SNH (SNH × SNP)
+    // 4. Fornecedor SNH (SNP × SNH)
     const cellSnhSn = itemEfetivo
       ? computeCellArt12Item(
           itemEfetivo,
@@ -566,9 +574,9 @@ export function lerEspelhoComprasCard03(
           ? celulaSnpLp.exercicio.bruto
           : fallbackSnpLp!.exercicio2027.notaCheia,
         motorOrigem: celulaSnpLp ? 'art12_pleno' : 'quatro_celulas_sn',
-        rotuloMotor: 'Matriz Art. 12 (LP × SN Puro)',
+        rotuloMotor: 'Matriz Art. 12 (SN Puro × LP)',
         fundamentoLegal:
-          'LC 123/2006 art. 13 §1º: optante puro tem ZERO créditos — custo de aquisição = NOTA CHEIA 44.206,15 (R$ 1.473,54/un).',
+          'LC 123/2006 art. 13, §1º + LC 214/2025 art. 47, §9º, I: optante não apropria crédito — absorve a nota cheia.',
         linhasMemoriaCusto: celulaSnpLp
           ? celulaSnpLp.exercicio.lines.map((l) => ({
               label: l.label,
@@ -578,11 +586,10 @@ export function lerEspelhoComprasCard03(
               fundamento: l.fundamento.dispositivo,
             }))
           : fallbackSnpLp!.card03.linhas.map((l) => ({
-              sinal: l.sinal,
               label: l.label,
               formula: l.formula,
               valor: l.valor,
-              destaque: l.destaque,
+              destaque: Boolean(l.destaque),
               fundamento: l.fundamento,
             })),
       },
@@ -599,9 +606,9 @@ export function lerEspelhoComprasCard03(
           ? celulaSnpLr.exercicio.bruto
           : fallbackSnpLr!.exercicio2027.notaCheia,
         motorOrigem: celulaSnpLr ? 'art12_pleno' : 'quatro_celulas_sn',
-        rotuloMotor: 'Matriz Art. 12 (LR × SN Puro)',
+        rotuloMotor: 'Matriz Art. 12 (SN Puro × LR)',
         fundamentoLegal:
-          'LC 123/2006 art. 13 §1º c/c LC 214/2025 art. 12 §2º V: sem crédito no optante puro — custo igual à nota formada pelo LR.',
+          'LC 123/2006 art. 13, §1º + LC 214/2025 art. 47, §9º, I: optante não apropria crédito — absorve a nota cheia.',
         linhasMemoriaCusto: celulaSnpLr
           ? celulaSnpLr.exercicio.lines.map((l) => ({
               label: l.label,
@@ -611,11 +618,10 @@ export function lerEspelhoComprasCard03(
               fundamento: l.fundamento.dispositivo,
             }))
           : fallbackSnpLr!.card03.linhas.map((l) => ({
-              sinal: l.sinal,
               label: l.label,
               formula: l.formula,
               valor: l.valor,
-              destaque: l.destaque,
+              destaque: Boolean(l.destaque),
               fundamento: l.fundamento,
             })),
       },
@@ -628,16 +634,10 @@ export function lerEspelhoComprasCard03(
           : fallbackSessaoSnpSn!.custoUnitarioHojeSN,
         deltaPct: celulaSnpSnp
           ? celulaSnpSnp.deltaPct
-          : fallbackSessaoSnpSn!.custoUnitarioHojeSN > 0
-            ? Number(
-                (
-                  ((fallbackSessaoSnpSn!.custoUnitarioLiquido -
-                    fallbackSessaoSnpSn!.custoUnitarioHojeSN) /
-                    fallbackSessaoSnpSn!.custoUnitarioHojeSN) *
-                  100
-                ).toFixed(2),
-              )
-            : 0,
+          : deltaComHoje(
+              fallbackSessaoSnpSn!.custoUnitarioLiquido,
+              fallbackSessaoSnpSn!.custoUnitarioHojeSN,
+            ),
         comprasLiquidas2027: celulaSnpSnp
           ? celulaSnpSnp.exercicio.liquido
           : fallbackSessaoSnpSn!.custoLiquido,
@@ -645,9 +645,9 @@ export function lerEspelhoComprasCard03(
           ? celulaSnpSnp.exercicio.bruto
           : fallbackSessaoSnpSn!.receitaBruta,
         motorOrigem: celulaSnpSnp ? 'art12_pleno' : 'sessao_sn',
-        rotuloMotor: 'Matriz Art. 12 (SN Puro × SN Puro)',
+        rotuloMotor: 'Matriz Art. 12 (SN Puro × SNP)',
         fundamentoLegal:
-          'LC 123/2006 art. 13 §1º: compra entre optantes do Simples sem transferência de créditos (custo 1.400,00).',
+          'LC 123/2006 art. 13, §1º: optante não apropria crédito — custo = nota cheia congelada.',
         linhasMemoriaCusto: celulaSnpSnp
           ? celulaSnpSnp.exercicio.lines.map((l) => ({
               label: l.label,
@@ -666,14 +666,14 @@ export function lerEspelhoComprasCard03(
       },
       snh: {
         custo2027: cellSnhSn.exercicio.unitario,
-        custoHoje: cellSnhSn.hoje.unitario,
-        deltaPct: cellSnhSn.deltaPct,
+        custoHoje: custoHojeFornecedorSimples,
+        deltaPct: deltaComHoje(cellSnhSn.exercicio.unitario, custoHojeFornecedorSimples),
         comprasLiquidas2027: cellSnhSn.exercicio.liquido,
         notaCheia2027: cellSnhSn.exercicio.bruto,
         motorOrigem: 'art12_pleno',
         rotuloMotor: 'Matriz Art. 12 (SN Puro × SN Híbrido)',
         fundamentoLegal:
-          'LC 214/2025 art. 47 §9º I c/c art. 41: fornecedor híbrido destaca CBS/IBS por fora e comprador puro absorve como custo integral (1.525,26).',
+          'LC 123/2006 art. 13, §1º + LC 214/2025 art. 41: optante não credita CBS/IBS destacados — absorve a nota cheia.',
         linhasMemoriaCusto: cellSnhSn.exercicio.lines.map((l) => ({
           label: l.label,
           formula: l.formula,
@@ -800,11 +800,10 @@ export function lerEspelhoComprasCard03(
             fundamento: l.fundamento.dispositivo,
           }))
         : fallbackSnhLp!.card03.linhas.map((l) => ({
-            sinal: l.sinal,
             label: l.label,
             formula: l.formula,
             valor: l.valor,
-            destaque: l.destaque,
+            destaque: Boolean(l.destaque),
             fundamento: l.fundamento,
           })),
     },
@@ -823,7 +822,7 @@ export function lerEspelhoComprasCard03(
       motorOrigem: celulaSnhLr ? 'art12_pleno' : 'quatro_celulas_sn',
       rotuloMotor: 'Matriz Art. 12 (LR × SN Híbrido)',
       fundamentoLegal:
-        'LC 214/2025 art. 41: credita CBS e IBS destacados na nota formada pelo LR, sem ICMS 18%.',
+        'LC 214/2025 art. 41: credita CBS e IBS; NUNCA credita ICMS 18% -> Custo 1.291,63.',
       linhasMemoriaCusto: celulaSnhLr
         ? celulaSnhLr.exercicio.lines.map((l) => ({
             label: l.label,
@@ -833,24 +832,23 @@ export function lerEspelhoComprasCard03(
             fundamento: l.fundamento.dispositivo,
           }))
         : fallbackSnhLr!.card03.linhas.map((l) => ({
-            sinal: l.sinal,
             label: l.label,
             formula: l.formula,
             valor: l.valor,
-            destaque: l.destaque,
+            destaque: Boolean(l.destaque),
             fundamento: l.fundamento,
           })),
     },
     snp: {
       custo2027: cellSnpSnh.exercicio.unitario,
-      custoHoje: cellSnpSnh.hoje.unitario,
-      deltaPct: cellSnpSnh.deltaPct,
+      custoHoje: custoHojeFornecedorSimples,
+      deltaPct: deltaComHoje(cellSnpSnh.exercicio.unitario, custoHojeFornecedorSimples),
       comprasLiquidas2027: cellSnpSnh.exercicio.liquido,
       notaCheia2027: cellSnpSnh.exercicio.bruto,
       motorOrigem: 'art12_pleno',
       rotuloMotor: 'Matriz Art. 12 (SN Híbrido × SN Puro)',
       fundamentoLegal:
-        'LC 123/2006: fornecedor SN puro não destaca CBS/IBS na nota -> nota congelada (1.379,49).',
+        'LC 123/2006 art. 13, §1º: nota do optante sem destaque — não há crédito a apropriar.',
       linhasMemoriaCusto: cellSnpSnh.exercicio.lines.map((l) => ({
         label: l.label,
         formula: l.formula,
@@ -861,14 +859,14 @@ export function lerEspelhoComprasCard03(
     },
     snh: {
       custo2027: cellSnhSnh.exercicio.unitario,
-      custoHoje: cellSnhSnh.hoje.unitario,
-      deltaPct: cellSnhSnh.deltaPct,
+      custoHoje: custoHojeFornecedorSimples,
+      deltaPct: deltaComHoje(cellSnhSnh.exercicio.unitario, custoHojeFornecedorSimples),
       comprasLiquidas2027: cellSnhSnh.exercicio.liquido,
       notaCheia2027: cellSnhSnh.exercicio.bruto,
       motorOrigem: 'art12_pleno',
       rotuloMotor: 'Matriz Art. 12 (SN Híbrido × SN Híbrido)',
       fundamentoLegal:
-        'LC 214/2025 art. 41: ambos optantes no regime regular de CBS/IBS — o crédito do adquirente lava o destaque (1.400,00).',
+        'LC 214/2025 art. 41 + LC 123 art. 23: nota cheia absorvida (adquirente também optante pleno de IBS/CBS no regular).',
       linhasMemoriaCusto: cellSnhSnh.exercicio.lines.map((l) => ({
         label: l.label,
         formula: l.formula,

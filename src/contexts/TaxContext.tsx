@@ -2048,6 +2048,26 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     try {
       if (typeof window !== 'undefined') {
+        // VARREDURA POR PREFIXO — chave fantasma (chancela Adri).
+        // As chaves da família de parametrizações da reforma sobreviviam ao reset e
+        // desviavam o cálculo das células sensíveis à CBS da COMPRA. A mais crítica é
+        // 'it_reforma_cbs_aliquota_v1', gravada pela Calculadora de Compras: ela seguia
+        // viva depois de zerar cenários e contaminava a leitura do Markup Pós-Reforma.
+        // Aqui o reset apaga TODA a família de uma vez, por prefixo, em vez de listar
+        // chave por chave (que é como as novas escapavam).
+        const PREFIXOS_LEGADOS = ['it_reforma_']
+        try {
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i)
+            if (!key) continue
+            if (PREFIXOS_LEGADOS.some((p) => key.startsWith(p))) {
+              localStorage.removeItem(key)
+              sessionStorage.removeItem(key)
+            }
+          }
+        } catch {
+          // Ignora
+        }
         const legacyKeys = [
           'it_tax_context_v1',
           'it_tax_context_v2',

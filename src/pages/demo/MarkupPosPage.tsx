@@ -255,20 +255,12 @@ export function MarkupPosPage() {
   // O lado da compra usa a mesma CBS da página Compras (chave it_reforma_cbs_aliquota_v1); sem valor gravado, o espelho usa a referência oficial 2027 (undefined = não sobrescreve).
   // e NUNCA recebe cbsRateOverride / ibsRateOverride da venda.
   // --------------------------------------------------------------------------
-  const cbsComprasEfetiva = useMemo<number | undefined>(() => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const raw = window.localStorage.getItem('it_reforma_cbs_aliquota_v1')
-        if (raw) {
-          const num = Number(raw)
-          if (Number.isFinite(num) && num > 0) return num
-        }
-      }
-    } catch {
-      // tolerar falhas de localStorage
-    }
-    return undefined
-  }, [])
+  // Caminho IGUALADO ao da blindagem (card03IntegracaoOuro.test.ts): a leitura do espelho
+  // NÃO recebe override de CBS. A chave 'it_reforma_cbs_aliquota_v1' era uma chave fantasma
+  // que sobrevivia ao reset e fazia a PÁGINA calcular com uma alíquota diferente da do TESTE —
+  // exatamente a divergência "teste passa, tela mostra outro número". O parâmetro do espelho
+  // passa a ser sempre o do cronograma oficial 2027, como no teste.
+  const cbsComprasEfetiva: number | undefined = undefined
 
   const espelhoCard03Compras = useMemo(() => {
     return lerEspelhoComprasCard03(clienteRegime, {
