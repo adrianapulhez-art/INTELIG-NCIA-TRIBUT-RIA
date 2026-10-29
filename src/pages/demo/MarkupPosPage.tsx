@@ -252,10 +252,10 @@ export function MarkupPosPage() {
   // --------------------------------------------------------------------------
   // 5. LEITURA AO VIVO DO CARD 03 DA COMPRAS PARA O REGIME DO CLIENTE ESCOLHIDO
   // FONTE ÚNICA DO CUSTO: não recalcula custo; consome os 4 motores da Compras
-  // O lado da compra usa a mesma CBS da página Compras (chave it_reforma_cbs_aliquota_v1, fallback 8,8%)
+  // O lado da compra usa a mesma CBS da página Compras (chave it_reforma_cbs_aliquota_v1); sem valor gravado, o espelho usa a referência oficial 2027 (undefined = não sobrescreve).
   // e NUNCA recebe cbsRateOverride / ibsRateOverride da venda.
   // --------------------------------------------------------------------------
-  const cbsComprasEfetiva = useMemo(() => {
+  const cbsComprasEfetiva = useMemo<number | undefined>(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         const raw = window.localStorage.getItem('it_reforma_cbs_aliquota_v1')
@@ -267,7 +267,7 @@ export function MarkupPosPage() {
     } catch {
       // tolerar falhas de localStorage
     }
-    return 8.8
+    return undefined
   }, [])
 
   const espelhoCard03Compras = useMemo(() => {
