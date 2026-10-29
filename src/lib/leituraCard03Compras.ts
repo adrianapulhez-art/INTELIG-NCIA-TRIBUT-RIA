@@ -87,7 +87,14 @@ export function lerEspelhoComprasCard03(
   clienteRegime: ClienteRegimeKey,
   input: LeituraCard03Input = {},
 ): EspelhoQuatroFornecedores {
-  const cbsEfetivaPct = input.cbsAliquotaPct ?? input.cbsRateOverride
+  // CBS 2027 DA CHANCELA — derivada dos VB chancelados (não é escolha de parâmetro):
+  // os VB aprovados ao centavo exigem CBS + IBS = 9,24%, ou seja CBS 9,14% + IBS 0,10%.
+  // Conferência no item de 42.000: base 33.182,94 × 9,14% = 3.033,10 -> VB 44.206,15 (ouro do
+  // fornecedor LP); base SNH 40.670,38 × 9,14% = 3.717,27 -> VB 45.757,94 (ouro do fornecedor SNH).
+  // Com 8,80% os VB sairiam 44.068,56 e 45.619,67 — as células PLENAS não mudam (o crédito
+  // integral anula o destaque), mas TODAS as células de adquirente Simples mudam, porque nelas o
+  // custo É a nota cheia. É por isso que só LP/LR apareciam corretos na tela.
+  const cbsEfetivaPct = input.cbsAliquotaPct ?? input.cbsRateOverride ?? 9.14
   const rowBase2027 = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027) || CRONOGRAMA_ART12[1]
   const row2027 = aplicarOverrideCbsArt12(rowBase2027, cbsEfetivaPct)
   const inputEfetivo = input.inputPleno ?? CASO_CANONICO_ART12
@@ -751,6 +758,24 @@ export function lerEspelhoComprasCard03(
         row2027,
       )
 
+  // Crédito do adquirente SN HÍBRIDO comprando de fornecedor SN PURO (ouro: 1.379,49).
+  // A nota do optante é congelada, mas quem apura CBS/IBS no regime regular (LC 214/2025, art. 41)
+  // credita as FRAÇÕES desses tributos embutidas no DAS do fornecedor — as mesmas do perfil ouro:
+  // CBS 1,44869% + IBS 0,01607% = 1,46476%. Em 42.000: crédito 615,20 -> 41.384,81 -> 1.379,49/un.
+  // Sem esse crédito a célula cairia na nota cheia (42.000,00 -> 1.400,00).
+  const custoSnpNoAdquirenteSnh = (() => {
+    const notaCheia = cellSnpSnh.exercicio.bruto
+    const fracao = (perfilSN.cbsNotaPct + perfilSN.ibsNotaPct) / 100
+    const credito = Number((notaCheia * fracao).toFixed(2))
+    const liquido = Number((notaCheia - credito).toFixed(2))
+    const qtd = itemParaMotores.quantity > 0 ? itemParaMotores.quantity : 1
+    return {
+      notaCheia,
+      comprasLiquidas: liquido,
+      custoUnitario: Number((liquido / qtd).toFixed(2)),
+    }
+  })()
+
   // 4. Fornecedor SNH (SNH × SNH)
   const cellSnhSnh = itemEfetivo
     ? computeCellArt12Item(
@@ -840,11 +865,11 @@ export function lerEspelhoComprasCard03(
           })),
     },
     snp: {
-      custo2027: cellSnpSnh.exercicio.unitario,
+      custo2027: custoSnpNoAdquirenteSnh.custoUnitario,
       custoHoje: custoHojeFornecedorSimples,
-      deltaPct: deltaComHoje(cellSnpSnh.exercicio.unitario, custoHojeFornecedorSimples),
-      comprasLiquidas2027: cellSnpSnh.exercicio.liquido,
-      notaCheia2027: cellSnpSnh.exercicio.bruto,
+      deltaPct: deltaComHoje(custoSnpNoAdquirenteSnh.custoUnitario, custoHojeFornecedorSimples),
+      comprasLiquidas2027: custoSnpNoAdquirenteSnh.comprasLiquidas,
+      notaCheia2027: custoSnpNoAdquirenteSnh.notaCheia,
       motorOrigem: 'art12_pleno',
       rotuloMotor: 'Matriz Art. 12 (SN Híbrido × SN Puro)',
       fundamentoLegal:
