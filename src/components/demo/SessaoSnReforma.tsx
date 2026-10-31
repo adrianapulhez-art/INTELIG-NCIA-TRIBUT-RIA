@@ -35,6 +35,7 @@ import {
   type PerfilSN,
 } from '@/lib/art12SnCalculations'
 import {
+  aplicarOverrideCbsArt12,
   computeCellArt12Item,
   type CellConfigArt,
   type CellResultArt,
@@ -45,6 +46,7 @@ import {
   type ScheduleRowArt,
 } from '@/lib/art12Calculations'
 import { type ItemIntegracaoArt12 } from '@/lib/integracaoComprasArt12'
+import { CBS_REFERENCIA_2027 } from '@/lib/leituraCard03Compras'
 import { ComparadorFornecedoresDialog } from './ComparadorFornecedoresDialog'
 import { ManualContadorSnDialog } from './ManualContadorSnDialog'
 import { TrilhaChancelaBadge } from './TrilhaChancelaBadge'
@@ -273,6 +275,19 @@ export function SessaoSnSection({
   const [camadaCenariosAberta, setCamadaCenariosAberta] = useState<boolean>(false) // Camada interna recuada para Cenários de Cálculos SN
   const [baseDoDas, setBaseDoDas] = useState<BaseDoDas>(configSalvaInicial?.baseDoDas ?? 'bruta')
 
+  // ALÍQUOTA DE CBS DO EXERCÍCIO (2027) — campo EDITÁVEL da Sessão SN.
+  // Os CARDs 01/02/03 das DUAS calculadoras (Compras e Markup) consomem este percentual.
+  // Vazio => referência 2027 (9,14%, a que reproduz os VB chancelados).
+  const [cbsAliquotaInput, setCbsAliquotaInput] = useState<string>(
+    configSalvaInicial?.cbsAliquotaPct !== undefined
+      ? String(configSalvaInicial.cbsAliquotaPct).replace('.', ',')
+      : '',
+  )
+  const cbsAliquotaPct = useMemo(() => {
+    const v = parseBRNumber(cbsAliquotaInput)
+    return Number.isFinite(v) && v > 0 ? v : CBS_REFERENCIA_2027
+  }, [cbsAliquotaInput])
+
   // Entradas em valores monetários (R$) destacados na NF-e (Pedido da Adri: campos em R$, nunca percentuais — reduzido para ICMS, CBS e IBS)
   const [valorIcmsInput, setValorIcmsInput] = useState<string>(
     configSalvaInicial?.valorIcmsInput ?? '',
@@ -369,8 +384,19 @@ export function SessaoSnSection({
       valorIcmsInput,
       valorCbsInput,
       valorIbsInput,
+      cbsAliquotaPct,
     })
-  }, [anexoId, faixaNum, rbt12, origem, baseDoDas, valorIcmsInput, valorCbsInput, valorIbsInput])
+  }, [
+    anexoId,
+    faixaNum,
+    rbt12,
+    origem,
+    baseDoDas,
+    valorIcmsInput,
+    valorCbsInput,
+    valorIbsInput,
+    cbsAliquotaPct,
+  ])
 
   // Sincroniza parâmetros quando o exercício da página muda, ou quando usuário troca anexo/faixa/RBT12
   const atualizarTabela = (
@@ -451,6 +477,12 @@ export function SessaoSnSection({
     [config, repasse, repassePct, fornecedorSN, perfil],
   )
 
+  // Linha do cronograma com a CBS ESTABELECIDA NA SESSÃO (fonte única dos CARDs)
+  const rowComCbsSessao = useMemo(
+    () => aplicarOverrideCbsArt12(row, cbsAliquotaPct),
+    [row, cbsAliquotaPct],
+  )
+
   // RESULTADO POR ITEM — OS DOIS FORNECEDORES SEMPRE (comparação lado a lado)
   const resultados = useMemo(() => {
     if (itens.length === 0) return []
@@ -460,7 +492,7 @@ export function SessaoSnSection({
       const cellHojePleno = computeCellArt12Item(
         item,
         { ...cfgBase, compradorRegime: adquirente, fornecedorRegime: fornecedorPlenoRegime },
-        row,
+        rowComCbsSessao,
       )
 
       // --- SN PURO: nota congelada + parcela creditável do art. 23 (motor da sessão)
@@ -499,7 +531,7 @@ export function SessaoSnSection({
           fornecedorRegime: 'simples_hibrido',
           perfilFornecedorSN: perfilFornecedorSNHib,
         },
-        row,
+        rowComCbsSessao,
       )
 
       return {
@@ -533,7 +565,7 @@ export function SessaoSnSection({
         },
       }
     })
-  }, [itens, adquirente, cfgBase, row, perfil])
+  }, [itens, adquirente, cfgBase, rowComCbsSessao, perfil])
 
   const itemAtivo = resultados[Math.min(idxItem, Math.max(0, resultados.length - 1))]
   const ativo = itemAtivo ? (fornecedorSN === 'puro' ? itemAtivo.puro : itemAtivo.hibrido) : null
@@ -1522,6 +1554,37 @@ export function SessaoSnSection({
                     </button>
                     <span className="text-[10px] font-mono text-slate-500">
                       (Res. CGSN 190/2026 pendente)
+                    </span>
+                  </div>
+
+                  {/* Alíquota de CBS do exercício — editável e compartilhada com as duas calculadoras */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-slate-700 uppercase w-24">
+                      CBS do ano
+                    </span>
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        value={cbsAliquotaInput}
+                        onChange={(e) => setCbsAliquotaInput(e.target.value)}
+                        className="h-8 w-24 bg-white border-slate-300 text-xs font-mono font-bold text-slate-900 pr-6"
+                        placeholder={formatNumberBR(CBS_REFERENCIA_2027, 2)}
+                      />
+                      <span className="absolute right-2 top-1.5 text-xs font-mono font-bold text-slate-400 pointer-events-none">
+                        %
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCbsAliquotaInput('')}
+                      className="px-2 py-1 rounded-lg text-[10px] font-mono font-bold cursor-pointer border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+                    >
+                      Padrão {formatNumberBR(CBS_REFERENCIA_2027, 2)}%
+                    </button>
+                    <span className="text-[10px] font-mono text-slate-500">
+                      {cbsAliquotaInput === ''
+                        ? 'usando a referência 2027'
+                        : `em vigor: ${formatNumberBR(cbsAliquotaPct, 2)}%`}
                     </span>
                   </div>
 

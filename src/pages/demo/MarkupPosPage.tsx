@@ -46,7 +46,8 @@ import {
   CLIENTES_REGIME_META,
   type MarkupPosColunaResultado,
 } from '@/lib/markupPosCalculations'
-import { lerEspelhoComprasCard03 } from '@/lib/leituraCard03Compras'
+import { lerEspelhoComprasCard03, obterPerfilSessaoOuChancela } from '@/lib/leituraCard03Compras'
+import { carregarConfigSessaoSN } from '@/lib/art12SnCalculations'
 
 /** Constantes de referência chanceladas pela Adri (proteção de ouro) */
 export const REFERENCIAS_MARKUP_POS = {
@@ -260,15 +261,18 @@ export function MarkupPosPage() {
   // que sobrevivia ao reset e fazia a PÁGINA calcular com uma alíquota diferente da do TESTE —
   // exatamente a divergência "teste passa, tela mostra outro número". O parâmetro do espelho
   // passa a ser sempre o do cronograma oficial 2027, como no teste.
-  const cbsComprasEfetiva: number | undefined = undefined
+  const sessaoSnConfig = useMemo(() => carregarConfigSessaoSN(), [])
+  const cbsComprasEfetiva: number | undefined = sessaoSnConfig?.cbsAliquotaPct
+  const perfilSnSessao = useMemo(() => obterPerfilSessaoOuChancela(), [sessaoSnConfig])
 
   const espelhoCard03Compras = useMemo(() => {
     return lerEspelhoComprasCard03(clienteRegime, {
       item: itemEfetivo,
       inputPleno: inputEfetivo,
       cbsAliquotaPct: cbsComprasEfetiva,
+      perfilSN: perfilSnSessao,
     })
-  }, [clienteRegime, itemEfetivo, inputEfetivo, cbsComprasEfetiva])
+  }, [clienteRegime, itemEfetivo, inputEfetivo, cbsComprasEfetiva, perfilSnSessao])
 
   // --------------------------------------------------------------------------
   // 6. DERIVAÇÃO DA FORMAÇÃO DO PREÇO DE VENDA NAS REGRAS MARKUP DO CLIENTE

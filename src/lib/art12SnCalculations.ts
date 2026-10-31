@@ -955,6 +955,12 @@ export interface SessaoSnConfigPersistida {
   valorIcmsInput?: string
   valorCbsInput?: string
   valorIbsInput?: string
+  /**
+   * ALÍQUOTA DE CBS DO EXERCÍCIO (2027) — campo EDITÁVEL da Sessão SN.
+   * É daqui que os CARDs 01/02/03 das duas calculadoras (Compras e Markup) se alimentam.
+   * Ausente => usa a referência 2027 (9,14%), que é o valor que reproduz os VB chancelados.
+   */
+  cbsAliquotaPct?: number
 }
 
 /** Carrega a configuração da Sessão SN do localStorage de forma tolerante a falhas */
@@ -977,6 +983,12 @@ export function carregarConfigSessaoSN(): SessaoSnConfigPersistida | null {
       valorIcmsInput: typeof parsed.valorIcmsInput === 'string' ? parsed.valorIcmsInput : '',
       valorCbsInput: typeof parsed.valorCbsInput === 'string' ? parsed.valorCbsInput : '',
       valorIbsInput: typeof parsed.valorIbsInput === 'string' ? parsed.valorIbsInput : '',
+      cbsAliquotaPct:
+        typeof parsed.cbsAliquotaPct === 'number' &&
+        Number.isFinite(parsed.cbsAliquotaPct) &&
+        parsed.cbsAliquotaPct > 0
+          ? parsed.cbsAliquotaPct
+          : undefined,
     }
   } catch {
     return null
