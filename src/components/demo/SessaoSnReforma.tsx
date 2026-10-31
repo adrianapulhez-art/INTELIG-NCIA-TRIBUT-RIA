@@ -283,7 +283,7 @@ export function SessaoSnSection({
       ? String(configSalvaInicial.cbsAliquotaPct).replace('.', ',')
       : '',
   )
-  const cbsAliquotaPct = useMemo(() => {
+  const cbsSessaoPct = useMemo(() => {
     const v = parseBRNumber(cbsAliquotaInput)
     return Number.isFinite(v) && v > 0 ? v : CBS_REFERENCIA_2027
   }, [cbsAliquotaInput])
@@ -384,7 +384,7 @@ export function SessaoSnSection({
       valorIcmsInput,
       valorCbsInput,
       valorIbsInput,
-      cbsAliquotaPct,
+      cbsAliquotaPct: cbsSessaoPct,
     })
   }, [
     anexoId,
@@ -395,7 +395,7 @@ export function SessaoSnSection({
     valorIcmsInput,
     valorCbsInput,
     valorIbsInput,
-    cbsAliquotaPct,
+    cbsSessaoPct,
   ])
 
   // Sincroniza parâmetros quando o exercício da página muda, ou quando usuário troca anexo/faixa/RBT12
@@ -479,8 +479,8 @@ export function SessaoSnSection({
 
   // Linha do cronograma com a CBS ESTABELECIDA NA SESSÃO (fonte única dos CARDs)
   const rowComCbsSessao = useMemo(
-    () => aplicarOverrideCbsArt12(row, cbsAliquotaPct),
-    [row, cbsAliquotaPct],
+    () => aplicarOverrideCbsArt12(row, cbsSessaoPct),
+    [row, cbsSessaoPct],
   )
 
   // RESULTADO POR ITEM — OS DOIS FORNECEDORES SEMPRE (comparação lado a lado)
@@ -1584,7 +1584,7 @@ export function SessaoSnSection({
                     <span className="text-[10px] font-mono text-slate-500">
                       {cbsAliquotaInput === ''
                         ? 'usando a referência 2027'
-                        : `em vigor: ${formatNumberBR(cbsAliquotaPct, 2)}%`}
+                        : `em vigor: ${formatNumberBR(cbsSessaoPct, 2)}%`}
                     </span>
                   </div>
 
