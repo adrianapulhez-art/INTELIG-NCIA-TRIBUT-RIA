@@ -262,7 +262,22 @@ export function MarkupPosPage() {
   // exatamente a divergência "teste passa, tela mostra outro número". O parâmetro do espelho
   // passa a ser sempre o do cronograma oficial 2027, como no teste.
   const sessaoSnConfig = useMemo(() => carregarConfigSessaoSN(), [])
-  const cbsComprasEfetiva: number | undefined = sessaoSnConfig?.cbsAliquotaPct
+  // CBS DE ENTRADA: a MESMA que a Calculadora de Compras usa no campo do topo
+  // ('it_reforma_cbs_aliquota_v1', editável em 2027/2028). Esse campo alimenta as
+  // células do ambiente do FORNECEDOR na Compras; ler outra fonte aqui fazia o
+  // Markup divergir da tela ao lado quando o contador digita uma projeção própria.
+  // Ordem: campo do topo da Compras -> CBS da Sessão SN -> referência 2027 do motor.
+  const cbsTopoCompras = useMemo(() => {
+    try {
+      const raw = window.localStorage.getItem('it_reforma_cbs_aliquota_v1')
+      if (!raw) return undefined
+      const v = Number(raw)
+      return Number.isFinite(v) && v > 0 ? v : undefined
+    } catch {
+      return undefined
+    }
+  }, [])
+  const cbsComprasEfetiva: number | undefined = cbsTopoCompras ?? sessaoSnConfig?.cbsAliquotaPct
   const perfilSnSessao = useMemo(() => obterPerfilSessaoOuChancela(), [sessaoSnConfig])
 
   const espelhoCard03Compras = useMemo(() => {
@@ -858,10 +873,13 @@ export function MarkupPosPage() {
                       <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 space-y-2">
                         <div className="space-y-0.5">
                           <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                            <span>Custo Card 03 (2027):</span>
+                            <span>Custo de Hoje:</span>
                             <span className="line-through text-slate-400">
                               {formatBRL(col.custoHoje)}
                             </span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] font-mono text-[#5c3e06]">
+                            <span className="font-bold">Custo Card 03 (2027):</span>
                           </div>
                           <div className="flex items-baseline justify-between">
                             <span className="text-sm font-black font-mono text-[#261502]">
