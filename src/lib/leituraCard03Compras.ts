@@ -163,6 +163,16 @@ export function lerEspelhoComprasCard03(
     input.cbsAliquotaPct ?? input.cbsRateOverride ?? obterCbsSessaoSn() ?? CBS_REFERENCIA_2027
   const rowBase2027 = CRONOGRAMA_ART12.find((r) => r.exercicio === 2027) || CRONOGRAMA_ART12[1]
   const row2027 = aplicarOverrideCbsArt12(rowBase2027, cbsEfetivaPct)
+
+  // CBS DA SESSÃO SN — fonte da NOTA do fornecedor SIMPLES HÍBRIDO.
+  // DIVERGÊNCIA REAL ENTRE AS DUAS CBS (comprovada nos prints da Adri, 31/10): a Sessão SN
+  // aplica a SUA própria alíquota (campo "CBS do ano", default 9,14%) em todas as suas células,
+  // inclusive na nota do fornecedor híbrido. O campo do topo da Compras
+  // ('it_reforma_cbs_aliquota_v1') NÃO chega lá. Por isso, com 11,24% no topo, o Card 03 mostra
+  // SNH × SNP = 1.526,08 (nota 45.782,32, construída a 9,14%) e não 1.554,73 (46.641,93).
+  // As células de fornecedor SN HÍBRIDO seguem esta linha; as plenas e a de SN puro, a do topo.
+  const cbsSessaoPct = obterCbsSessaoSn() ?? CBS_REFERENCIA_2027
+  const rowSn2027 = aplicarOverrideCbsArt12(rowBase2027, cbsSessaoPct)
   const inputEfetivo = input.inputPleno ?? CASO_CANONICO_ART12
   const itemEfetivo = input.item
 
@@ -292,7 +302,7 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'simples_hibrido',
             perfilFornecedorSN: perfilFornecedorSNHibrido,
           },
-          row2027,
+          rowSn2027,
         )
       : computeCellArt12(
           inputEfetivo,
@@ -302,7 +312,7 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'simples_hibrido',
             perfilFornecedorSN: perfilFornecedorSNHibrido,
           },
-          row2027,
+          rowSn2027,
         )
 
     return {
@@ -436,7 +446,7 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'simples_hibrido',
             perfilFornecedorSN: perfilFornecedorSNHibrido,
           },
-          row2027,
+          rowSn2027,
         )
       : computeCellArt12(
           inputEfetivo,
@@ -446,7 +456,7 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'simples_hibrido',
             perfilFornecedorSN: perfilFornecedorSNHibrido,
           },
-          row2027,
+          rowSn2027,
         )
 
     return {
@@ -597,7 +607,7 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'simples_hibrido',
             perfilFornecedorSN: perfilFornecedorSNHibrido,
           },
-          row2027,
+          rowSn2027,
         )
       : computeCellArt12(
           inputEfetivo,
@@ -607,7 +617,7 @@ export function lerEspelhoComprasCard03(
             fornecedorRegime: 'simples_hibrido',
             perfilFornecedorSN: perfilFornecedorSNHibrido,
           },
-          row2027,
+          rowSn2027,
         )
 
     const custoSnpSnp2027 = celulaSnpSnp
@@ -800,7 +810,7 @@ export function lerEspelhoComprasCard03(
           fornecedorRegime: 'simples_hibrido',
           perfilFornecedorSN: perfilFornecedorSNHibrido,
         },
-        row2027,
+        rowSn2027,
       )
     : computeCellArt12(
         inputEfetivo,
@@ -810,7 +820,7 @@ export function lerEspelhoComprasCard03(
           fornecedorRegime: 'simples_hibrido',
           perfilFornecedorSN: perfilFornecedorSNHibrido,
         },
-        row2027,
+        rowSn2027,
       )
 
   return {
