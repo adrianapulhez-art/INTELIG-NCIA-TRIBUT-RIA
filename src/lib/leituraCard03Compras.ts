@@ -105,7 +105,7 @@ export const PERFIL_SN_DESTACADOS_OURO: PerfilSN = (() => {
     icmsFracPct: cfg.fracaoIcmsPct,
     cbsFracPct: cfg.fracaoCbsPct,
     ibsFracPct: cfg.fracaoIbsPct,
-    irpjCsllCppFracPct: cfg.fracaoIrpjCsllCppFracPct,
+    irpjCsllCppFracPct: cfg.fracaoIrpjCsllCppPct,
     baseDoDas: 'bruta',
   }
 })()
