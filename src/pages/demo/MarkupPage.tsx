@@ -1185,7 +1185,7 @@ export default function MarkupPage() {
                           onFocus={() => setIsProjectedRevenueFocused(true)}
                           onChange={handleProjectedRevenueChange}
                           onBlur={handleProjectedRevenueBlur}
-                          placeholder="20.000,00"
+                          placeholder="0,00"
                           className="pl-8 text-right font-mono text-xs h-8 field-input-interactive"
                         />
                       </div>
@@ -1379,25 +1379,42 @@ export default function MarkupPage() {
             )}
 
             {/* Lista item a item de Despesas Variáveis */}
-            <div className="bg-white border border-slate-200 rounded-xl divide-y divide-slate-100 text-xs font-mono overflow-hidden shadow-sm">
-              {variableExpenses.map((dv) => (
-                <VariableExpenseRow
-                  key={dv.id}
-                  dv={dv}
-                  onUpdate={updateVariableExpense}
-                  onRemove={removeVariableExpense}
-                />
-              ))}
-              {/* Linha de Total */}{' '}
-              <div className="px-3.5 py-2.5 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-[#fff5cc] border-t border-amber-900/60 flex items-center justify-between text-xs font-bold font-mono">
-                <span className="text-[#fff5cc] uppercase font-bold">
-                  Total Despesas Variáveis (Σ DV)
-                </span>
-                <span className="text-[#e5b742] text-sm font-bold">
-                  {formatPercentBR(totalVariableExpenseRate)}
-                </span>
+            {variableExpenses.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-amber-300/80 bg-amber-50/40 p-4 text-center space-y-2">
+                <p className="text-xs text-slate-600 font-mono leading-relaxed">
+                  Nenhuma despesa variável configurada. A lista nasce vazia para digitação manual
+                  (ex.: Maquininha ~3%, Comissão ~2%, Frete ~0–5%).
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setShowAddDvForm(true)}
+                  className="h-8 text-xs bg-gradient-to-b from-[#ffd966] via-[#f5b014] to-[#8f5204] text-[#1a0c01] font-bold shadow-xs hover:brightness-110 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar despesa variável
+                </Button>
               </div>
-            </div>
+            ) : (
+              <div className="bg-white border border-slate-200 rounded-xl divide-y divide-slate-100 text-xs font-mono overflow-hidden shadow-sm">
+                {variableExpenses.map((dv) => (
+                  <VariableExpenseRow
+                    key={dv.id}
+                    dv={dv}
+                    onUpdate={updateVariableExpense}
+                    onRemove={removeVariableExpense}
+                  />
+                ))}
+                {/* Linha de Total */}{' '}
+                <div className="px-3.5 py-2.5 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-[#fff5cc] border-t border-amber-900/60 flex items-center justify-between text-xs font-bold font-mono">
+                  <span className="text-[#fff5cc] uppercase font-bold">
+                    Total Despesas Variáveis (Σ DV)
+                  </span>
+                  <span className="text-[#e5b742] text-sm font-bold">
+                    {formatPercentBR(totalVariableExpenseRate)}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Seção % Tributos: ICMS, PIS, COFINS e adicionais (oculto quando o regime for Simples Nacional) */}

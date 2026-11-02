@@ -1079,17 +1079,14 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [customTaxesMarkup, setCustomTaxesMarkup] = useState<CustomTaxItem[]>([])
 
   // Despesas Variáveis (DV) aplicadas aos 3 regimes (taxa maquininha, comissão, frete, etc.)
-  const [variableExpenses, setVariableExpenses] = useState<VariableExpenseItem[]>([
-    { id: 'dv-1', name: 'Taxa de maquininha / cartão', rate: 3.0 },
-    { id: 'dv-2', name: 'Comissão de vendedores', rate: 2.0 },
-    { id: 'dv-3', name: 'Frete de entrega', rate: 0.0 },
-  ])
+  // Regra Adri: sem cenário gravado, campos editáveis nascem vazios/zerados (sem valores de exemplo)
+  const [variableExpenses, setVariableExpenses] = useState<VariableExpenseItem[]>([])
 
   // Bloco Inteligente Simples Nacional (Porta 1 vs Porta 2)
   const [simplesIsActiveMoreThan12m, setSimplesIsActiveMoreThan12mState] = useState<boolean>(true) // Porta 2 por padrão
   const [simplesActivityMonths, setSimplesActivityMonthsState] = useState<number>(1) // 1 a 12 meses
   const [simplesMonthlyProjectedRevenue, setSimplesMonthlyProjectedRevenueState] =
-    useState<number>(20000)
+    useState<number>(0)
   const [simplesSelectedScenario, setSimplesSelectedScenarioState] =
     useState<SimplesScenarioKey>('moderado')
 
@@ -4014,6 +4011,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAdditionalMargin(0)
     setIcmsRateMarkup(0)
     setCustomTaxesMarkup([])
+    setVariableExpenses([])
+    setSimplesMonthlyProjectedRevenueState(0)
     setMarkupProducts([
       {
         id: 'prod-1',
@@ -4338,7 +4337,7 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCustomTaxesMarkup(
         Array.isArray(snapshot.customTaxesMarkup) ? snapshot.customTaxesMarkup : [],
       )
-      if (Array.isArray(snapshot.variableExpenses) && snapshot.variableExpenses.length > 0) {
+      if (Array.isArray(snapshot.variableExpenses)) {
         setVariableExpenses(
           snapshot.variableExpenses.map((dv) => ({
             ...dv,
@@ -4346,6 +4345,8 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               typeof dv.rate === 'number' && Number.isFinite(dv.rate) ? Math.max(0, dv.rate) : 0,
           })),
         )
+      } else {
+        setVariableExpenses([])
       }
       if (Array.isArray(snapshot.markupProducts) && snapshot.markupProducts.length > 0) {
         setMarkupProducts(
@@ -4420,13 +4421,15 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCustomTaxesMarkup(
       Array.isArray(snapshot.customTaxesMarkup) ? snapshot.customTaxesMarkup : [],
     )
-    if (Array.isArray(snapshot.variableExpenses) && snapshot.variableExpenses.length > 0) {
+    if (Array.isArray(snapshot.variableExpenses)) {
       setVariableExpenses(
         snapshot.variableExpenses.map((dv) => ({
           ...dv,
           rate: typeof dv.rate === 'number' && Number.isFinite(dv.rate) ? Math.max(0, dv.rate) : 0,
         })),
       )
+    } else {
+      setVariableExpenses([])
     }
     if (snapshot.simplesIsActiveMoreThan12m !== undefined) {
       setSimplesIsActiveMoreThan12mState(Boolean(snapshot.simplesIsActiveMoreThan12m))
