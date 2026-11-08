@@ -572,20 +572,20 @@ export function MarkupCalculationMemoryModal({
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-[#b87c14]" />
                   <span className="text-xs font-mono font-bold text-[#261502] uppercase">
-                    Fórmula Multiplicativa no Simples Nacional
+                    Markup Divisor Aditivo no Simples Nacional
                   </span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-white border border-slate-200 font-mono text-xs text-slate-800 overflow-x-auto shadow-xs">
                   <code className="text-[#b87c14] font-semibold">
                     {isLiquid ? (
                       <>
-                        Divisor = (1 − DAS%) × (1 − DV%)
+                        Divisor = 1 − (DAS% + DV%)
                         <br />
                         Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
                       </>
                     ) : (
                       <>
-                        Divisor = (1 − DAS%) × (1 − DV%) × (1 − Margem%)
+                        Divisor = 1 − (DAS% + DV% + Margem%)
                         <br />
                         Preço Sugerido = Custo Unitário ÷ Divisor
                       </>
@@ -595,8 +595,8 @@ export function MarkupCalculationMemoryModal({
                 <p className="text-[11px] text-slate-600 leading-relaxed">
                   No Simples Nacional, os tributos sobre receita (ICMS, PIS, COFINS, IRPJ, CSLL e
                   CPP) são unificados no DAS pela alíquota efetiva do PGDAS calculada sobre a RBT12.
-                  O motor multiplicativo deduz os tributos e despesas variáveis antes de aplicar a
-                  margem líquida.
+                  O motor aditivo deduz os tributos, despesas variáveis e margem sobre a mesma base
+                  do preço de venda bruto (PV).
                 </p>
               </div>
 
@@ -1060,21 +1060,20 @@ export function MarkupCalculationMemoryModal({
                 <div className="flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-[#b87c14]" />
                   <span className="text-xs font-mono font-bold text-[#261502] uppercase">
-                    Fórmula Multiplicativa no Lucro Presumido
+                    Markup Divisor Aditivo no Lucro Presumido
                   </span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-white border border-slate-200 font-mono text-xs text-slate-800 overflow-x-auto shadow-xs">
                   <code className="text-[#b87c14] font-semibold">
                     {isLiquid ? (
                       <>
-                        Divisor = (1 − ICMS%) × (1 − 0,0365) × (1 − DV%)
+                        Divisor = 1 − (ICMS% + PIS 0,65% + COFINS 3,00% + DV%)
                         <br />
                         Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
                       </>
                     ) : (
                       <>
-                        Divisor = (1 − ICMS%) × (1 − PIS 0,65%) × (1 − COFINS 3,00%) × (1 − DV
-                        Total) × (1 − Margem%)
+                        Divisor = 1 − (ICMS% + PIS 0,65% + COFINS 3,00% + DV% + Margem%)
                         <br />
                         Preço Sugerido = Custo Unitário ÷ Divisor
                       </>
@@ -1083,8 +1082,8 @@ export function MarkupCalculationMemoryModal({
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
                   No Lucro Presumido cumulativo, o PIS (0,65%) e a COFINS (3,00%) incidem
-                  diretamente sobre a receita bruta, somados à alíquota de ICMS informada e às
-                  despesas variáveis de venda.
+                  diretamente sobre a receita bruta, somados aditivamente à alíquota de ICMS
+                  informada, às despesas variáveis de venda e à margem sobre o PV bruto.
                 </p>
               </div>
 
@@ -1128,11 +1127,12 @@ export function MarkupCalculationMemoryModal({
                         ③ Tributos Federais Cumulativos
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        PIS 0,65% (Lei 9.718/98) · Fator: {formatFactorBR(pisFactorPresumido, 4)}
+                        PIS: {formatPercentBR(pisPresumidoRate)} (Lei 9.718/98) · Parcela:{' '}
+                        {formatFactorBR(pisPresumidoRate / 100, 4)}
                       </span>
                       <span className="text-[10px] text-slate-500 block">
-                        COFINS 3,00% (Lei 9.718/98) · Fator:{' '}
-                        {formatFactorBR(cofinsFactorPresumido, 4)}
+                        COFINS: {formatPercentBR(cofinsPresumidoRate)} (Lei 9.718/98) · Parcela:{' '}
+                        {formatFactorBR(cofinsPresumidoRate / 100, 4)}
                       </span>
                     </div>
                     <span className="font-bold text-slate-900 text-right">3,65%</span>
@@ -1153,7 +1153,7 @@ export function MarkupCalculationMemoryModal({
                         {formatPercentBR(icmsRateClean)}
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        Fator: {formatFactorBR(icmsFactorPresumido, 4)}
+                        Parcela: {formatFactorBR(icmsRateClean / 100, 4)}
                       </span>
                     </div>
                   </div>
@@ -1162,17 +1162,14 @@ export function MarkupCalculationMemoryModal({
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-50">
                     <div>
                       <span className="font-bold text-[#261502] block">
-                        ⑤ Carga Tributária Total Decomposta
+                        ⑤ Carga Tributária Total Aditiva
                       </span>
                       <span className="text-[10px] text-slate-500">
                         ICMS {formatPercentBR(icmsRateClean)} + PIS 0,65% + COFINS 3,00%
-                        {isLiquid ? ` = ${formatPercentBR(totalTaxesPresumidoRate)}` : ''}
                       </span>
                     </div>
                     <span className="font-bold text-[#b87c14]">
-                      {isLiquid
-                        ? `Alíquota: ${formatPercentBR(totalTaxesPresumidoRate)}`
-                        : `Fator: ${formatFactorBR(taxFactorPresumidoDecomposto, 4)}`}
+                      {formatPercentBR(totalTaxesPresumidoRate)}
                     </span>
                   </div>
 
@@ -1328,8 +1325,8 @@ export function MarkupCalculationMemoryModal({
                     <p className="text-[11px] text-slate-700 leading-relaxed font-sans">
                       A blindagem protege a lucratividade contra volatilidades de mercado e
                       comissões extras. Ao travar as despesas variáveis e a carga integral no
-                      divisor multiplicativo, garante-se que a margem planejada não seja corroída
-                      mesmo com aumentos transitórios de custos operacionais.
+                      divisor aditivo, garante-se que a margem planejada não seja corroída mesmo com
+                      aumentos transitórios de custos operacionais.
                     </p>
                   </div>
                 </div>
@@ -1468,21 +1465,20 @@ export function MarkupCalculationMemoryModal({
                 <div className="flex items-center gap-2">
                   <Percent className="w-4 h-4 text-[#b87c14]" />
                   <span className="text-xs font-mono font-bold text-[#261502] uppercase">
-                    Fórmula Multiplicativa no Lucro Real
+                    Markup Divisor Aditivo no Lucro Real
                   </span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-white border border-slate-200 font-mono text-xs text-slate-800 overflow-x-auto shadow-xs">
                   <code className="text-[#b87c14] font-semibold">
                     {isLiquid ? (
                       <>
-                        Divisor = (1 − ICMS%) × (1 − 0,0925) × (1 − DV%)
+                        Divisor = 1 − (ICMS% + PIS 1,65% + COFINS 7,60% + DV%)
                         <br />
                         Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
                       </>
                     ) : (
                       <>
-                        Divisor = (1 − ICMS%) × (1 − PIS 1,65%) × (1 − COFINS 7,60%) × (1 − DV
-                        Total) × (1 − Margem%)
+                        Divisor = 1 − (ICMS% + PIS 1,65% + COFINS 7,60% + DV% + Margem%)
                         <br />
                         Preço Sugerido = Custo Unitário ÷ Divisor
                       </>
@@ -1490,9 +1486,9 @@ export function MarkupCalculationMemoryModal({
                   </code>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  No Lucro Real não cumulativo, as alíquotas de PIS (1,65%) e COFINS (7,60%) incidem
-                  integralmente sobre a venda, gerando créditos nas compras que reduzem o CMV
-                  líquido.
+                  No Lucro Real não cumulativo, as alíquotas de PIS (1,65%) e COFINS (7,60%)
+                  somam-se ao ICMS, despesas variáveis e margem no divisor aditivo sobre o PV bruto.
+                  Os créditos das compras reduzem diretamente o CMV líquido na DRE.
                 </p>
               </div>
 
@@ -1534,10 +1530,12 @@ export function MarkupCalculationMemoryModal({
                         ③ PIS e COFINS Não Cumulativos
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        PIS 1,65% · Fator: {formatFactorBR(pisFactorReal, 4)}
+                        PIS: {formatPercentBR(pisRealRate)} · Parcela:{' '}
+                        {formatFactorBR(pisRealRate / 100, 4)}
                       </span>
                       <span className="text-[10px] text-slate-500 block">
-                        COFINS 7,60% · Fator: {formatFactorBR(cofinsFactorReal, 4)}
+                        COFINS: {formatPercentBR(cofinsRealRate)} · Parcela:{' '}
+                        {formatFactorBR(cofinsRealRate / 100, 4)}
                       </span>
                     </div>
                     <span className="font-bold text-slate-900 text-right">9,25%</span>
@@ -1558,7 +1556,7 @@ export function MarkupCalculationMemoryModal({
                         {formatPercentBR(icmsRateClean)}
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        Fator: {formatFactorBR(icmsFactorReal, 4)}
+                        Parcela: {formatFactorBR(icmsRateClean / 100, 4)}
                       </span>
                     </div>
                   </div>
@@ -1567,17 +1565,14 @@ export function MarkupCalculationMemoryModal({
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-50">
                     <div>
                       <span className="font-bold text-[#261502] block">
-                        ⑤ Carga Tributária Total Decomposta
+                        ⑤ Carga Tributária Total Aditiva
                       </span>
                       <span className="text-[10px] text-slate-500">
                         ICMS {formatPercentBR(icmsRateClean)} + PIS 1,65% + COFINS 7,60%
-                        {isLiquid ? ` = ${formatPercentBR(totalTaxesRealRate)}` : ''}
                       </span>
                     </div>
                     <span className="font-bold text-[#b87c14]">
-                      {isLiquid
-                        ? `Alíquota: ${formatPercentBR(totalTaxesRealRate)}`
-                        : `Fator: ${formatFactorBR(taxFactorRealDecomposto, 4)}`}
+                      {formatPercentBR(totalTaxesRealRate)}
                     </span>
                   </div>
 

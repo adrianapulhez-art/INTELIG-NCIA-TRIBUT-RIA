@@ -3894,10 +3894,10 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const firstProduct = updatedProducts[0]
     const activeHeaderTaxFactor = firstProduct
       ? firstProduct.taxFactor
-      : getDivisorWithoutMarginForRegime(regime)
+      : getDivisorPreForRegime(regime, 0, false)
     let legacyCompleteFactor = firstProduct
       ? firstProduct.completeFactor
-      : activeHeaderTaxFactor * (1 - (additionalMargin || 0) / 100)
+      : getDivisorPreForRegime(regime, additionalMargin || 0, true)
     if (activeHeaderTaxFactor < 1 && legacyCompleteFactor >= 1) {
       legacyCompleteFactor = activeHeaderTaxFactor
     }
