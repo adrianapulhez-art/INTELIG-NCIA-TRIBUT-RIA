@@ -1114,28 +1114,56 @@ export function MarkupCalculationMemoryModal({
                     <div>
                       <span className="font-bold text-slate-900 block">② Base de Incidência</span>
                       <span className="text-[10px] text-slate-500">
-                        Receita bruta da operação de saída
+                        ICMS sobre PV bruto ({formatPercentBR(icmsRateClean)}) · PIS/COFINS sobre PV
+                        deduzido do ICMS destacado (
+                        {formatPercentBR(Math.max(0, 100 - icmsRateClean))} do PV)
+                      </span>
+                      <span className="text-[10px] text-emerald-700 block font-medium">
+                        Parecer SEI nº 14483/2021 (exclusão do ICMS da base do PIS e da COFINS)
                       </span>
                     </div>
-                    <span className="font-bold text-slate-700">Incidência Direta</span>
+                    <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px]">
+                      ICMS Excluído
+                    </Badge>
                   </div>
 
                   {/* ③ Tributos Federais */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-900 block">
-                        ③ Tributos Federais Cumulativos
+                        ③ Tributos Federais Cumulativos (s/ base sem ICMS)
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        PIS: {formatPercentBR(pisPresumidoRate)} (Lei 9.718/98) · Parcela:{' '}
-                        {formatFactorBR(pisPresumidoRate / 100, 4)}
+                        PIS: {formatPercentBR(pisPresumidoRate)} nominal · Taxa efetiva s/ PV:{' '}
+                        {formatPercentBR(
+                          divisorResPresumido.parcelas.find((p) => p.chave === 'pis')
+                            ?.taxaEfetivaPct ?? 0.533,
+                          3,
+                        )}{' '}
+                        · {formatBRL(valorPisPresumido)}
                       </span>
                       <span className="text-[10px] text-slate-500 block">
-                        COFINS: {formatPercentBR(cofinsPresumidoRate)} (Lei 9.718/98) · Parcela:{' '}
-                        {formatFactorBR(cofinsPresumidoRate / 100, 4)}
+                        COFINS: {formatPercentBR(cofinsPresumidoRate)} nominal · Taxa efetiva s/ PV:{' '}
+                        {formatPercentBR(
+                          divisorResPresumido.parcelas.find((p) => p.chave === 'cofins')
+                            ?.taxaEfetivaPct ?? 2.46,
+                          3,
+                        )}{' '}
+                        · {formatBRL(valorCofinsPresumido)}
                       </span>
                     </div>
-                    <span className="font-bold text-slate-900 text-right">3,65%</span>
+                    <div className="text-right">
+                      <span className="font-bold text-slate-900 text-sm block">
+                        {formatPercentBR(
+                          (divisorResPresumido.parcelas.find((p) => p.chave === 'pis')
+                            ?.taxaEfetivaPct ?? 0.533) +
+                            (divisorResPresumido.parcelas.find((p) => p.chave === 'cofins')
+                              ?.taxaEfetivaPct ?? 2.46),
+                          3,
+                        )}
+                      </span>
+                      <span className="text-[10px] text-slate-500">efetivo sobre PV</span>
+                    </div>
                   </div>
 
                   {/* ④ ICMS Estadual */}
@@ -1145,7 +1173,8 @@ export function MarkupCalculationMemoryModal({
                         ④ ICMS Estadual sobre Venda
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        Alíquota configurada para operações internas
+                        Alíquota interna sobre o PV bruto · Destaque:{' '}
+                        {formatBRL(valorIcmsPresumido)}
                       </span>
                     </div>
                     <div className="text-right">
@@ -1162,15 +1191,31 @@ export function MarkupCalculationMemoryModal({
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-50">
                     <div>
                       <span className="font-bold text-[#261502] block">
-                        ⑤ Carga Tributária Total Aditiva
+                        ⑤ Carga Tributária Total Aditiva (Taxas Efetivas)
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        ICMS {formatPercentBR(icmsRateClean)} + PIS 0,65% + COFINS 3,00%
+                        ICMS {formatPercentBR(icmsRateClean, 3)} + PIS{' '}
+                        {formatPercentBR(
+                          divisorResPresumido.parcelas.find((p) => p.chave === 'pis')
+                            ?.taxaEfetivaPct ?? 0.533,
+                          3,
+                        )}{' '}
+                        + COFINS{' '}
+                        {formatPercentBR(
+                          divisorResPresumido.parcelas.find((p) => p.chave === 'cofins')
+                            ?.taxaEfetivaPct ?? 2.46,
+                          3,
+                        )}
                       </span>
                     </div>
-                    <span className="font-bold text-[#b87c14]">
-                      {formatPercentBR(totalTaxesPresumidoRate)}
-                    </span>
+                    <div className="text-right">
+                      <span className="font-bold text-[#b87c14] text-sm block">
+                        {formatPercentBR(totalTaxesPresumidoRate, 3)}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        Total tributos: {formatBRL(valorTributosPresumido)}
+                      </span>
+                    </div>
                   </div>
 
                   {/* ⑥ Custo Unitário */}
@@ -1275,11 +1320,69 @@ export function MarkupCalculationMemoryModal({
                     </span>
                   </div>
 
-                  {/* ⑪ Distribuição do preço em R$ */}
-                  <div className="p-3.5 bg-slate-50 space-y-2 border-l-2 border-amber-600">
-                    <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
-                      ⑪ Distribuição Didática do Preço de Venda ({formatBRL(pvPresumido)})
-                    </span>
+                  {/* ⑪ Distribuição do preço em R$ e Decomposição Tributária */}
+                  <div className="p-3.5 bg-slate-50 space-y-3 border-l-2 border-amber-600">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
+                        ⑪ Decomposição Tributária e Identidade ({formatBRL(pvPresumido)})
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-800 font-semibold">
+                        Custo ({formatBRL(baseValue)}) + Trib ({formatBRL(valorTributosPresumido)})
+                        + DV ({formatBRL(valorDvPresumido)}) + Lucro (
+                        {formatBRL(valorMargemPresumido)}) ={' '}
+                        {formatBRL(
+                          Math.round(
+                            (baseValue +
+                              valorTributosPresumido +
+                              valorDvPresumido +
+                              valorMargemPresumido) *
+                              100,
+                          ) / 100,
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Tabela de incidência tributária com ICMS excluído */}
+                    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                      <table className="w-full text-[11px] font-mono border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
+                            <th className="text-left py-1.5 px-2 font-semibold">Tributo</th>
+                            <th className="text-left py-1.5 px-2 font-semibold">
+                              Base de Incidência
+                            </th>
+                            <th className="text-right py-1.5 px-2 font-semibold">ICMS Excluído</th>
+                            <th className="text-right py-1.5 px-2 font-semibold">Alíq. Nominal</th>
+                            <th className="text-right py-1.5 px-2 font-semibold">Taxa s/ PV</th>
+                            <th className="text-right py-1.5 px-2 font-semibold">Valor Unit.</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {decomposicaoPresumido.detalheTributos.map((t) => (
+                            <tr key={t.chave}>
+                              <td className="py-1 px-2 font-bold text-slate-800">{t.nome}</td>
+                              <td className="py-1 px-2 text-slate-600">
+                                {formatBRL(t.baseCalculo)}{' '}
+                                <span className="text-[10px] text-slate-400">({t.baseLabel})</span>
+                              </td>
+                              <td className="py-1 px-2 text-right text-emerald-700 font-medium">
+                                {t.icmsExcluido ? formatBRL(t.icmsExcluido) : '—'}
+                              </td>
+                              <td className="py-1 px-2 text-right text-slate-700">
+                                {formatPercentBR(t.aliquotaNominalPct, 2)}
+                              </td>
+                              <td className="py-1 px-2 text-right font-semibold text-[#b87c14]">
+                                {formatPercentBR(t.taxaEfetivaSobrePvPct, 3)}
+                              </td>
+                              <td className="py-1 px-2 text-right font-bold text-slate-900">
+                                {formatBRL(t.valor)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
                         <span className="text-[10px] text-slate-500 block uppercase">
@@ -1289,7 +1392,7 @@ export function MarkupCalculationMemoryModal({
                       </div>
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
                         <span className="text-[10px] text-amber-800 block uppercase">
-                          Tributos (ICMS/PIS/COF)
+                          Tributos (Total)
                         </span>
                         <span className="font-bold text-amber-700">
                           {formatBRL(valorTributosPresumido)}
@@ -1305,10 +1408,14 @@ export function MarkupCalculationMemoryModal({
                       </div>
                       <div className="p-2 rounded bg-amber-50 border border-amber-300 shadow-xs">
                         <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
-                          Margem em R$
+                          Margem / Lucro (R$)
                         </span>
                         <span className="font-bold text-[#261502]">
-                          {formatBRL(valorMargemPresumido)}
+                          {formatBRL(valorMargemPresumido)} (
+                          {pvPresumido > 0
+                            ? formatPercentBR((valorMargemPresumido / pvPresumido) * 100, 2)
+                            : '0%'}
+                          )
                         </span>
                       </div>
                     </div>

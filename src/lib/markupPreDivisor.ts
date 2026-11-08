@@ -24,6 +24,10 @@ export interface MarkupPreParcela {
   baseLabel: string
   /** Categoria da dedução */
   tipo: 'tributo' | 'dv' | 'margem'
+  /** Percentual da base de incidência sobre o PV (ex: 82% no caso de exclusão do ICMS de 18%) */
+  basePctDoPv?: number
+  /** Se o ICMS foi excluído da base desta parcela */
+  icmsExcluidoDaBase?: boolean
 }
 
 export interface MarkupPreDivisorResultado {
@@ -46,7 +50,16 @@ export interface DecomposicaoPrecoPre {
   somaComponentes: number
   diferencaCentavos: number
   margemEfetivaPct: number
-  detalheTributos: Array<{ nome: string; valor: number; taxaEfetivaPct: number }>
+  detalheTributos: Array<{
+    chave?: string
+    nome: string
+    valor: number
+    taxaEfetivaPct: number
+    taxaNominalPct?: number
+    baseCalculo?: number
+    icmsExcluido?: number
+    baseLabel?: string
+  }>
 }
 
 // PIS 0,65% + COFINS 3,00% (Lei 9.718/98, cumulativos) — base: receita bruta (PV)
@@ -72,7 +85,12 @@ export function calcularMarkupDivisorPre(params: {
   marginPct?: number
   /** false no modo Receita Líquida (a margem não entra no divisor) */
   comMargem?: boolean
-  /** Se true, calcula PIS/COFINS sobre (PV − ICMS) gerando taxa efetiva sobre PV (Parecer SEI nº 14483/2021) */
+  /**
+   * Exclusão do ICMS destacado da base do PIS e COFINS (Parecer SEI nº 14483/2021 / Tese do Século RE 574.706).
+   * No Lucro Presumido e Lucro Real, o padrão é true (exclusão aplicável à operação de saída).
+   * Passe explicitamente false apenas para cenários de controle em que a exclusão não se aplica.
+   * No Simples Nacional, nunca se aplica (carga da venda é do DAS).
+   */
   excluirIcmsBasePisCofins?: boolean
 }): MarkupPreDivisorResultado {
   const num = (v: number | undefined) => (Number.isFinite(v) ? Math.max(0, v!) : 0)
@@ -81,7 +99,13 @@ export function calcularMarkupDivisorPre(params: {
   const dv = num(params.dvRatePct)
   const margem = num(params.marginPct)
   const customs = Array.isArray(params.customTaxesPct) ? params.customTaxesPct : []
-  const excluirIcms = Boolean(params.excluirIcmsBasePisCofins)
+
+  // No Simples Nacional a exclusão não se aplica (carga tributária é do DAS).
+  // No Lucro Presumido e Lucro Real, a exclusão é o padrão legal (Parecer SEI 14483/2021),
+  // a menos que explicitamente desligada (false) para cenários de controle.
+  const aplicarExclusao =
+    params.regime !== 'simples' &&
+    (params.excluirIcmsBasePisCofins !== undefined ? params.excluirIcmsBasePisCofins : true)
 
   const parcelas: MarkupPreParcela[] = []
   const push = (
@@ -91,6 +115,8 @@ export function calcularMarkupDivisorPre(params: {
     taxaEfetivaPct: number,
     baseLabel: string,
     tipo: 'tributo' | 'dv' | 'margem',
+    basePctDoPv?: number,
+    icmsExcluidoDaBase?: boolean,
   ) => {
     if (taxaEfetivaPct > 0 || taxaNominalPct > 0) {
       parcelas.push({
@@ -100,6 +126,8 @@ export function calcularMarkupDivisorPre(params: {
         taxaEfetivaPct,
         baseLabel,
         tipo,
+        basePctDoPv,
+        icmsExcluidoDaBase,
       })
     }
   }
@@ -107,6 +135,7 @@ export function calcularMarkupDivisorPre(params: {
   let somaTributos = 0
 
   if (params.regime === 'simples') {
+    // Simples Nacional: NÃO aplicar fórmula de exclusão — carga pelo DAS unificado
     push(
       'das',
       'DAS (PGDAS)',
@@ -114,16 +143,22 @@ export function calcularMarkupDivisorPre(params: {
       das,
       'PV — ICMS/PIS/COFINS já integrados no DAS (PGDAS-D)',
       'tributo',
+      100,
+      false,
     )
     somaTributos += das
   } else {
-    push('icms', 'ICMS', icms, icms, 'PV — operação de saída', 'tributo')
+    // ICMS destacado da operação de saída compõe a carga da venda integralmente
+    push('icms', 'ICMS', icms, icms, 'PV — operação de saída', 'tributo', 100, false)
     somaTributos += icms
 
-    const fatorExclusao = excluirIcms ? Math.max(0, 1 - icms / 100) : 1
-    const basePisCofinsLabel = excluirIcms
-      ? 'PV − ICMS destacado (Parecer SEI nº 14483/2021)'
-      : 'PV — receita bruta'
+    // Base do PIS/COFINS = PV − ICMS destacado = PV × (1 − icms / 100)
+    // Evita dupla dedução: basePctDoPv reflete exatamente a base resultante em % do PV.
+    const basePctDoPv = aplicarExclusao ? Math.max(0, 100 - icms) : 100
+    const fatorExclusao = basePctDoPv / 100
+    const basePisCofinsLabel = aplicarExclusao
+      ? `PV − ICMS destacado (${(100 - icms).toFixed(1).replace('.', ',')}% do PV - Parecer SEI nº 14483/2021)`
+      : 'PV — receita bruta integral'
 
     if (params.regime === 'presumido') {
       const pisEfetivo = PIS_PRESUMIDO_PCT * fatorExclusao
@@ -135,6 +170,8 @@ export function calcularMarkupDivisorPre(params: {
         pisEfetivo,
         `${basePisCofinsLabel} (cumulativo)`,
         'tributo',
+        basePctDoPv,
+        aplicarExclusao,
       )
       push(
         'cofins',
@@ -143,9 +180,13 @@ export function calcularMarkupDivisorPre(params: {
         cofinsEfetivo,
         `${basePisCofinsLabel} (cumulativo)`,
         'tributo',
+        basePctDoPv,
+        aplicarExclusao,
       )
       somaTributos += pisEfetivo + cofinsEfetivo
     } else {
+      // Lucro Real: débitos de venda com exclusão do ICMS na saída;
+      // créditos de entrada já deduzem o CMV líquido das compras (sem dupla contagem).
       const pisEfetivo = PIS_REAL_PCT * fatorExclusao
       const cofinsEfetivo = COFINS_REAL_PCT * fatorExclusao
       push(
@@ -155,6 +196,8 @@ export function calcularMarkupDivisorPre(params: {
         pisEfetivo,
         `${basePisCofinsLabel} (não cumulativo / débito venda)`,
         'tributo',
+        basePctDoPv,
+        aplicarExclusao,
       )
       push(
         'cofins',
@@ -163,6 +206,8 @@ export function calcularMarkupDivisorPre(params: {
         cofinsEfetivo,
         `${basePisCofinsLabel} (não cumulativo / débito venda)`,
         'tributo',
+        basePctDoPv,
+        aplicarExclusao,
       )
       somaTributos += pisEfetivo + cofinsEfetivo
     }
@@ -221,7 +266,7 @@ export function decomporPrecoVendaPre(
 
   let valorTributos = 0
   let valorDv = 0
-  const detalheTributos: Array<{ nome: string; valor: number; taxaEfetivaPct: number }> = []
+  const detalheTributos: DecomposicaoPrecoPre['detalheTributos'] = []
 
   const targetTributos = Math.round(pv * (resultadoDivisor.somaTributosPct / 100) * 100) / 100
   const targetDv = Math.round(pv * (resultadoDivisor.somaDvPct / 100) * 100) / 100
@@ -231,7 +276,24 @@ export function decomporPrecoVendaPre(
     if (parcela.tipo === 'tributo') {
       const v = Math.round(pv * (parcela.taxaEfetivaPct / 100) * 100) / 100
       sumLines += v
-      detalheTributos.push({ nome: parcela.nome, valor: v, taxaEfetivaPct: parcela.taxaEfetivaPct })
+
+      // Base de cálculo em reais e ICMS excluído desta parcela
+      const basePct = parcela.basePctDoPv !== undefined ? parcela.basePctDoPv : 100
+      const baseCalculo = Math.round(pv * (basePct / 100) * 100) / 100
+      const icmsExcluido = parcela.icmsExcluidoDaBase
+        ? Math.round((pv - baseCalculo) * 100) / 100
+        : 0
+
+      detalheTributos.push({
+        chave: parcela.chave,
+        nome: parcela.nome,
+        valor: v,
+        taxaEfetivaPct: parcela.taxaEfetivaPct,
+        taxaNominalPct: parcela.taxaNominalPct,
+        baseCalculo,
+        icmsExcluido,
+        baseLabel: parcela.baseLabel,
+      })
     }
   }
 

@@ -31,7 +31,7 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
    *   PV = 328,00 ÷ 0,3535 = 927,864214... → 927,86
    */
   describe('Cenário Controlado dos 3 Itens', () => {
-    it('Item 1: custo R$ 434,60, margem 35% → divisor 0,4035 e PV R$ 1.077,08', () => {
+    it('Item 1: custo R$ 434,60, margem 35% → divisor 0,4035 e PV R$ 1.077,08 (cenário de controle sem exclusão ICMS)', () => {
       const res = calcularMarkupDivisorPre({
         regime: 'presumido',
         icmsRatePct: 17,
@@ -39,6 +39,7 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
         dvRatePct: 4,
         marginPct: 35,
         comMargem: true,
+        excluirIcmsBasePisCofins: false,
       })
 
       expect(res.somaTributosPct).toBeCloseTo(20.65, 4) // 17 + 0.65 + 3.0
@@ -49,7 +50,7 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
       expect(pv).toBe(1077.08)
     })
 
-    it('Item 2: custo R$ 467,40, margem 50% → divisor 0,2535 e PV R$ 1.843,79', () => {
+    it('Item 2: custo R$ 467,40, margem 50% → divisor 0,2535 e PV R$ 1.843,79 (cenário de controle sem exclusão ICMS)', () => {
       const res = calcularMarkupDivisorPre({
         regime: 'presumido',
         icmsRatePct: 17,
@@ -57,6 +58,7 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
         dvRatePct: 4,
         marginPct: 50,
         comMargem: true,
+        excluirIcmsBasePisCofins: false,
       })
 
       expect(res.somaDeducoesPct).toBeCloseTo(74.65, 4)
@@ -66,7 +68,7 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
       expect(pv).toBe(1843.79)
     })
 
-    it('Item 3: custo R$ 328,00, margem 40% → divisor 0,3535 e PV R$ 927,86', () => {
+    it('Item 3: custo R$ 328,00, margem 40% → divisor 0,3535 e PV R$ 927,86 (cenário de controle sem exclusão ICMS)', () => {
       const res = calcularMarkupDivisorPre({
         regime: 'presumido',
         icmsRatePct: 17,
@@ -74,6 +76,7 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
         dvRatePct: 4,
         marginPct: 40,
         comMargem: true,
+        excluirIcmsBasePisCofins: false,
       })
 
       expect(res.somaDeducoesPct).toBeCloseTo(64.65, 4)
@@ -300,15 +303,15 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
       expect(p3.salePriceCostMarginByRegime?.presumido).toBe(927.86)
     })
 
-    it('Cenário Canônico Adriana (Print Bug R$ 668,79 corrigido para R$ 844,27 com divisor 0,3885)', () => {
+    it('Cenário de Controle: Adriana sem exclusão de ICMS (divisor 0,3885 e PV 844,27)', () => {
       // Custo: 328,00, ICMS: 18%, PIS: 0,65%, COFINS: 3,00%, DV: 4,50%, Margem: 35% sobre PV bruto
-      // Tributos = 18 + 0,65 + 3,00 = 21,65%
+      // Sem exclusão do ICMS: Tributos = 18 + 0,65 + 3,00 = 21,65%
       // Divisor = 1 - (0,2165 + 0,045 + 0,35) = 0,3885
       // Preço esperado = 328 / 0,3885 = 844,2728... -> 844,27
       const produtosAdriana: MarkupProductItem[] = [
         {
-          id: 'item-adriana-print',
-          name: 'Item do Print Adriana',
+          id: 'item-adriana-controle',
+          name: 'Item do Print Adriana Controle',
           mode: 'cost_margin',
           cost: 328.0,
           desiredNetRevenue: 0,
@@ -331,6 +334,7 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
         customTaxes: [],
         simplesAnexo: 'anexo_1',
         effectiveSimplesRbt12: 180000,
+        excluirIcmsBasePisCofins: false,
       })
 
       const [p] = resultado
@@ -338,7 +342,7 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
       // 1. Divisor exibido deve ser 0,3885
       expect(p.completeFactor).toBeCloseTo(0.3885, 4)
 
-      // 2. Preço de venda unitário deve ser R$ 844,27 (NUNCA R$ 668,79)
+      // 2. Preço de venda unitário deve ser R$ 844,27
       expect(p.salePrice).toBe(844.27)
       expect(p.salePriceCostMarginByRegime?.presumido).toBe(844.27)
 
@@ -349,37 +353,32 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
         dvRatePct: 4.5,
         marginPct: 35,
         comMargem: true,
+        excluirIcmsBasePisCofins: false,
       })
       const dec = decomporPrecoVendaPre(p.salePrice, p.cost, divisorRes)
       expect(dec.precoVenda).toBe(844.27)
       expect(dec.custoUnitario).toBe(328.0)
-      // Tributos: 844,27 * (18% + 0,65% + 3%) = 151,97 + 5,49 + 25,33 = 182,79
       expect(dec.valorTributos).toBe(182.79)
-      // DV: 844,27 * 4,5% = 37,99
       expect(dec.valorDv).toBe(37.99)
-      // Lucro / Margem: 844,27 - 328 - 182,79 - 37,99 = 295,49
-      // Margem efetiva: 295,49 / 844,27 = 35,00%
       expect(dec.valorLucroMargem).toBe(295.49)
       expect(dec.margemEfetivaPct).toBeCloseTo(35.0, 1)
       expect(dec.somaComponentes).toBe(844.27)
       expect(dec.diferencaCentavos).toBe(0)
     })
 
-    it('Cenário de Patinete e Bicicleta (Prints do Usuário no Lucro Presumido)', () => {
+    it('Cenário de Controle: Patinete e Bicicleta sem exclusão de ICMS', () => {
       // Patinete: Custo R$ 410,00, Margem 52%, DV 4,50%, ICMS 18%, PIS 0,65%, COFINS 3,00%
       // Soma tributos: 21,65%
       // Divisor: 1 - (0,2165 + 0,045 + 0,52) = 0,2185
       // Preço: 410 / 0,2185 = 1.876,43
-      // Tributos sobre PV: 1.876,43 * 21,65% = 406,25 (conciliado com card Composição dos Tributos)
       //
       // Bicicleta: Custo R$ 246,00, Margem 48%, DV 4,50%, ICMS 18%, PIS 0,65%, COFINS 3,00%
       // Soma tributos: 21,65%
       // Divisor: 1 - (0,2165 + 0,045 + 0,48) = 0,2585
       // Preço: 246 / 0,2585 = 951,64
-      // Tributos sobre PV: 951,64 * 21,65% = 206,03 (conciliado com card Composição dos Tributos)
       const produtosPrints: MarkupProductItem[] = [
         {
-          id: 'patinete',
+          id: 'patinete-ctrl',
           name: 'Patinete',
           mode: 'cost_margin',
           cost: 410.0,
@@ -395,7 +394,7 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
           totalCost: 0,
         },
         {
-          id: 'bicicleta',
+          id: 'bicicleta-ctrl',
           name: 'Bicicleta',
           mode: 'cost_margin',
           cost: 246.0,
@@ -419,6 +418,7 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
         customTaxes: [],
         simplesAnexo: 'anexo_1',
         effectiveSimplesRbt12: 180000,
+        excluirIcmsBasePisCofins: false,
       })
 
       const [patinete, bicicleta] = resultado
@@ -432,15 +432,14 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
         dvRatePct: 4.5,
         marginPct: 52,
         comMargem: true,
+        excluirIcmsBasePisCofins: false,
       })
       const decPatinete = decomporPrecoVendaPre(patinete.salePrice, patinete.cost, divPatinete)
       expect(decPatinete.valorTributos).toBe(406.25)
       expect(decPatinete.valorDv).toBe(84.44)
       expect(decPatinete.valorLucroMargem).toBe(975.74)
-      // Identidade fundamental
       expect(decPatinete.somaComponentes).toBe(1876.43)
       expect(decPatinete.diferencaCentavos).toBe(0)
-      // Margem efetiva sobre PV bruto: 975,74 / 1876,43 = 52,00%
       expect(decPatinete.margemEfetivaPct).toBeCloseTo(52.0, 1)
 
       // 2. Bicicleta
@@ -452,15 +451,14 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
         dvRatePct: 4.5,
         marginPct: 48,
         comMargem: true,
+        excluirIcmsBasePisCofins: false,
       })
       const decBicicleta = decomporPrecoVendaPre(bicicleta.salePrice, bicicleta.cost, divBicicleta)
       expect(decBicicleta.valorTributos).toBe(206.03)
       expect(decBicicleta.valorDv).toBe(42.82)
       expect(decBicicleta.valorLucroMargem).toBe(456.79)
-      // Identidade fundamental
       expect(decBicicleta.somaComponentes).toBe(951.64)
       expect(decBicicleta.diferencaCentavos).toBe(0)
-      // Margem efetiva sobre PV bruto: 456,79 / 951,64 = 48,00%
       expect(decBicicleta.margemEfetivaPct).toBeCloseTo(48.0, 1)
     })
 
@@ -511,6 +509,274 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
       expect(pSimples.completeFactor).toBeCloseTo(0.565, 4)
       expect(pSimples.salePrice).toBe(580.53)
       expect(pSimples.salePriceCostMarginByRegime?.simples).toBe(580.53)
+    })
+  })
+
+  describe('Tabela de Regressão Oficial com Exclusão do ICMS da base do PIS/COFINS (Parecer SEI 14483/2021)', () => {
+    /**
+     * Parâmetros da regressão:
+     * Lucro Presumido, ICMS 18%, PIS 0,65%, COFINS 3,00%, DV 4,50%, margem 35% sobre PV bruto.
+     * Base PIS/COFINS = PV − ICMS destacado = PV × (1 − 18%) = 82% do PV
+     * Taxas efetivas sobre PV:
+     * - ICMS = 18,000%
+     * - PIS = 0,65% × 82% = 0,533%
+     * - COFINS = 3,00% × 82% = 2,460%
+     * - Total Tributos = 18,000% + 0,533% + 2,460% = 20,993%
+     * - DV = 4,500%
+     * - Margem = 35,000%
+     * Soma deduções = 20,993% + 4,500% + 35,000% = 60,493%
+     * Divisor = 1 − 0,60493 = 0,39507
+     *
+     * Tabela esperada:
+     * - Custo 328,00 → antes 844,27 → esperado APÓS o ajuste: 830,23 (328 / 0,39507 = 830,2326...)
+     * - Custo 410,00 → antes 1.055,34 → esperado: 1.037,79 (410 / 0,39507 = 1.037,7907...)
+     * - Custo 246,00 → antes 633,20 → esperado: 622,67 (246 / 0,39507 = 622,6744...)
+     */
+
+    it('calcula o divisor 0,39507 com alíquotas efetivas ICMS 18%, PIS 0,533%, COFINS 2,460% e total 20,993%', () => {
+      const res = calcularMarkupDivisorPre({
+        regime: 'presumido',
+        icmsRatePct: 18,
+        customTaxesPct: [],
+        dvRatePct: 4.5,
+        marginPct: 35,
+        comMargem: true,
+        excluirIcmsBasePisCofins: true,
+      })
+
+      expect(res.divisor).toBeCloseTo(0.39507, 5)
+      expect(res.somaTributosPct).toBeCloseTo(20.993, 3)
+      expect(res.somaDeducoesPct).toBeCloseTo(60.493, 3)
+
+      const icms = res.parcelas.find((p) => p.chave === 'icms')
+      const pis = res.parcelas.find((p) => p.chave === 'pis')
+      const cofins = res.parcelas.find((p) => p.chave === 'cofins')
+
+      expect(icms?.taxaEfetivaPct).toBeCloseTo(18.0, 3)
+      expect(pis?.taxaEfetivaPct).toBeCloseTo(0.533, 3)
+      expect(cofins?.taxaEfetivaPct).toBeCloseTo(2.46, 3)
+    })
+
+    it('Tabela Item 1: Custo 328,00 → Preço esperado 830,23 e fecha decomposição contábil', () => {
+      const custo = 328.0
+      const res = calcularMarkupDivisorPre({
+        regime: 'presumido',
+        icmsRatePct: 18,
+        customTaxesPct: [],
+        dvRatePct: 4.5,
+        marginPct: 35,
+        comMargem: true,
+        excluirIcmsBasePisCofins: true,
+      })
+
+      const pv = precoPeloDivisorPre(custo, res.divisor)
+      expect(pv).toBe(830.23)
+
+      const dec = decomporPrecoVendaPre(pv, custo, res)
+      expect(dec.precoVenda).toBe(830.23)
+      expect(dec.custoUnitario).toBe(328.0)
+      expect(dec.diferencaCentavos).toBe(0)
+      expect(dec.somaComponentes).toBe(830.23)
+
+      // Detalhe tributos
+      const tIcms = dec.detalheTributos.find((d) => d.chave === 'icms')
+      const tPis = dec.detalheTributos.find((d) => d.chave === 'pis')
+      const tCofins = dec.detalheTributos.find((d) => d.chave === 'cofins')
+
+      expect(tIcms?.baseCalculo).toBe(830.23)
+      expect(tIcms?.valor).toBe(149.44) // 830,23 * 18% = 149,4414 -> 149,44
+      expect(tPis?.icmsExcluido).toBe(149.44)
+      expect(tPis?.baseCalculo).toBe(680.79) // 830,23 - 149,44 = 680,79
+      expect(tPis?.valor).toBe(4.43) // 680,79 * 0,65% = 4,4251 -> 4,43
+      expect(tCofins?.icmsExcluido).toBe(149.44)
+      expect(tCofins?.baseCalculo).toBe(680.79)
+      expect(tCofins?.valor).toBe(20.42) // 680,79 * 3% = 20,4237 -> 20,42
+
+      // Identidade custo + tributos + DV + lucro = PV
+      // Trib = 149,44 + 4,43 + 20,42 = 174,29
+      // DV = 830,23 * 4,5% = 37,36
+      // Lucro = 830,23 - 328 - 174,29 - 37,36 = 290,58
+      // Margem = 290,58 / 830,23 = 35,00%
+      expect(dec.valorTributos).toBe(174.29)
+      expect(dec.valorDv).toBe(37.36)
+      expect(dec.valorLucroMargem).toBe(290.58)
+      expect(dec.margemEfetivaPct).toBeCloseTo(35.0, 1)
+    })
+
+    it('Tabela Item 2: Custo 410,00 → Preço esperado 1.037,79 e fecha decomposição contábil', () => {
+      const custo = 410.0
+      const res = calcularMarkupDivisorPre({
+        regime: 'presumido',
+        icmsRatePct: 18,
+        customTaxesPct: [],
+        dvRatePct: 4.5,
+        marginPct: 35,
+        comMargem: true,
+        excluirIcmsBasePisCofins: true,
+      })
+
+      const pv = precoPeloDivisorPre(custo, res.divisor)
+      expect(pv).toBe(1037.79)
+
+      const dec = decomporPrecoVendaPre(pv, custo, res)
+      expect(dec.precoVenda).toBe(1037.79)
+      expect(dec.custoUnitario).toBe(410.0)
+      expect(dec.diferencaCentavos).toBe(0)
+      expect(dec.somaComponentes).toBe(1037.79)
+      expect(dec.margemEfetivaPct).toBeCloseTo(35.0, 1)
+    })
+
+    it('Tabela Item 3: Custo 246,00 → Preço esperado 622,67 e fecha decomposição contábil', () => {
+      const custo = 246.0
+      const res = calcularMarkupDivisorPre({
+        regime: 'presumido',
+        icmsRatePct: 18,
+        customTaxesPct: [],
+        dvRatePct: 4.5,
+        marginPct: 35,
+        comMargem: true,
+        excluirIcmsBasePisCofins: true,
+      })
+
+      const pv = precoPeloDivisorPre(custo, res.divisor)
+      expect(pv).toBe(622.67)
+
+      const dec = decomporPrecoVendaPre(pv, custo, res)
+      expect(dec.precoVenda).toBe(622.67)
+      expect(dec.custoUnitario).toBe(246.0)
+      expect(dec.diferencaCentavos).toBe(0)
+      expect(dec.somaComponentes).toBe(622.67)
+      expect(dec.margemEfetivaPct).toBeCloseTo(35.0, 1)
+    })
+
+    it('Executa os 3 itens da tabela no fluxo de ponta a ponta do TaxContext', () => {
+      const produtosTabela: MarkupProductItem[] = [
+        {
+          id: 'item-328',
+          name: 'Produto Custo 328',
+          mode: 'cost_margin',
+          cost: 328.0,
+          desiredNetRevenue: 0,
+          margin: 35,
+          quantity: 1,
+          marginByRegime: { presumido: 35, real: 35, simples: 35 },
+          quantityByRegime: { presumido: 1, real: 1, simples: 1 },
+          salePrice: 0,
+          taxFactor: 0,
+          completeFactor: 0,
+          totalRevenue: 0,
+          totalCost: 0,
+        },
+        {
+          id: 'item-410',
+          name: 'Produto Custo 410',
+          mode: 'cost_margin',
+          cost: 410.0,
+          desiredNetRevenue: 0,
+          margin: 35,
+          quantity: 1,
+          marginByRegime: { presumido: 35, real: 35, simples: 35 },
+          quantityByRegime: { presumido: 1, real: 1, simples: 1 },
+          salePrice: 0,
+          taxFactor: 0,
+          completeFactor: 0,
+          totalRevenue: 0,
+          totalCost: 0,
+        },
+        {
+          id: 'item-246',
+          name: 'Produto Custo 246',
+          mode: 'cost_margin',
+          cost: 246.0,
+          desiredNetRevenue: 0,
+          margin: 35,
+          quantity: 1,
+          marginByRegime: { presumido: 35, real: 35, simples: 35 },
+          quantityByRegime: { presumido: 1, real: 1, simples: 1 },
+          salePrice: 0,
+          taxFactor: 0,
+          completeFactor: 0,
+          totalRevenue: 0,
+          totalCost: 0,
+        },
+      ]
+
+      const resultado = calculateMarkupProductsCanonically(produtosTabela, {
+        regime: 'presumido',
+        icmsRate: 18,
+        dvRate: 4.5,
+        customTaxes: [],
+        simplesAnexo: 'anexo_1',
+        effectiveSimplesRbt12: 180000,
+        excluirIcmsBasePisCofins: true,
+      })
+
+      const [p328, p410, p246] = resultado
+
+      // Preços esperados da tabela
+      expect(p328.salePrice).toBe(830.23)
+      expect(p410.salePrice).toBe(1037.79)
+      expect(p246.salePrice).toBe(622.67)
+
+      // Divisor comum 0,39507
+      expect(p328.completeFactor).toBeCloseTo(0.39507, 4)
+      expect(p410.completeFactor).toBeCloseTo(0.39507, 4)
+      expect(p246.completeFactor).toBeCloseTo(0.39507, 4)
+    })
+
+    it('Garante que no Simples Nacional NÃO aplica a fórmula de exclusão (carga exclusiva do DAS)', () => {
+      const resSimplesCom = calcularMarkupDivisorPre({
+        regime: 'simples',
+        dasEfetivoPct: 4.0,
+        dvRatePct: 4.5,
+        marginPct: 35,
+        comMargem: true,
+        excluirIcmsBasePisCofins: true,
+      })
+      const resSimplesSem = calcularMarkupDivisorPre({
+        regime: 'simples',
+        dasEfetivoPct: 4.0,
+        dvRatePct: 4.5,
+        marginPct: 35,
+        comMargem: true,
+        excluirIcmsBasePisCofins: false,
+      })
+
+      // No Simples Nacional a exclusão não se aplica: mesmo divisor
+      expect(resSimplesCom.divisor).toBe(resSimplesSem.divisor)
+      expect(resSimplesCom.somaTributosPct).toBe(4.0)
+      expect(resSimplesCom.parcelas.length).toBe(1)
+      expect(resSimplesCom.parcelas[0].chave).toBe('das')
+    })
+
+    it('Garante que no Lucro Real separa débitos de venda com exclusão de ICMS sem duplicar créditos de entrada', () => {
+      // No Lucro Real, débito de saída:
+      // ICMS 18%, PIS 1,65%, COFINS 7,60%
+      // Com exclusão: Base PIS/COFINS = 82% do PV
+      // PIS saída = 1,65% * 82% = 1,353%
+      // COFINS saída = 7,60% * 82% = 6,232%
+      // Total saída = 18% + 1,353% + 6,232% = 25,585% (sem exclusão seria 27,25%)
+      const resRealComExclusao = calcularMarkupDivisorPre({
+        regime: 'real',
+        icmsRatePct: 18,
+        dvRatePct: 4.5,
+        marginPct: 35,
+        comMargem: true,
+        excluirIcmsBasePisCofins: true,
+      })
+
+      expect(resRealComExclusao.somaTributosPct).toBeCloseTo(25.585, 3)
+      const pis = resRealComExclusao.parcelas.find((p) => p.chave === 'pis')
+      const cofins = resRealComExclusao.parcelas.find((p) => p.chave === 'cofins')
+      expect(pis?.taxaEfetivaPct).toBeCloseTo(1.353, 3)
+      expect(cofins?.taxaEfetivaPct).toBeCloseTo(6.232, 3)
+
+      // Identidade com custo unitário já líquido de créditos de entrada
+      const custoLiquidoEntrada = 328.0
+      const pv = precoPeloDivisorPre(custoLiquidoEntrada, resRealComExclusao.divisor)
+      const dec = decomporPrecoVendaPre(pv, custoLiquidoEntrada, resRealComExclusao)
+      expect(dec.diferencaCentavos).toBe(0)
+      expect(dec.somaComponentes).toBe(pv)
     })
   })
 })

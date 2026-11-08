@@ -99,12 +99,13 @@ function computeRegimeTaxes(
     else if (parcela.chave === 'icms') accent = 'icms'
     else if (parcela.chave === 'pis' || parcela.chave === 'cofins') accent = 'federal'
 
+    const baseCalc = detalhe ? detalhe.baseCalculo : safeRbv
     lines.push({
       key: parcela.chave,
       label: parcela.nome,
-      detail: `${parcela.baseLabel} · Taxa sobre PV: ${formatPercentBR(parcela.taxaEfetivaPct)}`,
+      detail: `${parcela.baseLabel}${detalhe?.icmsExcluido ? ` (ICMS deduzido: ${formatBRL(detalhe.icmsExcluido)})` : ''} · Taxa sobre PV: ${formatPercentBR(parcela.taxaEfetivaPct, 3)}`,
       ratePct: parcela.taxaNominalPct,
-      base: safeRbv,
+      base: baseCalc,
       value: val,
       pctOfRevenue: safeRbv > 0 ? (val / safeRbv) * 100 : 0,
       accent,
