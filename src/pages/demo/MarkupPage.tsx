@@ -26,6 +26,11 @@ import {
   parseBRNumber,
 } from '@/lib/taxCalculations'
 import { calculatePgdas, SimplesAnexoId } from '@/lib/simplesCalculations'
+import {
+  calcularMarkupDivisorPre,
+  precoPeloDivisorPre,
+  type MarkupPreRegime,
+} from '@/lib/markupPreDivisor'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MoneyInput } from '@/components/demo/MoneyInput'
@@ -708,83 +713,43 @@ export default function MarkupPage() {
     if (!isMarkupSimulated || markupProducts.length === 0) {
       return null
     }
-    // Fator de tributos customizados (comum a todos os regimes)
-    let customTaxesFactor = 1
-    let sumCustomTaxesPct = 0
-    for (const tax of customTaxesMarkup) {
-      const tRate = tax.rate || 0
-      sumCustomTaxesPct += tRate
-      customTaxesFactor *= 1 - tRate / 100
-    }
+    const customTaxesArray: number[] = Array.isArray(customTaxesMarkup)
+      ? customTaxesMarkup.map((t) => (Number.isFinite(t.rate) ? t.rate : 0))
+      : []
 
-    const icmsF = 1 - (icmsRateMarkup || 0) / 100
     const cleanIcms = icmsRateMarkup || 0
     const dvRate = totalVariableExpenseRate || 0
-    const dvFactor = 1 - dvRate / 100
-
-    // 1. Lucro Presumido: PIS/COFINS fator único 0,9635 (1 - 0,0365), ICMS informado
-    const pisCofinsFactorPresumido = 1 - 0.0365 // 0.9635
-    const baseTaxFactorPresumido =
-      icmsF * pisCofinsFactorPresumido * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
-    const liquidDivisorPresumidoBase = Math.max(
-      0.0001,
-      icmsF * pisCofinsFactorPresumido * (dvFactor > 0 ? dvFactor : 1) * customTaxesFactor,
-    )
-
-    // 2. Lucro Real: PIS/COFINS unificado 0,9075 (1 - 0,0925 [1,65% + 7,60%]), ICMS informado
-    const pisCofinsFactorReal = 1 - 0.0925 // 0.9075
-    const baseTaxFactorReal =
-      icmsF * pisCofinsFactorReal * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
-    const liquidDivisorRealBase = Math.max(
-      0.0001,
-      icmsF * pisCofinsFactorReal * (dvFactor > 0 ? dvFactor : 1) * customTaxesFactor,
-    )
 
     // 3. Simples Nacional: Alíquota efetiva do PGDAS calculada sobre RBT12 e Anexo do TaxContext
-    // Se RBT12 zerado ou não informado, aplica a alíquota nominal da 1ª faixa como fallback legal (nunca 0%)
     const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
     const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
     const hasSimplesData = rbt12Clean > 0
     const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
     const effectiveSimplesRate = pgdasRes.aliquotaEfetiva
-    // fator Simples = (1 - alíquota efetiva) * customTaxesFactor * dvFactor
-    const baseTaxFactorSimples =
-      (1 - effectiveSimplesRate / 100) * customTaxesFactor * (dvFactor > 0 ? dvFactor : 1)
-    const liquidDivisorSimplesBase = Math.max(
-      0.0001,
-      (1 - effectiveSimplesRate / 100) * (dvFactor > 0 ? dvFactor : 1) * customTaxesFactor,
-    )
 
-    // Helper para calcular produtos por regime, respeitando o modo líquido (divisor aditivo tributos+DV sem fator margem) vs custo+margem
-    const calcForTaxFactor = (
-      taxFactorMultiplicative: number,
-      liquidDivisorBase: number,
-      regimeKey: 'presumido' | 'real' | 'simples',
-    ) => {
+    // Helper para calcular produtos por regime consumindo o motor único aditivo
+    const calcForRegime = (regimeKey: 'presumido' | 'real' | 'simples') => {
       let totalRev = 0
       let totalQty = 0
       const prods = markupProducts.map((p) => {
-        // Resolução estrita por id para blindar contra qualquer desalinhamento
         const origProd = markupProducts.find((mp) => mp.id === p.id) || p
         const rawMargin =
           origProd.marginByRegime?.[regimeKey] ??
           (typeof origProd.margin === 'number' && Number.isFinite(origProd.margin)
             ? origProd.margin
             : 0)
-        const marginFactor = 1 - rawMargin / 100
         const isLiquidProd = origProd.mode === 'liquid'
-        const baseFactor = isLiquidProd ? liquidDivisorBase : taxFactorMultiplicative
 
-        // No modo liquid: divisor exclusivo do gross-up (1 - Σtributos - %DV), sem fator margem
-        let completeFactor = isLiquidProd
-          ? Number.isFinite(baseFactor)
-            ? baseFactor
-            : 0
-          : (Number.isFinite(baseFactor) ? baseFactor : 0) * marginFactor
-        if (baseFactor < 1 && completeFactor >= 1) {
-          completeFactor = baseFactor
-        }
-        const safeFactor = completeFactor > 0.0001 ? completeFactor : 0
+        const divisorRes = calcularMarkupDivisorPre({
+          regime: regimeKey as MarkupPreRegime,
+          icmsRatePct: cleanIcms,
+          dasEfetivoPct: effectiveSimplesRate,
+          customTaxesPct: customTaxesArray,
+          dvRatePct: dvRate,
+          marginPct: rawMargin,
+          comMargem: !isLiquidProd,
+        })
+
         const desiredNetRevForRegime =
           origProd.desiredNetRevenueByRegime?.[regimeKey] ??
           (typeof origProd.desiredNetRevenue === 'number' &&
@@ -796,10 +761,8 @@ export default function MarkupPage() {
           : typeof origProd.cost === 'number' && Number.isFinite(origProd.cost)
             ? origProd.cost
             : 0
-        const rawSalePrice = safeFactor > 0 && baseValue > 0 ? baseValue / safeFactor : 0
-        const roundedPrice = Number.isFinite(rawSalePrice)
-          ? Math.round(rawSalePrice * 100) / 100
-          : 0
+
+        const roundedPrice = precoPeloDivisorPre(baseValue, divisorRes.divisor)
         const rawQty =
           origProd.quantityByRegime?.[regimeKey] ??
           (origProd.quantityByRegime
@@ -822,13 +785,9 @@ export default function MarkupPage() {
       return { prods, totalRev: Math.round(totalRev * 100) / 100, totalQty }
     }
 
-    const calcPresumido = calcForTaxFactor(
-      baseTaxFactorPresumido,
-      liquidDivisorPresumidoBase,
-      'presumido',
-    )
-    const calcReal = calcForTaxFactor(baseTaxFactorReal, liquidDivisorRealBase, 'real')
-    const calcSimples = calcForTaxFactor(baseTaxFactorSimples, liquidDivisorSimplesBase, 'simples')
+    const calcPresumido = calcForRegime('presumido')
+    const calcReal = calcForRegime('real')
+    const calcSimples = calcForRegime('simples')
 
     return {
       hasSimplesData,

@@ -31,6 +31,11 @@ import {
 } from '@/lib/productStockCalculations'
 
 import { calculatePgdas, SimplesAnexoId } from '@/lib/simplesCalculations'
+import {
+  calcularMarkupDivisorPre,
+  precoPeloDivisorPre,
+  type MarkupPreRegime,
+} from '@/lib/markupPreDivisor'
 
 export type TaxRegime = 'presumido' | 'real' | 'simples'
 export type ActivityType = 'comercio' | 'industria'
@@ -113,23 +118,24 @@ export function calculateMarkupProductsCanonically(
   const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
   const simplesEffectiveDas = pgdasRes.aliquotaEfetiva
 
-  const divPresumidoWithoutMargin = Math.max(
-    0.0001,
-    (1 - cleanIcms / 100) * (1 - 0.0365) * safeDvFactor * customTaxesFactor,
-  )
-  const divRealWithoutMargin = Math.max(
-    0.0001,
-    (1 - cleanIcms / 100) * (1 - 0.0925) * safeDvFactor * customTaxesFactor,
-  )
-  const divSimplesWithoutMargin = Math.max(
-    0.0001,
-    (1 - simplesEffectiveDas / 100) * safeDvFactor * customTaxesFactor,
-  )
+  const customTaxesArray: number[] = Array.isArray(options.customTaxes)
+    ? options.customTaxes.map((t) => (Number.isFinite(t.rate) ? t.rate : 0))
+    : []
 
-  const getDivisorWithoutMarginForRegime = (targetRegime: TaxRegime) => {
-    if (targetRegime === 'presumido') return divPresumidoWithoutMargin
-    if (targetRegime === 'real') return divRealWithoutMargin
-    return divSimplesWithoutMargin
+  const getDivisorPreForRegime = (
+    targetRegime: TaxRegime,
+    marginPct: number,
+    comMargem: boolean,
+  ) => {
+    return calcularMarkupDivisorPre({
+      regime: targetRegime as MarkupPreRegime,
+      icmsRatePct: cleanIcms,
+      dasEfetivoPct: simplesEffectiveDas,
+      customTaxesPct: customTaxesArray,
+      dvRatePct: cleanDvRate,
+      marginPct,
+      comMargem,
+    }).divisor
   }
 
   const allRegimes: TaxRegime[] = ['presumido', 'real', 'simples']
@@ -153,15 +159,11 @@ export function calculateMarkupProductsCanonically(
             ? p.desiredNetRevenue
             : 0
 
-      const rDivWithoutMargin = getDivisorWithoutMarginForRegime(r)
-      const rDivCostMargin = Math.max(0.0001, rDivWithoutMargin * (1 - rMargin / 100))
+      const rDivWithoutMargin = getDivisorPreForRegime(r, 0, false)
+      const rDivCostMargin = getDivisorPreForRegime(r, rMargin, true)
 
-      const priceCostMargin =
-        rDivCostMargin > 0.0001 && rCost > 0 ? Math.round((rCost / rDivCostMargin) * 100) / 100 : 0
-      const priceLiquid =
-        rDivWithoutMargin > 0.0001 && rLiquidMeta > 0
-          ? Math.round((rLiquidMeta / rDivWithoutMargin) * 100) / 100
-          : 0
+      const priceCostMargin = precoPeloDivisorPre(rCost, rDivCostMargin)
+      const priceLiquid = precoPeloDivisorPre(rLiquidMeta, rDivWithoutMargin)
 
       costMarginByRegime[r] = priceCostMargin
       liquidByRegime[r] = priceLiquid
@@ -171,16 +173,16 @@ export function calculateMarkupProductsCanonically(
     const activeSalePrice = isLiquidProd
       ? liquidByRegime[activeRegime]
       : costMarginByRegime[activeRegime]
-    const activeTaxFactor = getDivisorWithoutMarginForRegime(activeRegime)
     const activeMargin =
       p.marginByRegime && p.marginByRegime[activeRegime] !== undefined
         ? p.marginByRegime[activeRegime]!
         : typeof p.margin === 'number' && Number.isFinite(p.margin)
           ? p.margin
           : 0
+    const activeTaxFactor = getDivisorPreForRegime(activeRegime, 0, false)
     const activeCompleteFactor = isLiquidProd
       ? activeTaxFactor
-      : Math.max(0.0001, activeTaxFactor * (1 - activeMargin / 100))
+      : getDivisorPreForRegime(activeRegime, activeMargin, true)
 
     const qty =
       p.quantityByRegime && p.quantityByRegime[activeRegime] !== undefined
@@ -3749,41 +3751,33 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     simplesRbt12,
   ])
 
-  // SIMULAÇÃO DO MARKUP MANUAL (mantido para atender cliques no botão "Simular", garantindo reciprocidade)
+  // SIMULAÇÃO DO MARKUP MANUAL (motor único pré-reforma com divisor aditivo)
   const simulateMarkup = () => {
     const cleanIcms = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
     const dvRatePct = Number.isFinite(totalVariableExpenseRate) ? totalVariableExpenseRate : 0
-    const dvFactor = 1 - dvRatePct / 100
-    const safeDvFactor = dvFactor > 0 ? dvFactor : 1
-
-    let customTaxesFactor = 1
-    for (const tax of customTaxesMarkup) {
-      const taxRate = Number.isFinite(tax.rate) ? tax.rate : 0
-      customTaxesFactor *= 1 - taxRate / 100
-    }
+    const customTaxesArray: number[] = Array.isArray(customTaxesMarkup)
+      ? customTaxesMarkup.map((t) => (Number.isFinite(t.rate) ? t.rate : 0))
+      : []
 
     const anexoClean = (simplesAnexo as SimplesAnexoId) || 'anexo_1'
     const rbt12Clean = effectiveSimplesRbt12 > 0 ? effectiveSimplesRbt12 : simplesRbt12 || 0
     const pgdasRes = calculatePgdas(anexoClean, rbt12Clean)
     const simplesEffectiveDas = pgdasRes.aliquotaEfetiva
 
-    const divPresumidoWithoutMargin = Math.max(
-      0.0001,
-      (1 - cleanIcms / 100) * (1 - 0.0365) * safeDvFactor * customTaxesFactor,
-    )
-    const divRealWithoutMargin = Math.max(
-      0.0001,
-      (1 - cleanIcms / 100) * (1 - 0.0925) * safeDvFactor * customTaxesFactor,
-    )
-    const divSimplesWithoutMargin = Math.max(
-      0.0001,
-      (1 - simplesEffectiveDas / 100) * safeDvFactor * customTaxesFactor,
-    )
-
-    const getDivisorWithoutMarginForRegime = (targetRegime: TaxRegime) => {
-      if (targetRegime === 'presumido') return divPresumidoWithoutMargin
-      if (targetRegime === 'real') return divRealWithoutMargin
-      return divSimplesWithoutMargin
+    const getDivisorPreForRegime = (
+      targetRegime: TaxRegime,
+      marginPct: number,
+      comMargem: boolean,
+    ) => {
+      return calcularMarkupDivisorPre({
+        regime: targetRegime as MarkupPreRegime,
+        icmsRatePct: cleanIcms,
+        dasEfetivoPct: simplesEffectiveDas,
+        customTaxesPct: customTaxesArray,
+        dvRatePct,
+        marginPct,
+        comMargem,
+      }).divisor
     }
 
     let consolidatedRevenue = 0
@@ -3820,17 +3814,12 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             : typeof p.desiredNetRevenue === 'number' && Number.isFinite(p.desiredNetRevenue)
               ? p.desiredNetRevenue
               : 0
-        const rDivWithoutMargin = getDivisorWithoutMarginForRegime(r)
-        const rDivCostMargin = Math.max(0.0001, rDivWithoutMargin * (1 - rMargin / 100))
 
-        const priceCostMargin =
-          rDivCostMargin > 0.0001 && rCost > 0
-            ? Math.round((rCost / rDivCostMargin) * 100) / 100
-            : 0
-        const priceLiquid =
-          rDivWithoutMargin > 0.0001 && rLiquidMeta > 0
-            ? Math.round((rLiquidMeta / rDivWithoutMargin) * 100) / 100
-            : 0
+        const rDivWithoutMargin = getDivisorPreForRegime(r, 0, false)
+        const rDivCostMargin = getDivisorPreForRegime(r, rMargin, true)
+
+        const priceCostMargin = precoPeloDivisorPre(rCost, rDivCostMargin)
+        const priceLiquid = precoPeloDivisorPre(rLiquidMeta, rDivWithoutMargin)
 
         costMarginByRegime[r] = priceCostMargin
         liquidByRegime[r] = priceLiquid
@@ -3838,16 +3827,16 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const isLiquidProd = p.mode === 'liquid'
       const activeSalePrice = isLiquidProd ? liquidByRegime[regime] : costMarginByRegime[regime]
-      const activeTaxFactor = getDivisorWithoutMarginForRegime(regime)
       const activeMargin =
         p.marginByRegime && p.marginByRegime[regime] !== undefined
           ? p.marginByRegime[regime]!
           : typeof p.margin === 'number' && Number.isFinite(p.margin)
             ? p.margin
             : 0
+      const activeTaxFactor = getDivisorPreForRegime(regime, 0, false)
       const activeCompleteFactor = isLiquidProd
         ? activeTaxFactor
-        : Math.max(0.0001, activeTaxFactor * (1 - activeMargin / 100))
+        : getDivisorPreForRegime(regime, activeMargin, true)
 
       const qty =
         p.quantityByRegime && p.quantityByRegime[regime] !== undefined

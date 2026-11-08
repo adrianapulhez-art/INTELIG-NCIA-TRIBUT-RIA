@@ -22,6 +22,12 @@ import { formatBRL, formatNumberBR, formatPercentBR, formatFactorBR } from '@/li
 import { calculatePgdas, SimplesAnexoId, SIMPLES_ANEXOS } from '@/lib/simplesCalculations'
 import { calculateLiquidDreChain } from '@/lib/liquidMarkupCalculations'
 import {
+  calcularMarkupDivisorPre,
+  precoPeloDivisorPre,
+  decomporPrecoVendaPre,
+  type MarkupPreRegime,
+} from '@/lib/markupPreDivisor'
+import {
   MarkupProductItem,
   TaxRegime,
   CustomTaxItem,
@@ -284,138 +290,113 @@ export function MarkupCalculationMemoryModal({
     (currentRegime === 'real' ? product.salePrice : 0) ??
     0
 
-  // Divisor Simples canônico do regime (do motor TaxContext)
-  // Simples: (1 − DAS) × (1 − DV) × (1 − Margem) [ou sem margem no modo liquid]
-  const divSimplesEngine = Math.max(
-    0.0001,
-    (1 - effectiveSimplesRate / 100) * dvFactor * customTaxesFactor * (isLiquid ? 1 : marginFactor),
+  const customTaxesArray: number[] = customTaxesMarkup.map((t) =>
+    Number.isFinite(t.rate) ? t.rate : 0,
   )
-  const divisorSimples =
-    currentRegime === 'simples'
-      ? isLiquid
-        ? product.taxFactor || divSimplesEngine
-        : product.completeFactor || divSimplesEngine
-      : divSimplesEngine
+  const icmsRateClean = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
+
+  // Motor único pré-reforma com divisor aditivo
+  const divisorResSimples = calcularMarkupDivisorPre({
+    regime: 'simples',
+    dasEfetivoPct: effectiveSimplesRate,
+    customTaxesPct: customTaxesArray,
+    dvRatePct: dvRate,
+    marginPct,
+    comMargem: !isLiquid,
+  })
+  const divisorSimples = divisorResSimples.divisor
+
+  const divisorResPresumido = calcularMarkupDivisorPre({
+    regime: 'presumido',
+    icmsRatePct: icmsRateClean,
+    customTaxesPct: customTaxesArray,
+    dvRatePct: dvRate,
+    marginPct,
+    comMargem: !isLiquid,
+  })
+  const divisorPresumido = divisorResPresumido.divisor
+
+  const divisorResReal = calcularMarkupDivisorPre({
+    regime: 'real',
+    icmsRatePct: icmsRateClean,
+    customTaxesPct: customTaxesArray,
+    dvRatePct: dvRate,
+    marginPct,
+    comMargem: !isLiquid,
+  })
+  const divisorReal = divisorResReal.divisor
 
   // Preço Sugerido canônico Simples
-  const fallbackSimplesPrice =
-    divisorSimples > 0 && baseValue > 0 ? Math.round((baseValue / divisorSimples) * 100) / 100 : 0
+  const fallbackSimplesPrice = precoPeloDivisorPre(baseValue, divisorSimples)
   const salePriceSimples =
     canonicalSalePriceSimples > 0 ? canonicalSalePriceSimples : fallbackSimplesPrice
   const totalRevenueSimples = Math.round(salePriceSimples * quantity * 100) / 100
 
-  // Distribuição do PV Simples em R$ derivada do preço canônico com arredondamento a 2 casas:
-  // Simples: DAS = PV × alíq.efetiva, DV = PV × taxaDV, Margem = PV − Custo − DAS − DV
   const pvSimples = salePriceSimples
-  const valorDasSimples = Math.round(pvSimples * effectiveSimplesDecimal * 100) / 100
-  const valorDvSimples = Math.round(pvSimples * dvDecimal * 100) / 100
   const custoBaseSimples = isLiquid ? costSimples : baseValue
-  const valorMargemSimples =
-    Math.round((pvSimples - custoBaseSimples - valorDasSimples - valorDvSimples) * 100) / 100
+  const decomposicaoSimples = decomporPrecoVendaPre(pvSimples, custoBaseSimples, divisorResSimples)
+  const valorDasSimples = decomposicaoSimples.valorTributos
+  const valorDvSimples = decomposicaoSimples.valorDv
+  const valorMargemSimples = decomposicaoSimples.valorLucroMargem
 
   // -------------------------------------------------------------
   // LUCRO PRESUMIDO — Cálculos Canônicos
   // -------------------------------------------------------------
   const pisPresumidoRate = 0.65
   const cofinsPresumidoRate = 3.0
-  const icmsRateClean = Number.isFinite(icmsRateMarkup) ? icmsRateMarkup : 0
+  const totalTaxesPresumidoRate = divisorResPresumido.somaTributosPct
 
-  const icmsFactorPresumido = 1 - icmsRateClean / 100
-  const pisFactorPresumido = 1 - pisPresumidoRate / 100
-  const cofinsFactorPresumido = 1 - cofinsPresumidoRate / 100
-  const taxFactorPresumidoDecomposto =
-    icmsFactorPresumido * pisFactorPresumido * cofinsFactorPresumido * customTaxesFactor
-
-  const totalTaxesPresumidoRate =
-    icmsRateClean + pisPresumidoRate + cofinsPresumidoRate + sumCustomTaxesRate
-
-  // Divisor Presumido canônico do regime (fator consolidado 1 - 0.0365 do motor TaxContext):
-  // Presumido: (1 − ICMS) × (1 − 0,0365) × (1 − DV) × (1 − Margem) [ou sem margem no liquid]
-  const divPresumidoEngine = Math.max(
-    0.0001,
-    (1 - icmsRateClean / 100) *
-      (1 - 0.0365) *
-      dvFactor *
-      customTaxesFactor *
-      (isLiquid ? 1 : marginFactor),
-  )
-  const divisorPresumido =
-    currentRegime === 'presumido'
-      ? isLiquid
-        ? product.taxFactor || divPresumidoEngine
-        : product.completeFactor || divPresumidoEngine
-      : divPresumidoEngine
-
-  // Preço Sugerido canônico Presumido
-  const fallbackPresumidoPrice =
-    divisorPresumido > 0 && baseValue > 0
-      ? Math.round((baseValue / divisorPresumido) * 100) / 100
-      : 0
+  const fallbackPresumidoPrice = precoPeloDivisorPre(baseValue, divisorPresumido)
   const salePricePresumido =
     canonicalSalePricePresumido > 0 ? canonicalSalePricePresumido : fallbackPresumidoPrice
   const totalRevenuePresumido = Math.round(salePricePresumido * quantity * 100) / 100
 
-  // Distribuição do PV Presumido em R$ derivada do preço canônico:
-  // Presumido: ICMS = PV × alíq.ICMS, PIS = PV × 0,0065, COFINS = PV × 0,0300, DV = PV × taxaDV, Margem = PV − Custo − Tributos − DV
   const pvPresumido = salePricePresumido
-  const valorIcmsPresumido = Math.round(pvPresumido * (icmsRateClean / 100) * 100) / 100
-  const valorPisPresumido = Math.round(pvPresumido * 0.0065 * 100) / 100
-  const valorCofinsPresumido = Math.round(pvPresumido * 0.03 * 100) / 100
-  const valorTributosPresumido = valorIcmsPresumido + valorPisPresumido + valorCofinsPresumido
-  const valorDvPresumido = Math.round(pvPresumido * dvDecimal * 100) / 100
   const custoBasePresumido = isLiquid ? costPresumido : baseValue
-  const valorMargemPresumido =
-    Math.round(
-      (pvPresumido - custoBasePresumido - valorTributosPresumido - valorDvPresumido) * 100,
-    ) / 100
+  const decomposicaoPresumido = decomporPrecoVendaPre(
+    pvPresumido,
+    custoBasePresumido,
+    divisorResPresumido,
+  )
+  const valorIcmsPresumido =
+    decomposicaoPresumido.detalheTributos.find((t) => t.nome === 'ICMS')?.valor ??
+    Math.round(pvPresumido * (icmsRateClean / 100) * 100) / 100
+  const valorPisPresumido =
+    decomposicaoPresumido.detalheTributos.find((t) => t.nome === 'PIS')?.valor ??
+    Math.round(pvPresumido * 0.0065 * 100) / 100
+  const valorCofinsPresumido =
+    decomposicaoPresumido.detalheTributos.find((t) => t.nome === 'COFINS')?.valor ??
+    Math.round(pvPresumido * 0.03 * 100) / 100
+  const valorTributosPresumido = decomposicaoPresumido.valorTributos
+  const valorDvPresumido = decomposicaoPresumido.valorDv
+  const valorMargemPresumido = decomposicaoPresumido.valorLucroMargem
 
   // -------------------------------------------------------------
   // LUCRO REAL — Cálculos Canônicos
   // -------------------------------------------------------------
   const pisRealRate = 1.65
   const cofinsRealRate = 7.6
-  const icmsFactorReal = 1 - icmsRateClean / 100
-  const pisFactorReal = 1 - pisRealRate / 100
-  const cofinsFactorReal = 1 - cofinsRealRate / 100
-  const taxFactorRealDecomposto =
-    icmsFactorReal * pisFactorReal * cofinsFactorReal * customTaxesFactor
+  const totalTaxesRealRate = divisorResReal.somaTributosPct
 
-  const totalTaxesRealRate = icmsRateClean + pisRealRate + cofinsRealRate + sumCustomTaxesRate
-
-  // Divisor Real canônico do regime (fator consolidado 1 - 0.0925 do motor TaxContext):
-  // Real: (1 − ICMS) × (1 − 0,0925) × (1 − DV) × (1 − Margem) [ou sem margem no liquid]
-  const divRealEngine = Math.max(
-    0.0001,
-    (1 - icmsRateClean / 100) *
-      (1 - 0.0925) *
-      dvFactor *
-      customTaxesFactor *
-      (isLiquid ? 1 : marginFactor),
-  )
-  const divisorReal =
-    currentRegime === 'real'
-      ? isLiquid
-        ? product.taxFactor || divRealEngine
-        : product.completeFactor || divRealEngine
-      : divRealEngine
-
-  // Preço Sugerido canônico Real
-  const fallbackRealPrice =
-    divisorReal > 0 && baseValue > 0 ? Math.round((baseValue / divisorReal) * 100) / 100 : 0
+  const fallbackRealPrice = precoPeloDivisorPre(baseValue, divisorReal)
   const salePriceReal = canonicalSalePriceReal > 0 ? canonicalSalePriceReal : fallbackRealPrice
   const totalRevenueReal = Math.round(salePriceReal * quantity * 100) / 100
 
-  // Distribuição do PV Real em R$ derivada do preço canônico:
-  // Real: ICMS = PV × alíq.ICMS, PIS = PV × 0,0165, COFINS = PV × 0,0760, DV = PV × taxaDV, Margem = PV − Custo Líquido − Tributos − DV
   const pvReal = salePriceReal
-  const valorIcmsReal = Math.round(pvReal * (icmsRateClean / 100) * 100) / 100
-  const valorPisReal = Math.round(pvReal * 0.0165 * 100) / 100
-  const valorCofinsReal = Math.round(pvReal * 0.076 * 100) / 100
-  const valorTributosReal = valorIcmsReal + valorPisReal + valorCofinsReal
-  const valorDvReal = Math.round(pvReal * dvDecimal * 100) / 100
   const custoBaseReal = isLiquid ? costReal : baseValue
-  const valorMargemReal =
-    Math.round((pvReal - custoBaseReal - valorTributosReal - valorDvReal) * 100) / 100
+  const decomposicaoReal = decomporPrecoVendaPre(pvReal, custoBaseReal, divisorResReal)
+  const valorIcmsReal =
+    decomposicaoReal.detalheTributos.find((t) => t.nome === 'ICMS')?.valor ??
+    Math.round(pvReal * (icmsRateClean / 100) * 100) / 100
+  const valorPisReal =
+    decomposicaoReal.detalheTributos.find((t) => t.nome === 'PIS')?.valor ??
+    Math.round(pvReal * 0.0165 * 100) / 100
+  const valorCofinsReal =
+    decomposicaoReal.detalheTributos.find((t) => t.nome === 'COFINS')?.valor ??
+    Math.round(pvReal * 0.076 * 100) / 100
+  const valorTributosReal = decomposicaoReal.valorTributos
+  const valorDvReal = decomposicaoReal.valorDv
+  const valorMargemReal = decomposicaoReal.valorLucroMargem
 
   // Valores ativos do produto no regime corrente
   const activeSalePrice = product.salePrice || 0
@@ -446,7 +427,7 @@ export function MarkupCalculationMemoryModal({
           </div>
           <DialogDescription className="text-xs text-slate-500 font-mono">
             Subcamada analítica: história completa do cálculo em 12 blocos numerados com valores
-            reais do estado, derivação da fórmula multiplicativa e seção técnica de Blindagem de
+            reais do estado, formação do Markup divisor aditivo e seção técnica de Blindagem de
             Margem.
           </DialogDescription>
         </DialogHeader>
@@ -829,16 +810,14 @@ export function MarkupCalculationMemoryModal({
                     </div>
                   </div>
 
-                  {/* ⑨ Fator Divisor */}
+                  {/* ⑨ Markup divisor */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-amber-500/10">
                     <div>
-                      <span className="font-bold text-[#e5b742] block">
-                        ⑨ Fator Divisor Multiplicativo
-                      </span>
+                      <span className="font-bold text-[#e5b742] block">⑨ Markup divisor</span>
                       <span className="text-[10px] text-amber-200/80">
                         {isLiquid
-                          ? `(1 − ${formatPercentBR(effectiveSimplesRate, 4)}) × (1 − ${formatPercentBR(dvRate)}) = (1 − DAS) × (1 − DV)`
-                          : `(1 − ${formatPercentBR(effectiveSimplesRate, 4)}) × (1 − ${formatPercentBR(dvRate)}) × (1 − ${formatPercentBR(marginPct)}) = (1 − DAS) × (1 − DV) × (1 − Margem)`}
+                          ? `1 − (${formatPercentBR(effectiveSimplesRate, 2)} DAS + ${formatPercentBR(dvRate, 2)} DV) = 1 − Σ deduções`
+                          : `1 − (${formatPercentBR(effectiveSimplesRate, 2)} DAS + ${formatPercentBR(dvRate, 2)} DV + ${formatPercentBR(marginPct, 2)} Margem) = 1 − Σ deduções`}
                       </span>
                     </div>
                     <span className="font-black text-[#e5b742] text-base">
@@ -1263,16 +1242,14 @@ export function MarkupCalculationMemoryModal({
                     </div>
                   </div>
 
-                  {/* ⑨ Fator Divisor */}
+                  {/* ⑨ Markup divisor */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-amber-500/10">
                     <div>
-                      <span className="font-bold text-[#e5b742] block">
-                        ⑨ Fator Divisor Multiplicativo
-                      </span>
+                      <span className="font-bold text-[#e5b742] block">⑨ Markup divisor</span>
                       <span className="text-[10px] text-amber-200/80">
                         {isLiquid
-                          ? `(1 − ${formatPercentBR(icmsRateClean)}) × (1 − 3,65%) × (1 − ${formatPercentBR(dvRate)}) = (1 − ICMS) × (1 − PIS/COFINS) × (1 − DV)`
-                          : '(1 − ICMS%) × (1 − PIS%) × (1 − COFINS%) × (1 − DV) × (1 − Margem)'}
+                          ? `1 − (${formatPercentBR(divisorResPresumido.somaTributosPct, 2)} Trib + ${formatPercentBR(dvRate, 2)} DV) [PIS/COF c/ ICMS deduzido da BC - Parecer SEI 14483/2021]`
+                          : `1 − (${formatPercentBR(divisorResPresumido.somaTributosPct, 2)} Trib + ${formatPercentBR(dvRate, 2)} DV + ${formatPercentBR(marginPct, 2)} Margem)`}
                       </span>
                     </div>
                     <span className="font-black text-[#e5b742] text-base">
@@ -1670,16 +1647,14 @@ export function MarkupCalculationMemoryModal({
                     </div>
                   </div>
 
-                  {/* ⑨ Fator Divisor */}
+                  {/* ⑨ Markup divisor */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-amber-50/70">
                     <div>
-                      <span className="font-bold text-[#261502] block">
-                        ⑨ Fator Divisor Multiplicativo
-                      </span>
+                      <span className="font-bold text-[#261502] block">⑨ Markup divisor</span>
                       <span className="text-[10px] text-slate-500">
                         {isLiquid
-                          ? `(1 − ${formatPercentBR(icmsRateClean)}) × (1 − 9,25%) × (1 − ${formatPercentBR(dvRate)}) = (1 − ICMS) × (1 − PIS/COFINS) × (1 − DV)`
-                          : '(1 − ICMS%) × (1 − PIS%) × (1 − COFINS%) × (1 − DV) × (1 − Margem)'}
+                          ? `1 − (${formatPercentBR(divisorResReal.somaTributosPct, 2)} Trib + ${formatPercentBR(dvRate, 2)} DV)`
+                          : `1 − (${formatPercentBR(divisorResReal.somaTributosPct, 2)} Trib + ${formatPercentBR(dvRate, 2)} DV + ${formatPercentBR(marginPct, 2)} Margem)`}
                       </span>
                     </div>
                     <span className="font-black text-[#b87c14] text-base">
