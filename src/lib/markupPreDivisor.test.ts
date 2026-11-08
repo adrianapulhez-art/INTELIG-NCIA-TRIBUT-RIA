@@ -299,5 +299,119 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
       expect(p2.salePriceCostMarginByRegime?.presumido).toBe(1843.79)
       expect(p3.salePriceCostMarginByRegime?.presumido).toBe(927.86)
     })
+
+    it('Cenário Canônico Adriana (Print Bug R$ 668,79 corrigido para R$ 844,27 com divisor 0,3885)', () => {
+      // Custo: 328,00, ICMS: 18%, PIS: 0,65%, COFINS: 3,00%, DV: 4,50%, Margem: 35% sobre PV bruto
+      // Tributos = 18 + 0,65 + 3,00 = 21,65%
+      // Divisor = 1 - (0,2165 + 0,045 + 0,35) = 0,3885
+      // Preço esperado = 328 / 0,3885 = 844,2728... -> 844,27
+      const produtosAdriana: MarkupProductItem[] = [
+        {
+          id: 'item-adriana-print',
+          name: 'Item do Print Adriana',
+          mode: 'cost_margin',
+          cost: 328.0,
+          desiredNetRevenue: 0,
+          margin: 35,
+          quantity: 1,
+          marginByRegime: { presumido: 35, real: 35, simples: 35 },
+          quantityByRegime: { presumido: 1, real: 1, simples: 1 },
+          salePrice: 0,
+          taxFactor: 0,
+          completeFactor: 0,
+          totalRevenue: 0,
+          totalCost: 0,
+        },
+      ]
+
+      const resultado = calculateMarkupProductsCanonically(produtosAdriana, {
+        regime: 'presumido',
+        icmsRate: 18,
+        dvRate: 4.5,
+        customTaxes: [],
+        simplesAnexo: 'anexo_1',
+        effectiveSimplesRbt12: 180000,
+      })
+
+      const [p] = resultado
+
+      // 1. Divisor exibido deve ser 0,3885
+      expect(p.completeFactor).toBeCloseTo(0.3885, 4)
+
+      // 2. Preço de venda unitário deve ser R$ 844,27 (NUNCA R$ 668,79)
+      expect(p.salePrice).toBe(844.27)
+      expect(p.salePriceCostMarginByRegime?.presumido).toBe(844.27)
+
+      // 3. Decomposição com a função decomporPrecoVendaPre
+      const divisorRes = calcularMarkupDivisorPre({
+        regime: 'presumido',
+        icmsRatePct: 18,
+        dvRatePct: 4.5,
+        marginPct: 35,
+        comMargem: true,
+      })
+      const dec = decomporPrecoVendaPre(p.salePrice, p.cost, divisorRes)
+      expect(dec.precoVenda).toBe(844.27)
+      expect(dec.custoUnitario).toBe(328.0)
+      // Tributos: 844,27 * (18% + 0,65% + 3%) = 151,97 + 5,49 + 25,33 = 182,79
+      expect(dec.valorTributos).toBe(182.79)
+      // DV: 844,27 * 4,5% = 37,99
+      expect(dec.valorDv).toBe(37.99)
+      // Lucro / Margem: 844,27 - 328 - 182,79 - 37,99 = 295,49
+      // Margem efetiva: 295,49 / 844,27 = 35,00%
+      expect(dec.valorLucroMargem).toBe(295.49)
+      expect(dec.margemEfetivaPct).toBeCloseTo(35.0, 1)
+      expect(dec.somaComponentes).toBe(844.27)
+      expect(dec.diferencaCentavos).toBe(0)
+    })
+
+    it('Verificação nos regimes Lucro Real e Simples Nacional para o mesmo item', () => {
+      const produtos: MarkupProductItem[] = [
+        {
+          id: 'item-comparativo',
+          name: 'Item Comparativo',
+          mode: 'cost_margin',
+          cost: 328.0,
+          desiredNetRevenue: 0,
+          margin: 35,
+          quantity: 1,
+          marginByRegime: { presumido: 35, real: 35, simples: 35 },
+          quantityByRegime: { presumido: 1, real: 1, simples: 1 },
+          salePrice: 0,
+          taxFactor: 0,
+          completeFactor: 0,
+          totalRevenue: 0,
+          totalCost: 0,
+        },
+      ]
+
+      // 1. LUCRO REAL: ICMS 18%, PIS 1,65%, COFINS 7,60% -> Tributos 27,25%
+      // Divisor = 1 - (0,2725 + 0,045 + 0,35) = 0,3325
+      // Preço esperado = 328 / 0,3325 = 986,466... -> 986,47
+      const resultadoReal = calculateMarkupProductsCanonically(produtos, {
+        regime: 'real',
+        icmsRate: 18,
+        dvRate: 4.5,
+        customTaxes: [],
+      })
+      const [pReal] = resultadoReal
+      expect(pReal.completeFactor).toBeCloseTo(0.3325, 4)
+      expect(pReal.salePrice).toBe(986.47)
+      expect(pReal.salePriceCostMarginByRegime?.real).toBe(986.47)
+
+      // 2. SIMPLES NACIONAL (Anexo I, 1ª faixa: RBT12 R$ 180.000 -> DAS 4,00%)
+      // Divisor = 1 - (0,04 + 0,045 + 0,35) = 0,5650
+      // Preço esperado = 328 / 0,565 = 580,5309... -> 580,53
+      const resultadoSimples = calculateMarkupProductsCanonically(produtos, {
+        regime: 'simples',
+        dvRate: 4.5,
+        simplesAnexo: 'anexo_1',
+        effectiveSimplesRbt12: 180000,
+      })
+      const [pSimples] = resultadoSimples
+      expect(pSimples.completeFactor).toBeCloseTo(0.565, 4)
+      expect(pSimples.salePrice).toBe(580.53)
+      expect(pSimples.salePriceCostMarginByRegime?.simples).toBe(580.53)
+    })
   })
 })

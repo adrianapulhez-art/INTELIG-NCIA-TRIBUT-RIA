@@ -793,7 +793,7 @@ export function MarkupCalculationMemoryModal({
                       <span className="text-[10px] text-slate-400">
                         {isLiquid
                           ? 'Informativa (LLE ÷ RBV) — não entra no divisor no modo liquid'
-                          : 'Margem aplicada sobre a receita líquida'}
+                          : 'Margem desejada sobre o preço de venda bruto'}
                       </span>
                     </div>
                     <div className="text-right">
@@ -1222,7 +1222,7 @@ export function MarkupCalculationMemoryModal({
                       <span className="text-[10px] text-slate-400">
                         {isLiquid
                           ? 'Informativa (LLE ÷ RBV) — não entra no divisor no modo liquid'
-                          : 'Margem comercial sobre a receita líquida'}
+                          : 'Margem desejada sobre o preço de venda bruto'}
                       </span>
                     </div>
                     <div className="text-right">
@@ -1625,7 +1625,7 @@ export function MarkupCalculationMemoryModal({
                       <span className="text-[10px] text-slate-500">
                         {isLiquid
                           ? 'Informativa (LLE ÷ RBV) — não entra no divisor no modo liquid'
-                          : 'Margem comercial sobre a receita líquida'}
+                          : 'Margem desejada sobre o preço de venda bruto'}
                       </span>
                     </div>
                     <div className="text-right">
