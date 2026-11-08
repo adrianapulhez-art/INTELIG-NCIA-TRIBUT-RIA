@@ -2,6 +2,11 @@ import React, { useMemo } from 'react'
 import { Receipt, Percent, Scale } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { formatBRL, formatPercentBR } from '@/lib/taxCalculations'
+import {
+  calcularMarkupDivisorPre,
+  decomporPrecoVendaPre,
+  MarkupPreRegime,
+} from '@/lib/markupPreDivisor'
 
 type TaxRegimeId = 'presumido' | 'real' | 'simples'
 
@@ -65,81 +70,48 @@ function computeRegimeTaxes(
   customTaxes: CustomTaxLite[],
   effectiveSimplesRate: number,
 ): RegimeTaxResult {
-  const lines: TaxLine[] = []
   const safeRbv = Math.max(0, rbv || 0)
+  const customsArray = customTaxes.map((t) => (Number.isFinite(t.rate) ? t.rate : 0))
 
-  if (regime === 'simples') {
-    const dasValue = Math.round(safeRbv * (effectiveSimplesRate / 100) * 100) / 100
+  const divisorRes = calcularMarkupDivisorPre({
+    regime: regime as MarkupPreRegime,
+    icmsRatePct: icmsRate,
+    dasEfetivoPct: effectiveSimplesRate,
+    customTaxesPct: customsArray,
+    dvRatePct: 0,
+    marginPct: 0,
+    comMargem: false,
+  })
+
+  const decomposicao = decomporPrecoVendaPre(safeRbv, 0, divisorRes)
+
+  const lines: TaxLine[] = []
+  const tributosParcelas = divisorRes.parcelas.filter((p) => p.tipo === 'tributo')
+
+  for (const parcela of tributosParcelas) {
+    const detalhe = decomposicao.detalheTributos.find((d) => d.nome === parcela.nome)
+    const val = detalhe
+      ? detalhe.valor
+      : Math.round(safeRbv * (parcela.taxaEfetivaPct / 100) * 100) / 100
+
+    let accent: 'icms' | 'federal' | 'das' | 'custom' = 'custom'
+    if (parcela.chave === 'das') accent = 'das'
+    else if (parcela.chave === 'icms') accent = 'icms'
+    else if (parcela.chave === 'pis' || parcela.chave === 'cofins') accent = 'federal'
+
     lines.push({
-      key: 'das',
-      label: 'DAS (Simples Nacional)',
-      detail: 'Alíquota efetiva única — PGDAS (IRPJ, CSLL, PIS, COFINS, CPP e ICMS embutidos)',
-      ratePct: effectiveSimplesRate,
+      key: parcela.chave,
+      label: parcela.nome,
+      detail: `${parcela.baseLabel} · Taxa sobre PV: ${formatPercentBR(parcela.taxaEfetivaPct)}`,
+      ratePct: parcela.taxaNominalPct,
       base: safeRbv,
-      value: dasValue,
-      pctOfRevenue: safeRbv > 0 ? (dasValue / safeRbv) * 100 : 0,
-      accent: 'das',
-    })
-  } else {
-    const icmsValue = Math.round(safeRbv * (icmsRate / 100) * 100) / 100
-    lines.push({
-      key: 'icms',
-      label: 'ICMS',
-      detail: 'Alíquota configurada na página · base: Receita Bruta de Venda',
-      ratePct: icmsRate,
-      base: safeRbv,
-      value: icmsValue,
-      pctOfRevenue: safeRbv > 0 ? (icmsValue / safeRbv) * 100 : 0,
-      accent: 'icms',
-    })
-
-    // Base sem ICMS — tese do século (STJ RE 1.188.403): ICMS fora da base de PIS/COFINS
-    const pisCofinsBase = Math.max(0, safeRbv - icmsValue)
-    const isPresumido = regime === 'presumido'
-    const pisRate = isPresumido ? 0.65 : 1.65
-    const cofinsRate = isPresumido ? 3.0 : 7.6
-
-    const pisValue = Math.round(pisCofinsBase * (pisRate / 100) * 100) / 100
-    lines.push({
-      key: 'pis',
-      label: 'PIS',
-      detail: 'Base sem ICMS (tese do século — STJ RE 1.188.403)',
-      ratePct: pisRate,
-      base: pisCofinsBase,
-      value: pisValue,
-      pctOfRevenue: safeRbv > 0 ? (pisValue / safeRbv) * 100 : 0,
-      accent: 'federal',
-    })
-
-    const cofinsValue = Math.round(pisCofinsBase * (cofinsRate / 100) * 100) / 100
-    lines.push({
-      key: 'cofins',
-      label: 'COFINS',
-      detail: 'Base sem ICMS (tese do século — STJ RE 1.188.403)',
-      ratePct: cofinsRate,
-      base: pisCofinsBase,
-      value: cofinsValue,
-      pctOfRevenue: safeRbv > 0 ? (cofinsValue / safeRbv) * 100 : 0,
-      accent: 'federal',
+      value: val,
+      pctOfRevenue: safeRbv > 0 ? (val / safeRbv) * 100 : 0,
+      accent,
     })
   }
 
-  for (const tax of customTaxes) {
-    const rate = Number.isFinite(tax.rate) ? tax.rate : 0
-    const value = Math.round(safeRbv * (rate / 100) * 100) / 100
-    lines.push({
-      key: `custom-${tax.id}`,
-      label: tax.name || 'Tributo adicional',
-      detail: 'Tributo adicional configurado na página · base: Receita Bruta de Venda',
-      ratePct: rate,
-      base: safeRbv,
-      value,
-      pctOfRevenue: safeRbv > 0 ? (value / safeRbv) * 100 : 0,
-      accent: 'custom',
-    })
-  }
-
-  const totalValue = Math.round(lines.reduce((acc, l) => acc + l.value, 0) * 100) / 100
+  const totalValue = decomposicao.valorTributos
   const totalPct = safeRbv > 0 ? (totalValue / safeRbv) * 100 : 0
 
   return {
@@ -482,10 +454,10 @@ export function TaxCompositionSection({
         </div>
 
         <p className="text-[10px] font-mono text-slate-500 leading-relaxed">
-          Presumido: PIS 0,65% e COFINS 3% · Real: PIS 1,65% e COFINS 7,60% — ambos sobre a base sem
-          ICMS (tese do século, STJ RE 1.188.403). Simples: DAS única conforme anexo e RBT12 (
-          {simplesAnexoLabel}, alíquota efetiva {formatPercentBR(effectiveSimplesRate)}). Espelha
-          exatamente o cálculo do motor de Markup.
+          Presumido: PIS 0,65% e COFINS 3,00% sobre PV · Real: PIS 1,65% e COFINS 7,60% sobre PV ·
+          Simples: DAS única conforme anexo e RBT12 ({simplesAnexoLabel}, alíquota efetiva{' '}
+          {formatPercentBR(effectiveSimplesRate)}). Espelha exatamente o cálculo e o divisor aditivo
+          do motor de Markup pré-reforma.
         </p>
       </div>
     </div>

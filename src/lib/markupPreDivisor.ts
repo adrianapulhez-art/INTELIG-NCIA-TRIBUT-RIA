@@ -223,18 +223,35 @@ export function decomporPrecoVendaPre(
   let valorDv = 0
   const detalheTributos: Array<{ nome: string; valor: number; taxaEfetivaPct: number }> = []
 
+  const targetTributos = Math.round(pv * (resultadoDivisor.somaTributosPct / 100) * 100) / 100
+  const targetDv = Math.round(pv * (resultadoDivisor.somaDvPct / 100) * 100) / 100
+
+  let sumLines = 0
   for (const parcela of resultadoDivisor.parcelas) {
     if (parcela.tipo === 'tributo') {
       const v = Math.round(pv * (parcela.taxaEfetivaPct / 100) * 100) / 100
-      valorTributos += v
+      sumLines += v
       detalheTributos.push({ nome: parcela.nome, valor: v, taxaEfetivaPct: parcela.taxaEfetivaPct })
-    } else if (parcela.tipo === 'dv') {
-      valorDv += Math.round(pv * (parcela.taxaEfetivaPct / 100) * 100) / 100
     }
   }
 
-  valorTributos = Math.round(valorTributos * 100) / 100
-  valorDv = Math.round(valorDv * 100) / 100
+  // Conciliação de centavos entre a soma das linhas e o total sobre a carga efetiva
+  const diffTributos = Math.round((targetTributos - sumLines) * 100) / 100
+  if (diffTributos !== 0 && detalheTributos.length > 0) {
+    let maxIdx = 0
+    let maxVal = detalheTributos[0].valor
+    for (let i = 1; i < detalheTributos.length; i++) {
+      if (detalheTributos[i].valor > maxVal) {
+        maxVal = detalheTributos[i].valor
+        maxIdx = i
+      }
+    }
+    detalheTributos[maxIdx].valor =
+      Math.round((detalheTributos[maxIdx].valor + diffTributos) * 100) / 100
+  }
+
+  valorTributos = targetTributos
+  valorDv = targetDv
 
   // Lucro é o resíduo contábil exato que fecha a identidade C + T + DV + L = PV
   const valorLucroMargem = Math.round((pv - custo - valorTributos - valorDv) * 100) / 100

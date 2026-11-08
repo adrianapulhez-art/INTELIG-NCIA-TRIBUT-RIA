@@ -29,7 +29,8 @@ import { calculatePgdas, SimplesAnexoId } from '@/lib/simplesCalculations'
 import {
   calcularMarkupDivisorPre,
   precoPeloDivisorPre,
-  type MarkupPreRegime,
+  decomporPrecoVendaPre,
+  MarkupPreRegime,
 } from '@/lib/markupPreDivisor'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -2200,20 +2201,20 @@ export default function MarkupPage() {
                           prod.salePriceByRegime && prod.salePriceByRegime[regime] > 0
                             ? prod.salePriceByRegime[regime]
                             : prod.salePrice
-                        const dvFactorL =
-                          totalVariableExpenseRate > 0 && totalVariableExpenseRate < 100
-                            ? 1 - totalVariableExpenseRate / 100
-                            : 1
-                        const customFactorL = customTaxesMarkup.reduce(
-                          (acc, t) => acc * (1 - (Number.isFinite(t.rate) ? t.rate : 0) / 100),
-                          1,
+                        const customsArray = customTaxesMarkup.map((t) =>
+                          Number.isFinite(t.rate) ? t.rate : 0,
                         )
-                        const taxPartL =
-                          prod.taxFactor > 0 && prod.taxFactor < 1
-                            ? Math.min(1, Math.max(0, prod.taxFactor / (dvFactorL * customFactorL)))
-                            : 0
-                        const taxesTotalL =
-                          rbvActive > 0 ? Math.round(rbvActive * (1 - taxPartL) * 100) / 100 : 0
+                        const divisorTaxOnlyL = calcularMarkupDivisorPre({
+                          regime: regime as MarkupPreRegime,
+                          icmsRatePct: icmsRateMarkup,
+                          dasEfetivoPct: simplesEffectiveDas,
+                          customTaxesPct: customsArray,
+                          dvRatePct: 0,
+                          marginPct: 0,
+                          comMargem: false,
+                        })
+                        const decompL = decomporPrecoVendaPre(rbvActive, 0, divisorTaxOnlyL)
+                        const taxesTotalL = decompL.valorTributos
 
                         return (
                           <div className="pt-2 border-t border-slate-200 flex items-center justify-between flex-wrap gap-2">
@@ -2269,25 +2270,24 @@ export default function MarkupPage() {
                           (comp?.directCosts || []).length +
                           (comp?.indirectCosts || []).length +
                           (comp?.fixedCosts || []).length
-                        const dvFactorChip =
-                          totalVariableExpenseRate > 0 && totalVariableExpenseRate < 100
-                            ? 1 - totalVariableExpenseRate / 100
-                            : 1
-                        const customFactorChip = customTaxesMarkup.reduce(
-                          (acc, t) => acc * (1 - (Number.isFinite(t.rate) ? t.rate : 0) / 100),
-                          1,
+                        const activeProdPrice =
+                          prod.salePriceByRegime && prod.salePriceByRegime[regime] > 0
+                            ? prod.salePriceByRegime[regime]
+                            : prod.salePrice
+                        const customsArrayChip = customTaxesMarkup.map((t) =>
+                          Number.isFinite(t.rate) ? t.rate : 0,
                         )
-                        const taxPartChip =
-                          prod.taxFactor > 0 && prod.taxFactor < 1
-                            ? Math.min(
-                                1,
-                                Math.max(0, prod.taxFactor / (dvFactorChip * customFactorChip)),
-                              )
-                            : 0
-                        const taxesTotal =
-                          prod.salePrice > 0
-                            ? Math.round(prod.salePrice * (1 - taxPartChip) * 100) / 100
-                            : 0
+                        const divisorTaxOnly = calcularMarkupDivisorPre({
+                          regime: regime as MarkupPreRegime,
+                          icmsRatePct: icmsRateMarkup,
+                          dasEfetivoPct: simplesEffectiveDas,
+                          customTaxesPct: customsArrayChip,
+                          dvRatePct: 0,
+                          marginPct: 0,
+                          comMargem: false,
+                        })
+                        const decompChip = decomporPrecoVendaPre(activeProdPrice, 0, divisorTaxOnly)
+                        const taxesTotal = decompChip.valorTributos
 
                         return (
                           <div className="pt-2 border-t border-slate-200 flex items-center justify-between flex-wrap gap-2">

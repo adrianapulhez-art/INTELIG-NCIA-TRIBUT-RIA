@@ -365,6 +365,105 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
       expect(dec.diferencaCentavos).toBe(0)
     })
 
+    it('Cenário de Patinete e Bicicleta (Prints do Usuário no Lucro Presumido)', () => {
+      // Patinete: Custo R$ 410,00, Margem 52%, DV 4,50%, ICMS 18%, PIS 0,65%, COFINS 3,00%
+      // Soma tributos: 21,65%
+      // Divisor: 1 - (0,2165 + 0,045 + 0,52) = 0,2185
+      // Preço: 410 / 0,2185 = 1.876,43
+      // Tributos sobre PV: 1.876,43 * 21,65% = 406,25 (conciliado com card Composição dos Tributos)
+      //
+      // Bicicleta: Custo R$ 246,00, Margem 48%, DV 4,50%, ICMS 18%, PIS 0,65%, COFINS 3,00%
+      // Soma tributos: 21,65%
+      // Divisor: 1 - (0,2165 + 0,045 + 0,48) = 0,2585
+      // Preço: 246 / 0,2585 = 951,64
+      // Tributos sobre PV: 951,64 * 21,65% = 206,03 (conciliado com card Composição dos Tributos)
+      const produtosPrints: MarkupProductItem[] = [
+        {
+          id: 'patinete',
+          name: 'Patinete',
+          mode: 'cost_margin',
+          cost: 410.0,
+          desiredNetRevenue: 0,
+          margin: 52,
+          quantity: 1,
+          marginByRegime: { presumido: 52, real: 52, simples: 52 },
+          quantityByRegime: { presumido: 1, real: 1, simples: 1 },
+          salePrice: 0,
+          taxFactor: 0,
+          completeFactor: 0,
+          totalRevenue: 0,
+          totalCost: 0,
+        },
+        {
+          id: 'bicicleta',
+          name: 'Bicicleta',
+          mode: 'cost_margin',
+          cost: 246.0,
+          desiredNetRevenue: 0,
+          margin: 48,
+          quantity: 1,
+          marginByRegime: { presumido: 48, real: 48, simples: 48 },
+          quantityByRegime: { presumido: 1, real: 1, simples: 1 },
+          salePrice: 0,
+          taxFactor: 0,
+          completeFactor: 0,
+          totalRevenue: 0,
+          totalCost: 0,
+        },
+      ]
+
+      const resultado = calculateMarkupProductsCanonically(produtosPrints, {
+        regime: 'presumido',
+        icmsRate: 18,
+        dvRate: 4.5,
+        customTaxes: [],
+        simplesAnexo: 'anexo_1',
+        effectiveSimplesRbt12: 180000,
+      })
+
+      const [patinete, bicicleta] = resultado
+
+      // 1. Patinete
+      expect(patinete.completeFactor).toBeCloseTo(0.2185, 4)
+      expect(patinete.salePrice).toBe(1876.43)
+      const divPatinete = calcularMarkupDivisorPre({
+        regime: 'presumido',
+        icmsRatePct: 18,
+        dvRatePct: 4.5,
+        marginPct: 52,
+        comMargem: true,
+      })
+      const decPatinete = decomporPrecoVendaPre(patinete.salePrice, patinete.cost, divPatinete)
+      expect(decPatinete.valorTributos).toBe(406.25)
+      expect(decPatinete.valorDv).toBe(84.44)
+      expect(decPatinete.valorLucroMargem).toBe(975.74)
+      // Identidade fundamental
+      expect(decPatinete.somaComponentes).toBe(1876.43)
+      expect(decPatinete.diferencaCentavos).toBe(0)
+      // Margem efetiva sobre PV bruto: 975,74 / 1876,43 = 52,00%
+      expect(decPatinete.margemEfetivaPct).toBeCloseTo(52.0, 1)
+
+      // 2. Bicicleta
+      expect(bicicleta.completeFactor).toBeCloseTo(0.2585, 4)
+      expect(bicicleta.salePrice).toBe(951.64)
+      const divBicicleta = calcularMarkupDivisorPre({
+        regime: 'presumido',
+        icmsRatePct: 18,
+        dvRatePct: 4.5,
+        marginPct: 48,
+        comMargem: true,
+      })
+      const decBicicleta = decomporPrecoVendaPre(bicicleta.salePrice, bicicleta.cost, divBicicleta)
+      expect(decBicicleta.valorTributos).toBe(206.03)
+      expect(decBicicleta.valorDv).toBe(42.82)
+      expect(decBicicleta.valorLucroMargem).toBe(456.79)
+      // Identidade fundamental
+      expect(decBicicleta.somaComponentes).toBe(951.64)
+      expect(decBicicleta.diferencaCentavos).toBe(0)
+      // Margem efetiva sobre PV bruto: 456,79 / 951,64 = 48,00%
+      expect(decBicicleta.margemEfetivaPct).toBeCloseTo(48.0, 1)
+    })
+
     it('Verificação nos regimes Lucro Real e Simples Nacional para o mesmo item', () => {
       const produtos: MarkupProductItem[] = [
         {
