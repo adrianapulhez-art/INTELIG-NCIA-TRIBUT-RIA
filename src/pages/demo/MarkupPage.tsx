@@ -2580,15 +2580,7 @@ export default function MarkupPage() {
                             customTaxes={customTaxesMarkup}
                             effectiveSimplesRate={simplesEffectiveDas}
                             simplesAnexoLabel={simplesAnexoLabel}
-                            salePriceByRegime={
-                              targetProd.salePriceByRegime
-                                ? {
-                                    presumido: targetProd.salePriceByRegime.presumido,
-                                    real: targetProd.salePriceByRegime.real,
-                                    simples: targetProd.salePriceByRegime.simples,
-                                  }
-                                : undefined
-                            }
+                            salePriceByRegime={targetProd.salePriceByRegime}
                           />
                         </div>
                       </div>

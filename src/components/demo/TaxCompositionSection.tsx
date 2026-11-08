@@ -24,7 +24,7 @@ interface TaxCompositionSectionProps {
   customTaxes: CustomTaxLite[]
   effectiveSimplesRate: number
   simplesAnexoLabel: string
-  salePriceByRegime?: { presumido: number; real: number; simples: number }
+  salePriceByRegime?: { presumido?: number; real?: number; simples?: number }
 }
 
 interface TaxLine {
@@ -145,8 +145,9 @@ export function TaxCompositionSection({
   const resultsByRegime = useMemo<Record<TaxRegimeId, RegimeTaxResult>>(() => {
     const map = {} as Record<TaxRegimeId, RegimeTaxResult>
     for (const r of REGIME_ORDER) {
+      const priceForRegime = salePriceByRegime?.[r]
       const rPrice =
-        salePriceByRegime && salePriceByRegime[r] > 0 ? salePriceByRegime[r] : salePrice
+        typeof priceForRegime === 'number' && priceForRegime > 0 ? priceForRegime : salePrice
       map[r] = computeRegimeTaxes(r, rPrice, icmsRate, customTaxes, effectiveSimplesRate)
     }
     return map
