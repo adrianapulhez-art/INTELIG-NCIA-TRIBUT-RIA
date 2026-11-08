@@ -94,6 +94,7 @@ export function calculateMarkupProductsCanonically(
     simplesAnexo?: SimplesAnexoId
     simplesRbt12?: number
     effectiveSimplesRbt12?: number
+    excluirIcmsBasePisCofins?: boolean
   } = {},
 ): MarkupProductItem[] {
   const activeRegime: TaxRegime = options.regime || 'presumido'
@@ -135,6 +136,7 @@ export function calculateMarkupProductsCanonically(
       dvRatePct: cleanDvRate,
       marginPct,
       comMargem,
+      excluirIcmsBasePisCofins: options.excluirIcmsBasePisCofins,
     }).divisor
   }
 

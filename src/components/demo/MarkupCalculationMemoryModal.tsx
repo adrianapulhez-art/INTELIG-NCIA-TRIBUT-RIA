@@ -1369,10 +1369,10 @@ export function MarkupCalculationMemoryModal({
                                 {t.icmsExcluido ? formatBRL(t.icmsExcluido) : '—'}
                               </td>
                               <td className="py-1 px-2 text-right text-slate-700">
-                                {formatPercentBR(t.aliquotaNominalPct, 2)}
+                                {formatPercentBR(t.taxaNominalPct ?? t.taxaEfetivaPct, 2)}
                               </td>
                               <td className="py-1 px-2 text-right font-semibold text-[#b87c14]">
-                                {formatPercentBR(t.taxaEfetivaSobrePvPct, 3)}
+                                {formatPercentBR(t.taxaEfetivaPct, 3)}
                               </td>
                               <td className="py-1 px-2 text-right font-bold text-slate-900">
                                 {formatBRL(t.valor)}
