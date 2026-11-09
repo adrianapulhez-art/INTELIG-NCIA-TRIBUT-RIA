@@ -456,10 +456,11 @@ export function TaxCompositionSection({
         </div>
 
         <p className="text-[10px] font-mono text-slate-500 leading-relaxed">
-          Presumido: PIS 0,65% e COFINS 3,00% sobre PV · Real: PIS 1,65% e COFINS 7,60% sobre PV ·
-          Simples: DAS única conforme anexo e RBT12 ({simplesAnexoLabel}, alíquota efetiva{' '}
-          {formatPercentBR(effectiveSimplesRate)}). Espelha exatamente o cálculo e o divisor aditivo
-          do motor de Markup pré-reforma.
+          Presumido: PIS 0,65% e COFINS 3,00% sobre base sem ICMS destacado (Tema 69/STF) · Real:
+          PIS 1,65% e COFINS 7,60% sobre base sem ICMS destacado (Tema 69/STF; créditos de compras
+          abatem o CMV na DRE) · Simples: DAS única conforme anexo e RBT12 ({simplesAnexoLabel},
+          alíquota efetiva {formatPercentBR(effectiveSimplesRate)}). Espelha exatamente o cálculo e
+          o divisor aditivo do motor de Markup pré-reforma.
         </p>
       </div>
     </div>

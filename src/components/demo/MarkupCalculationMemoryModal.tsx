@@ -361,12 +361,28 @@ export function MarkupCalculationMemoryModal({
   const valorIcmsPresumido =
     decomposicaoPresumido.detalheTributos.find((t) => t.nome === 'ICMS')?.valor ??
     Math.round(pvPresumido * (icmsRateClean / 100) * 100) / 100
+
+  // Base de PIS/COFINS após exclusão do ICMS destacado (Tema 69/STF, RE 574706)
+  const baseCalculoPisCofinsPresumido = Math.max(0, pvPresumido - valorIcmsPresumido)
+  const basePisCofinsPresumidoPct =
+    pvPresumido > 0
+      ? (baseCalculoPisCofinsPresumido / pvPresumido) * 100
+      : Math.max(0, 100 - icmsRateClean)
+
+  const parcelaPisPresumido = divisorResPresumido.parcelas.find((p) => p.chave === 'pis')
+  const parcelaCofinsPresumido = divisorResPresumido.parcelas.find((p) => p.chave === 'cofins')
+  const pisPresumidoEfetivoPct =
+    parcelaPisPresumido?.taxaEfetivaPct ?? pisPresumidoRate * (basePisCofinsPresumidoPct / 100)
+  const cofinsPresumidoEfetivoPct =
+    parcelaCofinsPresumido?.taxaEfetivaPct ??
+    cofinsPresumidoRate * (basePisCofinsPresumidoPct / 100)
+
   const valorPisPresumido =
     decomposicaoPresumido.detalheTributos.find((t) => t.nome === 'PIS')?.valor ??
-    Math.round(pvPresumido * 0.0065 * 100) / 100
+    Math.round(baseCalculoPisCofinsPresumido * (pisPresumidoRate / 100) * 100) / 100
   const valorCofinsPresumido =
     decomposicaoPresumido.detalheTributos.find((t) => t.nome === 'COFINS')?.valor ??
-    Math.round(pvPresumido * 0.03 * 100) / 100
+    Math.round(baseCalculoPisCofinsPresumido * (cofinsPresumidoRate / 100) * 100) / 100
   const valorTributosPresumido = decomposicaoPresumido.valorTributos
   const valorDvPresumido = decomposicaoPresumido.valorDv
   const valorMargemPresumido = decomposicaoPresumido.valorLucroMargem
@@ -388,12 +404,25 @@ export function MarkupCalculationMemoryModal({
   const valorIcmsReal =
     decomposicaoReal.detalheTributos.find((t) => t.nome === 'ICMS')?.valor ??
     Math.round(pvReal * (icmsRateClean / 100) * 100) / 100
+
+  // Base de PIS/COFINS após exclusão do ICMS destacado (Tema 69/STF, RE 574706)
+  const baseCalculoPisCofinsReal = Math.max(0, pvReal - valorIcmsReal)
+  const basePisCofinsRealPct =
+    pvReal > 0 ? (baseCalculoPisCofinsReal / pvReal) * 100 : Math.max(0, 100 - icmsRateClean)
+
+  const parcelaPisReal = divisorResReal.parcelas.find((p) => p.chave === 'pis')
+  const parcelaCofinsReal = divisorResReal.parcelas.find((p) => p.chave === 'cofins')
+  const pisRealEfetivoPct =
+    parcelaPisReal?.taxaEfetivaPct ?? pisRealRate * (basePisCofinsRealPct / 100)
+  const cofinsRealEfetivoPct =
+    parcelaCofinsReal?.taxaEfetivaPct ?? cofinsRealRate * (basePisCofinsRealPct / 100)
+
   const valorPisReal =
     decomposicaoReal.detalheTributos.find((t) => t.nome === 'PIS')?.valor ??
-    Math.round(pvReal * 0.0165 * 100) / 100
+    Math.round(baseCalculoPisCofinsReal * (pisRealRate / 100) * 100) / 100
   const valorCofinsReal =
     decomposicaoReal.detalheTributos.find((t) => t.nome === 'COFINS')?.valor ??
-    Math.round(pvReal * 0.076 * 100) / 100
+    Math.round(baseCalculoPisCofinsReal * (cofinsRealRate / 100) * 100) / 100
   const valorTributosReal = decomposicaoReal.valorTributos
   const valorDvReal = decomposicaoReal.valorDv
   const valorMargemReal = decomposicaoReal.valorLucroMargem
@@ -1110,13 +1139,17 @@ export function MarkupCalculationMemoryModal({
                   <code className="text-[#b87c14] font-semibold">
                     {isLiquid ? (
                       <>
-                        Divisor = 1 − (ICMS% + PIS 0,65% + COFINS 3,00% + DV%)
+                        Divisor = 1 − [ICMS% + PIS efetivo% (
+                        {formatPercentBR(pisPresumidoEfetivoPct, 3)}) + COFINS efetiva% (
+                        {formatPercentBR(cofinsPresumidoEfetivoPct, 3)}) + DV%]
                         <br />
                         Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
                       </>
                     ) : (
                       <>
-                        Divisor = 1 − (ICMS% + PIS 0,65% + COFINS 3,00% + DV% + Margem%)
+                        Divisor = 1 − [ICMS% + PIS efetivo% (
+                        {formatPercentBR(pisPresumidoEfetivoPct, 3)}) + COFINS efetiva% (
+                        {formatPercentBR(cofinsPresumidoEfetivoPct, 3)}) + DV% + Margem%]
                         <br />
                         Preço Sugerido = Custo Unitário ÷ Divisor
                       </>
@@ -1124,9 +1157,23 @@ export function MarkupCalculationMemoryModal({
                   </code>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  No Lucro Presumido cumulativo, o PIS (0,65%) e a COFINS (3,00%) incidem
-                  diretamente sobre a receita bruta, somados aditivamente à alíquota de ICMS
-                  informada, às despesas variáveis de venda e à margem sobre o PV bruto.
+                  No Lucro Presumido cumulativo, o PIS (0,65%) e a COFINS (3,00%) incidem sobre a
+                  base &quot;Receita bruta da venda MENOS o ICMS destacado na nota fiscal de
+                  saída&quot; (
+                  <a
+                    href="https://portal.stf.jus.br/processos/listarProcessos.asp?classe=RE&numeroProcesso=574706"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-amber-800 underline hover:text-amber-900 font-medium"
+                  >
+                    Tema 69/STF, RE 574706
+                  </a>
+                  ). O divisor aditivo utiliza as parcelas efetivas dessas contribuições sobre o
+                  preço bruto ({formatPercentBR(pisPresumidoEfetivoPct, 3)} e{' '}
+                  {formatPercentBR(cofinsPresumidoEfetivoPct, 3)}, totalizando{' '}
+                  {formatPercentBR(totalTaxesPresumidoRate, 2)} de carga tributária aditiva para
+                  ICMS {formatPercentBR(icmsRateClean)}, em vez de 21,65%), somadas às despesas
+                  variáveis de venda e à margem sobre o PV bruto.
                 </p>
               </div>
 
@@ -1157,16 +1204,18 @@ export function MarkupCalculationMemoryModal({
                     <div>
                       <span className="font-bold text-slate-900 block">② Base de Incidência</span>
                       <span className="text-[10px] text-slate-500">
-                        ICMS sobre PV bruto ({formatPercentBR(icmsRateClean)}) · PIS/COFINS sobre PV
-                        deduzido do ICMS destacado (
-                        {formatPercentBR(Math.max(0, 100 - icmsRateClean))} do PV)
+                        ICMS sobre PV bruto ({formatPercentBR(icmsRateClean)} ·{' '}
+                        {formatBRL(valorIcmsPresumido)}) · PIS/COFINS sobre base pós-exclusão do
+                        ICMS destacado ({formatPercentBR(basePisCofinsPresumidoPct)} do PV ·{' '}
+                        {formatBRL(baseCalculoPisCofinsPresumido)})
                       </span>
                       <span className="text-[10px] text-emerald-700 block font-medium">
-                        Parecer SEI nº 14483/2021 (exclusão do ICMS da base do PIS e da COFINS)
+                        Tema 69/STF (RE 574706) e Parecer SEI nº 14483/2021 (exclusão do ICMS da
+                        base do PIS e da COFINS)
                       </span>
                     </div>
                     <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px]">
-                      ICMS Excluído
+                      {icmsRateClean > 0 ? 'ICMS Excluído' : 'Base Integral (ICMS 0%)'}
                     </Badge>
                   </div>
 
@@ -1174,38 +1223,26 @@ export function MarkupCalculationMemoryModal({
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-900 block">
-                        ③ Tributos Federais Cumulativos (s/ base sem ICMS)
+                        ③ Tributos Federais Cumulativos (s/ base pós-exclusão do ICMS)
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        PIS: {formatPercentBR(pisPresumidoRate)} nominal · Taxa efetiva s/ PV:{' '}
-                        {formatPercentBR(
-                          divisorResPresumido.parcelas.find((p) => p.chave === 'pis')
-                            ?.taxaEfetivaPct ?? 0.533,
-                          3,
-                        )}{' '}
-                        · {formatBRL(valorPisPresumido)}
+                        PIS: {formatPercentBR(pisPresumidoRate)} nominal · Parcela efetiva s/ PV:{' '}
+                        {formatPercentBR(pisPresumidoEfetivoPct, 3)} (fator{' '}
+                        {formatFactorBR(pisPresumidoEfetivoPct / 100, 4)}) ·{' '}
+                        {formatBRL(valorPisPresumido)}
                       </span>
                       <span className="text-[10px] text-slate-500 block">
-                        COFINS: {formatPercentBR(cofinsPresumidoRate)} nominal · Taxa efetiva s/ PV:{' '}
-                        {formatPercentBR(
-                          divisorResPresumido.parcelas.find((p) => p.chave === 'cofins')
-                            ?.taxaEfetivaPct ?? 2.46,
-                          3,
-                        )}{' '}
-                        · {formatBRL(valorCofinsPresumido)}
+                        COFINS: {formatPercentBR(cofinsPresumidoRate)} nominal · Parcela efetiva s/
+                        PV: {formatPercentBR(cofinsPresumidoEfetivoPct, 3)} (fator{' '}
+                        {formatFactorBR(cofinsPresumidoEfetivoPct / 100, 4)}) ·{' '}
+                        {formatBRL(valorCofinsPresumido)}
                       </span>
                     </div>
                     <div className="text-right">
                       <span className="font-bold text-slate-900 text-sm block">
-                        {formatPercentBR(
-                          (divisorResPresumido.parcelas.find((p) => p.chave === 'pis')
-                            ?.taxaEfetivaPct ?? 0.533) +
-                            (divisorResPresumido.parcelas.find((p) => p.chave === 'cofins')
-                              ?.taxaEfetivaPct ?? 2.46),
-                          3,
-                        )}
+                        {formatPercentBR(pisPresumidoEfetivoPct + cofinsPresumidoEfetivoPct, 3)}
                       </span>
-                      <span className="text-[10px] text-slate-500">efetivo sobre PV</span>
+                      <span className="text-[10px] text-slate-500">efetivo s/ PV bruto</span>
                     </div>
                   </div>
 
@@ -1216,7 +1253,7 @@ export function MarkupCalculationMemoryModal({
                         ④ ICMS Estadual sobre Venda
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        Alíquota interna sobre o PV bruto · Destaque:{' '}
+                        Alíquota interna sobre o PV bruto · Destaque na NF:{' '}
                         {formatBRL(valorIcmsPresumido)}
                       </span>
                     </div>
@@ -1234,26 +1271,17 @@ export function MarkupCalculationMemoryModal({
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-50">
                     <div>
                       <span className="font-bold text-[#261502] block">
-                        ⑤ Carga Tributária Total Aditiva (Taxas Efetivas)
+                        ⑤ Carga Tributária Total Aditiva (usada no Divisor)
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        ICMS {formatPercentBR(icmsRateClean, 3)} + PIS{' '}
-                        {formatPercentBR(
-                          divisorResPresumido.parcelas.find((p) => p.chave === 'pis')
-                            ?.taxaEfetivaPct ?? 0.533,
-                          3,
-                        )}{' '}
-                        + COFINS{' '}
-                        {formatPercentBR(
-                          divisorResPresumido.parcelas.find((p) => p.chave === 'cofins')
-                            ?.taxaEfetivaPct ?? 2.46,
-                          3,
-                        )}
+                        ICMS {formatPercentBR(icmsRateClean)} + PIS efetivo{' '}
+                        {formatPercentBR(pisPresumidoEfetivoPct, 3)} + COFINS efetiva{' '}
+                        {formatPercentBR(cofinsPresumidoEfetivoPct, 3)}
                       </span>
                     </div>
                     <div className="text-right">
                       <span className="font-bold text-[#b87c14] text-sm block">
-                        {formatPercentBR(totalTaxesPresumidoRate, 3)}
+                        {formatPercentBR(totalTaxesPresumidoRate, 2)}
                       </span>
                       <span className="text-[10px] text-slate-500">
                         Total tributos: {formatBRL(valorTributosPresumido)}
@@ -1651,13 +1679,16 @@ export function MarkupCalculationMemoryModal({
                   <code className="text-[#b87c14] font-semibold">
                     {isLiquid ? (
                       <>
-                        Divisor = 1 − (ICMS% + PIS 1,65% + COFINS 7,60% + DV%)
+                        Divisor = 1 − [ICMS% + PIS efetivo% ({formatPercentBR(pisRealEfetivoPct, 3)}
+                        ) + COFINS efetiva% ({formatPercentBR(cofinsRealEfetivoPct, 3)}) + DV%]
                         <br />
                         Preço Sugerido (RBV) = Receita Líquida ÷ Divisor
                       </>
                     ) : (
                       <>
-                        Divisor = 1 − (ICMS% + PIS 1,65% + COFINS 7,60% + DV% + Margem%)
+                        Divisor = 1 − [ICMS% + PIS efetivo% ({formatPercentBR(pisRealEfetivoPct, 3)}
+                        ) + COFINS efetiva% ({formatPercentBR(cofinsRealEfetivoPct, 3)}) + DV% +
+                        Margem%]
                         <br />
                         Preço Sugerido = Custo Unitário ÷ Divisor
                       </>
@@ -1665,9 +1696,25 @@ export function MarkupCalculationMemoryModal({
                   </code>
                 </div>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
-                  No Lucro Real não cumulativo, as alíquotas de PIS (1,65%) e COFINS (7,60%)
-                  somam-se ao ICMS, despesas variáveis e margem no divisor aditivo sobre o PV bruto.
-                  Os créditos das compras reduzem diretamente o CMV líquido na DRE.
+                  No Lucro Real não cumulativo, o PIS (1,65%) e a COFINS (7,60%) incidem sobre a
+                  base &quot;Receita bruta da venda MENOS o ICMS destacado na nota fiscal de
+                  saída&quot; (
+                  <a
+                    href="https://portal.stf.jus.br/processos/listarProcessos.asp?classe=RE&numeroProcesso=574706"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-amber-800 underline hover:text-amber-900 font-medium"
+                  >
+                    Tema 69/STF, RE 574706
+                  </a>
+                  ). No divisor aditivo sobre o preço bruto, entram os débitos de saída calculados
+                  pelas parcelas efetivas ({formatPercentBR(pisRealEfetivoPct, 3)} e{' '}
+                  {formatPercentBR(cofinsRealEfetivoPct, 3)}), que somadas ao ICMS (
+                  {formatPercentBR(icmsRateClean)}) totalizam{' '}
+                  {formatPercentBR(totalTaxesRealRate, 2)} de carga tributária aditiva de saída (e
+                  não 27,25%). Já os créditos elegíveis sobre compras operam em etapa separada: hoje
+                  reduzem diretamente o CMV líquido apurado na DRE, preservando a identidade entre o
+                  custo unitário de aquisição e a formação do preço.
                 </p>
               </div>
 
@@ -1697,27 +1744,49 @@ export function MarkupCalculationMemoryModal({
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-50">
                     <div>
                       <span className="font-bold text-slate-900 block">② Base de Incidência</span>
-                      <span className="text-[10px] text-slate-500">Receita bruta da operação</span>
+                      <span className="text-[10px] text-slate-500">
+                        ICMS sobre PV bruto ({formatPercentBR(icmsRateClean)} ·{' '}
+                        {formatBRL(valorIcmsReal)}) · PIS/COFINS sobre base pós-exclusão do ICMS
+                        destacado ({formatPercentBR(basePisCofinsRealPct)} do PV ·{' '}
+                        {formatBRL(baseCalculoPisCofinsReal)})
+                      </span>
+                      <span className="text-[10px] text-emerald-700 block font-medium">
+                        Tema 69/STF (RE 574706) · Exclusão do ICMS da base do PIS e da COFINS
+                      </span>
                     </div>
-                    <span className="font-bold text-slate-700">Não Cumulativa</span>
+                    <Badge className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px]">
+                      {icmsRateClean > 0 ? 'ICMS Excluído' : 'Base Integral (ICMS 0%)'}
+                    </Badge>
                   </div>
 
                   {/* ③ PIS e COFINS */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-slate-900 block">
-                        ③ PIS e COFINS Não Cumulativos
+                        ③ PIS e COFINS Não Cumulativos (Débitos de Saída s/ base sem ICMS)
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        PIS: {formatPercentBR(pisRealRate)} · Parcela:{' '}
-                        {formatFactorBR(pisRealRate / 100, 4)}
+                        PIS: {formatPercentBR(pisRealRate)} nominal · Parcela efetiva s/ PV:{' '}
+                        {formatPercentBR(pisRealEfetivoPct, 3)} (fator{' '}
+                        {formatFactorBR(pisRealEfetivoPct / 100, 4)}) · {formatBRL(valorPisReal)}
                       </span>
                       <span className="text-[10px] text-slate-500 block">
-                        COFINS: {formatPercentBR(cofinsRealRate)} · Parcela:{' '}
-                        {formatFactorBR(cofinsRealRate / 100, 4)}
+                        COFINS: {formatPercentBR(cofinsRealRate)} nominal · Parcela efetiva s/ PV:{' '}
+                        {formatPercentBR(cofinsRealEfetivoPct, 3)} (fator{' '}
+                        {formatFactorBR(cofinsRealEfetivoPct / 100, 4)}) ·{' '}
+                        {formatBRL(valorCofinsReal)}
+                      </span>
+                      <span className="text-[9px] text-purple-700 block mt-0.5 font-medium">
+                        Nominal 9,25% (1,65% + 7,60%) s/ base pós-exclusão (82%) = 7,585% efetivo ·
+                        Créditos de compra abatem o CMV na DRE
                       </span>
                     </div>
-                    <span className="font-bold text-slate-900 text-right">9,25%</span>
+                    <div className="text-right">
+                      <span className="font-bold text-slate-900 text-sm block">
+                        {formatPercentBR(pisRealEfetivoPct + cofinsRealEfetivoPct, 3)}
+                      </span>
+                      <span className="text-[10px] text-slate-500">efetivo s/ PV bruto</span>
+                    </div>
                   </div>
 
                   {/* ④ ICMS */}
@@ -1727,7 +1796,8 @@ export function MarkupCalculationMemoryModal({
                         ④ ICMS Estadual sobre Venda
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        Alíquota configurada para operações internas
+                        Alíquota interna sobre o PV bruto · Destaque na NF:{' '}
+                        {formatBRL(valorIcmsReal)}
                       </span>
                     </div>
                     <div className="text-right">
@@ -1744,15 +1814,22 @@ export function MarkupCalculationMemoryModal({
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-50">
                     <div>
                       <span className="font-bold text-[#261502] block">
-                        ⑤ Carga Tributária Total Aditiva
+                        ⑤ Carga Tributária Total Aditiva (usada no Divisor)
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        ICMS {formatPercentBR(icmsRateClean)} + PIS 1,65% + COFINS 7,60%
+                        ICMS {formatPercentBR(icmsRateClean)} + PIS efetivo{' '}
+                        {formatPercentBR(pisRealEfetivoPct, 3)} + COFINS efetiva{' '}
+                        {formatPercentBR(cofinsRealEfetivoPct, 3)}
                       </span>
                     </div>
-                    <span className="font-bold text-[#b87c14]">
-                      {formatPercentBR(totalTaxesRealRate)}
-                    </span>
+                    <div className="text-right">
+                      <span className="font-bold text-[#b87c14] text-sm block">
+                        {formatPercentBR(totalTaxesRealRate, 2)}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        Total tributos: {formatBRL(valorTributosReal)}
+                      </span>
+                    </div>
                   </div>
 
                   {/* ⑥ Custo Unitário */}
@@ -1857,11 +1934,24 @@ export function MarkupCalculationMemoryModal({
                     </span>
                   </div>
 
-                  {/* ⑪ Distribuição do preço em R$ */}
-                  <div className="p-3.5 bg-slate-50 space-y-2 border-l-2 border-amber-600">
-                    <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
-                      ⑪ Distribuição Didática do Preço de Venda ({formatBRL(pvReal)})
-                    </span>
+                  {/* ⑪ Distribuição do preço em R$ e Decomposição Tributária */}
+                  <div className="p-3.5 bg-slate-50 space-y-3 border-l-2 border-amber-600">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
+                        ⑪ Decomposição Tributária e Identidade ({formatBRL(pvReal)})
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-800 font-semibold">
+                        {isLiquid ? 'Custo (CMV)' : 'Custo'} ({formatBRL(custoBaseReal)}) + Trib (
+                        {formatBRL(valorTributosReal)}) + DV ({formatBRL(valorDvReal)}) +{' '}
+                        {isLiquid ? 'Sobra' : 'Lucro'} ({formatBRL(valorMargemReal)}) ={' '}
+                        {formatBRL(
+                          Math.round(
+                            (custoBaseReal + valorTributosReal + valorDvReal + valorMargemReal) *
+                              100,
+                          ) / 100,
+                        )}
+                      </span>
+                    </div>
                     {isLiquid && (
                       <div className="p-2 rounded bg-amber-50 border border-amber-300 text-[11px] font-mono">
                         <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
@@ -1876,6 +1966,48 @@ export function MarkupCalculationMemoryModal({
                         </span>
                       </div>
                     )}
+
+                    {/* Tabela de incidência tributária com ICMS excluído (Lucro Real) */}
+                    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                      <table className="w-full text-[11px] font-mono border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
+                            <th className="text-left py-1.5 px-2 font-semibold">Tributo</th>
+                            <th className="text-left py-1.5 px-2 font-semibold">
+                              Base de Incidência
+                            </th>
+                            <th className="text-right py-1.5 px-2 font-semibold">ICMS Excluído</th>
+                            <th className="text-right py-1.5 px-2 font-semibold">Alíq. Nominal</th>
+                            <th className="text-right py-1.5 px-2 font-semibold">Taxa s/ PV</th>
+                            <th className="text-right py-1.5 px-2 font-semibold">Valor Unit.</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {decomposicaoReal.detalheTributos.map((t) => (
+                            <tr key={t.chave}>
+                              <td className="py-1 px-2 font-bold text-slate-800">{t.nome}</td>
+                              <td className="py-1 px-2 text-slate-600">
+                                {formatBRL(t.baseCalculo)}{' '}
+                                <span className="text-[10px] text-slate-400">({t.baseLabel})</span>
+                              </td>
+                              <td className="py-1 px-2 text-right text-emerald-700 font-medium">
+                                {t.icmsExcluido ? formatBRL(t.icmsExcluido) : '—'}
+                              </td>
+                              <td className="py-1 px-2 text-right text-slate-700">
+                                {formatPercentBR(t.taxaNominalPct ?? t.taxaEfetivaPct, 2)}
+                              </td>
+                              <td className="py-1 px-2 text-right font-semibold text-[#b87c14]">
+                                {formatPercentBR(t.taxaEfetivaPct, 3)}
+                              </td>
+                              <td className="py-1 px-2 text-right font-bold text-slate-900">
+                                {formatBRL(t.valor)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
                         <span className="text-[10px] text-slate-500 block uppercase">

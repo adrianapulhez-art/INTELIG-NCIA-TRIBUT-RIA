@@ -778,5 +778,117 @@ describe('Motor de Markup Pré-Reforma — Divisor Aditivo e Cenário Controlado
       expect(dec.diferencaCentavos).toBe(0)
       expect(dec.somaComponentes).toBe(pv)
     })
+
+    it('Didática e Reconciliação do Aluno (item d da tarefa): venda 100,00 com ICMS 18,00 e ICMS 0,00', () => {
+      // 1. Venda 100,00 com ICMS 18% (18,00 destacado) -> Base pós-exclusão = 82,00 nos dois regimes
+      // Lucro Presumido: PIS nominal 0,65% e COFINS nominal 3,00%
+      const resPresumido18 = calcularMarkupDivisorPre({
+        regime: 'presumido',
+        icmsRatePct: 18,
+        dvRatePct: 0,
+        marginPct: 0,
+        comMargem: false,
+        excluirIcmsBasePisCofins: true,
+      })
+      const pisPres = resPresumido18.parcelas.find((p) => p.chave === 'pis')
+      const cofPres = resPresumido18.parcelas.find((p) => p.chave === 'cofins')
+
+      // Presumido: 3,65% * 82 = 2,993% efetivo; carga total: 18% + 2,993% = 20,993% (exibida como 20,99%)
+      expect(pisPres?.taxaEfetivaPct).toBeCloseTo(0.533, 3) // 0,65% * 0,82 = 0,533%
+      expect(cofPres?.taxaEfetivaPct).toBeCloseTo(2.46, 3) // 3,00% * 0,82 = 2,460%
+      expect(resPresumido18.somaTributosPct).toBeCloseTo(20.993, 3)
+      // Arredondamento de apresentação para 2 casas decimais deve ser 20,99%
+      expect(resPresumido18.somaTributosPct.toFixed(2)).toBe('20.99')
+
+      // Decomposição para venda 100,00 no Presumido
+      const decPres100 = decomporPrecoVendaPre(100, 0, resPresumido18)
+      const icmsItemPres = decPres100.detalheTributos.find((t) => t.nome === 'ICMS')
+      const pisItemPres = decPres100.detalheTributos.find((t) => t.nome === 'PIS')
+      const cofItemPres = decPres100.detalheTributos.find((t) => t.nome === 'COFINS')
+      expect(icmsItemPres?.baseCalculo).toBe(100)
+      expect(icmsItemPres?.valor).toBe(18)
+      expect(pisItemPres?.baseCalculo).toBe(82)
+      expect(pisItemPres?.valor).toBe(0.53) // 82 * 0,0065 = 0,533 -> 0,53
+      expect(cofItemPres?.baseCalculo).toBe(82)
+      expect(cofItemPres?.valor).toBe(2.46) // 82 * 0,0300 = 2,46
+      expect(decPres100.valorTributos).toBe(20.99)
+
+      // Lucro Real: PIS nominal 1,65% e COFINS nominal 7,60%
+      const resReal18 = calcularMarkupDivisorPre({
+        regime: 'real',
+        icmsRatePct: 18,
+        dvRatePct: 0,
+        marginPct: 0,
+        comMargem: false,
+        excluirIcmsBasePisCofins: true,
+      })
+      const pisReal = resReal18.parcelas.find((p) => p.chave === 'pis')
+      const cofReal = resReal18.parcelas.find((p) => p.chave === 'cofins')
+
+      // Real: 9,25% * 82 = 7,585% efetivo; carga total: 18% + 7,585% = 25,585% (exibida como 25,59%)
+      expect(pisReal?.taxaEfetivaPct).toBeCloseTo(1.353, 3) // 1,65% * 0,82 = 1,353%
+      expect(cofReal?.taxaEfetivaPct).toBeCloseTo(6.232, 3) // 7,60% * 0,82 = 6,232%
+      expect(resReal18.somaTributosPct).toBeCloseTo(25.585, 3)
+      // Arredondamento de apresentação para 2 casas decimais deve ser 25,59%
+      expect(resReal18.somaTributosPct.toFixed(2)).toBe('25.59')
+
+      // Decomposição para venda 100,00 no Real
+      const decReal100 = decomporPrecoVendaPre(100, 0, resReal18)
+      const icmsItemReal = decReal100.detalheTributos.find((t) => t.nome === 'ICMS')
+      const pisItemReal = decReal100.detalheTributos.find((t) => t.nome === 'PIS')
+      const cofItemReal = decReal100.detalheTributos.find((t) => t.nome === 'COFINS')
+      expect(icmsItemReal?.baseCalculo).toBe(100)
+      expect(icmsItemReal?.valor).toBe(18)
+      expect(pisItemReal?.baseCalculo).toBe(82)
+      expect(pisItemReal?.valor).toBe(1.35) // 82 * 0,0165 = 1,353 -> 1,35
+      expect(cofItemReal?.baseCalculo).toBe(82)
+      expect(cofItemReal?.valor).toBe(6.23) // 82 * 0,0760 = 6,232 -> 6,23
+      expect(decReal100.valorTributos).toBe(25.58)
+
+      // 2. Com ICMS zero -> base = valor bruto (100) e parcelas efetivas = nominais
+      const resPresumido0 = calcularMarkupDivisorPre({
+        regime: 'presumido',
+        icmsRatePct: 0,
+        dvRatePct: 0,
+        marginPct: 0,
+        comMargem: false,
+        excluirIcmsBasePisCofins: true,
+      })
+      const pisPres0 = resPresumido0.parcelas.find((p) => p.chave === 'pis')
+      const cofPres0 = resPresumido0.parcelas.find((p) => p.chave === 'cofins')
+      expect(pisPres0?.taxaEfetivaPct).toBe(0.65)
+      expect(cofPres0?.taxaEfetivaPct).toBe(3.0)
+      expect(resPresumido0.somaTributosPct).toBe(3.65)
+
+      const decPres0 = decomporPrecoVendaPre(100, 0, resPresumido0)
+      const pisPres0Item = decPres0.detalheTributos.find((t) => t.nome === 'PIS')
+      const cofPres0Item = decPres0.detalheTributos.find((t) => t.nome === 'COFINS')
+      expect(pisPres0Item?.baseCalculo).toBe(100)
+      expect(pisPres0Item?.valor).toBe(0.65)
+      expect(cofPres0Item?.baseCalculo).toBe(100)
+      expect(cofPres0Item?.valor).toBe(3.0)
+
+      const resReal0 = calcularMarkupDivisorPre({
+        regime: 'real',
+        icmsRatePct: 0,
+        dvRatePct: 0,
+        marginPct: 0,
+        comMargem: false,
+        excluirIcmsBasePisCofins: true,
+      })
+      const pisReal0 = resReal0.parcelas.find((p) => p.chave === 'pis')
+      const cofReal0 = resReal0.parcelas.find((p) => p.chave === 'cofins')
+      expect(pisReal0?.taxaEfetivaPct).toBe(1.65)
+      expect(cofReal0?.taxaEfetivaPct).toBe(7.6)
+      expect(resReal0.somaTributosPct).toBe(9.25)
+
+      const decReal0 = decomporPrecoVendaPre(100, 0, resReal0)
+      const pisReal0Item = decReal0.detalheTributos.find((t) => t.nome === 'PIS')
+      const cofReal0Item = decReal0.detalheTributos.find((t) => t.nome === 'COFINS')
+      expect(pisReal0Item?.baseCalculo).toBe(100)
+      expect(pisReal0Item?.valor).toBe(1.65)
+      expect(cofReal0Item?.baseCalculo).toBe(100)
+      expect(cofReal0Item?.valor).toBe(7.6)
+    })
   })
 })
