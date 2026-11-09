@@ -851,14 +851,32 @@ export function MarkupCalculationMemoryModal({
                     <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
                       ⑪ Distribuição Didática do Preço de Venda ({formatBRL(pvSimples)})
                     </span>
+                    {isLiquid && (
+                      <div className="p-2 rounded bg-amber-50 border border-amber-300 text-[11px] font-mono">
+                        <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
+                          Valor desejado após tributos e despesas variáveis (âncora)
+                        </span>
+                        <span className="font-bold text-[#261502]">
+                          {formatBRL(desiredNetRevenueSimples)}
+                        </span>
+                        <span className="text-[9px] text-slate-600 block mt-0.5">
+                          Receita Líquida informada — não é margem e não entra no divisor; o divisor
+                          aditivo a devolve como sobra após CMV, DAS e DV
+                        </span>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
                         <span className="text-[10px] text-slate-500 block uppercase">
-                          Custo Produto
+                          Custo Produto (CMV de Compras)
                         </span>
-                        <span className="font-bold text-slate-900">{formatBRL(baseValue)}</span>
+                        <span className="font-bold text-slate-900">
+                          {formatBRL(custoBaseSimples)}
+                        </span>
                         <span className="text-[9px] text-slate-500 block">
-                          {pvSimples > 0 ? formatPercentBR((baseValue / pvSimples) * 100, 1) : '0%'}
+                          {pvSimples > 0
+                            ? formatPercentBR((custoBaseSimples / pvSimples) * 100, 1)
+                            : '0%'}
                         </span>
                       </div>
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
@@ -881,24 +899,38 @@ export function MarkupCalculationMemoryModal({
                       </div>
                       <div className="p-2 rounded bg-amber-50 border border-amber-300 shadow-xs">
                         <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
-                          Margem em R$
+                          {isLiquid ? 'Sobra líquida (resíduo)' : 'Margem em R$'}
                         </span>
                         <span className="font-bold text-[#261502]">
                           {formatBRL(valorMargemSimples)}
                         </span>
-                        <span className="text-[9px] text-[#b87c14] block">Sobra líquida</span>
+                        <span className="text-[9px] text-[#b87c14] block">
+                          {isLiquid
+                            ? `= âncora ${formatBRL(desiredNetRevenueSimples)} + gap`
+                            : 'Sobra líquida'}
+                        </span>
                       </div>
                     </div>
                     <div className="text-[10px] text-slate-600 flex items-center justify-between pt-1 border-t border-slate-200">
                       <span>Conferência da soma dos componentes:</span>
                       <span className="font-bold text-[#b87c14]">
-                        {formatBRL(baseValue)} + {formatBRL(valorDasSimples)} +{' '}
+                        {formatBRL(custoBaseSimples)} + {formatBRL(valorDasSimples)} +{' '}
                         {formatBRL(valorDvSimples)} + {formatBRL(valorMargemSimples)} ={' '}
                         {formatBRL(
-                          baseValue + valorDasSimples + valorDvSimples + valorMargemSimples,
+                          custoBaseSimples + valorDasSimples + valorDvSimples + valorMargemSimples,
                         )}
                       </span>
                     </div>
+                    {isLiquid && liquidChainSimples && liquidChainSimples.roundingGap !== 0 && (
+                      <div className="text-[10px] text-slate-600 flex items-center justify-between">
+                        <span>Conciliação de arredondamento (roundingGap):</span>
+                        <span className="font-bold text-[#b87c14]">
+                          PV − DAS − DV = {formatBRL(liquidChainSimples.derivedNetRevenue)} · âncora{' '}
+                          {formatBRL(desiredNetRevenueSimples)} · gap{' '}
+                          {formatBRL(liquidChainSimples.roundingGap)}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* ⑫ Blindagem de Margem */}
@@ -968,11 +1000,22 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="py-2 flex items-center justify-between bg-amber-50 px-2 rounded font-bold text-[#261502]">
-                      <span>(=) Receita Líquida de Vendas (Âncora Informada)</span>
+                      <span>(=) Receita Líquida (≈ âncora)</span>
                       <span className="text-[#261502] text-sm">
                         {formatBRL(liquidChainSimples.netRevenue)}
                       </span>
                     </div>
+                    {liquidChainSimples.roundingGap !== 0 && (
+                      <div className="py-1 flex items-center justify-between text-[10px] text-slate-500">
+                        <span>
+                          Conciliação de arredondamento: âncora informada{' '}
+                          {formatBRL(desiredNetRevenueSimples)} · gap (derivada − âncora)
+                        </span>
+                        <span className="font-semibold text-[#b87c14]">
+                          {formatBRL(liquidChainSimples.roundingGap)}
+                        </span>
+                      </div>
+                    )}
                     <div className="py-1.5 flex items-center justify-between text-slate-600">
                       <span>(−) Custo das Mercadorias Vendidas (CMV)</span>
                       <span className="text-rose-700 font-semibold">
@@ -1327,12 +1370,13 @@ export function MarkupCalculationMemoryModal({
                         ⑪ Decomposição Tributária e Identidade ({formatBRL(pvPresumido)})
                       </span>
                       <span className="text-[10px] font-mono text-emerald-800 font-semibold">
-                        Custo ({formatBRL(baseValue)}) + Trib ({formatBRL(valorTributosPresumido)})
-                        + DV ({formatBRL(valorDvPresumido)}) + Lucro (
+                        {isLiquid ? 'Custo (CMV)' : 'Custo'} ({formatBRL(custoBasePresumido)}) +
+                        Trib ({formatBRL(valorTributosPresumido)}) + DV (
+                        {formatBRL(valorDvPresumido)}) + {isLiquid ? 'Sobra' : 'Lucro'} (
                         {formatBRL(valorMargemPresumido)}) ={' '}
                         {formatBRL(
                           Math.round(
-                            (baseValue +
+                            (custoBasePresumido +
                               valorTributosPresumido +
                               valorDvPresumido +
                               valorMargemPresumido) *
@@ -1341,6 +1385,21 @@ export function MarkupCalculationMemoryModal({
                         )}
                       </span>
                     </div>
+
+                    {isLiquid && (
+                      <div className="p-2 rounded bg-amber-50 border border-amber-300 text-[11px] font-mono">
+                        <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
+                          Valor desejado após tributos e despesas variáveis (âncora)
+                        </span>
+                        <span className="font-bold text-[#261502]">
+                          {formatBRL(desiredNetRevenuePresumido)}
+                        </span>
+                        <span className="text-[9px] text-slate-600 block mt-0.5">
+                          Receita Líquida informada — não é margem e não entra no divisor; o divisor
+                          aditivo a devolve como sobra após CMV, tributos e DV
+                        </span>
+                      </div>
+                    )}
 
                     {/* Tabela de incidência tributária com ICMS excluído */}
                     <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
@@ -1386,9 +1445,11 @@ export function MarkupCalculationMemoryModal({
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
                         <span className="text-[10px] text-slate-500 block uppercase">
-                          Custo Produto
+                          Custo Produto (CMV de Compras)
                         </span>
-                        <span className="font-bold text-slate-900">{formatBRL(baseValue)}</span>
+                        <span className="font-bold text-slate-900">
+                          {formatBRL(custoBasePresumido)}
+                        </span>
                       </div>
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
                         <span className="text-[10px] text-amber-800 block uppercase">
@@ -1408,7 +1469,7 @@ export function MarkupCalculationMemoryModal({
                       </div>
                       <div className="p-2 rounded bg-amber-50 border border-amber-300 shadow-xs">
                         <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
-                          Margem / Lucro (R$)
+                          {isLiquid ? 'Sobra líquida (resíduo)' : 'Margem / Lucro (R$)'}
                         </span>
                         <span className="font-bold text-[#261502]">
                           {formatBRL(valorMargemPresumido)} (
@@ -1480,11 +1541,22 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="py-2 flex items-center justify-between bg-amber-50 px-2 rounded font-bold text-[#261502]">
-                      <span>(=) Receita Líquida de Vendas (Âncora Informada)</span>
+                      <span>(=) Receita Líquida (≈ âncora)</span>
                       <span className="text-[#261502] text-sm">
                         {formatBRL(liquidChainPresumido.netRevenue)}
                       </span>
                     </div>
+                    {liquidChainPresumido.roundingGap !== 0 && (
+                      <div className="py-1 flex items-center justify-between text-[10px] text-slate-500">
+                        <span>
+                          Conciliação de arredondamento: âncora informada{' '}
+                          {formatBRL(desiredNetRevenuePresumido)} · gap (derivada − âncora)
+                        </span>
+                        <span className="font-semibold text-[#b87c14]">
+                          {formatBRL(liquidChainPresumido.roundingGap)}
+                        </span>
+                      </div>
+                    )}
                     <div className="py-1.5 flex items-center justify-between text-slate-600">
                       <span>(−) Custo das Mercadorias Vendidas (CMV)</span>
                       <span className="text-rose-700 font-semibold">
@@ -1790,12 +1862,26 @@ export function MarkupCalculationMemoryModal({
                     <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
                       ⑪ Distribuição Didática do Preço de Venda ({formatBRL(pvReal)})
                     </span>
+                    {isLiquid && (
+                      <div className="p-2 rounded bg-amber-50 border border-amber-300 text-[11px] font-mono">
+                        <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
+                          Valor desejado após tributos e despesas variáveis (âncora)
+                        </span>
+                        <span className="font-bold text-[#261502]">
+                          {formatBRL(desiredNetRevenueReal)}
+                        </span>
+                        <span className="text-[9px] text-slate-600 block mt-0.5">
+                          Receita Líquida informada — não é margem e não entra no divisor; o divisor
+                          aditivo a devolve como sobra após CMV, tributos e DV
+                        </span>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
                         <span className="text-[10px] text-slate-500 block uppercase">
-                          Custo Líquido
+                          Custo Produto (CMV de Compras)
                         </span>
-                        <span className="font-bold text-slate-900">{formatBRL(baseValue)}</span>
+                        <span className="font-bold text-slate-900">{formatBRL(custoBaseReal)}</span>
                       </div>
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
                         <span className="text-[10px] text-amber-800 block uppercase">
@@ -1813,13 +1899,36 @@ export function MarkupCalculationMemoryModal({
                       </div>
                       <div className="p-2 rounded bg-amber-50 border border-amber-300 shadow-xs">
                         <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
-                          Margem em R$
+                          {isLiquid ? 'Sobra líquida (resíduo)' : 'Margem em R$'}
                         </span>
                         <span className="font-bold text-[#261502]">
                           {formatBRL(valorMargemReal)}
                         </span>
+                        <span className="text-[9px] text-[#b87c14] block">
+                          {isLiquid
+                            ? `= âncora ${formatBRL(desiredNetRevenueReal)} + gap`
+                            : 'Sobra líquida'}
+                        </span>
                       </div>
                     </div>
+                    <div className="text-[10px] text-slate-600 flex items-center justify-between pt-1 border-t border-slate-200">
+                      <span>Conferência da soma dos componentes:</span>
+                      <span className="font-bold text-[#b87c14]">
+                        {formatBRL(custoBaseReal)} + {formatBRL(valorTributosReal)} +{' '}
+                        {formatBRL(valorDvReal)} + {formatBRL(valorMargemReal)} ={' '}
+                        {formatBRL(pvReal)}
+                      </span>
+                    </div>
+                    {isLiquid && liquidChainReal && liquidChainReal.roundingGap !== 0 && (
+                      <div className="text-[10px] text-slate-600 flex items-center justify-between">
+                        <span>Conciliação de arredondamento (roundingGap):</span>
+                        <span className="font-bold text-[#b87c14]">
+                          PV − Tributos − DV = {formatBRL(liquidChainReal.derivedNetRevenue)} ·
+                          âncora {formatBRL(desiredNetRevenueReal)} · gap{' '}
+                          {formatBRL(liquidChainReal.roundingGap)}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* ⑫ Blindagem de Margem */}
@@ -1879,11 +1988,22 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="py-2 flex items-center justify-between bg-amber-50 px-2 rounded font-bold text-[#261502]">
-                      <span>(=) Receita Líquida de Vendas (Âncora Informada)</span>
+                      <span>(=) Receita Líquida (≈ âncora)</span>
                       <span className="text-[#261502] text-sm">
                         {formatBRL(liquidChainReal.netRevenue)}
                       </span>
                     </div>
+                    {liquidChainReal.roundingGap !== 0 && (
+                      <div className="py-1 flex items-center justify-between text-[10px] text-slate-500">
+                        <span>
+                          Conciliação de arredondamento: âncora informada{' '}
+                          {formatBRL(desiredNetRevenueReal)} · gap (derivada − âncora)
+                        </span>
+                        <span className="font-semibold text-[#b87c14]">
+                          {formatBRL(liquidChainReal.roundingGap)}
+                        </span>
+                      </div>
+                    )}
                     <div className="py-1.5 flex items-center justify-between text-slate-600">
                       <span>(−) Custo das Mercadorias Vendidas (CMV)</span>
                       <span className="text-rose-700 font-semibold">
