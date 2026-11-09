@@ -21,6 +21,7 @@ export interface LiquidDreChainResult {
   taxesValue: number // RBV * %Tributos
   deductionsValue: number // RBV * %Deduções
   derivedNetRevenue: number // RBV - taxes - deductions (~ RL âncora)
+  roundingGap: number // derivedNetRevenue - RL âncora (conciliação de centavos)
   tributosRate: number
   tributosValor: number
   deducoesRate: number
@@ -51,60 +52,41 @@ export function calculateLiquidDreChain(input: LiquidDreChainInput): LiquidDreCh
   const customTaxes = Math.max(0, input.customTaxesRate || 0)
   const icms = Math.max(0, input.icmsRate || 0)
 
-  // 1. % Tributos sobre Vendas conforme regime
+  // 1. % Tributos sobre Vendas conforme regime — taxa efetiva ADITIVA sobre o preço bruto
+  // LP/LR: PIS/COFINS excluem o ICMS destacado da base (Parecer SEI 14483/2021),
+  // logo a taxa efetiva sobre o PV = nominal × (1 − ICMS%).
+  const fatorBaseSemIcms = Math.max(0, 1 - icms / 100)
   let taxRate = 0
   if (regime === 'simples') {
+    // Premissa: carga exclusiva do DAS (ICMS já integrado) — não somar PIS/COFINS
     taxRate = Math.max(0, input.effectiveSimplesRate || 0) + customTaxes
   } else if (regime === 'presumido') {
-    // ICMS% + PIS 0,65% + COFINS 3,00% + tributos extras
-    taxRate = icms + 0.65 + 3.0 + customTaxes
+    taxRate = icms + 0.65 * fatorBaseSemIcms + 3.0 * fatorBaseSemIcms + customTaxes
   } else {
-    // Real: ICMS% + PIS 1,65% + COFINS 7,60% + extras
-    taxRate = icms + 1.65 + 7.6 + customTaxes
+    taxRate = icms + 1.65 * fatorBaseSemIcms + 7.6 * fatorBaseSemIcms + customTaxes
   }
 
   const taxPctDecimal = taxRate / 100
   const dvPctDecimal = dvRate / 100
 
-  // 2. Gross-up: Preço Líquido Desejado segue lógica multiplicativa com fatores de dedução por regime
-  // Presumido: (1 - ICMS) * (1 - 0,0365) * (1 - DV) * customTaxesFactor
-  // Real: (1 - ICMS) * (1 - 0,0925) * (1 - DV) * customTaxesFactor
-  // Simples: (1 - alíquota efetiva) * (1 - DV) * customTaxesFactor
-  const icmsFactor = 1 - icms / 100
-  const dvFactor = 1 - dvPctDecimal
-  const customTaxesFactor = 1 - customTaxes / 100
-  let calculatedDivisor = 1
-  if (regime === 'simples') {
-    const sRate = Math.max(0, input.effectiveSimplesRate || 0)
-    calculatedDivisor =
-      (1 - sRate / 100) *
-      (dvFactor > 0 ? dvFactor : 1) *
-      (customTaxesFactor > 0 ? customTaxesFactor : 1)
-  } else if (regime === 'presumido') {
-    calculatedDivisor =
-      (icmsFactor > 0 ? icmsFactor : 1) *
-      (1 - 0.0365) *
-      (dvFactor > 0 ? dvFactor : 1) *
-      (customTaxesFactor > 0 ? customTaxesFactor : 1)
-  } else {
-    calculatedDivisor =
-      (icmsFactor > 0 ? icmsFactor : 1) *
-      (1 - 0.0925) *
-      (dvFactor > 0 ? dvFactor : 1) *
-      (customTaxesFactor > 0 ? customTaxesFactor : 1)
-  }
-  const grossUpDivisor = Math.max(0.0001, calculatedDivisor)
+  // 2. Gross-up ADITIVO (fórmula multiplicativa legada ELIMINADA):
+  // Divisor = 1 − (carga tributária efetiva sobre o PV + DV).
+  // As DV JÁ são deduzidas dentro do divisor aditivo — o complemento
+  // informativo (1 − DV) NÃO é aplicado em cima (nada de fator duplo).
+  const grossUpDivisor = Math.max(0.0001, 1 - taxPctDecimal - dvPctDecimal)
   const rbv = rl > 0 && grossUpDivisor > 0 ? Math.round((rl / grossUpDivisor) * 100) / 100 : 0
 
   // Valores tributários e deduções
   const taxesValue = Math.round(rbv * taxPctDecimal * 100) / 100
   const deductionsValue = Math.round(rbv * dvPctDecimal * 100) / 100
   const derivedNetRevenue = Math.round((rbv - taxesValue - deductionsValue) * 100) / 100
+  // Conciliação explícita de centavos (arredondamento de tributos e DV separados)
+  const roundingGap = Math.round((derivedNetRevenue - rl) * 100) / 100
 
-  // 3. CMV e Lucro Bruto
+  // 3. CMV e Lucro Bruto — a DRE parte do MESMO preço bruto (rbv) da simulação
   const cmv = Math.round((input.unitCost || 0) * 100) / 100
-  // Lucro Bruto = RL âncora - CMV
-  const grossProfit = Math.round((rl - cmv) * 100) / 100
+  // Resultado após CMV e DV = Receita Líquida derivada (âncora) − CMV
+  const grossProfit = Math.round((derivedNetRevenue - cmv) * 100) / 100
 
   // 4. Despesas Operacionais e LAIR
   const operatingExpenses = Math.round((input.operatingExpensesUnit || 0) * 100) / 100
@@ -148,8 +130,8 @@ export function calculateLiquidDreChain(input: LiquidDreChainInput): LiquidDreCh
   // 6. LLE = LAIR - LADIR
   const lle = Math.round((lair - ladir) * 100) / 100
 
-  // 7. Margem Líquida Derivada = (LLE / RL informada) * 100
-  const derivedMarginPct = rl > 0 ? Math.round((lle / rl) * 100 * 100) / 100 : 0
+  // 7. Margem Líquida sobre Vendas = (LLE / Receita Bruta) * 100
+  const derivedMarginPct = rbv > 0 ? Math.round((lle / rbv) * 100 * 100) / 100 : 0
 
   const isViable = lle >= 0
   const shortfall = isViable ? 0 : Math.round(Math.abs(lle) * 100) / 100
@@ -163,6 +145,7 @@ export function calculateLiquidDreChain(input: LiquidDreChainInput): LiquidDreCh
     taxesValue,
     deductionsValue,
     derivedNetRevenue,
+    roundingGap,
     tributosRate: taxRate,
     tributosValor: taxesValue,
     deducoesRate: dvRate,
