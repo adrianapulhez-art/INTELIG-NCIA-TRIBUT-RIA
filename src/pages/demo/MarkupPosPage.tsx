@@ -241,8 +241,18 @@ export function MarkupPosPage() {
     setIcmsRateInput(estado?.icmsRateInput)
     setCbsRateInput(estado?.cbsRateInput)
     setIbsRateInput(estado?.ibsRateInput)
-    setMargemPorCard(estado?.margemPorCard ?? {})
-    setQuantidadePorCard(estado?.quantidadePorCard ?? {})
+    setMargemPorCard({
+      lp: estado?.margemPorCard?.lp ?? estado?.margemLucroInput,
+      lr: estado?.margemPorCard?.lr ?? estado?.margemLucroInput,
+      snp: estado?.margemPorCard?.snp ?? estado?.margemLucroInput,
+      snh: estado?.margemPorCard?.snh ?? estado?.margemLucroInput,
+    })
+    setQuantidadePorCard({
+      lp: estado?.quantidadePorCard?.lp ?? estado?.quantidadeVendidaInput,
+      lr: estado?.quantidadePorCard?.lr ?? estado?.quantidadeVendidaInput,
+      snp: estado?.quantidadePorCard?.snp ?? estado?.quantidadeVendidaInput,
+      snh: estado?.quantidadePorCard?.snh ?? estado?.quantidadeVendidaInput,
+    })
   }, [cenarioId])
 
   // Efeito de persistência: preserva seleções e valores digitados (Política Adri: um salvamento, uma página)
