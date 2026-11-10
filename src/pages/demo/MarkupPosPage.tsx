@@ -48,6 +48,7 @@ import {
 } from '@/lib/markupPosCalculations'
 import { lerEspelhoComprasCard03, obterPerfilSessaoOuChancela } from '@/lib/leituraCard03Compras'
 import { carregarConfigSessaoSN } from '@/lib/art12SnCalculations'
+import { getNamespacedKey } from '@/lib/scenarioStorage'
 
 /** Constantes de referência chanceladas pela Adri (proteção de ouro) */
 export const REFERENCIAS_MARKUP_POS = {
@@ -59,8 +60,14 @@ export const REFERENCIAS_MARKUP_POS = {
 } as const
 
 export function MarkupPosPage() {
-  const { purchasesItems, markupProducts, simplesAnexo, simplesRbt12, effectiveSimplesRbt12 } =
-    useTaxContext()
+  const {
+    purchasesItems,
+    markupProducts,
+    simplesAnexo,
+    simplesRbt12,
+    effectiveSimplesRbt12,
+    cenarioAtivo,
+  } = useTaxContext()
 
   // --------------------------------------------------------------------------
   // 1. PRODUTO ATIVO (extraído automaticamente da Calculadora Markup pré-reforma)
@@ -93,10 +100,12 @@ export function MarkupPosPage() {
     ? casoUnitario.item!
     : undefined
 
+  const cenarioId = cenarioAtivo?.id ?? null
+
   // --------------------------------------------------------------------------
   // 3. PERSISTÊNCIA DOS VALORES DIGITADOS (POLÍTICA: "UM SALVAMENTO, UMA PÁGINA")
   // --------------------------------------------------------------------------
-  const estadoSalvoInicial = useMemo(() => carregarEstadoMarkupPos(), [])
+  const estadoSalvoInicial = useMemo(() => carregarEstadoMarkupPos(cenarioId), [cenarioId])
 
   // Seletor LP/LR/SNP/SNH = REGIME DO CLIENTE DO CONTADOR (chancela Adri)
   const [clienteRegime, setClienteRegime] = useState<ClienteRegimeKey>(
@@ -223,18 +232,34 @@ export function MarkupPosPage() {
     setQuantidadePorCard((prev) => ({ ...prev, [key]: val }))
   }
 
+  // Atualiza estados quando o cenário ativo é alterado
+  useEffect(() => {
+    const estado = carregarEstadoMarkupPos(cenarioId)
+    setClienteRegime(estado?.clienteRegimeSelecionado ?? 'lp')
+    setFornecedorSelecionado(estado?.fornecedorSelecionado ?? 'lp')
+    setDespesasVariaveis(estado?.despesasVariaveis ?? [])
+    setIcmsRateInput(estado?.icmsRateInput)
+    setCbsRateInput(estado?.cbsRateInput)
+    setIbsRateInput(estado?.ibsRateInput)
+    setMargemPorCard(estado?.margemPorCard ?? {})
+    setQuantidadePorCard(estado?.quantidadePorCard ?? {})
+  }, [cenarioId])
+
   // Efeito de persistência: preserva seleções e valores digitados (Política Adri: um salvamento, uma página)
   useEffect(() => {
-    salvarEstadoMarkupPos({
-      despesasVariaveis,
-      icmsRateInput,
-      cbsRateInput,
-      ibsRateInput,
-      margemPorCard,
-      quantidadePorCard,
-      fornecedorSelecionado,
-      clienteRegimeSelecionado: clienteRegime,
-    })
+    salvarEstadoMarkupPos(
+      {
+        despesasVariaveis,
+        icmsRateInput,
+        cbsRateInput,
+        ibsRateInput,
+        margemPorCard,
+        quantidadePorCard,
+        fornecedorSelecionado,
+        clienteRegimeSelecionado: clienteRegime,
+      },
+      cenarioId,
+    )
   }, [
     despesasVariaveis,
     icmsRateInput,
@@ -244,6 +269,7 @@ export function MarkupPosPage() {
     quantidadePorCard,
     fornecedorSelecionado,
     clienteRegime,
+    cenarioId,
   ])
 
   // Parâmetros do Simples Nacional vindos do TaxContext
@@ -261,22 +287,26 @@ export function MarkupPosPage() {
   // que sobrevivia ao reset e fazia a PÁGINA calcular com uma alíquota diferente da do TESTE —
   // exatamente a divergência "teste passa, tela mostra outro número". O parâmetro do espelho
   // passa a ser sempre o do cronograma oficial 2027, como no teste.
-  const sessaoSnConfig = useMemo(() => carregarConfigSessaoSN(), [])
+  const sessaoSnConfig = useMemo(() => carregarConfigSessaoSN(cenarioId), [cenarioId])
   // CBS DE ENTRADA: a MESMA que a Calculadora de Compras usa no campo do topo
-  // ('it_reforma_cbs_aliquota_v1', editável em 2027/2028). Esse campo alimenta as
+  // (namespaced it_cbs_<cenarioId>, editável em 2027/2028). Esse campo alimenta as
   // células do ambiente do FORNECEDOR na Compras; ler outra fonte aqui fazia o
   // Markup divergir da tela ao lado quando o contador digita uma projeção própria.
   // Ordem: campo do topo da Compras -> CBS da Sessão SN -> referência 2027 do motor.
   const cbsTopoCompras = useMemo(() => {
     try {
-      const raw = window.localStorage.getItem('it_reforma_cbs_aliquota_v1')
+      const key = getNamespacedKey('cbs', cenarioId)
+      let raw = window.localStorage.getItem(key)
+      if (!raw && (!cenarioId || cenarioId === 'default')) {
+        raw = window.localStorage.getItem('it_reforma_cbs_aliquota_v1')
+      }
       if (!raw) return undefined
       const v = Number(raw)
       return Number.isFinite(v) && v > 0 ? v : undefined
     } catch {
       return undefined
     }
-  }, [])
+  }, [cenarioId])
   const cbsComprasEfetiva: number | undefined = cbsTopoCompras ?? sessaoSnConfig?.cbsAliquotaPct
   const perfilSnSessao = useMemo(() => obterPerfilSessaoOuChancela(), [sessaoSnConfig])
 

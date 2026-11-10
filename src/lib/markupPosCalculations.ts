@@ -524,7 +524,9 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
   }
 }
 
-/** Chave padrão de armazenamento local com isolamento de escopo */
+import { getNamespacedKey } from './scenarioStorage'
+
+/** Chave padrão de armazenamento local com isolamento de escopo (mantida para retrocompatibilidade) */
 export const STORAGE_KEY_MARKUP_POS = 'it_markup_pos_state_v1'
 
 export interface MarkupPosSavedState {
@@ -544,10 +546,20 @@ export interface MarkupPosSavedState {
   clienteRegimeSelecionado?: ClienteRegimeKey
 }
 
-export function carregarEstadoMarkupPos(): MarkupPosSavedState | null {
+export function carregarEstadoMarkupPos(scenarioId?: string | null): MarkupPosSavedState | null {
   try {
     if (typeof window === 'undefined' || !window.localStorage) return null
-    const raw = window.localStorage.getItem(STORAGE_KEY_MARKUP_POS)
+    const key = getNamespacedKey('markup_pos', scenarioId)
+    let raw = window.localStorage.getItem(key)
+
+    // Se chave namespaced vazia, tenta migrar da chave legada global
+    if (!raw && (!scenarioId || scenarioId === 'default')) {
+      raw = window.localStorage.getItem(STORAGE_KEY_MARKUP_POS)
+      if (raw) {
+        window.localStorage.setItem(key, raw)
+      }
+    }
+
     if (!raw) return null
     return JSON.parse(raw) as MarkupPosSavedState
   } catch {
@@ -555,10 +567,19 @@ export function carregarEstadoMarkupPos(): MarkupPosSavedState | null {
   }
 }
 
-export function salvarEstadoMarkupPos(estado: MarkupPosSavedState): void {
+export function salvarEstadoMarkupPos(
+  estado: MarkupPosSavedState,
+  scenarioId?: string | null,
+): void {
   try {
     if (typeof window === 'undefined' || !window.localStorage) return
-    window.localStorage.setItem(STORAGE_KEY_MARKUP_POS, JSON.stringify(estado))
+    const key = getNamespacedKey('markup_pos', scenarioId)
+    const str = JSON.stringify(estado)
+    window.localStorage.setItem(key, str)
+    // Mantém retrocompatibilidade apenas para testes/legado quando sem cenário ativo
+    if (!scenarioId || scenarioId === 'default') {
+      window.localStorage.setItem(STORAGE_KEY_MARKUP_POS, str)
+    }
   } catch {
     // ignorar falha de localStorage
   }

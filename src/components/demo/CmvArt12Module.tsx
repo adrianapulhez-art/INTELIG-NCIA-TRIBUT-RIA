@@ -48,6 +48,7 @@ import { SessaoSnSection } from './SessaoSnReforma'
 import { NotaCardTrigger } from './NotasExplicativas'
 import { PainelIntegracaoOrigem } from './PainelIntegracaoOrigem'
 import { derivarCasoUnitario, montarItensIntegracao } from '@/lib/integracaoComprasArt12'
+import { getNamespacedKey } from '@/lib/scenarioStorage'
 
 const EXERCICIOS: ExercicioKey[] = [2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033]
 
@@ -499,14 +500,28 @@ function BlocoMemoryDialog({
 export function CmvArt12Module() {
   const [exercicio, setExercicio] = useState<ExercicioKey>(2027)
   const [config, setConfig] = useState<CellConfigArt>(CONFIG_PADRAO_ART12)
+  // VÍNCULO AUTOMÁTICO (regra da CEO, 25/09): a célula lê a Calculadora de Compras
+  // DIRETO do TaxContext — a MESMA fonte que o "Zerar campos" limpa. Zero lá = zero aqui.
+  const { purchasesItems, addPurchaseItem, updatePurchaseItem, cenarioAtivo } = useTaxContext()
+
   // CBS EDITÁVEL (decisão da CEO, 04/10): só 2027/2028 — default 8,8% preserva os
   // ouros chancelados; o contador digita outra projeção ou a alíquota real do Senado.
-  // Persistido sob a chave 'it_reforma_cbs_aliquota_v1' no localStorage.
-  const STORAGE_KEY_CBS_ALIQUOTA = 'it_reforma_cbs_aliquota_v1'
+  // Persistido sob chave namespaced por cenário (it_cbs_<cenarioId>) com fallback legado.
+  const cenarioId = cenarioAtivo?.id ?? null
+  const cbsStorageKey = useMemo(() => getNamespacedKey('cbs', cenarioId), [cenarioId])
+
   const [cbsOverride, setCbsOverride] = useState<number | undefined>(() => {
     try {
       if (typeof window === 'undefined' || !window.localStorage) return undefined
-      const raw = window.localStorage.getItem(STORAGE_KEY_CBS_ALIQUOTA)
+      const key = getNamespacedKey('cbs', cenarioId)
+      let raw = window.localStorage.getItem(key)
+      // Migração de legado global se namespaced ainda vazia
+      if (!raw) {
+        raw = window.localStorage.getItem('it_reforma_cbs_aliquota_v1')
+        if (raw) {
+          window.localStorage.setItem(key, raw)
+        }
+      }
       if (!raw) return undefined
       const parsed = Number(raw)
       return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
@@ -515,18 +530,39 @@ export function CmvArt12Module() {
     }
   })
 
+  // Sincroniza estado se o cenário ativo mudar em runtime
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return
+      let raw = window.localStorage.getItem(cbsStorageKey)
+      if (!raw && (!cenarioId || cenarioId === 'default')) {
+        raw = window.localStorage.getItem('it_reforma_cbs_aliquota_v1')
+      }
+      const parsed = raw ? Number(raw) : undefined
+      setCbsOverride(Number.isFinite(parsed) && (parsed as number) > 0 ? parsed : undefined)
+    } catch {
+      // ignora
+    }
+  }, [cbsStorageKey, cenarioId])
+
   useEffect(() => {
     try {
       if (typeof window === 'undefined' || !window.localStorage) return
       if (cbsOverride !== undefined && Number.isFinite(cbsOverride) && cbsOverride > 0) {
-        window.localStorage.setItem(STORAGE_KEY_CBS_ALIQUOTA, String(cbsOverride))
+        window.localStorage.setItem(cbsStorageKey, String(cbsOverride))
+        if (!cenarioId || cenarioId === 'default') {
+          window.localStorage.setItem('it_reforma_cbs_aliquota_v1', String(cbsOverride))
+        }
       } else {
-        window.localStorage.removeItem(STORAGE_KEY_CBS_ALIQUOTA)
+        window.localStorage.removeItem(cbsStorageKey)
+        if (!cenarioId || cenarioId === 'default') {
+          window.localStorage.removeItem('it_reforma_cbs_aliquota_v1')
+        }
       }
     } catch {
       // tolerar falhas de localStorage
     }
-  }, [cbsOverride])
+  }, [cbsOverride, cbsStorageKey, cenarioId])
 
   const cbsEfetiva = cbsOverride ?? CBS_DEFAULT
   const cbsEditavelAqui = CBS_EDITAVEL_EXERCICIOS.includes(exercicio)

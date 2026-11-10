@@ -943,7 +943,9 @@ export interface PerfilSN {
   baseDoDas?: BaseDoDas
 }
 
-/** Chave de persistência oficial no localStorage para a configuração da Sessão SN */
+import { getNamespacedKey } from './scenarioStorage'
+
+/** Chave de persistência oficial no localStorage para a configuração da Sessão SN (mantida para migração e compatibilidade) */
 export const STORAGE_KEY_SESSAO_SN_CONFIG = 'it_reforma_sessao_sn_config_v1'
 
 export interface SessaoSnConfigPersistida {
@@ -963,14 +965,30 @@ export interface SessaoSnConfigPersistida {
   cbsAliquotaPct?: number
 }
 
-/** Carrega a configuração da Sessão SN do localStorage de forma tolerante a falhas */
-export function carregarConfigSessaoSN(): SessaoSnConfigPersistida | null {
+/** Carrega a configuração da Sessão SN do localStorage de forma tolerante a falhas e namespaced */
+export function carregarConfigSessaoSN(
+  scenarioId?: string | null,
+): SessaoSnConfigPersistida | null {
   try {
     if (typeof window === 'undefined' || !window.localStorage) return null
-    // Tenta a chave canônica versionada ou legado sem v1
-    const raw =
-      window.localStorage.getItem(STORAGE_KEY_SESSAO_SN_CONFIG) ||
-      window.localStorage.getItem('it_reforma_sessao_sn_config')
+    const key = getNamespacedKey('sessao_sn', scenarioId)
+    let raw = window.localStorage.getItem(key)
+
+    // Se chave namespaced ainda não tem valor, migra automaticamente das chaves legadas e descarta a legada
+    if (!raw) {
+      const legadoV1 = window.localStorage.getItem(STORAGE_KEY_SESSAO_SN_CONFIG)
+      const legadoSemV1 = window.localStorage.getItem('it_reforma_sessao_sn_config')
+      raw = legadoV1 || legadoSemV1
+
+      if (raw) {
+        // Grava na chave única namespaced
+        window.localStorage.setItem(key, raw)
+        // Descarta as chaves legadas para eliminar a dupla gravação
+        window.localStorage.removeItem(STORAGE_KEY_SESSAO_SN_CONFIG)
+        window.localStorage.removeItem('it_reforma_sessao_sn_config')
+      }
+    }
+
     if (!raw) return null
     const parsed = JSON.parse(raw)
     if (!parsed || typeof parsed !== 'object') return null
@@ -995,14 +1013,20 @@ export function carregarConfigSessaoSN(): SessaoSnConfigPersistida | null {
   }
 }
 
-/** Salva a configuração da Sessão SN no localStorage de forma resiliente */
-export function salvarConfigSessaoSN(config: SessaoSnConfigPersistida): void {
+/** Salva a configuração da Sessão SN em chave ÚNICA namespaced (elimina a dupla gravação antiga) */
+export function salvarConfigSessaoSN(
+  config: SessaoSnConfigPersistida,
+  scenarioId?: string | null,
+): void {
   try {
     if (typeof window === 'undefined' || !window.localStorage) return
+    const key = getNamespacedKey('sessao_sn', scenarioId)
     const str = JSON.stringify(config)
-    window.localStorage.setItem(STORAGE_KEY_SESSAO_SN_CONFIG, str)
-    // Mantém compatibilidade com a chave sem sufixo sugerida no enunciado
-    window.localStorage.setItem('it_reforma_sessao_sn_config', str)
+    window.localStorage.setItem(key, str)
+
+    // Remove as chaves legadas se ainda existirem
+    window.localStorage.removeItem(STORAGE_KEY_SESSAO_SN_CONFIG)
+    window.localStorage.removeItem('it_reforma_sessao_sn_config')
   } catch {
     // silencioso para não quebrar em modo privado
   }

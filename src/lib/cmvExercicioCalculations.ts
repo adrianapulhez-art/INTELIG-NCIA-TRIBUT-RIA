@@ -44,13 +44,25 @@ export const CRONOGRAMA_OFICIAL: ScheduleRow[] = [
   { exercicio: 2033, cbsRate: 8.8, ibsRate: 17.7, icmsPct: 0, ipiRate: 0, habilitado: true },
 ]
 
+import { getNamespacedKey } from './scenarioStorage'
+
 // Persistência das edições no mecanismo local já usado pelo sistema (sem backend novo)
 const SCHEDULE_KEY = 'it_cmv_exercicio_schedule_v1'
 
-export function loadSchedule(): ScheduleRow[] {
+export function loadSchedule(scenarioId?: string | null): ScheduleRow[] {
   if (typeof window === 'undefined') return CRONOGRAMA_OFICIAL
   try {
-    const raw = window.localStorage.getItem(SCHEDULE_KEY)
+    const key = getNamespacedKey('cmv_schedule', scenarioId)
+    let raw = window.localStorage.getItem(key)
+
+    // Se chave namespaced vazia, tenta migrar da chave legada global
+    if (!raw && (!scenarioId || scenarioId === 'default')) {
+      raw = window.localStorage.getItem(SCHEDULE_KEY)
+      if (raw) {
+        window.localStorage.setItem(key, raw)
+      }
+    }
+
     if (!raw) return CRONOGRAMA_OFICIAL
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return CRONOGRAMA_OFICIAL
@@ -63,19 +75,29 @@ export function loadSchedule(): ScheduleRow[] {
   }
 }
 
-export function saveSchedule(rows: ScheduleRow[]): void {
+export function saveSchedule(rows: ScheduleRow[], scenarioId?: string | null): void {
   if (typeof window === 'undefined') return
   try {
-    window.localStorage.setItem(SCHEDULE_KEY, JSON.stringify(rows))
+    const key = getNamespacedKey('cmv_schedule', scenarioId)
+    const str = JSON.stringify(rows)
+    window.localStorage.setItem(key, str)
+    // Mantém retrocompatibilidade apenas para testes/legado quando sem cenário ativo
+    if (!scenarioId || scenarioId === 'default') {
+      window.localStorage.setItem(SCHEDULE_KEY, str)
+    }
   } catch {
     // ignora — quota/privacidade
   }
 }
 
-export function resetSchedule(): ScheduleRow[] {
+export function resetSchedule(scenarioId?: string | null): ScheduleRow[] {
   if (typeof window !== 'undefined') {
     try {
-      window.localStorage.removeItem(SCHEDULE_KEY)
+      const key = getNamespacedKey('cmv_schedule', scenarioId)
+      window.localStorage.removeItem(key)
+      if (!scenarioId || scenarioId === 'default') {
+        window.localStorage.removeItem(SCHEDULE_KEY)
+      }
     } catch {
       // ignora
     }
