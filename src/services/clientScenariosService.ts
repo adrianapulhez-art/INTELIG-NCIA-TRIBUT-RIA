@@ -2,6 +2,7 @@ import pb from '@/lib/pocketbase/client'
 import type { RecordModel } from 'pocketbase'
 import type { TaxStateSnapshot } from '@/contexts/TaxContext'
 import { sanitizeSnapshotForPersistence } from './taxScenarios'
+import { removerChavesDoCenario } from '@/lib/scenarioStorage'
 
 export const SCENARIO_SCHEMA_VERSION = 1
 
@@ -730,6 +731,9 @@ export async function deleteClientScenario(id: string): Promise<boolean> {
   const filtered = localList.filter((s) => s.id !== id)
   saveLocalClientScenarios(filtered)
 
+  // Limpeza em cascata de chaves namespaced associadas a este cenário (Fase A)
+  removerChavesDoCenario(id)
+
   if (!id.startsWith('scen-client-local-') && pb.authStore.isValid) {
     try {
       await pb.collection('saved_scenarios').delete(id)
@@ -748,8 +752,14 @@ export async function deleteClient(id: string): Promise<boolean> {
 
   // 2. Cascade delete em cenários vinculados no localStorage
   const localScenarios = getLocalClientScenarios()
+  const cenariosDoCliente = localScenarios.filter((s) => s.client === id)
   const filteredScenarios = localScenarios.filter((s) => s.client !== id)
   saveLocalClientScenarios(filteredScenarios)
+
+  // Limpeza em cascata de chaves namespaced de cada cenário vinculado a este cliente (Fase A)
+  for (const sc of cenariosDoCliente) {
+    removerChavesDoCenario(sc.id)
+  }
 
   // 3. Remove no PocketBase se não for puramente local
   if (!id.startsWith('client-local-') && pb.authStore.isValid) {

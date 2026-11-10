@@ -566,9 +566,6 @@ export function CmvArt12Module() {
 
   const cbsEfetiva = cbsOverride ?? CBS_DEFAULT
   const cbsEditavelAqui = CBS_EDITAVEL_EXERCICIOS.includes(exercicio)
-  // VÍNCULO AUTOMÁTICO (regra da CEO, 25/09): a célula lê a Calculadora de Compras
-  // DIRETO do TaxContext — a MESMA fonte que o "Zerar campos" limpa. Zero lá = zero aqui.
-  const { purchasesItems, addPurchaseItem, updatePurchaseItem } = useTaxContext()
   const [memoryCell, setMemoryCell] = useState<{
     label: string
     cell: CellResultArt

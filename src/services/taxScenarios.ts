@@ -1,6 +1,7 @@
 import pb from '@/lib/pocketbase/client'
 import type { RecordModel } from 'pocketbase'
 import type { TaxStateSnapshot } from '@/contexts/TaxContext'
+import { removerChavesDoCenario } from '@/lib/scenarioStorage'
 
 export interface TaxScenarioRecord {
   id: string
@@ -410,6 +411,9 @@ export async function deleteTaxScenario(id: string): Promise<boolean> {
   const localList = getLocalTaxScenarios()
   const filtered = localList.filter((s) => s.id !== id)
   saveLocalTaxScenarios(filtered)
+
+  // Limpeza em cascata de chaves namespaced do cenário (Fase A)
+  removerChavesDoCenario(id)
 
   // Se não for id puramente local, remove do PocketBase
   if (!id.startsWith('scen-local-') && pb.authStore.isValid) {
