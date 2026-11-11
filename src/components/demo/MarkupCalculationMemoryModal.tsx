@@ -815,23 +815,23 @@ export function MarkupCalculationMemoryModal({
                   {/* ⑧ Margem desejada */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
-                      <span className="font-bold text-slate-200 block">
+                      <span className="font-bold text-slate-900 block">
                         ⑧ Margem de Lucro{' '}
                         {isLiquid ? 'Derivada da Receita Líquida' : 'Desejada (%)'}
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-600">
                         {isLiquid
                           ? 'Informativa (LLE ÷ RBV) — não entra no divisor no modo liquid'
                           : 'Margem desejada sobre o preço de venda bruto'}
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-amber-300 text-sm block">
+                      <span className="font-bold text-[#3b2405] text-sm block">
                         {isLiquid && liquidChainSimples
                           ? `${formatNumberBR(liquidChainSimples.derivedMarginPct)}%`
                           : formatPercentBR(marginPct)}
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-600">
                         {isLiquid
                           ? 'Derivada (travada)'
                           : `Fator Margem: ${formatFactorBR(marginFactor, 4)}`}
@@ -842,14 +842,14 @@ export function MarkupCalculationMemoryModal({
                   {/* ⑨ Markup divisor */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-amber-500/10">
                     <div>
-                      <span className="font-bold text-[#e5b742] block">⑨ Markup divisor</span>
-                      <span className="text-[10px] text-amber-200/80">
+                      <span className="font-bold text-[#3b2405] block">⑨ Markup divisor</span>
+                      <span className="text-[10px] text-[#b87c14]">
                         {isLiquid
                           ? `1 − (${formatPercentBR(effectiveSimplesRate, 2)} DAS + ${formatPercentBR(dvRate, 2)} DV) = 1 − Σ deduções`
                           : `1 − (${formatPercentBR(effectiveSimplesRate, 2)} DAS + ${formatPercentBR(dvRate, 2)} DV + ${formatPercentBR(marginPct, 2)} Margem) = 1 − Σ deduções`}
                       </span>
                     </div>
-                    <span className="font-black text-[#e5b742] text-base">
+                    <span className="font-black text-[#3b2405] text-base">
                       {formatFactorBR(divisorSimples, 4)}
                     </span>
                   </div>
@@ -1331,23 +1331,23 @@ export function MarkupCalculationMemoryModal({
                   {/* ⑧ Margem desejada */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
                     <div>
-                      <span className="font-bold text-slate-200 block">
+                      <span className="font-bold text-slate-900 block">
                         ⑧ Margem de Lucro{' '}
                         {isLiquid ? 'Derivada da Receita Líquida' : 'Desejada (%)'}
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-600">
                         {isLiquid
                           ? 'Informativa (LLE ÷ RBV) — não entra no divisor no modo liquid'
                           : 'Margem desejada sobre o preço de venda bruto'}
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-amber-300 text-sm block">
+                      <span className="font-bold text-[#3b2405] text-sm block">
                         {isLiquid && liquidChainPresumido
                           ? `${formatNumberBR(liquidChainPresumido.derivedMarginPct)}%`
                           : formatPercentBR(marginPct)}
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-600">
                         {isLiquid
                           ? 'Derivada (travada)'
                           : `Fator Margem: ${formatFactorBR(marginFactor, 4)}`}
@@ -1358,14 +1358,14 @@ export function MarkupCalculationMemoryModal({
                   {/* ⑨ Markup divisor */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-amber-500/10">
                     <div>
-                      <span className="font-bold text-[#e5b742] block">⑨ Markup divisor</span>
-                      <span className="text-[10px] text-amber-200/80">
+                      <span className="font-bold text-[#3b2405] block">⑨ Markup divisor</span>
+                      <span className="text-[10px] text-[#b87c14]">
                         {isLiquid
                           ? `1 − (${formatPercentBR(divisorResPresumido.somaTributosPct, 2)} Trib + ${formatPercentBR(dvRate, 2)} DV) [PIS/COF c/ ICMS deduzido da BC - Parecer SEI 14483/2021]`
                           : `1 − (${formatPercentBR(divisorResPresumido.somaTributosPct, 2)} Trib + ${formatPercentBR(dvRate, 2)} DV + ${formatPercentBR(marginPct, 2)} Margem)`}
                       </span>
                     </div>
-                    <span className="font-black text-[#e5b742] text-base">
+                    <span className="font-black text-[#3b2405] text-base">
                       {formatFactorBR(divisorPresumido, 4)}
                     </span>
                   </div>
@@ -1450,7 +1450,7 @@ export function MarkupCalculationMemoryModal({
                               <td className="py-1 px-2 font-bold text-slate-800">{t.nome}</td>
                               <td className="py-1 px-2 text-slate-600">
                                 {formatBRL(t.baseCalculo)}{' '}
-                                <span className="text-[10px] text-slate-400">({t.baseLabel})</span>
+                                <span className="text-[10px] text-slate-600">({t.baseLabel})</span>
                               </td>
                               <td className="py-1 px-2 text-right text-emerald-700 font-medium">
                                 {t.icmsExcluido ? formatBRL(t.icmsExcluido) : '—'}
@@ -1472,7 +1472,7 @@ export function MarkupCalculationMemoryModal({
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[10px] text-slate-500 block uppercase">
+                        <span className="text-[10px] text-slate-600 block uppercase">
                           Custo Produto (CMV de Compras)
                         </span>
                         <span className="font-bold text-slate-900">
@@ -1988,7 +1988,7 @@ export function MarkupCalculationMemoryModal({
                               <td className="py-1 px-2 font-bold text-slate-800">{t.nome}</td>
                               <td className="py-1 px-2 text-slate-600">
                                 {formatBRL(t.baseCalculo)}{' '}
-                                <span className="text-[10px] text-slate-400">({t.baseLabel})</span>
+                                <span className="text-[10px] text-slate-600">({t.baseLabel})</span>
                               </td>
                               <td className="py-1 px-2 text-right text-emerald-700 font-medium">
                                 {t.icmsExcluido ? formatBRL(t.icmsExcluido) : '—'}
@@ -2010,7 +2010,7 @@ export function MarkupCalculationMemoryModal({
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[10px] text-slate-500 block uppercase">
+                        <span className="text-[10px] text-slate-600 block uppercase">
                           Custo Produto (CMV de Compras)
                         </span>
                         <span className="font-bold text-slate-900">{formatBRL(custoBaseReal)}</span>
