@@ -2,6 +2,11 @@ import pb from '@/lib/pocketbase/client'
 import type { RecordModel } from 'pocketbase'
 import type { TaxStateSnapshot } from '@/contexts/TaxContext'
 import { removerChavesDoCenario } from '@/lib/scenarioStorage'
+import {
+  addDeletionTombstone,
+  removeDeletionTombstone,
+  getDeletionTombstones,
+} from './deletionTombstones'
 
 export interface TaxScenarioRecord {
   id: string
@@ -265,11 +270,29 @@ export async function listTaxScenarios(): Promise<TaxScenarioRecord[]> {
     const records = await pb.collection('tax_scenarios').getFullList({
       sort: '-updated',
     })
-    const cloudList = records.map(formatScenarioRecord)
+    let cloudList = records.map(formatScenarioRecord)
+
+    // TOMBSTONES: registros já deletados que ainda existem na nuvem não podem
+    // ressuscitar. Ficam fora do merge e o delete é tentado de novo.
+    const tombstonedIds = new Set(getDeletionTombstones('tax_scenarios').map((t) => t.id))
+    if (tombstonedIds.size > 0) {
+      const stillInCloud = cloudList.filter((c) => tombstonedIds.has(c.id))
+      cloudList = cloudList.filter((c) => !tombstonedIds.has(c.id))
+      // Retry de exclusão na nuvem para os tombstoned que ainda estão lá
+      for (const rec of stillInCloud) {
+        try {
+          await pb.collection('tax_scenarios').delete(rec.id)
+          removeDeletionTombstone(rec.id, 'tax_scenarios')
+        } catch (retryErr) {
+          console.warn(`Retry de exclusão na nuvem falhou para ${rec.id}:`, retryErr)
+        }
+      }
+    }
 
     // Mescla nuvem com local (se houver cenários locais não sincronizados, mantém acessíveis)
+    // (locais tombstoned também ficam fora — nunca voltam para a lista)
     const cloudIds = new Set(cloudList.map((c) => c.id))
-    const localOnly = localList.filter((l) => !cloudIds.has(l.id))
+    const localOnly = localList.filter((l) => !cloudIds.has(l.id) && !tombstonedIds.has(l.id))
 
     // Atualiza o cache local com os da nuvem + locais exclusivos
     const merged = [...cloudList, ...localOnly]
@@ -406,7 +429,12 @@ export async function updateTaxScenario(
 /**
  * Exclui um cenário existente.
  */
-export async function deleteTaxScenario(id: string): Promise<boolean> {
+export interface TaxScenarioDeleteResult {
+  /** true = removido local E nuvem; false = removido só local (nuvem falhou). */
+  fullyDeleted: boolean
+}
+
+export async function deleteTaxScenario(id: string): Promise<TaxScenarioDeleteResult> {
   // Remove do localStorage primeiro
   const localList = getLocalTaxScenarios()
   const filtered = localList.filter((s) => s.id !== id)
@@ -417,12 +445,17 @@ export async function deleteTaxScenario(id: string): Promise<boolean> {
 
   // Se não for id puramente local, remove do PocketBase
   if (!id.startsWith('scen-local-') && pb.authStore.isValid) {
+    addDeletionTombstone(id, 'tax_scenarios')
     try {
       await pb.collection('tax_scenarios').delete(id)
+      // Confirmação da nuvem: tombstone pode sair
+      removeDeletionTombstone(id, 'tax_scenarios')
     } catch (err) {
-      console.warn('Erro ao excluir no PocketBase (já removido localmente):', err)
+      // NÃO finge sucesso: propaga à UI que a exclusão na nuvem falhou.
+      console.warn('Erro ao excluir cenário no PocketBase (removido localmente):', err)
+      return { fullyDeleted: false }
     }
   }
 
-  return true
+  return { fullyDeleted: true }
 }

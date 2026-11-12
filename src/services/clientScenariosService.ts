@@ -3,6 +3,12 @@ import type { RecordModel } from 'pocketbase'
 import type { TaxStateSnapshot } from '@/contexts/TaxContext'
 import { sanitizeSnapshotForPersistence } from './taxScenarios'
 import { removerChavesDoCenario } from '@/lib/scenarioStorage'
+import {
+  addDeletionTombstone,
+  removeDeletionTombstone,
+  isDeletionTombstoned,
+  getDeletionTombstones,
+} from './deletionTombstones'
 
 export const SCENARIO_SCHEMA_VERSION = 1
 
@@ -262,11 +268,30 @@ export async function listClientScenarios(clientId?: string): Promise<ClientSave
       sort: '-updated',
       expand: 'client',
     })
-    const cloudList = records.map(formatScenarioRecord)
+    let cloudList = records.map(formatScenarioRecord)
+
+    // TOMBSTONES: registros já deletados que ainda existem na nuvem não podem
+    // ressuscitar. Eles ficam fora do merge e o delete é tentado de novo.
+    const tombstones = getDeletionTombstones('saved_scenarios')
+    const tombstonedIds = new Set(tombstones.map((t) => t.id))
+    if (tombstonedIds.size > 0) {
+      const stillInCloud = cloudList.filter((c) => tombstonedIds.has(c.id))
+      cloudList = cloudList.filter((c) => !tombstonedIds.has(c.id))
+      // Retry de exclusão na nuvem para os tombstoned que ainda estão lá
+      for (const rec of stillInCloud) {
+        try {
+          await pb.collection('saved_scenarios').delete(rec.id)
+          removeDeletionTombstone(rec.id, 'saved_scenarios')
+        } catch (retryErr) {
+          console.warn(`Retry de exclusão na nuvem falhou para ${rec.id}:`, retryErr)
+        }
+      }
+    }
 
     // Mescla com locais exclusivos ou pendentes de sincronização
+    // (locais tombstoned também ficam fora — nunca voltam para a lista)
     const cloudIds = new Set(cloudList.map((c) => c.id))
-    const localOnly = localList.filter((l) => !cloudIds.has(l.id))
+    const localOnly = localList.filter((l) => !cloudIds.has(l.id) && !tombstonedIds.has(l.id))
     const merged = [...cloudList, ...localOnly]
     saveLocalClientScenarios(merged)
 
@@ -726,7 +751,12 @@ export async function updateScenarioVersionSnapshot(params: {
   return updated
 }
 
-export async function deleteClientScenario(id: string): Promise<boolean> {
+export interface DeleteScenarioResult {
+  /** true = removido local E nuvem; false = removido só local (nuvem falhou). */
+  fullyDeleted: boolean
+}
+
+export async function deleteClientScenario(id: string): Promise<DeleteScenarioResult> {
   const localList = getLocalClientScenarios()
   const filtered = localList.filter((s) => s.id !== id)
   saveLocalClientScenarios(filtered)
@@ -735,13 +765,18 @@ export async function deleteClientScenario(id: string): Promise<boolean> {
   removerChavesDoCenario(id)
 
   if (!id.startsWith('scen-client-local-') && pb.authStore.isValid) {
+    addDeletionTombstone(id, 'saved_scenarios')
     try {
       await pb.collection('saved_scenarios').delete(id)
+      // Confirmação da nuvem: tombstone pode sair
+      removeDeletionTombstone(id, 'saved_scenarios')
     } catch (err) {
-      console.warn('Erro ao excluir no PocketBase (já removido localmente):', err)
+      // NÃO finge sucesso: propaga à UI que a exclusão na nuvem falhou.
+      console.warn('Erro ao excluir cenário no PocketBase (removido localmente):', err)
+      return { fullyDeleted: false }
     }
   }
-  return true
+  return { fullyDeleted: true }
 }
 
 export async function deleteClient(id: string): Promise<boolean> {
@@ -756,6 +791,13 @@ export async function deleteClient(id: string): Promise<boolean> {
   const filteredScenarios = localScenarios.filter((s) => s.client !== id)
   saveLocalClientScenarios(filteredScenarios)
 
+  // Tombstones para cada cenário vinculado — sem eles, o merge pode ressuscitar
+  for (const sc of cenariosDoCliente) {
+    if (!sc.id.startsWith('scen-client-local-')) {
+      addDeletionTombstone(sc.id, 'saved_scenarios')
+    }
+  }
+
   // Limpeza em cascata de chaves namespaced de cada cenário vinculado a este cliente (Fase A)
   for (const sc of cenariosDoCliente) {
     removerChavesDoCenario(sc.id)
@@ -763,10 +805,17 @@ export async function deleteClient(id: string): Promise<boolean> {
 
   // 3. Remove no PocketBase se não for puramente local
   if (!id.startsWith('client-local-') && pb.authStore.isValid) {
+    addDeletionTombstone(id, 'clients')
     try {
       await pb.collection('clients').delete(id)
+      removeDeletionTombstone(id, 'clients')
+      // Exclusão do cliente confirmada: tombstones dos cenários podem sair
+      for (const sc of cenariosDoCliente) {
+        removeDeletionTombstone(sc.id, 'saved_scenarios')
+      }
     } catch (err) {
-      console.warn('Erro ao excluir cliente no PocketBase (já removido localmente):', err)
+      console.warn('Erro ao excluir cliente no PocketBase (removido localmente):', err)
+      // Cenários tombstoned ficam — o merge tenta re-excluir na próxima listagem
     }
   }
   return true

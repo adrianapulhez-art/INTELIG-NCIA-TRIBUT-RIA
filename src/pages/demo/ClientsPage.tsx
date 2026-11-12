@@ -201,9 +201,16 @@ export default function ClientsPage() {
     const target = scenarios.find((s) => s.id === deleteConfirmId)
     setIsDeleting(true)
     try {
-      await deleteTaxScenario(deleteConfirmId)
+      const result = await deleteTaxScenario(deleteConfirmId)
       setScenarios((prev) => prev.filter((s) => s.id !== deleteConfirmId))
-      showFeedback('success', `Cenário "${target?.name || 'selecionado'}" excluído com sucesso.`)
+      if (result.fullyDeleted) {
+        showFeedback('success', `Cenário "${target?.name || 'selecionado'}" excluído com sucesso.`)
+      } else {
+        showFeedback(
+          'error',
+          `Cenário "${target?.name || 'selecionado'}" excluído localmente, mas a exclusão na nuvem falhou — o cenário pode reaparecer. Tente novamente mais tarde.`,
+        )
+      }
       setDeleteConfirmId(null)
     } catch (err: unknown) {
       console.error('Erro ao excluir cenário:', err)
@@ -235,9 +242,16 @@ export default function ClientsPage() {
     const { id, name } = deleteScenarioConfirm
     setIsDeletingScenario(true)
     try {
-      await deleteClientScenario(id)
+      const result = await deleteClientScenario(id)
       setClientScenarios((prev) => prev.filter((s) => s.id !== id))
-      showFeedback('success', `Cenário "${name}" apagado com sucesso.`)
+      if (result.fullyDeleted) {
+        showFeedback('success', `Cenário "${name}" apagado com sucesso.`)
+      } else {
+        showFeedback(
+          'error',
+          `Cenário "${name}" apagado localmente, mas a exclusão na nuvem falhou — o cenário pode reaparecer. Tente novamente mais tarde.`,
+        )
+      }
       setDeleteScenarioConfirm(null)
     } catch (err: unknown) {
       console.error('Erro ao apagar cenário do depósito:', err)

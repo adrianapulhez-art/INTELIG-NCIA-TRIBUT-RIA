@@ -520,9 +520,16 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     const { id, name } = confirmDeleteScenario
     setDeletingId(id)
     try {
-      await deleteClientScenario(id)
+      const result = await deleteClientScenario(id)
       setScenarios((prev) => prev.filter((s) => s.id !== id))
-      showFeedback('success', `Cenário "${name}" excluído permanentemente.`)
+      if (result.fullyDeleted) {
+        showFeedback('success', `Cenário "${name}" excluído permanentemente.`)
+      } else {
+        showFeedback(
+          'error',
+          `Cenário "${name}" excluído localmente, mas a exclusão na nuvem falhou — o cenário pode reaparecer. Tente novamente mais tarde.`,
+        )
+      }
       setConfirmDeleteScenario(null)
     } catch (err) {
       console.error('Erro ao excluir cenário:', err)

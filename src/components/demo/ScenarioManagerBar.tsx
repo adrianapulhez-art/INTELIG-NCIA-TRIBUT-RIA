@@ -5,7 +5,6 @@ import {
   listTaxScenarios,
   createTaxScenario,
   updateTaxScenario,
-  deleteTaxScenario,
   TaxScenarioRecord,
 } from '@/services/taxScenarios'
 import { Button } from '@/components/ui/button'
