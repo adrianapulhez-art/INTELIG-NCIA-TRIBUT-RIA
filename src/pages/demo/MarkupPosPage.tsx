@@ -103,6 +103,19 @@ export function MarkupPosPage() {
   const cenarioId = cenarioAtivo?.id ?? null
 
   // --------------------------------------------------------------------------
+  // 2.1 BADGE DO ITEM LIDO — rastreabilidade da fonte (Item N da tela do Card 03)
+  // N = numeração EXIBIDA na tela da Calculadora de Compras (linha idx+1), a
+  // mesma que o contador vê; o nome do item desambigua caso a numeração interna
+  // diverja da linha da tabela.
+  // --------------------------------------------------------------------------
+  const itemLidoNumeroNaTela = useMemo(() => {
+    if (!itemEfetivo) return null
+    const idx = (purchasesItems || []).findIndex((p) => p.id === itemEfetivo.id)
+    return idx >= 0 ? idx + 1 : null
+  }, [itemEfetivo, purchasesItems])
+  const itemLidoNome = itemEfetivo?.name?.trim() || null
+
+  // --------------------------------------------------------------------------
   // 3. PERSISTÊNCIA DOS VALORES DIGITADOS (POLÍTICA: "UM SALVAMENTO, UMA PÁGINA")
   // --------------------------------------------------------------------------
   const estadoSalvoInicial = useMemo(() => carregarEstadoMarkupPos(cenarioId), [cenarioId])
@@ -905,6 +918,18 @@ export function MarkupPosPage() {
                       <p className="text-[10px] text-slate-500 font-mono leading-tight">
                         {col.custoInfo?.rotuloMotor ?? col.meta.descricao}
                       </p>
+                      {itemLidoNumeroNaTela !== null && (
+                        <span
+                          className="inline-flex items-center gap-1 self-start rounded-full bg-[#261502] px-2 py-0.5 text-[9px] font-mono font-bold text-amber-200 border border-amber-500/40 max-w-full"
+                          title={`Fonte do custo: Card 03 da Calculadora de Compras, Item ${itemLidoNumeroNaTela}${itemLidoNome ? ` (${itemLidoNome})` : ''}`}
+                        >
+                          <span aria-hidden>📦</span>
+                          <span className="truncate">
+                            Card 03 · Item {itemLidoNumeroNaTela}
+                            {itemLidoNome ? ` — ${itemLidoNome}` : ''}
+                          </span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Corpo do Card */}
@@ -1103,8 +1128,12 @@ export function MarkupPosPage() {
                         <h5 className="text-xs font-black text-slate-700 uppercase">
                           Fornecedor {meta.sigla}
                         </h5>
-                        <p className="text-[10px] text-slate-500 font-mono mt-0.5">
-                          Custo 2027: <span className="font-bold text-slate-600">—</span>
+                        <p className="text-[10px] text-amber-800/90 font-mono mt-0.5 flex items-center gap-1">
+                          <span aria-hidden>📦</span>
+                          <span className="font-bold">Custo pendente</span>
+                          <span className="text-slate-500 font-normal">
+                            — vínculo com Card 03 sem valor
+                          </span>
                         </p>
                       </div>
                       <div className="pt-2 border-t border-slate-200/80 flex items-baseline justify-between text-xs font-mono">
