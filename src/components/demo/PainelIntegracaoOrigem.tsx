@@ -81,6 +81,20 @@ export function PainelIntegracaoOrigem({
     updatePurchaseItem(id, 'cClassTribCodigo', dados.cClassTribCodigo)
   }
 
+  // Remoção total do enquadramento (pedido da Adri): zera NCM, CClasTrib,
+  // benefício e redução do item de uma vez — sem resíduo no item nem na
+  // persistência namespaced do cenário.
+  const handleRemoverEnquadramento = (id: string) => {
+    updatePurchaseItem(id, 'ncm', '')
+    updatePurchaseItem(id, 'ncmPercentualReducao', 0)
+    updatePurchaseItem(id, 'ncmAnexo', undefined)
+    updatePurchaseItem(id, 'ncmArtigoOrigem', undefined)
+    updatePurchaseItem(id, 'ncmDescricaoReducao', undefined)
+    updatePurchaseItem(id, 'ncmFonte', undefined)
+    updatePurchaseItem(id, 'ncmOpcaoId', undefined)
+    updatePurchaseItem(id, 'cClassTribCodigo', undefined)
+  }
+
   return (
     <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -356,6 +370,7 @@ export function PainelIntegracaoOrigem({
                           <ItemClassificacaoDrawer
                             item={i}
                             onAtualizarClassificacao={handleAtualizarClassificacao}
+                            onRemoverEnquadramento={handleRemoverEnquadramento}
                           />
                         </td>
                       </tr>

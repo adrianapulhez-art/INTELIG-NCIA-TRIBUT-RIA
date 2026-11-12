@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   classificarNcmEmTempoReal,
@@ -44,11 +45,14 @@ interface ItemClassificacaoDrawerProps {
       cClassTribCodigo?: string
     },
   ) => void
+  /** Zera NCM, CClasTrib, benefício e redução do item de uma vez (pedido da Adri). */
+  onRemoverEnquadramento: (id: string) => void
 }
 
 export function ItemClassificacaoDrawer({
   item,
   onAtualizarClassificacao,
+  onRemoverEnquadramento,
 }: ItemClassificacaoDrawerProps) {
   const [ncmDigitado, setNcmDigitado] = useState<string>(
     item.ncm ? formatarMascaraNcm(String(item.ncm ?? '')) : '',
@@ -63,47 +67,6 @@ export function ItemClassificacaoDrawer({
   const [sugestoesCatalogo, setSugestoesCatalogo] = useState<NcmBuscaItem[]>([])
   const [buscandoCatalogo, setBuscandoCatalogo] = useState<boolean>(false)
   const [painelBuscaAberto, setPainelBuscaAberto] = useState<boolean>(false)
-
-  // Consulta em tempo real à coleção lc214_anexos_ncm
-  useEffect(() => {
-    let ativo = true
-    setCarregando(true)
-
-    classificarNcmEmTempoReal(ncmDigitado, opcaoSelecionadaId, cClassManual).then((res) => {
-      if (!ativo) return
-      setResultado(res)
-      setCarregando(false)
-
-      // Se enquadrou automaticamente ou se o usuário escolheu, atualiza o item
-      if (res.status === 'enquadrado' && res.opcaoSelecionada) {
-        onAtualizarClassificacao(item.id, {
-          ncm: res.ncmLimpo,
-          ncmPercentualReducao: res.percentualReducaoPct,
-          ncmAnexo: res.anexo,
-          ncmArtigoOrigem: res.artigoOrigem,
-          ncmDescricaoReducao: res.opcaoSelecionada.descricao_reducao,
-          ncmFonte: res.fonte,
-          ncmOpcaoId: res.opcaoSelecionada.id,
-          cClassTribCodigo: cClassManual || res.codigoCClassTribSugerido,
-        })
-      } else if (res.status === 'nao_encontrado') {
-        onAtualizarClassificacao(item.id, {
-          ncm: res.ncmLimpo,
-          ncmPercentualReducao: 0,
-          ncmAnexo: undefined,
-          ncmArtigoOrigem: undefined,
-          ncmDescricaoReducao: 'Sem redutor — alíquota cheia',
-          ncmFonte: res.fonte,
-          ncmOpcaoId: undefined,
-          cClassTribCodigo: cClassManual || '000001',
-        })
-      }
-    })
-
-    return () => {
-      ativo = false
-    }
-  }, [ncmDigitado, opcaoSelecionadaId, cClassManual, item.id])
 
   // Busca textual no catálogo NCM/SH oficial (ex: "cama", "celular", "edredom")
   useEffect(() => {
@@ -134,10 +97,92 @@ export function ItemClassificacaoDrawer({
     }
   }, [termoBuscaTexto])
 
+  // Consulta em tempo real à coleção lc214_anexos_ncm — SOMENTE quando há NCM
+  // completo no campo. Campo vazio/incompleto NUNCA repopula o item (correção do
+  // bug da Adri: o efeito regravava NCM + CClasTrib + redução ao digitar/apagar).
+  useEffect(() => {
+    let ativo = true
+    const ncmLimpo = limparNcm(ncmDigitado || '')
+    if (ncmLimpo.length < 8) {
+      setCarregando(false)
+      setResultado(null)
+      return
+    }
+
+    setCarregando(true)
+    classificarNcmEmTempoReal(ncmDigitado, opcaoSelecionadaId, cClassManual).then((res) => {
+      if (!ativo) return
+      setResultado(res)
+      setCarregando(false)
+    })
+
+    return () => {
+      ativo = false
+    }
+  }, [ncmDigitado, opcaoSelecionadaId, cClassManual])
+
   const handleMudarNcm = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatado = formatarMascaraNcm(e.target.value)
+    const limpo = limparNcm(formatado)
     setNcmDigitado(formatado)
     setOpcaoSelecionadaId(undefined) // Reset de opção prévia em nova digitação
+    // Regra da Adri (espec. item 3): apagar o NCM que possui redução remove
+    // TAMBÉM a simulação/benefício aplicado ao item — nada de redução residual.
+    // O sistema aceita o vazio: painel volta a "Informe NCM para enquadrar"
+    // (o efeito acima zera o resultado) e a busca NUNCA repopula o campo.
+    if (
+      !limpo &&
+      (Boolean(item.ncm && String(item.ncm).trim()) || Boolean(item.cClassTribCodigo))
+    ) {
+      onRemoverEnquadramento(item.id)
+    }
+  }
+
+  // Botão × do campo: mesmo comportamento de apagar — aceita o vazio e remove
+  // o enquadramento aplicado (fluxo "informei para simular e agora quero desfazer").
+  const handleLimparCampoNcm = () => {
+    setNcmDigitado('')
+    setOpcaoSelecionadaId(undefined)
+    if (Boolean(item.ncm && String(item.ncm).trim()) || Boolean(item.cClassTribCodigo)) {
+      onRemoverEnquadramento(item.id)
+    }
+  }
+
+  const handleBuscarNcmExplicito = () => {
+    const ncmLimpo = limparNcm(ncmDigitado)
+    if (ncmLimpo.length < 8) return
+
+    setCarregando(true)
+    classificarNcmEmTempoReal(ncmDigitado, undefined, cClassManual).then((res) => {
+      setResultado(res)
+      setCarregando(false)
+
+      if (res.status === 'enquadrado' && res.opcaoSelecionada) {
+        setOpcaoSelecionadaId(res.opcaoSelecionada.id)
+        onAtualizarClassificacao(item.id, {
+          ncm: res.ncmLimpo,
+          ncmPercentualReducao: res.percentualReducaoPct,
+          ncmAnexo: res.anexo,
+          ncmArtigoOrigem: res.artigoOrigem,
+          ncmDescricaoReducao: res.opcaoSelecionada.descricao_reducao,
+          ncmFonte: res.fonte,
+          ncmOpcaoId: res.opcaoSelecionada.id,
+          cClassTribCodigo: cClassManual || res.codigoCClassTribSugerido,
+        })
+      } else if (res.status === 'nao_encontrado') {
+        setOpcaoSelecionadaId(undefined)
+        onAtualizarClassificacao(item.id, {
+          ncm: res.ncmLimpo,
+          ncmPercentualReducao: 0,
+          ncmAnexo: undefined,
+          ncmArtigoOrigem: undefined,
+          ncmDescricaoReducao: 'Sem redutor — alíquota cheia',
+          ncmFonte: res.fonte,
+          ncmOpcaoId: undefined,
+          cClassTribCodigo: cClassManual || '000001',
+        })
+      }
+    })
   }
 
   const handleSelecionarNcmDoCatalogo = async (ncmItem: NcmBuscaItem) => {
@@ -176,10 +221,37 @@ export function ItemClassificacaoDrawer({
 
   const handleEscolherOpcaoManual = (opcaoId: string) => {
     setOpcaoSelecionadaId(opcaoId)
+    // Chancela manual da opção ambígua: aplica o enquadramento escolhido
+    const res = resultado
+    if (!res || res.status !== 'ambiguo') return
+    const escolhida = res.opcoesEncontradas.find((o) => o.id === opcaoId)
+    if (!escolhida) return
+    onAtualizarClassificacao(item.id, {
+      ncm: res.ncmLimpo,
+      ncmPercentualReducao: escolhida.percentual_reducao_pct,
+      ncmAnexo: escolhida.anexo,
+      ncmArtigoOrigem: escolhida.artigo_origem,
+      ncmDescricaoReducao: escolhida.descricao_reducao,
+      ncmFonte: escolhida.fonte,
+      ncmOpcaoId: escolhida.id,
+      cClassTribCodigo: cClassManual || res.codigoCClassTribSugerido,
+    })
   }
 
   const handleMudarCClass = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setCClassManual(e.target.value)
+  }
+
+  // Enquadramento ativo no item (independe do campo de digitação — reflete o que
+  // está gravado/aplicado no item da Compras)
+  const temEnquadramentoAtivo = Boolean(item.ncm && item.ncm.trim().length >= 8)
+
+  const handleRemoverEnquadramento = () => {
+    setNcmDigitado('')
+    setOpcaoSelecionadaId(undefined)
+    setResultado(null)
+    setCClassManual(undefined)
+    onRemoverEnquadramento(item.id)
   }
 
   return (
@@ -330,9 +402,28 @@ export function ItemClassificacaoDrawer({
               value={ncmDigitado}
               onChange={handleMudarNcm}
               maxLength={10}
-              className="h-8 text-xs font-mono font-bold bg-white text-slate-900 border-slate-300 focus-visible:ring-amber-500 pr-8"
+              className="h-8 text-xs font-mono font-bold bg-white text-slate-900 border-slate-300 focus-visible:ring-amber-500 pr-16"
             />
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
+            <div className="absolute right-2 top-1.5 flex items-center gap-1">
+              {ncmDigitado && (
+                <button
+                  type="button"
+                  onClick={handleLimparCampoNcm}
+                  title="Limpar o campo NCM e remover o enquadramento/simulação aplicada ao item"
+                  className="text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleBuscarNcmExplicito}
+                title="Buscar enquadramento na LC 214/2025 (ação explícita)"
+                className="text-[#b87c14] hover:text-[#261502] p-0.5 rounded cursor-pointer"
+              >
+                <Search className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
           <p className="text-[9px] text-slate-500 leading-tight">
             Consulte a posição SH na LC 214/2025. Ex.: 1006.30.21 (Arroz), 9402.90.00 (Camas
@@ -407,6 +498,41 @@ export function ItemClassificacaoDrawer({
           </div>
         </div>
       </div>
+
+      {/* MODO DE ATUALIZAÇÃO — CHIP DO ENQUADRAMENTO ATIVO (pedido da Adri) */}
+      {temEnquadramentoAtivo && (
+        <div className="rounded-xl border border-emerald-300 bg-emerald-50/70 p-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+              <Hash className="w-2.5 h-2.5 mr-1" />
+              NCM {formatarMascaraNcm(String(item.ncm ?? ''))}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="bg-white text-slate-700 border-slate-300 text-[10px] font-mono"
+            >
+              cClassTrib {item.cClassTribCodigo || '000001'}
+            </Badge>
+            {item.ncmPercentualReducao && item.ncmPercentualReducao > 0 ? (
+              <Badge className="bg-amber-100 text-[#261502] border-amber-300 text-[10px] font-bold">
+                Benefício: {item.ncmAnexo || 'Redução'} · {item.ncmPercentualReducao}%
+              </Badge>
+            ) : (
+              <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-[10px]">
+                Alíquota cheia — sem benefício
+              </Badge>
+            )}
+          </div>
+          <Button
+            size="sm"
+            type="button"
+            onClick={handleRemoverEnquadramento}
+            className="h-8 text-xs font-mono font-bold bg-red-600 text-white hover:bg-red-700 cursor-pointer shadow-xs"
+          >
+            <X className="w-3.5 h-3.5 mr-1" /> Remover enquadramento
+          </Button>
+        </div>
+      )}
 
       {/* CASO DE AMBIGUIDADE — EXIGIR CHANCELA MANUAL DA USUÁRIA */}
       {resultado?.status === 'ambiguo' && (

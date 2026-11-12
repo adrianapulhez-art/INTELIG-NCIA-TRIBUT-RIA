@@ -2834,7 +2834,9 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       | 'unitCostReal'
       | 'unitCostSimples'
     >,
-    value: string | number | boolean,
+    // undefined = LIMPAR o campo (bug da Adri: remover enquadramento NCM deixava
+    // resíduo porque a assinatura só aceitava string|number|boolean).
+    value: string | number | boolean | undefined,
   ) => {
     recordUndoSnapshot()
     setPurchasesItems((prev) =>
@@ -2845,6 +2847,14 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         if (field === 'hasSt') {
           return { ...item, hasSt: Boolean(value) }
+        }
+        // NCM é campo de TEXTO (8 dígitos): sem isso ele caía no parser numérico
+        // e voltava gravado como número — resíduo que sobrevivia à limpeza.
+        if (field === 'ncm') {
+          return {
+            ...item,
+            ncm: value === undefined || value === '' ? undefined : String(value),
+          }
         }
         if (field === 'quantity') {
           const parsed = typeof value === 'number' ? value : parseInt(String(value), 10)
@@ -2900,6 +2910,12 @@ export const TaxProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         }
         // Campos numéricos gerais
+        if (value === undefined) {
+          // undefined = LIMPAR o campo (remoção de enquadramento NCM): remove a
+          // propriedade do item, sem deixar resíduo numérico ou string vazia.
+          const { [field]: _removido, ...resto } = item
+          return resto as typeof item
+        }
         const numVal = typeof value === 'number' ? value : parseBRNumber(String(value))
         const cleanNum = Number.isFinite(numVal) && numVal >= 0 ? numVal : 0
         return {
