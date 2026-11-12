@@ -217,7 +217,11 @@ function CardMemoriaCanonical({
                       : 'text-slate-900'
                 }`}
               >
-                {l.kind === 'nota' && l.value === 0 ? '—' : formatBRL(l.value)}
+                {l.kind === 'nota' && l.value === 0
+                  ? '—'
+                  : l.label.startsWith('(i)')
+                    ? `${l.value > 0 ? '+' : ''}${formatNumberBR(l.value, 2)}%`
+                    : formatBRL(l.value)}
               </span>
               {l.value6 !== undefined && Math.abs(l.value6 - l.value) > 0.000001 && (
                 <span className="text-[9px] font-mono text-slate-500 block leading-none">

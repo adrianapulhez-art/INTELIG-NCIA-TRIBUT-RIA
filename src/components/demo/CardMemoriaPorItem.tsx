@@ -48,7 +48,11 @@ function LinhaCard({ line }: { line: MemoryLineArt }) {
       <span
         className={`shrink-0 font-bold ${line.value < 0 ? 'text-[#b87c14]' : 'text-slate-900'}`}
       >
-        {line.kind === 'nota' && line.value === 0 ? '—' : formatBRL(line.value)}
+        {line.kind === 'nota' && line.value === 0
+          ? '—'
+          : line.label.startsWith('(i)')
+            ? `${line.value > 0 ? '+' : ''}${formatNumberBR(line.value, 2)}%`
+            : formatBRL(line.value)}
       </span>
     </div>
   )
