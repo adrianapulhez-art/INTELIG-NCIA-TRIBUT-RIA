@@ -135,7 +135,9 @@ function CardMemoriaCanonicalEspelho({
                         : 'text-slate-900'
                   }`}
                 >
-                  {formatBRL(l.valor)}
+                  {l.label.startsWith('(i)')
+                    ? `${l.valor > 0 ? '+' : ''}${formatNumberBR(l.valor)}%`
+                    : formatBRL(l.valor)}
                 </span>
               </div>
             </div>
