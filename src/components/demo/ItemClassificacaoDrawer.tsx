@@ -243,8 +243,10 @@ export function ItemClassificacaoDrawer({
   }
 
   // Enquadramento ativo no item (independe do campo de digitação — reflete o que
-  // está gravado/aplicado no item da Compras)
-  const temEnquadramentoAtivo = Boolean(item.ncm && item.ncm.trim().length >= 8)
+  // está gravado/aplicado no item da Compras). Coerção defensiva: itens antigos
+  // persistidos podem guardar ncm como NUMBER (legado pré-v0.0.478) — String()
+  // evita o TypeError item.ncm.trim; '' continua significando sem enquadramento.
+  const temEnquadramentoAtivo = Boolean(item.ncm && String(item.ncm).trim().length >= 8)
 
   const handleRemoverEnquadramento = () => {
     setNcmDigitado('')
