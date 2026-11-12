@@ -80,12 +80,36 @@ export interface CasoUnitario {
 }
 
 /**
+ * ORDEM DA TELA DE COMPRAS (blindagem de seleção): os itens aparecem na tela
+ * rotulados "ITEM 1", "ITEM 2", ... mas o array interno pode estar em outra
+ * ordem (ex.: ITEM 2 gravado antes de ITEM 1). A seleção do item lido pelos
+ * cards do Markup Pós segue SEMPRE a numeração exibida na tela — nunca a ordem
+ * física do array. Itens sem número no nome mantêm a ordem relativa recebida.
+ */
+export function ordenarPelaOrdemDaTela<T extends { name?: string }>(items: T[]): T[] {
+  const numeroNoNome = (nome?: string): number | null => {
+    const m = (nome || '').match(/(\d+)/)
+    return m ? Number(m[1]) : null
+  }
+  return [...items]
+    .map((it, idx) => ({ it, idx }))
+    .sort((a, b) => {
+      const na = numeroNoNome(a.it.name)
+      const nb = numeroNoNome(b.it.name)
+      if (na !== null && nb !== null && na !== nb) return na - nb
+      return a.idx - b.idx
+    })
+    .map(({ it }) => it)
+}
+
+/**
  * DERIVADOR UNITÁRIO (máxima da casa — sem média entre produtos diferentes):
- * extrai a aquisição do PRIMEIRO item com valor. Se houver mais itens com valor,
- * eles ficam pendentes para o cálculo por item (próxima etapa) — nunca agregados.
+ * extrai a aquisição do PRIMEIRO item com valor NA ORDEM DA TELA de Compras
+ * (numeração "ITEM N" do nome). Se houver mais itens com valor, eles ficam
+ * pendentes para o cálculo por item — nunca agregados nem substituídos.
  */
 export function derivarCasoUnitario(items: ItemIntegracaoArt12[]): CasoUnitario {
-  const comValor = items.filter((i) => i.valorNota > 0)
+  const comValor = ordenarPelaOrdemDaTela(items.filter((i) => i.valorNota > 0))
   if (comValor.length === 0) return { input: null, item: null, pendentesPorItem: [] }
   const primeiro = comValor[0]
   const input: CmvArt12Input = {
