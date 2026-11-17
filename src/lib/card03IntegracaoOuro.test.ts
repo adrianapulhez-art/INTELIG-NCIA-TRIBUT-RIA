@@ -16,7 +16,8 @@ import type { ClienteRegimeKey, FornecedorPosKey } from './markupPosCalculations
  * - Caminho real que o MarkupPosPage usa: lerEspelhoComprasCard03(clienteRegime, { item, inputPleno, ... })
  *
  * 16 VALORES OBRIGATÓRIOS (Custo Unitário 2027; Compras Líquidas CL entre parênteses):
- * - lp×lp 1106.10 (33.182,94) · lp×lr 1041.81 (31.254,30) · lp×snp 1335.17 (40.055,19) · lp×snh 1355.68 (40.670,38)
+ * - lp×lp 1106.10 (33.182,94) · lp×lr 1041.81 (31.254,30) · lp×snp 1372.28 (41.168,40) · lp×snh 1380.96 (41.428,80)
+ *   (régua Adri Rodada 1 do cliente LP: lp×snp parcela creditável 831,60; lp×snh créditos 5.269,23)
  * - lr×lp 1106.10 (33.182,94) · lr×lr 1041.81 (31.254,30) · lr×snp 1335.17 (40.055,19) · lr×snh 1355.68 (40.670,38)
  * - snp×lp 1473.54 · snp×lr 1387.89 · snp×snp 1400.00 · snp×snh 1525.26 (VB=CL, sem crédito)
  * - snh×lp 1371.34 (41.140,05) · snh×lr 1291.63 (38.748,93) · snh×snp 1379.49 (41.384,81) · snh×snh 1400.00 (CL 42.000,00 exato)
@@ -26,8 +27,10 @@ import type { ClienteRegimeKey, FornecedorPosKey } from './markupPosCalculations
  *    - Fornecedor LP:  44.206,15
  *    - Fornecedor LR:  41.636,82
  *    - Fornecedor SNP: 42.000,00
- *    - Fornecedor SNH: 45.757,94
- * 2. Fração creditável do DAS do fornecedor SNP: 1.944,81 (sobre RBV 42.000)
+ *    - Fornecedor SNH: 45.757,94 — EXCETO no adquirente LP, onde a régua Adri Rodada 1
+ *      constrói a nota do híbrido por fora: 46.698,03
+ * 2. Fração creditável do DAS do fornecedor SNP: 831,60 no adquirente LP (régua Adri Rodada 1,
+ *    LC 123 art. 23 §1º/§2º c/c LC 214 art. 47 §9º II) e 1.944,81 no adquirente LR
  * 3. SNH adquirente com ICMS 0,00 nas 4 células (híbrido nunca credita ICMS 18%).
  */
 
@@ -65,8 +68,8 @@ describe('Blindagem Integração Card 03 Compras — 16 Células Chanceladas pel
     lp: {
       lp: { custo: 1106.1, cl: 33182.94 },
       lr: { custo: 1041.81, cl: 31254.3 },
-      snp: { custo: 1335.17, cl: 40055.19 },
-      snh: { custo: 1355.68, cl: 40670.38 },
+      snp: { custo: 1372.28, cl: 41168.4 },
+      snh: { custo: 1380.96, cl: 41428.8 },
     },
     lr: {
       lp: { custo: 1106.1, cl: 33182.94 },
@@ -114,20 +117,40 @@ describe('Blindagem Integração Card 03 Compras — 16 Células Chanceladas pel
       expect(espelho.lr.comprasLiquidas2027).toBe(CHANCELAS.lp.lr.cl)
     })
 
-    it('LP × SNP: custo unitário 1335.17 e CL 40.055,19', () => {
+    it('LP × SNP: custo unitário 1372.28, CL 41.168,40 e parcela creditável 831,60 (régua Adri)', () => {
       console.log(
         `[CELULA lp x snp] obtido=${espelho.snp.custo2027} (CL=${espelho.snp.comprasLiquidas2027}, VB=${espelho.snp.notaCheia2027}) | motor=${espelho.snp.motorOrigem} (${espelho.snp.rotuloMotor})`,
       )
       expect(espelho.snp.custo2027).toBe(CHANCELAS.lp.snp.custo)
       expect(espelho.snp.comprasLiquidas2027).toBe(CHANCELAS.lp.snp.cl)
+      expect(espelho.snp.notaCheia2027).toBe(42000)
+      // Parcela creditável total = nota − CL: ICMS 571,20 + CBS 257,54 + IBS 2,86 = 831,60
+      const parcela = Number(
+        (espelho.snp.notaCheia2027 - espelho.snp.comprasLiquidas2027).toFixed(2),
+      )
+      console.log(`[PARCELA CREDITAVEL LPxSNP] obtido=${parcela} | esperado=831.60`)
+      expect(parcela).toBe(831.6)
+      // Memória de cálculo coerente com o CARD 3º: crédito por unidade 27,72
+      const linhaUn = espelho.snp.linhasMemoriaCusto.find((l) => l.label.includes('por unidade'))
+      if (linhaUn) {
+        console.log(`[CREDITO POR UNIDADE LPxSNP] linha=${linhaUn.label} valor=${linhaUn.valor}`)
+        expect(linhaUn.valor).toBeCloseTo(27.72, 2)
+      }
     })
 
-    it('LP × SNH: custo unitário 1355.68 e CL 40.670,38', () => {
+    it('LP × SNH: custo unitário 1380.96, CL 41.428,80 e créditos 5.269,23 (régua Adri)', () => {
       console.log(
         `[CELULA lp x snh] obtido=${espelho.snh.custo2027} (CL=${espelho.snh.comprasLiquidas2027}, VB=${espelho.snh.notaCheia2027}) | motor=${espelho.snh.motorOrigem} (${espelho.snh.rotuloMotor})`,
       )
       expect(espelho.snh.custo2027).toBe(CHANCELAS.lp.snh.custo)
       expect(espelho.snh.comprasLiquidas2027).toBe(CHANCELAS.lp.snh.cl)
+      expect(espelho.snh.notaCheia2027).toBe(46698.03)
+      // Créditos do adquirente LP = nota − CL: CBS 4.656,60 + IBS 41,43 + ICMS art. 23 571,20 = 5.269,23
+      const creditos = Number(
+        (espelho.snh.notaCheia2027 - espelho.snh.comprasLiquidas2027).toFixed(2),
+      )
+      console.log(`[CREDITOS LPxSNH] obtido=${creditos} | esperado=5269.23`)
+      expect(creditos).toBe(5269.23)
     })
   })
 
@@ -247,18 +270,22 @@ describe('Blindagem Integração Card 03 Compras — 16 Células Chanceladas pel
       for (const fKey of ['lp', 'lr', 'snp', 'snh'] as const) {
         const esperado = VB_ESPERADO_POR_FORNECEDOR[fKey]
         for (const { regime, espelho } of espelhos) {
+          // Régua Adri Rodada 1 (Cliente LP): a nota do híbrido no LP é construída
+          // por fora (mercadoria 42.000 + CBS 4.656,60 + IBS 41,43) = 46.698,03
+          const esperadoEfetivo = regime === 'lp' && fKey === 'snh' ? 46698.03 : esperado
           const obtido = espelho[fKey].notaCheia2027
           console.log(
-            `[VB TRAVA] Fornecedor ${fKey.toUpperCase()} no adquirente ${regime.toUpperCase()}: obtido=${obtido} | esperado=${esperado}`,
+            `[VB TRAVA] Fornecedor ${fKey.toUpperCase()} no adquirente ${regime.toUpperCase()}: obtido=${obtido} | esperado=${esperadoEfetivo} (${regime === 'lp' && fKey === 'snh' ? 'régua Adri LP' : 'trava global'})`,
           )
-          expect(obtido).toBe(esperado)
+          expect(obtido).toBe(esperadoEfetivo)
         }
       }
     })
 
-    it('Fração creditável do DAS do fornecedor SNP é 1.944,81', () => {
-      // No adquirente LP e LR comprando de SNP, a parcela creditável é o crédito que reduz a nota
-      // Compras líquidas LPxSNP = 40.055,19; Nota VB = 42.000,00 -> Crédito = 42.000 - 40.055,19 = 1.944,81
+    it('Fração creditável do DAS do fornecedor SNP: 831,60 no LP (régua Adri) e 1.944,81 no LR', () => {
+      // LP: parcela creditável em campo próprio da nota (art. 23 LC 123 c/c art. 47 §9º II LC 214):
+      // Nota VB = 42.000,00; CL = 41.168,40 -> 831,60 = ICMS 571,20 + CBS 257,54 + IBS 2,86
+      // LR: cadeia plena — Nota VB = 42.000,00; CL = 40.055,19 -> 1.944,81
       const espelhoLp = obterEspelho('lp')
       const espelhoLr = obterEspelho('lr')
 
@@ -270,9 +297,9 @@ describe('Blindagem Integração Card 03 Compras — 16 Células Chanceladas pel
       )
 
       console.log(
-        `[FRACAO DAS SNP] Crédito LPxSNP=${creditoLp} | Crédito LRxSNP=${creditoLr} | esperado=1944.81`,
+        `[FRACAO DAS SNP] Crédito LPxSNP=${creditoLp} | Crédito LRxSNP=${creditoLr} | esperados: LP=831.60 · LR=1944.81`,
       )
-      expect(creditoLp).toBe(1944.81)
+      expect(creditoLp).toBe(831.6)
       expect(creditoLr).toBe(1944.81)
     })
 
