@@ -12,6 +12,7 @@ import {
   type FornecedorPosKey,
   type CustoCard03Resultado,
 } from './markupPosCalculations'
+import { PERFIL_SN_NOTA_PADRAO } from './art12SnCalculations'
 
 /**
  * ============================================================================
@@ -35,7 +36,9 @@ import {
  *
  * NÃO lê sessão do usuário nem localStorage: os dados canônicos fixos são
  * montados em memória e INJETADOS no caminho de leitura (item + inputPleno +
- * perfilSN = PERFIL_SN_DESTACADOS_OURO). O leitor resolve a CBS pelo mesmo
+ * perfilSN = PERFIL_SN_NOTA_PADRAO — o perfil DEFAULT da Sessão SN: Anexo I,
+ * 1ª faixa, efetiva 4% → ICMS 1,36% + CBS 0,6132% + IBS 0,0068%, que reproduz
+ * a parcela creditável chancelada 831,60). O leitor resolve a CBS pelo mesmo
  * fallback da página sem sessão gravada (referência 2027 = 9,14%).
  *
  * 16 VALORES-OURO (Custo Unitário 2027; Compras Líquidas CL entre parênteses):
@@ -122,6 +125,7 @@ function obterEspelho(clienteRegime: ClienteRegimeKey) {
   return lerEspelhoComprasCard03(clienteRegime, {
     item: itemSessao,
     inputPleno,
+    perfilSN: PERFIL_SN_NOTA_PADRAO,
   })
 }
 

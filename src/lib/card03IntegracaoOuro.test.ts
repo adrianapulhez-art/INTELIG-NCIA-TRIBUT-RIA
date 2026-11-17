@@ -6,6 +6,7 @@ import {
   type ItemIntegracaoArt12,
 } from './integracaoComprasArt12'
 import type { ClienteRegimeKey, FornecedorPosKey } from './markupPosCalculations'
+import { PERFIL_SN_NOTA_PADRAO } from './art12SnCalculations'
 
 /**
  * TESTE DE BLINDAGEM DA INTEGRAÇÃO CARD 03 COM AS 16 CÉLULAS CHANCELADAS PELA ADRI
@@ -18,6 +19,9 @@ import type { ClienteRegimeKey, FornecedorPosKey } from './markupPosCalculations
  * 16 VALORES OBRIGATÓRIOS (Custo Unitário 2027; Compras Líquidas CL entre parênteses):
  * - lp×lp 1106.10 (33.182,94) · lp×lr 1041.81 (31.254,30) · lp×snp 1372.28 (41.168,40) · lp×snh 1380.96 (41.428,80)
  *   (régua Adri Rodada 1 do cliente LP: lp×snp parcela creditável 831,60; lp×snh créditos 5.269,23)
+ * - lp×snp agora sai do MOTOR VIVO da Sessão SN (calcularSessaoSN, 'presumido'): os valores
+ *   da régua são reproduzidos com o perfil DEFAULT da sessão (Anexo I 1ª faixa, 4%) injetado
+ *   explicitamente — nenhum valor fixo no leitor; nota/quantidade vêm do item da sessão.
  * - lr×lp 1106.10 (33.182,94) · lr×lr 1041.81 (31.254,30) · lr×snp 1335.17 (40.055,19) · lr×snh 1355.68 (40.670,38)
  * - snp×lp 1473.54 · snp×lr 1387.89 · snp×snp 1400.00 · snp×snh 1525.26 (VB=CL, sem crédito)
  * - snh×lp 1371.34 (41.140,05) · snh×lr 1291.63 (38.748,93) · snh×snp 1379.49 (41.384,81) · snh×snh 1400.00 (CL 42.000,00 exato)
@@ -55,11 +59,15 @@ describe('Blindagem Integração Card 03 Compras — 16 Células Chanceladas pel
   const itemSessao: ItemIntegracaoArt12 = caso.item!
   const inputPleno = caso.input!
 
-  // Helpers de leitura via caminho real do MarkupPosPage
+  // Helpers de leitura via caminho real do MarkupPosPage.
+  // Perfil default da SESSÃO SN injetado explicitamente (Anexo I, 1ª faixa, 4% →
+  // ICMS 1,36% + CBS 0,6132% + IBS 0,0068% = parcela 831,60 chancelada): o teste
+  // não lê localStorage; a página injeta o mesmo perfil via obterPerfilSessaoOuChancela.
   function obterEspelho(clienteRegime: ClienteRegimeKey) {
     return lerEspelhoComprasCard03(clienteRegime, {
       item: itemSessao,
       inputPleno,
+      perfilSN: PERFIL_SN_NOTA_PADRAO,
     })
   }
 

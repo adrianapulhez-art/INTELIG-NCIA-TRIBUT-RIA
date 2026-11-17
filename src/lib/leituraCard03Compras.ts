@@ -290,45 +290,41 @@ export function lerEspelhoComprasCard03(
           row2027,
         )
 
-    // 3. Fornecedor SNP (LP × SNP) — RÉGUA CHANCELADA ADRI · Rodada 1 (Cliente LP)
-    // Crédito do LP = parcela creditável em CAMPO PRÓPRIO da nota
-    // (LC 123/2006 art. 23 §1º/§2º c/c LC 214/2025 art. 47 §9º II):
-    //   831,60 = ICMS 571,20 + CBS 257,544 + IBS 2,856
-    // Nota 42.000,00 − 831,60 = compras líquidas 41.168,40 → custo 1.372,28 (30 un).
-    const LP_X_SNP_NOTA_REGUA_ADRI = 42000
-    const LP_X_SNP_CREDITO_REGUA_ADRI = 831.6
-    const LP_X_SNP_CL_REGUA_ADRI = 41168.4
-    const LP_X_SNP_CUSTO_REGUA_ADRI = 1372.28
-    const linhasSnpReguaAdri = [
-      {
-        label: '(+) Nota do fornecedor SN puro (2027 — congelada, LC 123/2006)',
-        formula: 'RBV 42.000,00 (30 un × 1.400,00) — sem destaque de ICMS à alíquota cheia',
-        valor: LP_X_SNP_NOTA_REGUA_ADRI,
-        destaque: true,
-        fundamento: 'LC 123/2006, art. 23 §2º (nota destaca apenas a fração do anexo)',
-      },
-      {
-        label: '(−) Crédito LP — parcela creditável em campo próprio da nota',
-        formula: 'ICMS 571,20 + CBS 257,544 + IBS 2,856 = 831,60',
-        valor: -LP_X_SNP_CREDITO_REGUA_ADRI,
-        destaque: false,
-        fundamento: 'LC 123/2006 art. 23 §1º/§2º c/c LC 214/2025 art. 47 §9º II',
-      },
-      {
-        label: '(=) Compras líquidas',
-        formula: `${LP_X_SNP_NOTA_REGUA_ADRI.toFixed(2)} − ${LP_X_SNP_CREDITO_REGUA_ADRI.toFixed(2)}`,
-        valor: LP_X_SNP_CL_REGUA_ADRI,
-        destaque: true,
-        fundamento: 'custo da aquisição para o adquirente LP',
-      },
-      {
-        label: '(÷) Custo unitário líquido',
-        formula: `${LP_X_SNP_CL_REGUA_ADRI.toFixed(2)} ÷ 30 un.`,
-        valor: LP_X_SNP_CUSTO_REGUA_ADRI,
-        destaque: true,
-        fundamento: 'Régua chancelada Adri — Rodada 1 (Cliente LP)',
-      },
-    ]
+    // 3. Fornecedor SNP (LP × SNP) — INTEGRAÇÃO VIVA com o CARD 3º da Sessão SN
+    // ('CARD 3º — CUSTO DO ADQUIRENTE COM PARCELA CREDITÁVEL (ART. 23)', SessaoSnReforma.tsx).
+    // Mesmo motor: calcularSessaoSN (art12SnCalculations.ts) com o perfil da SESSÃO ATIVA —
+    // os mesmos receitaBruta, parcelaCreditavelTotal (ICMS + CBS + IBS) e memória que a tela exibe.
+    // Régua fiscal chancelada (régua Adri): parcela creditável do LP comprando de SNP puro =
+    // fração do anexo aplicada sobre a NOTA DA SESSÃO (LC 123/2006 art. 23 §1º/§2º c/c
+    // LC 214/2025 art. 47 §9º II), com CBS/IBS meio a meio para cima — nada de valor fixo:
+    // com nota 42.000,00 / 30 un e perfil da sessão (1,36% + 0,6132% + 0,0068%) reproduz
+    // ICMS 571,20 + CBS 257,54 + IBS 2,86 = 831,60 → CL 41.168,40 → custo 1.372,28.
+    const resSessaoSnpLp = calcularSessaoSN(itemParaMotores, perfilSN, 'presumido')
+    const LP_X_SNP_NOTA_SESSAO = resSessaoSnpLp.receitaBruta
+    const LP_X_SNP_CREDITO_SESSAO = resSessaoSnpLp.parcelaCreditavelTotal
+    const LP_X_SNP_CL_SESSAO = resSessaoSnpLp.custoLiquido
+    const LP_X_SNP_CUSTO_SESSAO = resSessaoSnpLp.custoUnitarioLiquido
+    const LP_X_SNP_CREDITO_UN_SESSAO = resSessaoSnpLp.creditoUnidade
+    const qtdSessaoLp = Math.max(1, itemParaMotores.quantity)
+    const linhasSnpReguaAdri = resSessaoSnpLp.memoria
+      .filter((m) => m.bloco === 'credito' || m.bloco === 'custo')
+      .map((m) => ({
+        label: m.label,
+        formula: m.formula,
+        valor: m.value,
+        destaque: Boolean(m.destaque),
+        fundamento: m.fundamento ?? 'Régua chancelada Adri (LP × SN Puro — art. 23 LC 123)',
+      }))
+    // Linha de contexto: a NOTA da sessão que abre a memória do CARD 3º
+    linhasSnpReguaAdri.unshift({
+      label: '(+) Nota do fornecedor SN puro (2027 — da Sessão SN, LC 123/2006)',
+      formula: `RBV ${LP_X_SNP_NOTA_SESSAO.toFixed(2)} (${qtdSessaoLp} un × ${(
+        LP_X_SNP_NOTA_SESSAO / qtdSessaoLp
+      ).toFixed(2)}) — sem destaque de ICMS à alíquota cheia`,
+      valor: LP_X_SNP_NOTA_SESSAO,
+      destaque: true,
+      fundamento: 'LC 123/2006, art. 23 §2º (nota destaca apenas a fração do anexo)',
+    })
 
     // 4. Fornecedor SNH (LP × SNH) — RÉGUA CHANCELADA ADRI · Rodada 1 (Cliente LP)
     // Créditos do LP = 5.269,23 = CBS 4.656,60 + IBS 41,43 + ICMS art. 23
@@ -436,16 +432,14 @@ export function lerEspelhoComprasCard03(
         })),
       },
       snp: {
-        custo2027: LP_X_SNP_CUSTO_REGUA_ADRI,
+        custo2027: LP_X_SNP_CUSTO_SESSAO,
         custoHoje: custoHojeFornecedorSimples,
-        deltaPct: deltaComHoje(LP_X_SNP_CUSTO_REGUA_ADRI, custoHojeFornecedorSimples),
-        comprasLiquidas2027: LP_X_SNP_CL_REGUA_ADRI,
-        notaCheia2027: LP_X_SNP_NOTA_REGUA_ADRI,
+        deltaPct: deltaComHoje(LP_X_SNP_CUSTO_SESSAO, custoHojeFornecedorSimples),
+        comprasLiquidas2027: LP_X_SNP_CL_SESSAO,
+        notaCheia2027: LP_X_SNP_NOTA_SESSAO,
         motorOrigem: 'sessao_sn',
-        rotuloMotor:
-          'Régua Adri Rodada 1 (LP × SN Puro — crédito em campo próprio, art. 23 LC 123)',
-        fundamentoLegal:
-          'LC 123/2006 art. 23 §1º/§2º c/c LC 214 art. 47 §9º II: parcela creditável em campo próprio da nota — 831,60 (ICMS 571,20 + CBS 257,544 + IBS 2,856).',
+        rotuloMotor: 'Sessão SN (LP × SN Puro — CARD 3º, crédito em campo próprio, art. 23 LC 123)',
+        fundamentoLegal: `LC 123/2006 art. 23 §1º/§2º c/c LC 214 art. 47 §9º II: parcela creditável em campo próprio da nota — ${LP_X_SNP_CREDITO_SESSAO.toFixed(2)} (ICMS ${resSessaoSnpLp.icmsNota.toFixed(2)} + CBS ${resSessaoSnpLp.cbsDAS.toFixed(2)} + IBS ${resSessaoSnpLp.ibsDAS.toFixed(2)}); crédito/un ${LP_X_SNP_CREDITO_UN_SESSAO.toFixed(2)}.`,
         linhasMemoriaCusto: linhasSnpReguaAdri,
       },
       snh: {

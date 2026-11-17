@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { lerEspelhoComprasCard03 } from './leituraCard03Compras'
-import { calcularCelulaFornecedorPlenoXAdquirenteSn } from './art12SnCalculations'
+import {
+  calcularCelulaFornecedorPlenoXAdquirenteSn,
+  PERFIL_SN_NOTA_PADRAO,
+} from './art12SnCalculations'
 import type { ItemIntegracaoArt12 } from './integracaoComprasArt12'
 
 /**
@@ -45,8 +48,11 @@ describe('Blindagem Leitura Card 03 Compras — Células Pleno × SNH (cenário 
     expect(diretoLp.exercicio2027.custoUnitario).toBe(1355.68)
     expect(diretoLr.exercicio2027.custoUnitario).toBe(1303.15) // LR com base limpa LR
 
-    // Leitura via lerEspelhoComprasCard03
-    const espelhoLp = lerEspelhoComprasCard03('lp', { item: itemSessaoAdri })
+    // Leitura via lerEspelhoComprasCard03 (perfil default da Sessão SN injetado: teste não lê localStorage)
+    const espelhoLp = lerEspelhoComprasCard03('lp', {
+      item: itemSessaoAdri,
+      perfilSN: PERFIL_SN_NOTA_PADRAO,
+    })
     expect(espelhoLp.snh.custo2027).toBe(1355.68)
     expect(espelhoLp.snh.motorOrigem).toBe('quatro_celulas_sn')
     expect(espelhoLp.snh.rotuloMotor).toBe('Células Pleno × SN (LP × SN Híbrido — cenário 04)')
@@ -60,8 +66,8 @@ describe('Blindagem Leitura Card 03 Compras — Células Pleno × SNH (cenário 
   })
 
   it('2. Caso canônico (RBV 42k + frete 400): lerEspelhoComprasCard03 reflete o motor oficial das Células Pleno × SN', () => {
-    const espelhoLpCanonico = lerEspelhoComprasCard03('lp')
-    const espelhoLrCanonico = lerEspelhoComprasCard03('lr')
+    const espelhoLpCanonico = lerEspelhoComprasCard03('lp', { perfilSN: PERFIL_SN_NOTA_PADRAO })
+    const espelhoLrCanonico = lerEspelhoComprasCard03('lr', { perfilSN: PERFIL_SN_NOTA_PADRAO })
 
     // Valores calculados pelo motor calcularCelulaFornecedorPlenoXAdquirenteSn no caso canônico (30 un, 42.400 nota)
     const diretoLpCanonico = calcularCelulaFornecedorPlenoXAdquirenteSn(
