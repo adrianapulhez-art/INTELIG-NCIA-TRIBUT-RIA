@@ -179,7 +179,7 @@ function CardMemoriaCanonical({
 
   return (
     <div
-      className={`w-full min-w-0 rounded-2xl border p-3.5 space-y-1.5 flex flex-col justify-between ${corCls}`}
+      className={`w-full min-w-0 rounded-2xl border p-3 space-y-1.5 flex flex-col justify-start self-start ${corCls}`}
     >
       <div className="flex items-start justify-between gap-1 pb-1.5 border-b border-slate-200">
         <span className={`text-xs font-mono font-bold uppercase leading-tight block ${tituloCls}`}>
@@ -1737,7 +1737,7 @@ export function SessaoSnSection({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 items-stretch">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 items-start">
                       {/* CARD 1º-A — BASELINE PLENO */}
                       <CardMemoriaCanonical
                         titulo={`CARD 1º-A — MEMÓRIA DE CÁLCULO DA AQUISIÇÃO EM 2026 · COMPRA DE FORNECEDOR PLENO (baseline de referência) · ${itemAtivo.item.name || 'item'}`}
