@@ -406,6 +406,30 @@ export function MarkupPosPage() {
     return simulacaoQuatroColunas.find((s) => s.key === modalMemoriaFornecedor) || null
   }, [modalMemoriaFornecedor, simulacaoQuatroColunas])
 
+  // Régua chancela Adri da célula LP × SNP, lida do espelho do motor (nada recalculado aqui)
+  const memoriaReguaSnp = useMemo(() => {
+    if (
+      !itemMemoriaAtivo ||
+      itemMemoriaAtivo.clienteRegime !== 'lp' ||
+      itemMemoriaAtivo.key !== 'snp'
+    )
+      return null
+    const parcela = roundHalfUp(
+      itemMemoriaAtivo.notaCompraTotal - itemMemoriaAtivo.comprasLiquidasTotal,
+      2,
+    )
+    const qtdCompra = Math.max(
+      1,
+      Math.round(itemMemoriaAtivo.comprasLiquidasTotal / (itemMemoriaAtivo.custoUnitario || 1)),
+    )
+    return {
+      parcela,
+      qtdCompra,
+      creditoUn: roundHalfUp(parcela / qtdCompra, 2),
+      linhas: itemMemoriaAtivo.custoInfo?.linhasMemoriaCusto ?? [],
+    }
+  }, [itemMemoriaAtivo])
+
   const clienteMetaAtiva = CLIENTES_REGIME_META[clienteRegime]
 
   return (
@@ -888,6 +912,24 @@ export function MarkupPosPage() {
                   (quantidadePorCard[col.key] as number) > 0
                     ? Math.round(quantidadePorCard[col.key] as number)
                     : quantidadeReferencia
+                // Célula LP × SNP: exibição 100% vinda do espelho do motor (leituraCard03Compras),
+                // sem nenhum recálculo paralelo. Parcela creditável = Nota − Compras Líquidas do
+                // espelho (831,60 = ICMS 571,20 + CBS 257,544 + IBS 2,856, chancela Adri).
+                const isCelulaLpXSnp = clienteRegime === 'lp' && col.key === 'snp'
+                const parcelaCreditavelSnp = isCelulaLpXSnp
+                  ? roundHalfUp(col.notaCompraTotal - col.comprasLiquidasTotal, 2)
+                  : 0
+                const linhaCreditoSnp = isCelulaLpXSnp
+                  ? col.custoInfo?.linhasMemoriaCusto?.find((l) => l.label.startsWith('(−)'))
+                  : undefined
+                const creditoPorUnidadeSnp =
+                  isCelulaLpXSnp && col.custoUnitario > 0
+                    ? roundHalfUp(
+                        parcelaCreditavelSnp /
+                          Math.max(1, Math.round(col.comprasLiquidasTotal / col.custoUnitario)),
+                        2,
+                      )
+                    : 0
                 return (
                   <div
                     key={col.key}
@@ -960,6 +1002,33 @@ export function MarkupPosPage() {
                               {formatNumberBR(col.deltaCustoPct)}%
                             </span>
                           </div>
+
+                          {/* LP × SNP: compras líquidas, parcela creditável e crédito/un — espelho do motor */}
+                          {isCelulaLpXSnp && (
+                            <div className="pt-1.5 border-t border-slate-200/80 space-y-0.5">
+                              <div className="flex items-center justify-between text-[10px] font-mono text-[#5c3e06]">
+                                <span>Compras Líquidas (Card 03):</span>
+                                <span className="font-bold">
+                                  {formatBRL(col.comprasLiquidasTotal)}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] font-mono text-slate-600">
+                                <span>Parcela Creditável (art. 23):</span>
+                                <span className="font-semibold">
+                                  {formatBRL(parcelaCreditavelSnp)}
+                                </span>
+                              </div>
+                              {linhaCreditoSnp && (
+                                <div className="text-[9px] text-slate-500 font-mono leading-tight">
+                                  {linhaCreditoSnp.formula}
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between text-[10px] font-mono text-emerald-800">
+                                <span>Crédito por unidade:</span>
+                                <span className="font-bold">{formatBRL(creditoPorUnidadeSnp)}</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Campos individuais por card: Margem de Lucro Desejada e Quantidade Vendida */}
@@ -1281,6 +1350,44 @@ export function MarkupPosPage() {
                           {formatBRL(itemMemoriaAtivo.custoUnitario)}
                         </td>
                       </tr>
+
+                      {/* RÉGUA CHANCELA ADRI — Célula LP × SNP: memória do custo vem do espelho do motor (Card 03) */}
+                      {memoriaReguaSnp &&
+                        memoriaReguaSnp.linhas.map((linha, idx) => (
+                          <tr
+                            key={`regua-snp-${idx}`}
+                            className={
+                              linha.destaque
+                                ? 'bg-amber-50/60 font-semibold text-[#261502]'
+                                : 'text-slate-600 text-[11px]'
+                            }
+                          >
+                            <td className="py-1.5 px-3 text-slate-400 pl-6">0.{idx + 1}</td>
+                            <td className="py-1.5 px-3">{linha.label}</td>
+                            <td className="py-1.5 px-3 text-slate-500 text-[11px]">
+                              {linha.formula}
+                              {linha.fundamento ? ` — ${linha.fundamento}` : ''}
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-mono">
+                              {formatBRL(linha.valor)}
+                            </td>
+                          </tr>
+                        ))}
+                      {memoriaReguaSnp && (
+                        <tr className="text-slate-600 text-[11px]">
+                          <td className="py-1.5 px-3 text-slate-400 pl-6">
+                            0.{memoriaReguaSnp.linhas.length + 1}
+                          </td>
+                          <td className="py-1.5 px-3">(÷) Crédito por unidade</td>
+                          <td className="py-1.5 px-3 text-slate-500">
+                            Parcela creditável ({formatBRL(memoriaReguaSnp.parcela)}) ÷{' '}
+                            {memoriaReguaSnp.qtdCompra} un. da compra — mesmo valor do Card 03
+                          </td>
+                          <td className="py-1.5 px-3 text-right font-mono font-semibold text-emerald-800">
+                            {formatBRL(memoriaReguaSnp.creditoUn)}
+                          </td>
+                        </tr>
+                      )}
 
                       {/* Passo 1: Divisor e Despesas Variáveis */}
                       <tr className="bg-slate-50">
