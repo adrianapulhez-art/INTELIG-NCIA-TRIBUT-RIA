@@ -39,7 +39,8 @@ import {
  * fallback da página sem sessão gravada (referência 2027 = 9,14%).
  *
  * 16 VALORES-OURO (Custo Unitário 2027; Compras Líquidas CL entre parênteses):
- * - lp×lp 1106.10 (33.182,94) · lp×lr 1041.81 (31.254,30) · lp×snp 1335.17 (40.055,19) · lp×snh 1355.68 (40.670,38)
+ * - lp×lp 1106.10 (33.182,94) · lp×lr 1041.81 (31.254,30) · lp×snp 1372.28 (41.168,40) · lp×snh 1380.96 (41.428,80)
+ *   (régua Adri v0.0.486 do cliente LP: lp×snp parcela creditável 831,60; lp×snh créditos 5.269,23)
  * - lr×lp 1106.10 (33.182,94) · lr×lr 1041.81 (31.254,30) · lr×snp 1335.17 (40.055,19) · lr×snh 1355.68 (40.670,38)
  * - snp×lp 1473.54 · snp×lr 1387.89 · snp×snp 1400.00 · snp×snh 1525.26 (VB=CL, sem crédito)
  * - snh×lp 1371.34 (41.140,05) · snh×lr 1291.63 (38.748,93) · snh×snp 1379.49 (41.384,81) · snh×snh 1400.00 (CL 42.000,00 exato)
@@ -79,8 +80,8 @@ const CHANCELAS: Record<
   lp: {
     lp: { custo: 1106.1, cl: 33182.94 },
     lr: { custo: 1041.81, cl: 31254.3 },
-    snp: { custo: 1335.17, cl: 40055.19 },
-    snh: { custo: 1355.68, cl: 40670.38 },
+    snp: { custo: 1372.28, cl: 41168.4 },
+    snh: { custo: 1380.96, cl: 41428.8 },
   },
   lr: {
     lp: { custo: 1106.1, cl: 33182.94 },
