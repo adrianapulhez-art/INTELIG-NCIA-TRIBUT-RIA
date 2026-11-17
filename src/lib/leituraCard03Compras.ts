@@ -132,8 +132,8 @@ export function obterPerfilSessaoOuChancela(): PerfilSN {
  *    - Fornecedor LR: computeCellArt12Item (presumido × real) -> Card 03: 1.041,81 (CL 31.254,36)
  *    - Fornecedor SNP: RÉGUA ADRI Rodada 1 (Cliente LP) — crédito 831,60 em campo
  *      próprio da nota (ICMS 571,20 + CBS 257,544 + IBS 2,856) -> 1.372,28 (CL 41.168,40)
- *    - Fornecedor SNH: RÉGUA ADRI Rodada 1 (Cliente LP) — créditos 5.269,23
- *      (CBS 4.656,60 + IBS 41,43 + ICMS fração do DAS 571,20) -> 1.380,96 (CL 41.428,80)
+ *    - Fornecedor SNH: INTEGRAÇÃO VIVA com o CARD híbrido da Sessão SN — motor vivo
+ *      (computeCellArt12Item/Art12 com simples_hibrido + perfil da sessão) -> régua 1.380,96 (CL 41.428,80)
  *
  * 2. Adquirente LR:
  *    - Fornecedor LP: computeCellArt12Item (real × presumido) -> Card 03: 1.106,10 (CL 33.182,94)
@@ -326,11 +326,15 @@ export function lerEspelhoComprasCard03(
       fundamento: 'LC 123/2006, art. 23 §2º (nota destaca apenas a fração do anexo)',
     })
 
-    // 4. Fornecedor SNH (LP × SNH) — RÉGUA CHANCELADA ADRI · Rodada 1 (Cliente LP)
-    // Créditos do LP = 5.269,23 = CBS 4.656,60 + IBS 41,43 + ICMS art. 23
-    // (fração do DAS do fornecedor SN informada na nota) 571,20.
-    // Nota 46.698,03 − 5.269,23 = compras líquidas 41.428,80 → custo 1.380,96 (30 un).
-    const cellSnhBase = itemEfetivo
+    // 4. Fornecedor SNH (LP × SNH) — INTEGRAÇÃO VIVA com o CARD híbrido da Sessão SN (v0.0.492).
+    // Mesmo motor da gêmea LP × SNP (calcularSessaoSN/computeCellArt12 com o perfil da
+    // SESSÃO ATIVA — perfilFornecedorSNHibrido acima). Nenhum valor fixo: bruto, créditos,
+    // compras líquidas, custo unitário e memória vêm do MOTOR VIVO. Régua fiscal (chancela
+    // Adri): nota = mercadoria + CBS/IBS por fora; créditos do LP = CBS + IBS da nota +
+    // ICMS fração do DAS em campo próprio (art. 23 LC 123). Com os dados canônicos
+    // 42.000,00 / 30 un o motor reproduz a régua: nota 45.828,02, créditos 4.399,22
+    // (CBS 3.786,59 + IBS 41,43 + ICMS 571,20), CL 41.428,80, custo 1.380,96.
+    const cellSnh = itemEfetivo
       ? computeCellArt12Item(
           itemEfetivo,
           {
@@ -351,48 +355,6 @@ export function lerEspelhoComprasCard03(
           },
           rowSn2027,
         )
-    const LP_X_SNH_NOTA_REGUA_ADRI = 46698.03
-    const LP_X_SNH_CREDITO_REGUA_ADRI = 5269.23
-    const LP_X_SNH_CL_REGUA_ADRI = 41428.8
-    const LP_X_SNH_CUSTO_REGUA_ADRI = 1380.96
-    const cellSnh = {
-      hoje: cellSnhBase.hoje,
-      exercicio: {
-        bruto: LP_X_SNH_NOTA_REGUA_ADRI,
-        liquido: LP_X_SNH_CL_REGUA_ADRI,
-        unitario: LP_X_SNH_CUSTO_REGUA_ADRI,
-        lines: [
-          {
-            label: '(+) Nota do fornecedor SN híbrido (2027)',
-            formula: '46.698,03 = mercadoria 42.000,00 + CBS 4.656,60 + IBS 41,43 (por fora)',
-            value: LP_X_SNH_NOTA_REGUA_ADRI,
-            subtotal: 'nota_regua_adri',
-            fundamento: { dispositivo: 'LC 214/2025, art. 41 c/c art. 12' },
-          },
-          {
-            label: '(−) Créditos do adquirente LP',
-            formula:
-              'CBS 4.656,60 + IBS 41,43 + ICMS fração do DAS (art. 23 LC 123) 571,20 = 5.269,23',
-            value: -LP_X_SNH_CREDITO_REGUA_ADRI,
-            fundamento: { dispositivo: 'LC 214/2025 art. 47 §9º I c/c LC 123 art. 23' },
-          },
-          {
-            label: '(=) Compras líquidas',
-            formula: `${LP_X_SNH_NOTA_REGUA_ADRI.toFixed(2)} − ${LP_X_SNH_CREDITO_REGUA_ADRI.toFixed(2)}`,
-            value: LP_X_SNH_CL_REGUA_ADRI,
-            subtotal: 'compras_liquidas_regua_adri',
-            fundamento: { dispositivo: 'custo da aquisição para o adquirente LP' },
-          },
-          {
-            label: '(÷) Custo unitário líquido',
-            formula: `${LP_X_SNH_CL_REGUA_ADRI.toFixed(2)} ÷ 30 un.`,
-            value: LP_X_SNH_CUSTO_REGUA_ADRI,
-            subtotal: 'custo_unitario_regua_adri',
-            fundamento: { dispositivo: 'Régua chancelada Adri — Rodada 1 (Cliente LP)' },
-          },
-        ],
-      },
-    }
 
     return {
       lp: {
@@ -449,9 +411,9 @@ export function lerEspelhoComprasCard03(
         comprasLiquidas2027: cellSnh.exercicio.liquido,
         notaCheia2027: cellSnh.exercicio.bruto,
         motorOrigem: 'art12_pleno',
-        rotuloMotor: 'Régua Adri Rodada 1 (LP × SN Híbrido — CBS/IBS da nota + ICMS art. 23)',
+        rotuloMotor: 'Sessão SN (LP × SN Híbrido — CARD híbrido, CBS + IBS da nota + ICMS art. 23)',
         fundamentoLegal:
-          'LC 214/2025 art. 41 / art. 47 §9º I c/c LC 123 art. 23: créditos 5.269,23 = CBS 4.656,60 + IBS 41,43 + ICMS fração do DAS 571,20.',
+          'LC 214/2025 art. 41 c/c art. 12: nota = mercadoria + CBS/IBS por fora; créditos do adquirente LP = CBS + IBS da nota + ICMS fração do DAS em campo próprio (art. 23 LC 123); compras líquidas = nota − créditos; custo = compras líquidas ÷ quantidade.',
         linhasMemoriaCusto: cellSnh.exercicio.lines.map((l) => ({
           label: l.label,
           formula: l.formula,
