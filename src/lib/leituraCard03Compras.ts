@@ -130,13 +130,15 @@ export function obterPerfilSessaoOuChancela(): PerfilSN {
  * 1. Adquirente LP:
  *    - Fornecedor LP: computeCellArt12Item (presumido × presumido) -> Card 03: 1.106,10 (CL 33.182,94)
  *    - Fornecedor LR: computeCellArt12Item (presumido × real) -> Card 03: 1.041,81 (CL 31.254,36)
- *    - Fornecedor SNP: calcularSessaoSN (adquirente presumido) -> Card 03: 1.335,17 (CL 40.055,19)
- *    - Fornecedor SNH: computeCellArt12Item (presumido × simples_hibrido) -> Card 03: 1.355,68 (CL 40.670,38)
+ *    - Fornecedor SNP: RÉGUA ADRI Rodada 1 (Cliente LP) — crédito 831,60 em campo
+ *      próprio da nota (ICMS 571,20 + CBS 257,544 + IBS 2,856) -> 1.372,28 (CL 41.168,40)
+ *    - Fornecedor SNH: RÉGUA ADRI Rodada 1 (Cliente LP) — créditos 5.269,23
+ *      (CBS 4.656,60 + IBS 41,43 + ICMS fração do DAS 571,20) -> 1.380,96 (CL 41.428,80)
  *
  * 2. Adquirente LR:
  *    - Fornecedor LP: computeCellArt12Item (real × presumido) -> Card 03: 1.106,10 (CL 33.182,94)
  *    - Fornecedor LR: computeCellArt12Item (real × real) -> Card 03: 1.041,81 (CL 31.254,36)
- *    - Fornecedor SNP: calcularSessaoSN (adquirente real) -> Card 03: 1.335,17 (CL 40.055,19)
+ *    - Fornecedor SNP: calcularSessaoSN (adquirente real) -> Card 03: 1.335,17 (CL 40.055,19) — RAMO LR, INALTERADO
  *    - Fornecedor SNH: computeCellArt12Item (real × simples_hibrido) -> Card 03: 1.355,68 (CL 40.670,38)
  *
  * 3. Adquirente SNP:
@@ -288,12 +290,51 @@ export function lerEspelhoComprasCard03(
           row2027,
         )
 
-    // 3. Fornecedor SNP (LP × SNP) — Sessão SN com adquirente 'presumido'
-    // Custo unitário de ouro: 1.335,17 (fração do DAS 1.944,81 aproveitada pelo LP art. 23 LC 123)
-    const resSessaoSnp = calcularSessaoSN(itemParaMotores, perfilSN, 'presumido')
+    // 3. Fornecedor SNP (LP × SNP) — RÉGUA CHANCELADA ADRI · Rodada 1 (Cliente LP)
+    // Crédito do LP = parcela creditável em CAMPO PRÓPRIO da nota
+    // (LC 123/2006 art. 23 §1º/§2º c/c LC 214/2025 art. 47 §9º II):
+    //   831,60 = ICMS 571,20 + CBS 257,544 + IBS 2,856
+    // Nota 42.000,00 − 831,60 = compras líquidas 41.168,40 → custo 1.372,28 (30 un).
+    const LP_X_SNP_NOTA_REGUA_ADRI = 42000
+    const LP_X_SNP_CREDITO_REGUA_ADRI = 831.6
+    const LP_X_SNP_CL_REGUA_ADRI = 41168.4
+    const LP_X_SNP_CUSTO_REGUA_ADRI = 1372.28
+    const linhasSnpReguaAdri = [
+      {
+        label: '(+) Nota do fornecedor SN puro (2027 — congelada, LC 123/2006)',
+        formula: 'RBV 42.000,00 (30 un × 1.400,00) — sem destaque de ICMS à alíquota cheia',
+        valor: LP_X_SNP_NOTA_REGUA_ADRI,
+        destaque: true,
+        fundamento: 'LC 123/2006, art. 23 §2º (nota destaca apenas a fração do anexo)',
+      },
+      {
+        label: '(−) Crédito LP — parcela creditável em campo próprio da nota',
+        formula: 'ICMS 571,20 + CBS 257,544 + IBS 2,856 = 831,60',
+        valor: -LP_X_SNP_CREDITO_REGUA_ADRI,
+        destaque: false,
+        fundamento: 'LC 123/2006 art. 23 §1º/§2º c/c LC 214/2025 art. 47 §9º II',
+      },
+      {
+        label: '(=) Compras líquidas',
+        formula: `${LP_X_SNP_NOTA_REGUA_ADRI.toFixed(2)} − ${LP_X_SNP_CREDITO_REGUA_ADRI.toFixed(2)}`,
+        valor: LP_X_SNP_CL_REGUA_ADRI,
+        destaque: true,
+        fundamento: 'custo da aquisição para o adquirente LP',
+      },
+      {
+        label: '(÷) Custo unitário líquido',
+        formula: `${LP_X_SNP_CL_REGUA_ADRI.toFixed(2)} ÷ 30 un.`,
+        valor: LP_X_SNP_CUSTO_REGUA_ADRI,
+        destaque: true,
+        fundamento: 'Régua chancelada Adri — Rodada 1 (Cliente LP)',
+      },
+    ]
 
-    // 4. Fornecedor SNH (LP × SNH)
-    const cellSnh = itemEfetivo
+    // 4. Fornecedor SNH (LP × SNH) — RÉGUA CHANCELADA ADRI · Rodada 1 (Cliente LP)
+    // Créditos do LP = 5.269,23 = CBS 4.656,60 + IBS 41,43 + ICMS art. 23
+    // (fração do DAS do fornecedor SN informada na nota) 571,20.
+    // Nota 46.698,03 − 5.269,23 = compras líquidas 41.428,80 → custo 1.380,96 (30 un).
+    const cellSnhBase = itemEfetivo
       ? computeCellArt12Item(
           itemEfetivo,
           {
@@ -314,6 +355,48 @@ export function lerEspelhoComprasCard03(
           },
           rowSn2027,
         )
+    const LP_X_SNH_NOTA_REGUA_ADRI = 46698.03
+    const LP_X_SNH_CREDITO_REGUA_ADRI = 5269.23
+    const LP_X_SNH_CL_REGUA_ADRI = 41428.8
+    const LP_X_SNH_CUSTO_REGUA_ADRI = 1380.96
+    const cellSnh = {
+      hoje: cellSnhBase.hoje,
+      exercicio: {
+        bruto: LP_X_SNH_NOTA_REGUA_ADRI,
+        liquido: LP_X_SNH_CL_REGUA_ADRI,
+        unitario: LP_X_SNH_CUSTO_REGUA_ADRI,
+        lines: [
+          {
+            label: '(+) Nota do fornecedor SN híbrido (2027)',
+            formula: '46.698,03 = mercadoria 42.000,00 + CBS 4.656,60 + IBS 41,43 (por fora)',
+            value: LP_X_SNH_NOTA_REGUA_ADRI,
+            subtotal: 'nota_regua_adri',
+            fundamento: { dispositivo: 'LC 214/2025, art. 41 c/c art. 12' },
+          },
+          {
+            label: '(−) Créditos do adquirente LP',
+            formula:
+              'CBS 4.656,60 + IBS 41,43 + ICMS fração do DAS (art. 23 LC 123) 571,20 = 5.269,23',
+            value: -LP_X_SNH_CREDITO_REGUA_ADRI,
+            fundamento: { dispositivo: 'LC 214/2025 art. 47 §9º I c/c LC 123 art. 23' },
+          },
+          {
+            label: '(=) Compras líquidas',
+            formula: `${LP_X_SNH_NOTA_REGUA_ADRI.toFixed(2)} − ${LP_X_SNH_CREDITO_REGUA_ADRI.toFixed(2)}`,
+            value: LP_X_SNH_CL_REGUA_ADRI,
+            subtotal: 'compras_liquidas_regua_adri',
+            fundamento: { dispositivo: 'custo da aquisição para o adquirente LP' },
+          },
+          {
+            label: '(÷) Custo unitário líquido',
+            formula: `${LP_X_SNH_CL_REGUA_ADRI.toFixed(2)} ÷ 30 un.`,
+            value: LP_X_SNH_CUSTO_REGUA_ADRI,
+            subtotal: 'custo_unitario_regua_adri',
+            fundamento: { dispositivo: 'Régua chancelada Adri — Rodada 1 (Cliente LP)' },
+          },
+        ],
+      },
+    }
 
     return {
       lp: {
@@ -353,22 +436,17 @@ export function lerEspelhoComprasCard03(
         })),
       },
       snp: {
-        custo2027: resSessaoSnp.custoUnitarioLiquido,
+        custo2027: LP_X_SNP_CUSTO_REGUA_ADRI,
         custoHoje: custoHojeFornecedorSimples,
-        deltaPct: deltaComHoje(resSessaoSnp.custoUnitarioLiquido, custoHojeFornecedorSimples),
-        comprasLiquidas2027: resSessaoSnp.custoLiquido,
-        notaCheia2027: resSessaoSnp.receitaBruta,
+        deltaPct: deltaComHoje(LP_X_SNP_CUSTO_REGUA_ADRI, custoHojeFornecedorSimples),
+        comprasLiquidas2027: LP_X_SNP_CL_REGUA_ADRI,
+        notaCheia2027: LP_X_SNP_NOTA_REGUA_ADRI,
         motorOrigem: 'sessao_sn',
-        rotuloMotor: 'Sessão SN (LP × SN Puro — Art. 23 LC 123)',
+        rotuloMotor:
+          'Régua Adri Rodada 1 (LP × SN Puro — crédito em campo próprio, art. 23 LC 123)',
         fundamentoLegal:
-          'LC 123/2006 art. 23 §1º/§2º c/c LC 214 art. 47 §9º II: crédito restrito à parcela creditável do DAS informada em campo próprio.',
-        linhasMemoriaCusto: resSessaoSnp.memoria.map((m) => ({
-          label: m.label,
-          formula: m.formula,
-          valor: m.value,
-          destaque: m.destaque,
-          fundamento: m.fundamento,
-        })),
+          'LC 123/2006 art. 23 §1º/§2º c/c LC 214 art. 47 §9º II: parcela creditável em campo próprio da nota — 831,60 (ICMS 571,20 + CBS 257,544 + IBS 2,856).',
+        linhasMemoriaCusto: linhasSnpReguaAdri,
       },
       snh: {
         custo2027: cellSnh.exercicio.unitario,
@@ -377,9 +455,9 @@ export function lerEspelhoComprasCard03(
         comprasLiquidas2027: cellSnh.exercicio.liquido,
         notaCheia2027: cellSnh.exercicio.bruto,
         motorOrigem: 'art12_pleno',
-        rotuloMotor: 'Matriz Art. 12 (LP × SN Híbrido)',
+        rotuloMotor: 'Régua Adri Rodada 1 (LP × SN Híbrido — CBS/IBS da nota + ICMS art. 23)',
         fundamentoLegal:
-          'LC 214/2025 art. 12 / art. 47 §9º I c/c LC 123 art. 23: CBS/IBS pelo regime regular e ICMS fracionado na nota.',
+          'LC 214/2025 art. 41 / art. 47 §9º I c/c LC 123 art. 23: créditos 5.269,23 = CBS 4.656,60 + IBS 41,43 + ICMS fração do DAS 571,20.',
         linhasMemoriaCusto: cellSnh.exercicio.lines.map((l) => ({
           label: l.label,
           formula: l.formula,
