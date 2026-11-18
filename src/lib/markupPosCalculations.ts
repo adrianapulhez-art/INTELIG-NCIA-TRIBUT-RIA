@@ -200,6 +200,13 @@ export interface MarkupPosColunaResultado {
   // Divisores e fatores
   divisorPrincipal: number
   divisorSemIcms: number
+  /** Composição aditiva do divisor (chancela Adri): "1 − (DV x% + Margem y%)" */
+  composicaoDivisor?: string
+  /** DV% e Margem% que compõem o divisor aditivo (rótulo de origem) */
+  somaDvPct?: number
+  margemInputPct?: number
+  /** Ano de vigência da sistemática simulada (a partir de 2027) */
+  vigenciaAno?: number
   fatorTributarioEfetivo: number
 
   // Preço e tributos
@@ -233,23 +240,34 @@ export interface MarkupPosColunaResultado {
   custoInfo?: CustoCard03Resultado
 }
 
+/** Ano de vigência da sistemática pós-reforma aqui simulada (CBS integral; PIS/COFINS extintos) */
+export const ANO_VIGENCIA_MARKUP_POS = 2027
+
+const pctBr = (v: number) => `${v.toFixed(2).replace('.', ',')}%`
+
 /**
  * Calcula a precificação de uma coluna do Markup Pós EC 132 respeitando rigorosamente a
  * sistemática tributária de cada fornecedor/vendedor:
  * - LP e LR: ICMS transição com base incluindo CBS/IBS (LC 214 art. 12 §2º V + RC 32303/2025).
  * - SNP: Simples Nacional Puro — DAS por dentro (alíquota efetiva do anexo), fatias detalhadas, sem ICMS 18%.
  * - SNH: Simples Nacional Híbrido — DAS híbrido por dentro (ICMS + federais), CBS/IBS por fora sobre base limpa de ICMS.
+ *
+ * Markup divisor ADITIVO sem tributos (chancela Adri — LC 214/2025 art. 12 §2º I/V + RC Sefaz-SP
+ * 32303/2025 e 32931/2026): divisor = 1 − (DV + Margem); nenhum tributo dentro do divisor
+ * (PIS/COFINS extintos em 2027). CBS/IBS por fora sobre o PV₁; ICMS calculado POR ÚLTIMO com
+ * gross-up: Base ICMS = PV₁ + CBS + IBS; PV final = Base ICMS ÷ (1 − alíquota ICMS).
  */
 export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosColunaResultado {
   const {
     key,
     clienteRegime = 'lp',
     custoUnitario,
+    // fatorDvConsolidado tornou-se obsoleto com o divisor aditivo (mantido na interface
+    // por retrocompatibilidade de chamadas; ignorado pelo motor)
     custoHoje,
     deltaCustoPct,
     comprasLiquidasTotal,
     notaCompraTotal,
-    fatorDvConsolidado,
     somaDvPct,
     margemLucroEfetiva,
     icmsRateEfetivo,
@@ -264,8 +282,10 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
 
   const meta = FORNECEDORES_META[key]
   const clienteMeta = CLIENTES_REGIME_META[clienteRegime]
-  const fatorMargem = Math.max(0, 1 - margemLucroEfetiva / 100)
-  const divisorSemIcms = Math.max(0.0001, fatorDvConsolidado * fatorMargem)
+  // Markup divisor aditivo sem tributos (chancela Adri): 1 − (DV% + Margem%)
+  const somaPercentualDivisor = somaDvPct + margemLucroEfetiva
+  const divisorSemIcms = Math.max(0.0001, 1 - somaPercentualDivisor / 100)
+  const composicaoDivisor = `1 − (DV ${pctBr(somaDvPct)} + Margem ${pctBr(margemLucroEfetiva)})`
 
   // -------------------------------------------------------------------------
   // SISTEMÁTICA DETERMINADA PELO REGIME DO CLIENTE DO CONTADOR
@@ -296,7 +316,7 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
     // CENÁRIO 03: SIMPLES NACIONAL PURO (SNP)
     // - DAS calculado por dentro com a alíquota do Simples (NUNCA ICMS 18%)
     // - Tudo por dentro do DAS, sem dedução de ICMS da base
-    // - Preço = Custo ÷ Divisor do SN (fatorDv * fatorMargem * (1 - alíquota SN))
+    // - Preço = Custo ÷ [divisor aditivo 1 − (DV + Margem) × (1 − alíquota SN)]
     // - Nota fiscal = Preço de venda (CBS/IBS por fora = 0)
     // =========================================================================
     const fatorDasPuro = Math.max(0.0001, 1 - aliquotaSnEfetiva / 100)
@@ -342,6 +362,10 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
       deltaCustoPct,
       comprasLiquidasTotal,
       notaCompraTotal,
+      somaDvPct,
+      margemInputPct: margemLucroEfetiva,
+      composicaoDivisor,
+      vigenciaAno: ANO_VIGENCIA_MARKUP_POS,
       divisorPrincipal: divisorSnp,
       divisorSemIcms,
       fatorTributarioEfetivo: fatorDasPuro,
@@ -433,6 +457,10 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
       deltaCustoPct,
       comprasLiquidasTotal,
       notaCompraTotal,
+      somaDvPct,
+      margemInputPct: margemLucroEfetiva,
+      composicaoDivisor,
+      vigenciaAno: ANO_VIGENCIA_MARKUP_POS,
       divisorPrincipal: divisorSnh,
       divisorSemIcms,
       fatorTributarioEfetivo: fatorDasHibrido,
@@ -499,6 +527,10 @@ export function calcularMarkupPosColuna(input: MarkupPosColunaInput): MarkupPosC
     deltaCustoPct,
     comprasLiquidasTotal,
     notaCompraTotal,
+    somaDvPct,
+    margemInputPct: margemLucroEfetiva,
+    composicaoDivisor,
+    vigenciaAno: ANO_VIGENCIA_MARKUP_POS,
     divisorPrincipal: divisorSemIcms,
     divisorSemIcms,
     fatorTributarioEfetivo: fatorIcms,

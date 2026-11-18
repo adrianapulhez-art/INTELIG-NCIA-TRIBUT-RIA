@@ -39,6 +39,7 @@ import {
   calcularMarkupPosColuna,
   carregarEstadoMarkupPos,
   salvarEstadoMarkupPos,
+  ANO_VIGENCIA_MARKUP_POS,
   type DespesaVariavelVenda,
   type FornecedorPosKey,
   FORNECEDORES_META,
@@ -945,6 +946,12 @@ export function MarkupPosPage() {
                         <span className="px-2 py-0.5 rounded text-[11px] font-mono font-black uppercase bg-[#261502] text-amber-200">
                           {col.meta.sigla}
                         </span>
+                        <span
+                          className="text-[9px] font-mono font-bold text-[#5c3e06] bg-amber-50 border border-amber-300 rounded px-1.5 py-0.5"
+                          title="Sistemática vigente a partir de 2027: CBS integral, PIS/COFINS extintos (LC 214/2025 art. 334, II)"
+                        >
+                          Vigência {ANO_VIGENCIA_MARKUP_POS}+
+                        </span>
                         {isSelected && (
                           <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5">
                             Ativo no Foco
@@ -1289,10 +1296,11 @@ export function MarkupPosPage() {
                 <div>
                   <DialogTitle className="text-base font-black text-[#261502] uppercase tracking-wide">
                     Memória de Cálculo Completa — Fornecedor {itemMemoriaAtivo?.meta.sigla} ×
-                    Cliente {clienteMetaAtiva.sigla} (2027)
+                    Cliente {clienteMetaAtiva.sigla} (Vigência 2027+)
                   </DialogTitle>
                   <DialogDescription className="text-xs text-slate-500 font-mono">
-                    Abertura passo a passo conforme sistemática legal aplicável
+                    Abertura em 12 blocos — markup aditivo sem tributos, CBS/IBS por fora e ICMS por
+                    último (LC 214/2025 art. 12 §2º I e V; RC Sefaz-SP 32303/2025 e 32931/2026)
                   </DialogDescription>
                 </div>
               </div>
@@ -1389,36 +1397,45 @@ export function MarkupPosPage() {
                         </tr>
                       )}
 
-                      {/* Passo 1: Divisor e Despesas Variáveis */}
+                      {/* BLOCO 1 — Markup divisor aditivo sem tributos (chancela Adri) */}
                       <tr className="bg-slate-50">
                         <td className="py-2 px-3 font-bold text-[#261502]">1º</td>
                         <td className="py-2 px-3 font-semibold text-slate-800">
                           {itemMemoriaAtivo.isSimples
-                            ? `Divisor do Simples Nacional (${itemMemoriaAtivo.clienteRegime === 'snp' ? 'SN Puro' : 'SN Híbrido'})`
-                            : 'Divisor Efetivo da Operação'}
+                            ? `Markup Divisor Aditivo + Fator DAS do Simples (${itemMemoriaAtivo.clienteRegime === 'snp' ? 'SN Puro' : 'SN Híbrido'})`
+                            : 'Markup Divisor Aditivo da Operação (sem tributos)'}
                         </td>
                         <td className="py-2 px-3 text-slate-600 text-[11px]">
                           {(() => {
                             const margemCardAtivo =
-                              margemPorCard[itemMemoriaAtivo.key] ?? margemReferencia
-                            const fatorMargemCardAtivo = Math.max(0, 1 - margemCardAtivo / 100)
+                              itemMemoriaAtivo.margemInputPct ??
+                              margemPorCard[itemMemoriaAtivo.key] ??
+                              margemReferencia
+                            const somaDvPctAtiva = itemMemoriaAtivo.somaDvPct ?? somaDvPctTotal
+                            const divisorAditivoAtivo = Math.max(
+                              0.0001,
+                              1 - (somaDvPctAtiva + margemCardAtivo) / 100,
+                            )
                             return itemMemoriaAtivo.isSimples ? (
                               <>
                                 <strong>LC 123/2006 c/c LC 214/2025:</strong> Empresa do Simples
-                                Nacional não usa ICMS 18% cheia.
+                                Nacional não usa ICMS 18% cheia. Markup divisor aditivo sem tributos
+                                (nenhum tributo dentro do divisor).
                                 <br />
-                                Divisor = Π(1 − % DV) [{fatorDvConsolidado.toFixed(4)}] × (1 −
-                                Margem) [{fatorMargemCardAtivo.toFixed(4)}] × Fator Tributário [
+                                Divisor = 1 − (DV {formatPercentBR(somaDvPctAtiva)} + Margem{' '}
+                                {formatPercentBR(margemCardAtivo)}) ={' '}
+                                {divisorAditivoAtivo.toFixed(6)}; após, Fator DAS por dentro [
                                 {itemMemoriaAtivo.fatorTributarioEfetivo.toFixed(4)}].
                               </>
                             ) : (
                               <>
-                                <strong>LC 214/2025, art. 12, caput e §2º:</strong> Divisor aplicado
-                                na formação do preço de venda (fatores de despesas variáveis × fator
-                                margem).
+                                <strong>LC 214/2025, art. 12, caput e §2º:</strong> Divisor aditivo
+                                sem tributos (PIS/COFINS extintos em 2027; ICMS entra por último no
+                                gross-up).
                                 <br />
-                                Divisor = Π(1 − % DV) [{fatorDvConsolidado.toFixed(4)}] × (1 −
-                                Margem) [{fatorMargemCardAtivo.toFixed(4)}].
+                                Divisor = 1 − (DV {formatPercentBR(somaDvPctAtiva)} + Margem{' '}
+                                {formatPercentBR(margemCardAtivo)}) ={' '}
+                                {divisorAditivoAtivo.toFixed(6)}.
                               </>
                             )
                           })()}
@@ -1436,8 +1453,8 @@ export function MarkupPosPage() {
                             <td className="py-1.5 px-3 text-slate-400 pl-6">1.{idx + 1}</td>
                             <td className="py-1.5 px-3">DV: {dv.descricao || 'Despesa'}</td>
                             <td className="py-1.5 px-3 text-slate-500">
-                              Alíquota {formatPercentBR(aliq)} → Fator (1 − {formatPercentBR(aliq)})
-                              = {(1 - aliq / 100).toFixed(4)}
+                              Componente aditivo do divisor: {formatPercentBR(aliq)} — entra na soma
+                              1 − (DV + Margem)
                             </td>
                             <td className="py-1.5 px-3 text-right font-mono">
                               {formatBRL(
@@ -1627,14 +1644,19 @@ export function MarkupPosPage() {
                         <>
                           <tr className="bg-amber-50/70 font-semibold text-slate-900">
                             <td className="py-2 px-3 font-bold text-[#261502]">2º</td>
-                            <td className="py-2 px-3">Base de Cálculo do IBS e CBS</td>
+                            <td className="py-2 px-3">
+                              PV₁ — Preço com Markup Sem Tributos (Base IBS/CBS)
+                            </td>
                             <td className="py-2 px-3 text-slate-600 text-[11px]">
-                              <strong>LC 214/2025, art. 12, caput e §2º, V:</strong> Valor da
-                              operação líquido de ICMS, IBS, CBS, DV e margem.
+                              <strong>LC 214/2025, art. 12, caput e §2º, V:</strong> PV₁ = Custo ÷
+                              divisor aditivo 1 − (DV + Margem) — markup sobre o custo, sem
+                              tributos.
                               <br />
-                              Fórmula: Custo do adquirente ÷ Divisor sem ICMS ={' '}
-                              {formatBRL(itemMemoriaAtivo.custoUnitario)} ÷{' '}
+                              Fórmula: {formatBRL(itemMemoriaAtivo.custoUnitario)} ÷{' '}
                               {itemMemoriaAtivo.divisorSemIcms.toFixed(6)}
+                              {itemMemoriaAtivo.composicaoDivisor
+                                ? ` = ${itemMemoriaAtivo.composicaoDivisor}`
+                                : ''}
                             </td>
                             <td className="py-2 px-3 text-right font-mono font-black text-[#261502]">
                               {formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}
@@ -1677,11 +1699,15 @@ export function MarkupPosPage() {
 
                           <tr className="bg-slate-50 font-semibold text-slate-900">
                             <td className="py-2 px-3 font-bold text-[#261502]">5º</td>
-                            <td className="py-2 px-3">Valor da Operação sem ICMS</td>
+                            <td className="py-2 px-3 font-semibold text-slate-800">
+                              Base ICMS = Valor da Operação + CBS + IBS
+                            </td>
                             <td className="py-2 px-3 text-slate-600 text-[11px]">
-                              Soma da Base de Cálculo com os novos tributos por fora.
+                              <strong>RC Sefaz-SP 32303/2025 e 32931/2026:</strong> IBS/CBS compõem
+                              o valor da operação para fins de ICMS (LC 214/2025, art. 12, §2º, V —
+                              ICMS fora da base IBS/CBS).
                               <br />
-                              Fórmula: BC ({formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}) + CBS (
+                              Fórmula: PV₁ ({formatBRL(itemMemoriaAtivo.baseCalculoIbsCbs)}) + CBS (
                               {formatBRL(itemMemoriaAtivo.cbsUnitario)}) + IBS (
                               {formatBRL(itemMemoriaAtivo.ibsUnitario)})
                             </td>
@@ -1693,17 +1719,31 @@ export function MarkupPosPage() {
                           <tr className="bg-amber-50/40">
                             <td className="py-2 px-3 font-bold text-[#261502]">6º</td>
                             <td className="py-2 px-3 font-semibold text-slate-800">
-                              ICMS na Transição (Base inclui IBS/CBS)
+                              Gross-up do ICMS — PV Final
                             </td>
                             <td className="py-2 px-3 text-slate-600 text-[11px]">
-                              <strong>Sefaz-SP RC 32303/2025 e RC 32931/2026:</strong> A assimetria
-                              é expressa: IBS e CBS integram a base do ICMS.
+                              <strong>Sefaz-SP RC 32303/2025 e RC 32931/2026:</strong> ICMS
+                              calculado por último, por dentro, com gross-up.
                               <br />
-                              Preço / Nota = Valor sem ICMS ÷ (1 − alíquota ICMS) ={' '}
+                              PV final = Base ICMS ÷ (1 − alíquota ICMS) ={' '}
                               {formatBRL(itemMemoriaAtivo.valorSemIcms)} ÷ {fatorIcms.toFixed(4)}.
+                            </td>
+                            <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
+                              {formatBRL(itemMemoriaAtivo.precoVendaUnitario)}
+                            </td>
+                          </tr>
+
+                          <tr className="bg-amber-50/40">
+                            <td className="py-2 px-3 font-bold text-[#261502]">6º-b</td>
+                            <td className="py-2 px-3 font-semibold text-slate-800">
+                              ICMS Devido (Sobre o PV Final)
+                            </td>
+                            <td className="py-2 px-3 text-slate-600 text-[11px]">
+                              <strong>CE 196/2022 anexo único XXVII — 18%:</strong> ICMS = PV final
+                              × alíquota ICMS.
                               <br />
-                              ICMS destacado = Preço × {formatPercentBR(icmsRateEfetivo)} ={' '}
-                              {formatBRL(itemMemoriaAtivo.icmsUnitario)}.
+                              Fórmula: {formatBRL(itemMemoriaAtivo.precoVendaUnitario)} ×{' '}
+                              {formatPercentBR(icmsRateEfetivo)}.
                             </td>
                             <td className="py-2 px-3 text-right font-mono font-bold text-slate-800">
                               {formatBRL(itemMemoriaAtivo.icmsUnitario)}
