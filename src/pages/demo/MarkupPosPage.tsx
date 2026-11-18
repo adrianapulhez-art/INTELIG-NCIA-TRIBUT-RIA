@@ -1411,7 +1411,7 @@ export function MarkupPosPage() {
                               itemMemoriaAtivo.margemInputPct ??
                               margemPorCard[itemMemoriaAtivo.key] ??
                               margemReferencia
-                            const somaDvPctAtiva = itemMemoriaAtivo.somaDvPct ?? somaDvPctTotal
+                            const somaDvPctAtiva = itemMemoriaAtivo.somaDvPct ?? somaDvPct
                             const divisorAditivoAtivo = Math.max(
                               0.0001,
                               1 - (somaDvPctAtiva + margemCardAtivo) / 100,
