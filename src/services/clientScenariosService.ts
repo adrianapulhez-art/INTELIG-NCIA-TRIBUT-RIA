@@ -313,6 +313,25 @@ export async function listClientScenarios(clientId?: string): Promise<ClientSave
   }
 }
 
+// Janela anti-duplicata: um clique repetido ou submit duplo com o mesmo nome,
+// cliente e escopo não gera uma segunda entrada no depósito.
+const JANELA_ANTI_DUPLICATA_MS = 120_000
+
+function encontrarCenarioRecente(
+  clientId: string,
+  name: string,
+  scope: string,
+): ClientSavedScenarioRecord | undefined {
+  const agora = Date.now()
+  return getLocalClientScenarios().find(
+    (s) =>
+      s.client === clientId &&
+      s.name === name &&
+      s.scope === scope &&
+      Math.abs(agora - new Date(s.created).getTime()) < JANELA_ANTI_DUPLICATA_MS,
+  )
+}
+
 export async function createClientScenario(params: {
   clientId: string
   clientName?: string
@@ -356,6 +375,10 @@ export async function createClientScenario(params: {
     }
 
     if (!actualClientId.startsWith('client-local-')) {
+      const recente = encontrarCenarioRecente(actualClientId, cleanName, scope)
+      if (recente) {
+        return { record: recente, synced: !recente.id.startsWith('scen-client-local-') }
+      }
       try {
         const record = await pb.collection('saved_scenarios').create({
           owner: authUserId,
@@ -381,6 +404,10 @@ export async function createClientScenario(params: {
   }
 
   // Fallback offline / localStorage
+  const recenteLocal = encontrarCenarioRecente(actualClientId, cleanName, scope)
+  if (recenteLocal) {
+    return { record: recenteLocal, synced: !recenteLocal.id.startsWith('scen-client-local-') }
+  }
   const localRecord: ClientSavedScenarioRecord = {
     id: `scen-client-local-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     owner: authUserId || 'local_user',

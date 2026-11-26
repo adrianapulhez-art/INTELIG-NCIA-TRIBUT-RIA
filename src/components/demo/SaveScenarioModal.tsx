@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -99,6 +99,8 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   const [scenarioName, setScenarioName] = useState<string>('')
   const [scenarioNotes, setScenarioNotes] = useState<string>('')
   const [isSavingScenario, setIsSavingScenario] = useState<boolean>(false)
+  // Guarda síncrona contra gravação dupla (clique repetido/Enter antes do re-render)
+  const savingRef = useRef<boolean>(false)
 
   // F2 — ATUALIZAR SIMULAÇÃO EXISTENTE (CEO, 02/10): destino do salvamento +
   // simulação-alvo + nota da versão
@@ -261,6 +263,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
   // Gravar cenário
   const handleSaveScenario = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
+    if (savingRef.current) return
     // CEO 02/10: no fluxo de atualizar, sincroniza o NOME da simulação escolhida se ainda estiver vazio
     let name = scenarioName.trim()
     if (saveDest === 'atualizar') {
@@ -287,6 +290,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
     const currentClient = clients.find((c) => c.id === selectedClientId)
     const clientName = currentClient?.name || 'Cliente'
 
+    savingRef.current = true
     setIsSavingScenario(true)
     try {
       const snapshot = getSnapshot()
@@ -363,6 +367,7 @@ export const SaveScenarioModal: React.FC<SaveScenarioModalProps> = ({
       const msg = err instanceof Error ? err.message : 'Erro ao gravar cenário.'
       showFeedback('error', `Falha ao gravar cenário: ${msg}`)
     } finally {
+      savingRef.current = false
       setIsSavingScenario(false)
     }
   }
