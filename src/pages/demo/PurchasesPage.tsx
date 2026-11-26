@@ -435,6 +435,19 @@ export default function PurchasesPage() {
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation()
+                                    removePurchaseItem(item.id)
+                                  }}
+                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-700 bg-white hover:bg-rose-50 hover:text-rose-800 border border-rose-200 hover:border-rose-300 px-2 py-0.5 rounded cursor-pointer transition-all shadow-sm"
+                                  title="Excluir este item de compra"
+                                  aria-label={`Excluir ${item.name || `Item ${idx + 1}`}`}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>Excluir</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
                                     setSelectedItemForModal(item)
                                     setIsPurchaseItemModalOpen(true)
                                   }}
@@ -509,6 +522,19 @@ export default function PurchasesPage() {
                               >
                                 <ChevronUp className="w-3 h-3 text-slate-500" />
                                 <span className="hidden sm:inline">Recolher</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  removePurchaseItem(item.id)
+                                }}
+                                className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-700 bg-white hover:bg-rose-50 hover:text-rose-800 border border-rose-200 hover:border-rose-300 px-2 py-1 rounded-md transition-all cursor-pointer shadow-sm"
+                                title="Excluir este item de compra"
+                                aria-label={`Excluir ${item.name || `Item ${idx + 1}`}`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span className="hidden sm:inline">Excluir</span>
                               </button>
                               <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#261502] bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-md transition-all shadow-sm">
                                 <span>Abrir</span>
