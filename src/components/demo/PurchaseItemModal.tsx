@@ -31,6 +31,7 @@ import {
   Calculator,
   Boxes,
   TrendingDown,
+  ChevronDown,
 } from 'lucide-react'
 import {
   calculateSingleProductStockPosition,
@@ -90,6 +91,8 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
   } = useTaxContext()
   const [showAltPositionModal, setShowAltPositionModal] = useState<boolean>(false)
   const [showConfirmApplyA, setShowConfirmApplyA] = useState<boolean>(false)
+  // Camada interna: o bloco Estoque & Kardex só aparece quando acionado (padrão da Adri)
+  const [estoqueKardexAberto, setEstoqueKardexAberto] = useState<boolean>(false)
 
   // Localiza ou prepara o registro de estoque correspondente a este item
   const matchedStockProd = (productStockState?.products || []).find(
@@ -449,105 +452,126 @@ export const PurchaseItemModal: React.FC<PurchaseItemModalProps> = ({
           </div>
 
           {/* Seção de Estoque do Produto: Estoque Inicial (un.) + Custo Unitário de Partida + Kardex CMP em tempo real */}
-          <div className="p-4 rounded-xl bg-amber-50/40 border border-amber-200 space-y-3 shadow-xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          {/* Camada interna (2º plano): cabeçalho é o acionador; conteúdo só renderiza quando expandido */}
+          <div className="p-4 rounded-xl bg-amber-50/40 border border-amber-200 shadow-xs">
+            <button
+              type="button"
+              onClick={() => setEstoqueKardexAberto((v) => !v)}
+              aria-expanded={estoqueKardexAberto}
+              aria-controls="painel-estoque-kardex-produto"
+              className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-left rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1"
+            >
               <span className="text-xs font-mono font-bold uppercase text-amber-900 flex items-center gap-1.5">
                 <Boxes className="w-3.5 h-3.5" />
-                Estoque do Produto & Kardex (CMP Móvel)
+                Estoque do Produto &amp; Kardex (CMP Móvel)
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-800 font-bold">
-                · controle por produto ativo
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Estoque Inicial em UNIDADES (un.) */}
-              <div className="space-y-1">
-                <label className="text-[11px] font-mono text-slate-700 font-semibold block">
-                  Estoque Inicial do Produto (unidades)
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={initQtyVal}
-                  onChange={(e) => setInitQtyVal(e.target.value)}
-                  onBlur={() => {
-                    const parsed = parseInt(initQtyVal, 10)
-                    const safe = isNaN(parsed) || parsed < 0 ? 0 : parsed
-                    setInitQtyVal(safe > 0 ? String(safe) : '')
-                    handleUpdateStockInitial(safe, currentInitialUnitCost)
-                  }}
-                  className="text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900 focus:border-amber-500"
+              <span className="flex items-center gap-2">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-800 font-bold">
+                  · controle por produto ativo
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 text-amber-700 transition-transform motion-reduce:transition-none ${
+                    estoqueKardexAberto ? 'rotate-180' : ''
+                  }`}
                 />
-              </div>
+              </span>
+            </button>
 
-              {/* Custo unitário de partida (R$) */}
-              <div className="space-y-1">
-                <label className="text-[11px] font-mono text-slate-700 font-semibold block">
-                  Custo Unitário de Partida (R$)
-                </label>
-                <div className="relative">
-                  <MoneyInput
-                    value={currentInitialUnitCost}
-                    onChange={(val) => {
-                      setInitCostVal(val > 0 ? formatNumberBR(val) : '')
-                      handleUpdateStockInitial(currentInitialQty, val)
-                    }}
-                    placeholder="0,00"
-                    prefix="R$"
-                    className="text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900 focus:border-amber-500"
-                  />
+            {estoqueKardexAberto && (
+              <>
+                <div
+                  id="painel-estoque-kardex-produto"
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3"
+                >
+                  {/* Estoque Inicial em UNIDADES (un.) */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-mono text-slate-700 font-semibold block">
+                      Estoque Inicial do Produto (unidades)
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={initQtyVal}
+                      onChange={(e) => setInitQtyVal(e.target.value)}
+                      onBlur={() => {
+                        const parsed = parseInt(initQtyVal, 10)
+                        const safe = isNaN(parsed) || parsed < 0 ? 0 : parsed
+                        setInitQtyVal(safe > 0 ? String(safe) : '')
+                        handleUpdateStockInitial(safe, currentInitialUnitCost)
+                      }}
+                      className="text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900 focus:border-amber-500"
+                    />
+                  </div>
+
+                  {/* Custo unitário de partida (R$) */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-mono text-slate-700 font-semibold block">
+                      Custo Unitário de Partida (R$)
+                    </label>
+                    <div className="relative">
+                      <MoneyInput
+                        value={currentInitialUnitCost}
+                        onChange={(val) => {
+                          setInitCostVal(val > 0 ? formatNumberBR(val) : '')
+                          handleUpdateStockInitial(currentInitialQty, val)
+                        }}
+                        placeholder="0,00"
+                        prefix="R$"
+                        className="text-right text-xs font-mono field-input-interactive bg-white border-slate-300 text-slate-900 focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Painel Kardex em tempo real do produto */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-amber-200 font-mono text-xs">
-              <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
-                <span className="text-[10px] text-slate-500 uppercase block font-semibold">
-                  CMP Móvel
-                </span>
-                <strong className="text-[#b87c14] font-bold text-xs sm:text-sm">
-                  {formatBRL(liveCMP)}
-                </strong>
-                <span className="text-[9px] text-slate-500 block">/ un.</span>
-              </div>
+                {/* Painel Kardex em tempo real do produto */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-amber-200 font-mono text-xs">
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+                    <span className="text-[10px] text-slate-500 uppercase block font-semibold">
+                      CMP Móvel
+                    </span>
+                    <strong className="text-[#b87c14] font-bold text-xs sm:text-sm">
+                      {formatBRL(liveCMP)}
+                    </strong>
+                    <span className="text-[9px] text-slate-500 block">/ un.</span>
+                  </div>
 
-              <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
-                <span className="text-[10px] text-slate-500 uppercase block font-semibold">
-                  Saldo em Unidades
-                </span>
-                <strong className="text-slate-900 font-bold text-xs sm:text-sm">
-                  {liveBalanceUnits} un.
-                </strong>
-                <span className="text-[9px] text-slate-500 block">
-                  {liveStockPosition.initialQty > 0
-                    ? `(EI ${liveStockPosition.initialQty} + comp.)`
-                    : 'disponível'}
-                </span>
-              </div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+                    <span className="text-[10px] text-slate-500 uppercase block font-semibold">
+                      Saldo em Unidades
+                    </span>
+                    <strong className="text-slate-900 font-bold text-xs sm:text-sm">
+                      {liveBalanceUnits} un.
+                    </strong>
+                    <span className="text-[9px] text-slate-500 block">
+                      {liveStockPosition.initialQty > 0
+                        ? `(EI ${liveStockPosition.initialQty} + comp.)`
+                        : 'disponível'}
+                    </span>
+                  </div>
 
-              <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
-                <span className="text-[10px] text-slate-500 uppercase block font-semibold">
-                  Baixas por Venda
-                </span>
-                <strong className="text-amber-700 font-bold text-xs sm:text-sm">
-                  {liveExitUnits} un.
-                </strong>
-                <span className="text-[9px] text-slate-500 block">saídas registradas</span>
-              </div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+                    <span className="text-[10px] text-slate-500 uppercase block font-semibold">
+                      Baixas por Venda
+                    </span>
+                    <strong className="text-amber-700 font-bold text-xs sm:text-sm">
+                      {liveExitUnits} un.
+                    </strong>
+                    <span className="text-[9px] text-slate-500 block">saídas registradas</span>
+                  </div>
 
-              <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
-                <span className="text-[10px] text-slate-500 uppercase block font-semibold">
-                  CMV Apurado
-                </span>
-                <strong className="text-[#b87c14] font-bold text-xs sm:text-sm">
-                  {formatBRL(liveAccumulatedCmv)}
-                </strong>
-                <span className="text-[9px] text-slate-500 block">baixas valorizadas</span>
-              </div>
-            </div>
+                  <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-xs">
+                    <span className="text-[10px] text-slate-500 uppercase block font-semibold">
+                      CMV Apurado
+                    </span>
+                    <strong className="text-[#b87c14] font-bold text-xs sm:text-sm">
+                      {formatBRL(liveAccumulatedCmv)}
+                    </strong>
+                    <span className="text-[9px] text-slate-500 block">baixas valorizadas</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Seção 1: Quantidade, Preço Unitário e Valor da Mercadoria */}
