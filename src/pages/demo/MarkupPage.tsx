@@ -1271,17 +1271,6 @@ export default function MarkupPage() {
                   entrega ~0–5%.
                 </p>
               </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAddDvForm(!showAddDvForm)}
-                className="h-7 text-xs bg-[#261502] text-[#fff5cc] hover:bg-[#3b2405] hover:text-white border border-amber-500/40 shadow-sm font-semibold cursor-pointer self-start sm:self-center"
-              >
-                <Plus className="w-3.5 h-3.5 mr-1 text-[#e5b742]" />
-                Adicionar despesa variável
-              </Button>
             </div>
 
             {/* Formulário inline para nova despesa variável */}
@@ -1349,9 +1338,9 @@ export default function MarkupPage() {
                   type="button"
                   size="sm"
                   onClick={() => setShowAddDvForm(true)}
-                  className="h-8 text-xs bg-gradient-to-b from-[#ffd966] via-[#f5b014] to-[#8f5204] text-[#1a0c01] font-bold shadow-xs hover:brightness-110 cursor-pointer"
+                  className="h-10 px-6 text-sm bg-gradient-to-b from-[#ffd966] via-[#f5b014] to-[#8f5204] text-[#1a0c01] font-bold shadow-md hover:brightness-110 cursor-pointer ring-2 ring-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.5)]"
                 >
-                  <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar despesa variável
+                  <Plus className="w-4 h-4 mr-1.5" /> Adicionar despesa variável
                 </Button>
               </div>
             ) : (
