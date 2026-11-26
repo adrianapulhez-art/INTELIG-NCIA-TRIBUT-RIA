@@ -28,6 +28,7 @@ import {
   ClientSavedScenarioRecord,
 } from '@/services/clientScenariosService'
 import { ScenarioMemoryDialog, ScenarioMemorySource } from '@/components/demo/ScenarioMemoryDialog'
+import { rotaDoEscopoCenario } from '@/lib/scenarioScopeRoutes'
 import {
   Users,
   Search,
@@ -125,7 +126,8 @@ export default function ClientsPage() {
     }
   }
 
-  // Carregar e navegar para a home da demo (/demo/markup)
+  // Carregar e navegar para a página do escopo do cenário (regra da Adri: abre
+  // na página em que o cenário foi gravado — compras → compras, markup → markup…)
   const handleLoadAndNavigate = (scenario: TaxScenarioRecord) => {
     try {
       // PERSISTÊNCIA DO CENÁRIO ATIVO: F5/nova aba não perde mais o estado restaurado.
@@ -136,8 +138,7 @@ export default function ClientsPage() {
         snapshot: scenario.data,
       })
       showFeedback('success', `Cenário "${scenario.name}" restaurado com sucesso!`)
-      // Pequeno timeout para permitir que o usuário veja a confirmação se desejar
-      navigate('/demo/markup')
+      navigate(rotaDoEscopoCenario(scenario.data?.scope))
     } catch (err: unknown) {
       console.error('Erro ao restaurar cenário:', err)
       showFeedback('error', 'Não foi possível restaurar os dados deste cenário.')
@@ -668,7 +669,7 @@ export default function ClientsPage() {
                                         'success',
                                         `Cenário "${sc.name}" restaurado com sucesso!`,
                                       )
-                                      navigate('/demo/markup')
+                                      navigate(rotaDoEscopoCenario(sc.scope))
                                     }}
                                     className="group/btn relative overflow-hidden inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] text-xs font-bold cursor-pointer shadow-xs hover:shadow-md hover:shadow-amber-500/30 transition-all duration-200"
                                     title="Restaurar esta simulação nas calculadoras"
