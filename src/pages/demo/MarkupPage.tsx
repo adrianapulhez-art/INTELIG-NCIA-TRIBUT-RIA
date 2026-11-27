@@ -1858,7 +1858,7 @@ export default function MarkupPage() {
                             <span>📦 Custo via Compras</span>
                           </Badge>
                         ) : (
-                          <Badge className="bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-mono inline-flex items-center gap-1">
+                          <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono inline-flex items-center gap-1">
                             <span>✏️ Custo manual</span>
                           </Badge>
                         )}
@@ -2098,14 +2098,14 @@ export default function MarkupPage() {
                       prod.desiredNetRevenue > 0 &&
                       liquidChain &&
                       !liquidChain.isViable && (
-                        <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-xs font-mono flex items-center justify-between gap-2 flex-wrap">
+                        <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-mono flex items-center justify-between gap-2 flex-wrap">
                           <div className="flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                            <span className="font-semibold text-amber-900">
+                            <AlertTriangle className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span className="font-semibold text-emerald-900">
                               Faltam {formatBRL(liquidChain.shortfall)} para LLE positivo
                             </span>
                           </div>
-                          <span className="text-[11px] text-amber-800">
+                          <span className="text-[11px] text-emerald-800">
                             (LLE projetado:{' '}
                             <strong className="text-rose-600">{formatBRL(liquidChain.lle)}</strong>{' '}
                             · Margem: {formatNumberBR(liquidChain.derivedMarginPct)}%)
@@ -2443,7 +2443,7 @@ export default function MarkupPage() {
               <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 p-6 text-slate-900 shadow-xl">
                 <DialogHeader className="border-b border-slate-200 pb-3">
                   <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                    <ShieldAlert className="w-5 h-5 text-amber-600" />
+                    <ShieldAlert className="w-5 h-5 text-emerald-600" />
                     Substituição Tributária (ICMS-ST) — Calculadora de Markup
                   </DialogTitle>
                   <DialogDescription className="text-xs text-slate-500">
@@ -2638,19 +2638,19 @@ export default function MarkupPage() {
                 setSimulationValidationError(null)
                 simulateMarkup()
               }}
-              className="group/btn relative overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] font-black text-xs sm:text-sm uppercase tracking-wide shadow-md shadow-amber-950/25 hover:shadow-xl hover:shadow-amber-500/35 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer transition-all duration-300"
+              className="group/btn relative overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-b from-[#a7f3d0] via-[#34d399] to-[#059669] border border-emerald-200/90 text-[#022c22] hover:text-[#022c22] font-black text-xs sm:text-sm uppercase tracking-wide shadow-md shadow-emerald-950/25 hover:shadow-xl hover:shadow-emerald-500/35 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer transition-all duration-300"
             >
               <div
                 className="pointer-events-none absolute inset-0 opacity-45 group-hover/btn:opacity-70 mix-blend-overlay transition-opacity duration-300"
                 style={{
                   background:
-                    'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+                    'linear-gradient(90deg, rgba(4,120,87,0.4) 0%, rgba(209,250,229,0.95) 24%, rgba(16,185,129,0.2) 48%, rgba(209,250,229,0.95) 72%, rgba(6,78,59,0.5) 100%)',
                 }}
               />
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-90" />
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-emerald-100 to-transparent opacity-90" />
               <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/btn:translate-x-[130%] transition-transform duration-700 ease-out" />
-              <Calculator className="relative z-10 w-4 h-4 text-[#3b2405]" />
-              <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]">
+              <Calculator className="relative z-10 w-4 h-4 text-[#064e3b]" />
+              <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(209,250,229,0.7)]">
                 Simular
               </span>
             </Button>
@@ -2662,16 +2662,16 @@ export default function MarkupPage() {
           <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-7 shadow-sm space-y-5 animate-in fade-in duration-300">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3 flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-[#261502] font-bold">
+                <span className="text-xs font-mono uppercase tracking-wider text-emerald-900 font-bold">
                   Resultado Consolidado do Markup
                 </span>
-                <Badge className="bg-amber-50 text-[#3b2405] border border-amber-300 text-[10px] font-mono font-semibold">
+                <Badge className="bg-emerald-50 text-[#064e3b] border border-emerald-300 text-[10px] font-mono font-semibold">
                   {markupProducts.length} {markupProducts.length === 1 ? 'item' : 'itens'}
                 </Badge>
               </div>
               <span className="text-xs font-mono text-slate-600">
                 Regime aplicado:{' '}
-                <strong className="text-[#3b2405] uppercase font-bold">{regime}</strong>
+                <strong className="text-[#064e3b] uppercase font-bold">{regime}</strong>
               </span>
             </div>
 
@@ -2711,14 +2711,14 @@ export default function MarkupPage() {
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-300">
-                <span className="text-[11px] text-[#5c3e06] block mb-1 font-bold">
+              <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-300">
+                <span className="text-[11px] text-emerald-700 block mb-1 font-bold">
                   Receita bruta consolidada
                 </span>
-                <span className="text-xl sm:text-2xl font-black text-[#261502]">
+                <span className="text-xl sm:text-2xl font-black text-[#022c22]">
                   {formatBRL(totalConsolidatedRevenue)}
                 </span>
-                <span className="text-[10px] text-[#5c3e06] block mt-1 font-medium">
+                <span className="text-[10px] text-emerald-700 block mt-1 font-medium">
                   Alimenta as DREs (Σ produtos)
                 </span>
               </div>
@@ -2742,11 +2742,11 @@ export default function MarkupPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsProductRevenueDetailsOpen(true)}
-                    className="h-7 text-xs bg-[#261502] text-[#fff5cc] hover:bg-[#3b2405] hover:text-white border border-amber-500/40 shadow-sm font-semibold font-mono flex items-center gap-1.5 cursor-pointer"
+                    className="h-7 text-xs bg-[#022c22] text-[#d1fae5] hover:bg-[#064e3b] hover:text-white border border-emerald-500/40 shadow-sm font-semibold font-mono flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Layers className="w-3.5 h-3.5 text-slate-300" />
+                    <Layers className="w-3.5 h-3.5 text-[#6ee7b7]" />
                     <span>Detalhar por produto</span>
-                    <Badge className="bg-slate-800 text-slate-100 border border-slate-700 text-[10px] px-1.5 py-0 font-mono font-semibold">
+                    <Badge className="bg-[#064e3b] text-[#d1fae5] border border-emerald-700 text-[10px] px-1.5 py-0 font-mono font-semibold">
                       {markupProducts.length}
                     </Badge>
                   </Button>
@@ -2805,16 +2805,16 @@ export default function MarkupPage() {
                 <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white my-2 shadow-sm">
                   <table className="w-full text-xs font-mono">
                     <thead>
-                      <tr className="border-b border-amber-900/50 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-[#fff5cc] text-right">
-                        <th className="py-2.5 px-3 text-left font-semibold text-[#fff5cc] rounded-tl-xl">
+                      <tr className="border-b border-emerald-950/50 bg-gradient-to-r from-[#022c22] via-[#064e3b] to-[#022c22] text-[#d1fae5] text-right">
+                        <th className="py-2.5 px-3 text-left font-semibold text-[#d1fae5] rounded-tl-xl">
                           Produto
                         </th>
-                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Modo</th>
-                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Fator Comp.</th>
-                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Preço de Venda</th>
-                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Qtd.</th>
-                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Receita Bruta</th>
-                        <th className="py-2.5 px-3 text-center font-semibold text-[#fff5cc] rounded-tr-xl">
+                        <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">Modo</th>
+                        <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">Fator Comp.</th>
+                        <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">Preço de Venda</th>
+                        <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">Qtd.</th>
+                        <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">Receita Bruta</th>
+                        <th className="py-2.5 px-3 text-center font-semibold text-[#d1fae5] rounded-tr-xl">
                           Memória
                         </th>
                       </tr>
@@ -2823,7 +2823,7 @@ export default function MarkupPage() {
                       {markupProducts.map((p, idx) => (
                         <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                           <td className="py-2.5 px-3 text-left font-medium text-[#0f172a]">
-                            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] border border-amber-500/40 text-amber-200 font-bold text-[10px] mr-1.5 shadow-sm">
+                            <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#022c22] via-[#064e3b] to-[#022c22] border border-emerald-500/40 text-emerald-200 font-bold text-[10px] mr-1.5 shadow-sm">
                               #{idx + 1}
                             </span>
                             {p.name || `Produto ${idx + 1}`}
@@ -2901,12 +2901,12 @@ export default function MarkupPage() {
               <div className="pt-4 mt-2 border-t border-slate-200 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-3.5 bg-[#b87c14] rounded-full" />
-                    <Scale className="w-4 h-4 text-[#b87c14] shrink-0" />
-                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[#261502]">
+                    <span className="w-1.5 h-3.5 bg-[#059669] rounded-full" />
+                    <Scale className="w-4 h-4 text-[#059669] shrink-0" />
+                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-900">
                       Preço de venda simulado por regime
                     </h3>
-                    <Badge className="bg-amber-50 text-[#3b2405] border border-amber-300 text-[10px] font-mono font-semibold">
+                    <Badge className="bg-emerald-50 text-[#064e3b] border border-emerald-300 text-[10px] font-mono font-semibold">
                       Comparativo simulado
                     </Badge>
                   </div>
@@ -2919,62 +2919,62 @@ export default function MarkupPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setIsRegimeComparisonDetailsOpen(true)}
-                      className="h-7 text-xs bg-amber-50 border-amber-300 text-[#3b2405] hover:bg-amber-100 hover:border-amber-400 font-mono flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      className="h-7 text-xs bg-emerald-50 border-emerald-300 text-[#064e3b] hover:bg-emerald-100 hover:border-emerald-400 font-mono flex items-center gap-1.5 cursor-pointer shadow-sm"
                     >
-                      <Layers className="w-3.5 h-3.5 text-[#b87c14]" />
+                      <Layers className="w-3.5 h-3.5 text-[#059669]" />
                       <span>Ver comparativo por produto</span>
-                      <Badge className="bg-amber-100 text-[#261502] border border-amber-300 text-[10px] px-1.5 py-0 font-mono font-semibold">
+                      <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] px-1.5 py-0 font-mono font-semibold">
                         {regimeComparison.prodsPresumido.length}
                       </Badge>
                     </Button>
                   </div>
                 </div>
 
-                {/* Tabela Frontal: Linha RECEITA CONSOLIDADA (Σ) com destaque Ouro nobre */}
+                {/* Tabela Frontal: Linha RECEITA CONSOLIDADA (Σ) com destaque Verde nobre */}
                 <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                   <table className="w-full text-xs font-mono">
                     <thead>
-                      <tr className="border-b border-amber-900/50 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-[#fff5cc] text-right">
-                        <th className="py-2.5 px-3 text-left font-semibold text-[#fff5cc] rounded-tl-xl">
+                      <tr className="border-b border-emerald-900/50 bg-gradient-to-r from-[#022c22] via-[#064e3b] to-[#022c22] text-[#d1fae5] text-right">
+                        <th className="py-2.5 px-3 text-left font-semibold text-[#d1fae5] rounded-tl-xl">
                           Operação
                         </th>
-                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Qtd.</th>
-                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">
+                        <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">Qtd.</th>
+                        <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">
                           Lucro Presumido
                         </th>
-                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Lucro Real</th>
-                        <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">
+                        <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">Lucro Real</th>
+                        <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">
                           Simples Nacional
                         </th>
-                        <th className="py-2.5 px-3 text-center font-semibold text-[#fff5cc] rounded-tr-xl">
+                        <th className="py-2.5 px-3 text-center font-semibold text-[#d1fae5] rounded-tr-xl">
                           Status
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {/* Linha consolidada total Grupo 2 (Comparativo): Destaque Ouro nobre */}
-                      <tr className="bg-amber-50/70 font-bold border-t-2 border-b-2 border-amber-300">
-                        <td className="py-3 px-3 text-left text-[#261502] font-extrabold uppercase tracking-wide border-l-2 border-amber-500">
+                      {/* Linha consolidada total Grupo 2 (Comparativo): Destaque Verde nobre */}
+                      <tr className="bg-emerald-50/70 font-bold border-t-2 border-b-2 border-emerald-300">
+                        <td className="py-3 px-3 text-left text-[#022c22] font-extrabold uppercase tracking-wide border-l-2 border-emerald-500">
                           <div className="flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 rounded-full bg-[#b87c14] animate-pulse" />
+                            <span className="inline-block w-2 h-2 rounded-full bg-[#059669] animate-pulse" />
                             <span>Receita Consolidada (Σ)</span>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-right text-[#3b2405] font-bold text-sm">
+                        <td className="py-3 px-3 text-right text-[#064e3b] font-bold text-sm">
                           {totalConsolidatedQuantity} un.
                         </td>
-                        <td className="py-3 px-3 text-right text-[#261502] font-black text-sm">
+                        <td className="py-3 px-3 text-right text-[#022c22] font-black text-sm">
                           {formatBRL(regimeComparison.totalRevPresumido)}
                         </td>
-                        <td className="py-3 px-3 text-right text-[#261502] font-black text-sm">
+                        <td className="py-3 px-3 text-right text-[#022c22] font-black text-sm">
                           {formatBRL(regimeComparison.totalRevReal)}
                         </td>
-                        <td className="py-3 px-3 text-right text-[#261502] font-black text-sm">
+                        <td className="py-3 px-3 text-right text-[#022c22] font-black text-sm">
                           {regimeComparison.totalRevSimples !== null
                             ? formatBRL(regimeComparison.totalRevSimples)
                             : '—'}
                         </td>
-                        <td className="py-3 px-3 text-center text-[#3b2405] font-semibold text-[11px] border-r-2 border-amber-300">
+                        <td className="py-3 px-3 text-center text-[#064e3b] font-semibold text-[11px] border-r-2 border-emerald-300">
                           Soma por regime
                         </td>
                       </tr>
@@ -2983,8 +2983,8 @@ export default function MarkupPage() {
                 </div>
 
                 {!regimeComparison.hasSimplesData && (
-                  <div className="flex items-start gap-1.5 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-[11px] font-mono">
-                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
+                  <div className="flex items-start gap-1.5 p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-[11px] font-mono">
+                    <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-600" />
                     <span>
                       {simplesIsInicioAtividade
                         ? 'Empresa em início de atividade: receitas mensais não preenchidas. O Simples Nacional está usando a alíquota da 1ª faixa como fallback (4,00%).'
@@ -3043,22 +3043,22 @@ export default function MarkupPage() {
                   <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white my-2 shadow-sm">
                     <table className="w-full text-xs font-mono">
                       <thead>
-                        <tr className="border-b border-amber-900/50 bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] text-[#fff5cc] text-right">
-                          <th className="py-2.5 px-3 text-left font-semibold text-[#fff5cc] rounded-tl-xl">
+                        <tr className="border-b border-emerald-950/50 bg-gradient-to-r from-[#022c22] via-[#064e3b] to-[#022c22] text-[#d1fae5] text-right">
+                          <th className="py-2.5 px-3 text-left font-semibold text-[#d1fae5] rounded-tl-xl">
                             Produto
                           </th>
-                          <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Qtd.</th>
-                          <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">
+                          <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">Qtd.</th>
+                          <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">
                             Lucro Presumido
                           </th>
-                          <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">Lucro Real</th>
-                          <th className="py-2.5 px-3 font-semibold text-[#fff5cc]">
+                          <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">Lucro Real</th>
+                          <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">
                             Simples Nacional
                           </th>
-                          <th className="py-2.5 px-3 text-center font-semibold text-[#fff5cc]">
+                          <th className="py-2.5 px-3 text-center font-semibold text-[#d1fae5]">
                             Menor Preço
                           </th>
-                          <th className="py-2.5 px-3 text-center font-semibold text-[#fff5cc] rounded-tr-xl">
+                          <th className="py-2.5 px-3 text-center font-semibold text-[#d1fae5] rounded-tr-xl">
                             Memória
                           </th>
                         </tr>
@@ -3099,7 +3099,7 @@ export default function MarkupPage() {
                           return (
                             <tr key={pPres.id} className="hover:bg-slate-50 transition-colors">
                               <td className="py-2.5 px-3 text-left font-medium text-slate-900">
-                                <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#261502] via-[#3b2405] to-[#261502] border border-amber-500/40 text-amber-200 font-bold text-[10px] mr-1.5 shadow-sm">
+                                <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#022c22] via-[#064e3b] to-[#022c22] border border-emerald-500/40 text-emerald-200 font-bold text-[10px] mr-1.5 shadow-sm">
                                   #{idx + 1}
                                 </span>
                                 {origProd?.name || pPres.name || `Produto ${idx + 1}`}
@@ -3142,7 +3142,7 @@ export default function MarkupPage() {
                                         {formatBRL(pSimp.salePrice)}
                                       </span>
                                       {regimeComparison.isFallbackRbt12 && (
-                                        <Badge className="bg-amber-100 text-amber-900 border border-amber-300 text-[8px] px-1 py-0 font-medium">
+                                        <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[8px] px-1 py-0 font-medium">
                                           1ª faixa
                                         </Badge>
                                       )}
@@ -3238,7 +3238,7 @@ export default function MarkupPage() {
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 p-6 text-slate-900 shadow-xl">
                 <DialogHeader className="border-b border-slate-200 pb-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-300 flex items-center justify-center text-amber-700">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-300 flex items-center justify-center text-emerald-700">
                       <TrendingUp className="w-4 h-4" />
                     </div>
                     <div>
@@ -3306,10 +3306,10 @@ export default function MarkupPage() {
                       {/* Cartão Presumido */}
                       <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                          <span className="text-xs font-bold font-mono text-amber-800">
+                          <span className="text-xs font-bold font-mono text-emerald-800">
                             Lucro Presumido
                           </span>
-                          <Badge className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px]">
+                          <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px]">
                             {formatPercentBR(marketFlowAComparison.presumido.taxRate)}
                           </Badge>
                         </div>
@@ -3512,9 +3512,9 @@ export default function MarkupPage() {
           <Button
             type="button"
             onClick={() => navigate('/demo/compras')}
-            className="bg-[#261502] text-[#fff5cc] hover:bg-[#3b2405] hover:text-white border border-amber-500/40 shadow-sm font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
+            className="bg-[#022c22] text-[#d1fae5] hover:bg-[#064e3b] hover:text-white border border-emerald-500/40 shadow-sm font-semibold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs sm:text-sm"
           >
-            <ArrowLeft className="w-4 h-4 text-[#e5b742]" />
+            <ArrowLeft className="w-4 h-4 text-[#34d399]" />
             <span>Voltar para Calculadora de Compras</span>
           </Button>
 
@@ -3529,21 +3529,21 @@ export default function MarkupPage() {
                 navigate('/demo/dre-presumido')
               }
             }}
-            className="group/btn relative overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] border border-amber-200/90 text-[#261502] hover:text-[#0f0700] font-black text-xs sm:text-sm uppercase tracking-wide shadow-md shadow-amber-950/25 hover:shadow-xl hover:shadow-amber-500/35 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer transition-all duration-300"
+            className="group/btn relative overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-b from-[#a7f3d0] via-[#34d399] to-[#059669] border border-emerald-200/90 text-[#022c22] hover:text-[#022c22] font-black text-xs sm:text-sm uppercase tracking-wide shadow-md shadow-emerald-950/25 hover:shadow-xl hover:shadow-emerald-500/35 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer transition-all duration-300"
           >
             <div
               className="pointer-events-none absolute inset-0 opacity-45 group-hover/btn:opacity-70 mix-blend-overlay transition-opacity duration-300"
               style={{
                 background:
-                  'linear-gradient(90deg, rgba(160,105,15,0.4) 0%, rgba(255,248,190,0.95) 24%, rgba(200,140,25,0.2) 48%, rgba(255,250,210,0.95) 72%, rgba(150,95,10,0.5) 100%)',
+                  'linear-gradient(90deg, rgba(4,120,87,0.4) 0%, rgba(209,250,229,0.95) 24%, rgba(16,185,129,0.2) 48%, rgba(209,250,229,0.95) 72%, rgba(6,78,59,0.5) 100%)',
               }}
             />
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-100 to-transparent opacity-90" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-emerald-100 to-transparent opacity-90" />
             <div className="pointer-events-none absolute -inset-full bg-gradient-to-r from-transparent via-white/70 to-transparent -rotate-45 translate-x-[-130%] group-hover/btn:translate-x-[130%] transition-transform duration-700 ease-out" />
-            <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(255,255,255,0.7)]">
+            <span className="relative z-10 drop-shadow-[0_1px_1px_rgba(209,250,229,0.7)]">
               Ir para a DRE
             </span>
-            <ArrowRight className="relative z-10 w-4 h-4 text-[#3b2405]" />
+            <ArrowRight className="relative z-10 w-4 h-4 text-[#064e3b]" />
           </button>
         </div>
       </div>
