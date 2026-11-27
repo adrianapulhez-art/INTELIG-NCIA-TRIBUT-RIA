@@ -138,7 +138,10 @@ export default function ClientsPage() {
         snapshot: scenario.data,
       })
       showFeedback('success', `Cenário "${scenario.name}" restaurado com sucesso!`)
-      navigate(rotaDoEscopoCenario(scenario.scope))
+      // Cenários de tax_scenarios NÃO têm campo scope (só saved_scenarios tem —
+      // é o campo do Depósito por Cliente). Sem escopo gravado, cai no fallback
+      // /demo/markup, como sempre foi neste botão "Carregar".
+      navigate(rotaDoEscopoCenario(null))
     } catch (err: unknown) {
       console.error('Erro ao restaurar cenário:', err)
       showFeedback('error', 'Não foi possível restaurar os dados deste cenário.')
