@@ -588,11 +588,13 @@ export function MarkupCalculationMemoryModal({
           </div>
 
           <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 font-mono shadow-xs">
-            <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
+            <span className="text-[10px] text-emerald-700 block uppercase font-semibold">
               Preço Sugerido Ativo
             </span>
-            <span className="text-sm font-black text-emerald-800">{formatBRL(activeSalePrice)}</span>
-            <span className="text-[10px] text-[#b87c14] block mt-0.5">
+            <span className="text-sm font-black text-emerald-800">
+              {formatBRL(activeSalePrice)}
+            </span>
+            <span className="text-[10px] text-emerald-700 block mt-0.5">
               Divisor: {formatFactorBR(activeCompleteFactor, 4)}
             </span>
           </div>
@@ -618,7 +620,9 @@ export function MarkupCalculationMemoryModal({
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-emerald-900">Simples Nacional</span>
+                <span className="text-xs font-bold uppercase text-emerald-900">
+                  Simples Nacional
+                </span>
                 {currentRegime === 'simples' && (
                   <Badge className="bg-emerald-100 text-emerald-900 border-0 text-[9px] px-1 py-0">
                     Ativo
@@ -637,14 +641,14 @@ export function MarkupCalculationMemoryModal({
               onClick={() => setActiveTab('presumido')}
               className={`p-2.5 rounded-xl border text-left font-mono transition-all cursor-pointer ${
                 activeTab === 'presumido'
-                  ? 'bg-amber-50 border-amber-300 text-slate-900 shadow-sm'
+                  ? 'bg-emerald-50 border-emerald-300 text-slate-900 shadow-sm'
                   : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
               }`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase text-emerald-900">Presumido</span>
                 {currentRegime === 'presumido' && (
-                  <Badge className="bg-amber-100 text-[#261502] border-0 text-[9px] px-1 py-0">
+                  <Badge className="bg-emerald-100 text-emerald-900 border-0 text-[9px] px-1 py-0">
                     Ativo
                   </Badge>
                 )}
@@ -659,14 +663,14 @@ export function MarkupCalculationMemoryModal({
               onClick={() => setActiveTab('real')}
               className={`p-2.5 rounded-xl border text-left font-mono transition-all cursor-pointer ${
                 activeTab === 'real'
-                  ? 'bg-amber-50 border-amber-300 text-slate-900 shadow-sm'
+                  ? 'bg-emerald-50 border-emerald-300 text-slate-900 shadow-sm'
                   : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
               }`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase text-emerald-900">Lucro Real</span>
                 {currentRegime === 'real' && (
-                  <Badge className="bg-amber-100 text-[#261502] border-0 text-[9px] px-1 py-0">
+                  <Badge className="bg-emerald-100 text-emerald-900 border-0 text-[9px] px-1 py-0">
                     Ativo
                   </Badge>
                 )}
@@ -683,15 +687,15 @@ export function MarkupCalculationMemoryModal({
           {activeTab === 'simples' && (
             <div className="space-y-4 pt-1 animate-in fade-in duration-200">
               {/* Box de fórmula sintética */}
-              <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-300 space-y-2">
+              <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-300 space-y-2">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-emerald-700" />
-                  <span className="text-xs font-mono font-bold text-[#261502] uppercase">
+                  <span className="text-xs font-mono font-bold text-emerald-900 uppercase">
                     Markup Divisor Aditivo no Simples Nacional
                   </span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-white border border-slate-200 font-mono text-xs text-slate-800 overflow-x-auto shadow-xs">
-                  <code className="text-[#b87c14] font-semibold">
+                  <code className="text-emerald-700 font-semibold">
                     {isLiquid ? (
                       <>
                         Divisor = 1 − (DAS% + DV%)
@@ -781,7 +785,7 @@ export function MarkupCalculationMemoryModal({
                         {formatBRL(effectiveRbt12ForCalculation)}
                       </span>
                       {isFallbackRbt12 && (
-                        <span className="text-[10px] text-amber-700 block font-semibold">
+                        <span className="text-[10px] text-emerald-700 block font-semibold">
                           1ª faixa aplicada (fallback 4,00%)
                         </span>
                       )}
@@ -811,9 +815,9 @@ export function MarkupCalculationMemoryModal({
                   </div>
 
                   {/* ④ Alíquota efetiva */}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-amber-50/50">
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-50/50">
                     <div>
-                      <span className="font-bold text-[#261502] block">
+                      <span className="font-bold text-emerald-900 block">
                         ④ Alíquota Efetiva do DAS (PGDAS)
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -829,9 +833,9 @@ export function MarkupCalculationMemoryModal({
                         )}
                       </span>
                     </div>
-                    <span className="font-bold text-[#b87c14] text-sm text-right">
+                    <span className="font-bold text-emerald-800 text-sm text-right">
                       {formatPercentBR(effectiveSimplesRate, 4)}
-                      <span className="block text-[10px] font-mono font-normal text-[#b87c14]">
+                      <span className="block text-[10px] font-mono font-normal text-emerald-700">
                         Fator: {formatFactorBR(1 - effectiveSimplesRate / 100, 4)}
                       </span>
                     </span>
@@ -840,19 +844,19 @@ export function MarkupCalculationMemoryModal({
                   {/* ⑤ ICMS integrado */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-50">
                     <div>
-                      <span className="font-bold text-[#261502] block">
+                      <span className="font-bold text-emerald-900 block">
                         ⑤ ICMS Integrado no DAS
                       </span>
                       <span className="text-[10px] text-slate-500">
                         Alíquota efetiva ({formatPercentBR(effectiveSimplesRate, 4)}) × partilha da
                         faixa ({formatPercentBR(icmsPartilhaPct)})
                       </span>
-                      <span className="text-[10px] text-[#b87c14] block mt-0.5">
+                      <span className="text-[10px] text-emerald-700 block mt-0.5">
                         Nota: ICMS, PIS e COFINS vivem dentro do DAS no Simples Nacional
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-[#b87c14] text-sm block">
+                      <span className="font-bold text-emerald-800 text-sm block">
                         {formatPercentBR(icmsIntegradoRate, 4)}
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -891,7 +895,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-amber-800 text-sm block">
+                      <span className="font-bold text-emerald-800 text-sm block">
                         {formatPercentBR(dvRate)}
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -914,7 +918,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-[#3b2405] text-sm block">
+                      <span className="font-bold text-emerald-900 text-sm block">
                         {isLiquid && liquidChainSimples
                           ? `${formatNumberBR(liquidChainSimples.derivedMarginPct)}%`
                           : formatPercentBR(marginPct)}
@@ -928,52 +932,52 @@ export function MarkupCalculationMemoryModal({
                   </div>
 
                   {/* ⑨ Markup divisor */}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-amber-500/10">
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-500/10">
                     <div>
-                      <span className="font-bold text-[#3b2405] block">⑨ Markup divisor</span>
-                      <span className="text-[10px] text-[#b87c14]">
+                      <span className="font-bold text-emerald-900 block">⑨ Markup divisor</span>
+                      <span className="text-[10px] text-emerald-700">
                         {isLiquid
                           ? `1 − (${formatPercentBR(effectiveSimplesRate, 2)} DAS + ${formatPercentBR(dvRate, 2)} DV) = 1 − Σ deduções`
                           : `1 − (${formatPercentBR(effectiveSimplesRate, 2)} DAS + ${formatPercentBR(dvRate, 2)} DV + ${formatPercentBR(marginPct, 2)} Margem) = 1 − Σ deduções`}
                       </span>
                     </div>
-                    <span className="font-black text-[#3b2405] text-base">
+                    <span className="font-black text-emerald-900 text-base">
                       {formatFactorBR(divisorSimples, 4)}
                     </span>
                   </div>
 
                   {/* ⑩ Preço sugerido */}
-                  <div className="px-3.5 py-3 flex items-center justify-between bg-amber-50 border-t border-amber-300">
+                  <div className="px-3.5 py-3 flex items-center justify-between bg-emerald-50 border-t border-emerald-300">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-[#261502] block text-xs sm:text-sm uppercase tracking-wide">
+                        <span className="font-extrabold text-emerald-900 block text-xs sm:text-sm uppercase tracking-wide">
                           ⑩ Preço de Venda Sugerido (Unitário)
                         </span>
-                        <Badge className="bg-amber-100 text-[#261502] border-amber-300 font-mono text-[10px]">
+                        <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 font-mono text-[10px]">
                           Valor canônico do motor
                         </Badge>
                       </div>
-                      <span className="text-[10px] text-[#b87c14]">
+                      <span className="text-[10px] text-emerald-700">
                         {formatBRL(baseValue)} ÷ {formatFactorBR(divisorSimples, 4)} ={' '}
                         {formatBRL(salePriceSimples)}
                       </span>
                     </div>
-                    <span className="text-base sm:text-lg font-black text-[#261502]">
+                    <span className="text-base sm:text-lg font-black text-emerald-900">
                       {formatBRL(salePriceSimples)}
                     </span>
                   </div>
 
                   {/* ⑪ Distribuição do preço em R$ */}
-                  <div className="p-3.5 bg-slate-50 space-y-2 border-l-2 border-amber-600">
+                  <div className="p-3.5 bg-slate-50 space-y-2 border-l-2 border-emerald-600">
                     <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
                       ⑪ Distribuição Didática do Preço de Venda ({formatBRL(pvSimples)})
                     </span>
                     {isLiquid && (
-                      <div className="p-2 rounded bg-amber-50 border border-amber-300 text-[11px] font-mono">
-                        <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
+                      <div className="p-2 rounded bg-emerald-50 border border-emerald-300 text-[11px] font-mono">
+                        <span className="text-[10px] text-emerald-700 block uppercase font-semibold">
                           Valor desejado após tributos e despesas variáveis (âncora)
                         </span>
-                        <span className="font-bold text-[#261502]">
+                        <span className="font-bold text-emerald-900">
                           {formatBRL(desiredNetRevenueSimples)}
                         </span>
                         <span className="text-[9px] text-slate-600 block mt-0.5">
@@ -997,31 +1001,31 @@ export function MarkupCalculationMemoryModal({
                         </span>
                       </div>
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[10px] text-amber-800 block uppercase">
+                        <span className="text-[10px] text-emerald-800 block uppercase">
                           DAS ({formatPercentBR(effectiveSimplesRate, 2)})
                         </span>
-                        <span className="font-bold text-amber-700">
+                        <span className="font-bold text-emerald-700">
                           {formatBRL(valorDasSimples)}
                         </span>
                         <span className="text-[9px] text-slate-500 block">PV × efetiva</span>
                       </div>
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[10px] text-amber-800 block uppercase">
+                        <span className="text-[10px] text-emerald-800 block uppercase">
                           DV ({formatPercentBR(dvRate, 2)})
                         </span>
-                        <span className="font-bold text-amber-700">
+                        <span className="font-bold text-emerald-700">
                           {formatBRL(valorDvSimples)}
                         </span>
                         <span className="text-[9px] text-slate-500 block">PV × Σ DV</span>
                       </div>
-                      <div className="p-2 rounded bg-amber-50 border border-amber-300 shadow-xs">
-                        <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
+                      <div className="p-2 rounded bg-emerald-50 border border-emerald-300 shadow-xs">
+                        <span className="text-[10px] text-emerald-700 block uppercase font-semibold">
                           {isLiquid ? 'Sobra líquida (resíduo)' : 'Margem em R$'}
                         </span>
-                        <span className="font-bold text-[#261502]">
+                        <span className="font-bold text-emerald-900">
                           {formatBRL(valorMargemSimples)}
                         </span>
-                        <span className="text-[9px] text-[#b87c14] block">
+                        <span className="text-[9px] text-emerald-700 block">
                           {isLiquid
                             ? `= âncora ${formatBRL(desiredNetRevenueSimples)} + gap`
                             : 'Sobra líquida'}
@@ -1030,7 +1034,7 @@ export function MarkupCalculationMemoryModal({
                     </div>
                     <div className="text-[10px] text-slate-600 flex items-center justify-between pt-1 border-t border-slate-200">
                       <span>Conferência da soma dos componentes:</span>
-                      <span className="font-bold text-[#b87c14]">
+                      <span className="font-bold text-emerald-700">
                         {formatBRL(custoBaseSimples)} + {formatBRL(valorDasSimples)} +{' '}
                         {formatBRL(valorDvSimples)} + {formatBRL(valorMargemSimples)} ={' '}
                         {formatBRL(
@@ -1041,7 +1045,7 @@ export function MarkupCalculationMemoryModal({
                     {isLiquid && liquidChainSimples && liquidChainSimples.roundingGap !== 0 && (
                       <div className="text-[10px] text-slate-600 flex items-center justify-between">
                         <span>Conciliação de arredondamento (roundingGap):</span>
-                        <span className="font-bold text-[#b87c14]">
+                        <span className="font-bold text-emerald-700">
                           PV − DAS − DV = {formatBRL(liquidChainSimples.derivedNetRevenue)} · âncora{' '}
                           {formatBRL(desiredNetRevenueSimples)} · gap{' '}
                           {formatBRL(liquidChainSimples.roundingGap)}
@@ -1051,13 +1055,13 @@ export function MarkupCalculationMemoryModal({
                   </div>
 
                   {/* ⑫ Blindagem de Margem */}
-                  <div className="p-3.5 bg-amber-50/70 border border-amber-300 rounded-b-xl space-y-2">
+                  <div className="p-3.5 bg-emerald-50/70 border border-emerald-300 rounded-b-xl space-y-2">
                     <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-[#b87c14] shrink-0" />
-                      <span className="font-extrabold text-[#261502] uppercase tracking-wider text-xs">
+                      <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <span className="font-extrabold text-emerald-900 uppercase tracking-wider text-xs">
                         ⑫ BLINDAGEM DE MARGEM
                       </span>
-                      <Badge className="bg-amber-100 text-[#261502] border-0 text-[9px] font-mono">
+                      <Badge className="bg-emerald-100 text-emerald-900 border-0 text-[9px] font-mono">
                         Técnica Tributária
                       </Badge>
                     </div>
@@ -1074,7 +1078,6 @@ export function MarkupCalculationMemoryModal({
                     </p>
                   </div>
                 </div>
-              </div>
               </QuadroBlocosMemo>
 
               {/* Sub-bloco exclusivo do modo líquido: Cadeia da DRE linha a linha (Item 5) */}
@@ -1082,12 +1085,12 @@ export function MarkupCalculationMemoryModal({
                 <div className="p-4 rounded-xl bg-white border border-emerald-300 space-y-3 font-mono text-xs shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <div className="flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-[#b87c14]" />
-                      <span className="font-bold text-[#261502] uppercase tracking-wide text-[11px]">
+                      <Layers className="w-4 h-4 text-emerald-700" />
+                      <span className="font-bold text-emerald-900 uppercase tracking-wide text-[11px]">
                         Cadeia da DRE Derivada — Modo Receita Líquida (Simples Nacional)
                       </span>
                     </div>
-                    <Badge className="bg-amber-50 text-[#261502] border border-amber-300 text-[10px]">
+                    <Badge className="bg-emerald-50 text-emerald-900 border border-emerald-300 text-[10px]">
                       Gross-up Reverso
                     </Badge>
                   </div>
@@ -1095,7 +1098,7 @@ export function MarkupCalculationMemoryModal({
                   <div className="divide-y divide-slate-100">
                     <div className="py-1.5 flex items-center justify-between font-bold text-slate-900">
                       <span>Receita Bruta de Vendas (RBV Sugerida)</span>
-                      <span className="text-[#b87c14] text-sm">
+                      <span className="text-emerald-800 text-sm">
                         {formatBRL(liquidChainSimples.rbv)}
                       </span>
                     </div>
@@ -1117,9 +1120,9 @@ export function MarkupCalculationMemoryModal({
                         − {formatBRL(liquidChainSimples.deducoesValor)}
                       </span>
                     </div>
-                    <div className="py-2 flex items-center justify-between bg-amber-50 px-2 rounded font-bold text-[#261502]">
+                    <div className="py-2 flex items-center justify-between bg-emerald-50 px-2 rounded font-bold text-emerald-900">
                       <span>(=) Receita Líquida (≈ âncora)</span>
-                      <span className="text-[#261502] text-sm">
+                      <span className="text-emerald-900 text-sm">
                         {formatBRL(liquidChainSimples.netRevenue)}
                       </span>
                     </div>
@@ -1129,7 +1132,7 @@ export function MarkupCalculationMemoryModal({
                           Conciliação de arredondamento: âncora informada{' '}
                           {formatBRL(desiredNetRevenueSimples)} · gap (derivada − âncora)
                         </span>
-                        <span className="font-semibold text-[#b87c14]">
+                        <span className="font-semibold text-emerald-700">
                           {formatBRL(liquidChainSimples.roundingGap)}
                         </span>
                       </div>
@@ -1144,7 +1147,7 @@ export function MarkupCalculationMemoryModal({
                       <span>(=) Lucro Bruto</span>
                       <span
                         className={
-                          liquidChainSimples.grossProfit >= 0 ? 'text-[#b87c14]' : 'text-rose-700'
+                          liquidChainSimples.grossProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'
                         }
                       >
                         {formatBRL(liquidChainSimples.grossProfit)}
@@ -1160,7 +1163,7 @@ export function MarkupCalculationMemoryModal({
                       <span>(=) LAIR (Lucro Antes do IR)</span>
                       <span
                         className={
-                          liquidChainSimples.lair >= 0 ? 'text-[#b87c14]' : 'text-rose-700'
+                          liquidChainSimples.lair >= 0 ? 'text-emerald-700' : 'text-rose-700'
                         }
                       >
                         {formatBRL(liquidChainSimples.lair)}
@@ -1175,13 +1178,13 @@ export function MarkupCalculationMemoryModal({
                     <div
                       className={`py-2 px-2.5 rounded-lg flex items-center justify-between font-bold text-sm ${
                         liquidChainSimples.lle >= 0
-                          ? 'bg-amber-50 border border-amber-300 text-[#261502]'
+                          ? 'bg-emerald-50 border border-emerald-300 text-emerald-900'
                           : 'bg-rose-50 border border-rose-200 text-rose-800'
                       }`}
                     >
                       <div className="flex items-center gap-1.5">
                         {liquidChainSimples.lle >= 0 ? (
-                          <CheckCircle2 className="w-4 h-4 text-[#b87c14]" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                         ) : (
                           <AlertTriangle className="w-4 h-4 text-rose-700" />
                         )}
@@ -1197,8 +1200,8 @@ export function MarkupCalculationMemoryModal({
                   </div>
 
                   {!liquidChainSimples.isViable && (
-                    <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>
                         <strong>Atenção:</strong> Faltam{' '}
                         <strong>{formatBRL(liquidChainSimples.shortfall)}</strong> para LLE
@@ -1217,15 +1220,15 @@ export function MarkupCalculationMemoryModal({
               ========================================================= */}
           {activeTab === 'presumido' && (
             <div className="space-y-4 pt-1 animate-in fade-in duration-200">
-              <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-300 space-y-2">
+              <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-300 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-[#b87c14]" />
-                  <span className="text-xs font-mono font-bold text-[#261502] uppercase">
+                  <Building2 className="w-4 h-4 text-emerald-700" />
+                  <span className="text-xs font-mono font-bold text-emerald-900 uppercase">
                     Markup Divisor Aditivo no Lucro Presumido
                   </span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-white border border-slate-200 font-mono text-xs text-slate-800 overflow-x-auto shadow-xs">
-                  <code className="text-[#b87c14] font-semibold">
+                  <code className="text-emerald-700 font-semibold">
                     {isLiquid ? (
                       <>
                         Divisor = 1 − [ICMS% + PIS efetivo% (
@@ -1276,7 +1279,6 @@ export function MarkupCalculationMemoryModal({
                 titulo="Memória de Cálculo em 12 Blocos (Lucro Presumido)"
                 legenda="Regime Cumulativo"
               >
-
                 <div className="divide-y divide-slate-100">
                   {/* ① Perfil */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
@@ -1339,9 +1341,9 @@ export function MarkupCalculationMemoryModal({
                   </div>
 
                   {/* ④ ICMS Estadual */}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-amber-50/50">
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-50/50">
                     <div>
-                      <span className="font-bold text-[#261502] block">
+                      <span className="font-bold text-emerald-900 block">
                         ④ ICMS Estadual sobre Venda
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -1350,7 +1352,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-[#b87c14] text-sm block">
+                      <span className="font-bold text-emerald-700 text-sm block">
                         {formatPercentBR(icmsRateClean)}
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -1362,7 +1364,7 @@ export function MarkupCalculationMemoryModal({
                   {/* ⑤ Carga tributária decomposta */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-50">
                     <div>
-                      <span className="font-bold text-[#261502] block">
+                      <span className="font-bold text-emerald-900 block">
                         ⑤ Carga Tributária Total Aditiva (usada no Divisor)
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -1372,7 +1374,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-[#b87c14] text-sm block">
+                      <span className="font-bold text-emerald-700 text-sm block">
                         {formatPercentBR(totalTaxesPresumidoRate, 2)}
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -1411,7 +1413,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-amber-800 text-sm block">
+                      <span className="font-bold text-emerald-800 text-sm block">
                         {formatPercentBR(dvRate)}
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -1434,7 +1436,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-[#3b2405] text-sm block">
+                      <span className="font-bold text-emerald-900 text-sm block">
                         {isLiquid && liquidChainPresumido
                           ? `${formatNumberBR(liquidChainPresumido.derivedMarginPct)}%`
                           : formatPercentBR(marginPct)}
@@ -1448,43 +1450,43 @@ export function MarkupCalculationMemoryModal({
                   </div>
 
                   {/* ⑨ Markup divisor */}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-amber-500/10">
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-500/10">
                     <div>
-                      <span className="font-bold text-[#3b2405] block">⑨ Markup divisor</span>
-                      <span className="text-[10px] text-[#b87c14]">
+                      <span className="font-bold text-emerald-900 block">⑨ Markup divisor</span>
+                      <span className="text-[10px] text-emerald-700">
                         {isLiquid
                           ? `1 − (${formatPercentBR(divisorResPresumido.somaTributosPct, 2)} Trib + ${formatPercentBR(dvRate, 2)} DV) [PIS/COF c/ ICMS deduzido da BC - Parecer SEI 14483/2021]`
                           : `1 − (${formatPercentBR(divisorResPresumido.somaTributosPct, 2)} Trib + ${formatPercentBR(dvRate, 2)} DV + ${formatPercentBR(marginPct, 2)} Margem)`}
                       </span>
                     </div>
-                    <span className="font-black text-[#3b2405] text-base">
+                    <span className="font-black text-emerald-900 text-base">
                       {formatFactorBR(divisorPresumido, 4)}
                     </span>
                   </div>
 
                   {/* ⑩ Preço sugerido */}
-                  <div className="px-3.5 py-3 flex items-center justify-between bg-amber-50 border-t border-amber-300">
+                  <div className="px-3.5 py-3 flex items-center justify-between bg-emerald-50 border-t border-emerald-300">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-[#261502] block text-xs sm:text-sm uppercase tracking-wide">
+                        <span className="font-extrabold text-emerald-900 block text-xs sm:text-sm uppercase tracking-wide">
                           ⑩ Preço de Venda Sugerido (Unitário)
                         </span>
-                        <Badge className="bg-amber-100 text-[#261502] border-amber-300 font-mono text-[10px]">
+                        <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 font-mono text-[10px]">
                           Valor canônico do motor
                         </Badge>
                       </div>
-                      <span className="text-[10px] text-[#b87c14]">
+                      <span className="text-[10px] text-emerald-700">
                         {formatBRL(baseValue)} ÷ {formatFactorBR(divisorPresumido, 4)} ={' '}
                         {formatBRL(salePricePresumido)}
                       </span>
                     </div>
-                    <span className="text-base sm:text-lg font-black text-[#261502]">
+                    <span className="text-base sm:text-lg font-black text-emerald-900">
                       {formatBRL(salePricePresumido)}
                     </span>
                   </div>
 
                   {/* ⑪ Distribuição do preço em R$ e Decomposição Tributária */}
-                  <div className="p-3.5 bg-slate-50 space-y-3 border-l-2 border-amber-600">
+                  <div className="p-3.5 bg-slate-50 space-y-3 border-l-2 border-emerald-600">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
                         ⑪ Decomposição Tributária e Identidade ({formatBRL(pvPresumido)})
@@ -1507,11 +1509,11 @@ export function MarkupCalculationMemoryModal({
                     </div>
 
                     {isLiquid && (
-                      <div className="p-2 rounded bg-amber-50 border border-amber-300 text-[11px] font-mono">
-                        <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
+                      <div className="p-2 rounded bg-emerald-50 border border-emerald-300 text-[11px] font-mono">
+                        <span className="text-[10px] text-emerald-700 block uppercase font-semibold">
                           Valor desejado após tributos e despesas variáveis (âncora)
                         </span>
-                        <span className="font-bold text-[#261502]">
+                        <span className="font-bold text-emerald-900">
                           {formatBRL(desiredNetRevenuePresumido)}
                         </span>
                         <span className="text-[9px] text-slate-600 block mt-0.5">
@@ -1550,7 +1552,7 @@ export function MarkupCalculationMemoryModal({
                               <td className="py-1 px-2 text-right text-slate-700">
                                 {formatPercentBR(t.taxaNominalPct ?? t.taxaEfetivaPct, 2)}
                               </td>
-                              <td className="py-1 px-2 text-right font-semibold text-[#b87c14]">
+                              <td className="py-1 px-2 text-right font-semibold text-emerald-700">
                                 {formatPercentBR(t.taxaEfetivaPct, 3)}
                               </td>
                               <td className="py-1 px-2 text-right font-bold text-slate-900">
@@ -1572,26 +1574,26 @@ export function MarkupCalculationMemoryModal({
                         </span>
                       </div>
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[10px] text-amber-800 block uppercase">
+                        <span className="text-[10px] text-emerald-800 block uppercase">
                           Tributos (Total)
                         </span>
-                        <span className="font-bold text-amber-700">
+                        <span className="font-bold text-emerald-700">
                           {formatBRL(valorTributosPresumido)}
                         </span>
                       </div>
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[10px] text-amber-800 block uppercase">
+                        <span className="text-[10px] text-emerald-800 block uppercase">
                           DV ({formatPercentBR(dvRate, 2)})
                         </span>
-                        <span className="font-bold text-amber-700">
+                        <span className="font-bold text-emerald-700">
                           {formatBRL(valorDvPresumido)}
                         </span>
                       </div>
-                      <div className="p-2 rounded bg-amber-50 border border-amber-300 shadow-xs">
-                        <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
+                      <div className="p-2 rounded bg-emerald-50 border border-emerald-300 shadow-xs">
+                        <span className="text-[10px] text-emerald-700 block uppercase font-semibold">
                           {isLiquid ? 'Sobra líquida (resíduo)' : 'Margem / Lucro (R$)'}
                         </span>
-                        <span className="font-bold text-[#261502]">
+                        <span className="font-bold text-emerald-900">
                           {formatBRL(valorMargemPresumido)} (
                           {pvPresumido > 0
                             ? formatPercentBR((valorMargemPresumido / pvPresumido) * 100, 2)
@@ -1603,10 +1605,10 @@ export function MarkupCalculationMemoryModal({
                   </div>
 
                   {/* ⑫ Blindagem de Margem */}
-                  <div className="p-3.5 bg-amber-50/70 border border-amber-300 rounded-b-xl space-y-2">
+                  <div className="p-3.5 bg-emerald-50/70 border border-emerald-300 rounded-b-xl space-y-2">
                     <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-[#b87c14] shrink-0" />
-                      <span className="font-extrabold text-[#261502] uppercase tracking-wider text-xs">
+                      <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <span className="font-extrabold text-emerald-900 uppercase tracking-wider text-xs">
                         ⑫ BLINDAGEM DE MARGEM
                       </span>
                     </div>
@@ -1618,7 +1620,6 @@ export function MarkupCalculationMemoryModal({
                     </p>
                   </div>
                 </div>
-              </div>
               </QuadroBlocosMemo>
 
               {/* Sub-bloco exclusivo do modo líquido: Cadeia da DRE linha a linha (Item 5) */}
@@ -1626,12 +1627,12 @@ export function MarkupCalculationMemoryModal({
                 <div className="p-4 rounded-xl bg-white border border-emerald-300 space-y-3 font-mono text-xs shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <div className="flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-[#b87c14]" />
-                      <span className="font-bold text-[#261502] uppercase tracking-wide text-[11px]">
+                      <Layers className="w-4 h-4 text-emerald-700" />
+                      <span className="font-bold text-emerald-900 uppercase tracking-wide text-[11px]">
                         Cadeia da DRE Derivada — Modo Receita Líquida (Lucro Presumido)
                       </span>
                     </div>
-                    <Badge className="bg-amber-50 text-[#261502] border border-amber-300 text-[10px]">
+                    <Badge className="bg-emerald-50 text-emerald-900 border border-emerald-300 text-[10px]">
                       Gross-up Reverso
                     </Badge>
                   </div>
@@ -1639,7 +1640,7 @@ export function MarkupCalculationMemoryModal({
                   <div className="divide-y divide-slate-100">
                     <div className="py-1.5 flex items-center justify-between font-bold text-slate-900">
                       <span>Receita Bruta de Vendas (RBV Sugerida)</span>
-                      <span className="text-[#b87c14] text-sm">
+                      <span className="text-emerald-800 text-sm">
                         {formatBRL(liquidChainPresumido.rbv)}
                       </span>
                     </div>
@@ -1661,9 +1662,9 @@ export function MarkupCalculationMemoryModal({
                         − {formatBRL(liquidChainPresumido.deducoesValor)}
                       </span>
                     </div>
-                    <div className="py-2 flex items-center justify-between bg-amber-50 px-2 rounded font-bold text-[#261502]">
+                    <div className="py-2 flex items-center justify-between bg-emerald-50 px-2 rounded font-bold text-emerald-900">
                       <span>(=) Receita Líquida (≈ âncora)</span>
-                      <span className="text-[#261502] text-sm">
+                      <span className="text-emerald-900 text-sm">
                         {formatBRL(liquidChainPresumido.netRevenue)}
                       </span>
                     </div>
@@ -1673,7 +1674,7 @@ export function MarkupCalculationMemoryModal({
                           Conciliação de arredondamento: âncora informada{' '}
                           {formatBRL(desiredNetRevenuePresumido)} · gap (derivada − âncora)
                         </span>
-                        <span className="font-semibold text-[#b87c14]">
+                        <span className="font-semibold text-emerald-700">
                           {formatBRL(liquidChainPresumido.roundingGap)}
                         </span>
                       </div>
@@ -1688,7 +1689,9 @@ export function MarkupCalculationMemoryModal({
                       <span>(=) Lucro Bruto</span>
                       <span
                         className={
-                          liquidChainPresumido.grossProfit >= 0 ? 'text-[#b87c14]' : 'text-rose-700'
+                          liquidChainPresumido.grossProfit >= 0
+                            ? 'text-emerald-700'
+                            : 'text-rose-700'
                         }
                       >
                         {formatBRL(liquidChainPresumido.grossProfit)}
@@ -1704,7 +1707,7 @@ export function MarkupCalculationMemoryModal({
                       <span>(=) LAIR (Lucro Antes do IR)</span>
                       <span
                         className={
-                          liquidChainPresumido.lair >= 0 ? 'text-[#b87c14]' : 'text-rose-700'
+                          liquidChainPresumido.lair >= 0 ? 'text-emerald-700' : 'text-rose-700'
                         }
                       >
                         {formatBRL(liquidChainPresumido.lair)}
@@ -1719,13 +1722,13 @@ export function MarkupCalculationMemoryModal({
                     <div
                       className={`py-2 px-2.5 rounded-lg flex items-center justify-between font-bold text-sm ${
                         liquidChainPresumido.lle >= 0
-                          ? 'bg-amber-50 border border-amber-300 text-[#261502]'
+                          ? 'bg-emerald-50 border border-emerald-300 text-emerald-900'
                           : 'bg-rose-50 border border-rose-200 text-rose-800'
                       }`}
                     >
                       <div className="flex items-center gap-1.5">
                         {liquidChainPresumido.lle >= 0 ? (
-                          <CheckCircle2 className="w-4 h-4 text-[#b87c14]" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                         ) : (
                           <AlertTriangle className="w-4 h-4 text-rose-700" />
                         )}
@@ -1741,8 +1744,8 @@ export function MarkupCalculationMemoryModal({
                   </div>
 
                   {!liquidChainPresumido.isViable && (
-                    <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>
                         <strong>Atenção:</strong> Faltam{' '}
                         <strong>{formatBRL(liquidChainPresumido.shortfall)}</strong> para LLE
@@ -1761,15 +1764,15 @@ export function MarkupCalculationMemoryModal({
               ========================================================= */}
           {activeTab === 'real' && (
             <div className="space-y-4 pt-1 animate-in fade-in duration-200">
-              <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-300 space-y-2">
+              <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-300 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Percent className="w-4 h-4 text-[#b87c14]" />
-                  <span className="text-xs font-mono font-bold text-[#261502] uppercase">
+                  <Percent className="w-4 h-4 text-emerald-700" />
+                  <span className="text-xs font-mono font-bold text-emerald-900 uppercase">
                     Markup Divisor Aditivo no Lucro Real
                   </span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-white border border-slate-200 font-mono text-xs text-slate-800 overflow-x-auto shadow-xs">
-                  <code className="text-[#b87c14] font-semibold">
+                  <code className="text-emerald-700 font-semibold">
                     {isLiquid ? (
                       <>
                         Divisor = 1 − [ICMS% + PIS efetivo% ({formatPercentBR(pisRealEfetivoPct, 3)}
@@ -1821,7 +1824,6 @@ export function MarkupCalculationMemoryModal({
                 titulo="Memória de Cálculo em 12 Blocos (Lucro Real)"
                 legenda="Regime Não Cumulativo"
               >
-
                 <div className="divide-y divide-slate-100">
                   {/* ① Perfil */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
@@ -1886,9 +1888,9 @@ export function MarkupCalculationMemoryModal({
                   </div>
 
                   {/* ④ ICMS */}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-amber-50/50">
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-50/50">
                     <div>
-                      <span className="font-bold text-[#261502] block">
+                      <span className="font-bold text-emerald-900 block">
                         ④ ICMS Estadual sobre Venda
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -1897,7 +1899,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-[#b87c14] text-sm block">
+                      <span className="font-bold text-emerald-800 text-sm block">
                         {formatPercentBR(icmsRateClean)}
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -1909,7 +1911,7 @@ export function MarkupCalculationMemoryModal({
                   {/* ⑤ Carga tributária decomposta */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between bg-slate-50">
                     <div>
-                      <span className="font-bold text-[#261502] block">
+                      <span className="font-bold text-emerald-900 block">
                         ⑤ Carga Tributária Total Aditiva (usada no Divisor)
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -1919,7 +1921,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-[#b87c14] text-sm block">
+                      <span className="font-bold text-emerald-800 text-sm block">
                         {formatPercentBR(totalTaxesRealRate, 2)}
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -1958,7 +1960,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-amber-800 text-sm block">
+                      <span className="font-bold text-emerald-800 text-sm block">
                         {formatPercentBR(dvRate)}
                       </span>
                       <span className="text-[10px] text-slate-500">
@@ -1981,7 +1983,7 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-amber-800 text-sm block">
+                      <span className="font-bold text-emerald-800 text-sm block">
                         {isLiquid && liquidChainReal
                           ? `${formatNumberBR(liquidChainReal.derivedMarginPct)}%`
                           : formatPercentBR(marginPct)}
@@ -1995,43 +1997,43 @@ export function MarkupCalculationMemoryModal({
                   </div>
 
                   {/* ⑨ Markup divisor */}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-amber-50/70">
+                  <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-500/10">
                     <div>
-                      <span className="font-bold text-[#261502] block">⑨ Markup divisor</span>
+                      <span className="font-bold text-emerald-900 block">⑨ Markup divisor</span>
                       <span className="text-[10px] text-slate-500">
                         {isLiquid
                           ? `1 − (${formatPercentBR(divisorResReal.somaTributosPct, 2)} Trib + ${formatPercentBR(dvRate, 2)} DV)`
                           : `1 − (${formatPercentBR(divisorResReal.somaTributosPct, 2)} Trib + ${formatPercentBR(dvRate, 2)} DV + ${formatPercentBR(marginPct, 2)} Margem)`}
                       </span>
                     </div>
-                    <span className="font-black text-[#b87c14] text-base">
+                    <span className="font-black text-emerald-900 text-base">
                       {formatFactorBR(divisorReal, 4)}
                     </span>
                   </div>
 
                   {/* ⑩ Preço sugerido */}
-                  <div className="px-3.5 py-3 flex items-center justify-between bg-amber-50 border-t border-amber-300">
+                  <div className="px-3.5 py-3 flex items-center justify-between bg-emerald-50 border-t border-emerald-300">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-[#261502] block text-xs sm:text-sm uppercase tracking-wide">
+                        <span className="font-extrabold text-emerald-900 block text-xs sm:text-sm uppercase tracking-wide">
                           ⑩ Preço de Venda Sugerido (Unitário)
                         </span>
-                        <Badge className="bg-amber-100 text-[#261502] border-amber-300 font-mono text-[10px]">
+                        <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 font-mono text-[10px]">
                           Valor canônico do motor
                         </Badge>
                       </div>
-                      <span className="text-[10px] text-[#b87c14]">
+                      <span className="text-[10px] text-emerald-700">
                         {formatBRL(baseValue)} ÷ {formatFactorBR(divisorReal, 4)} ={' '}
                         {formatBRL(salePriceReal)}
                       </span>
                     </div>
-                    <span className="text-base sm:text-lg font-black text-[#261502]">
+                    <span className="text-base sm:text-lg font-black text-emerald-900">
                       {formatBRL(salePriceReal)}
                     </span>
                   </div>
 
                   {/* ⑪ Distribuição do preço em R$ e Decomposição Tributária */}
-                  <div className="p-3.5 bg-slate-50 space-y-3 border-l-2 border-amber-600">
+                  <div className="p-3.5 bg-slate-50 space-y-3 border-l-2 border-emerald-600">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-slate-900 block text-[11px] uppercase tracking-wider">
                         ⑪ Decomposição Tributária e Identidade ({formatBRL(pvReal)})
@@ -2049,11 +2051,11 @@ export function MarkupCalculationMemoryModal({
                       </span>
                     </div>
                     {isLiquid && (
-                      <div className="p-2 rounded bg-amber-50 border border-amber-300 text-[11px] font-mono">
-                        <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
+                      <div className="p-2 rounded bg-emerald-50 border border-emerald-300 text-[11px] font-mono">
+                        <span className="text-[10px] text-emerald-700 block uppercase font-semibold">
                           Valor desejado após tributos e despesas variáveis (âncora)
                         </span>
-                        <span className="font-bold text-[#261502]">
+                        <span className="font-bold text-emerald-900">
                           {formatBRL(desiredNetRevenueReal)}
                         </span>
                         <span className="text-[9px] text-slate-600 block mt-0.5">
@@ -2092,7 +2094,7 @@ export function MarkupCalculationMemoryModal({
                               <td className="py-1 px-2 text-right text-slate-700">
                                 {formatPercentBR(t.taxaNominalPct ?? t.taxaEfetivaPct, 2)}
                               </td>
-                              <td className="py-1 px-2 text-right font-semibold text-[#b87c14]">
+                              <td className="py-1 px-2 text-right font-semibold text-emerald-700">
                                 {formatPercentBR(t.taxaEfetivaPct, 3)}
                               </td>
                               <td className="py-1 px-2 text-right font-bold text-slate-900">
@@ -2112,27 +2114,27 @@ export function MarkupCalculationMemoryModal({
                         <span className="font-bold text-slate-900">{formatBRL(custoBaseReal)}</span>
                       </div>
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[10px] text-amber-800 block uppercase">
+                        <span className="text-[10px] text-emerald-800 block uppercase">
                           Tributos (ICMS/PIS/COF)
                         </span>
-                        <span className="font-bold text-amber-700">
+                        <span className="font-bold text-emerald-700">
                           {formatBRL(valorTributosReal)}
                         </span>
                       </div>
                       <div className="p-2 rounded bg-white border border-slate-200 shadow-xs">
-                        <span className="text-[10px] text-amber-800 block uppercase">
+                        <span className="text-[10px] text-emerald-800 block uppercase">
                           DV ({formatPercentBR(dvRate, 2)})
                         </span>
-                        <span className="font-bold text-amber-700">{formatBRL(valorDvReal)}</span>
+                        <span className="font-bold text-emerald-700">{formatBRL(valorDvReal)}</span>
                       </div>
-                      <div className="p-2 rounded bg-amber-50 border border-amber-300 shadow-xs">
-                        <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
+                      <div className="p-2 rounded bg-emerald-50 border border-emerald-300 shadow-xs">
+                        <span className="text-[10px] text-emerald-700 block uppercase font-semibold">
                           {isLiquid ? 'Sobra líquida (resíduo)' : 'Margem em R$'}
                         </span>
-                        <span className="font-bold text-[#261502]">
+                        <span className="font-bold text-emerald-900">
                           {formatBRL(valorMargemReal)}
                         </span>
-                        <span className="text-[9px] text-[#b87c14] block">
+                        <span className="text-[9px] text-emerald-700 block">
                           {isLiquid
                             ? `= âncora ${formatBRL(desiredNetRevenueReal)} + gap`
                             : 'Sobra líquida'}
@@ -2141,7 +2143,7 @@ export function MarkupCalculationMemoryModal({
                     </div>
                     <div className="text-[10px] text-slate-600 flex items-center justify-between pt-1 border-t border-slate-200">
                       <span>Conferência da soma dos componentes:</span>
-                      <span className="font-bold text-[#b87c14]">
+                      <span className="font-bold text-emerald-700">
                         {formatBRL(custoBaseReal)} + {formatBRL(valorTributosReal)} +{' '}
                         {formatBRL(valorDvReal)} + {formatBRL(valorMargemReal)} ={' '}
                         {formatBRL(pvReal)}
@@ -2150,7 +2152,7 @@ export function MarkupCalculationMemoryModal({
                     {isLiquid && liquidChainReal && liquidChainReal.roundingGap !== 0 && (
                       <div className="text-[10px] text-slate-600 flex items-center justify-between">
                         <span>Conciliação de arredondamento (roundingGap):</span>
-                        <span className="font-bold text-[#b87c14]">
+                        <span className="font-bold text-emerald-700">
                           PV − Tributos − DV = {formatBRL(liquidChainReal.derivedNetRevenue)} ·
                           âncora {formatBRL(desiredNetRevenueReal)} · gap{' '}
                           {formatBRL(liquidChainReal.roundingGap)}
@@ -2160,10 +2162,10 @@ export function MarkupCalculationMemoryModal({
                   </div>
 
                   {/* ⑫ Blindagem de Margem */}
-                  <div className="p-3.5 bg-amber-50/70 border border-amber-300 rounded-b-xl space-y-2">
+                  <div className="p-3.5 bg-emerald-50/70 border border-emerald-300 rounded-b-xl space-y-2">
                     <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-[#b87c14] shrink-0" />
-                      <span className="font-extrabold text-[#261502] uppercase tracking-wider text-xs">
+                      <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <span className="font-extrabold text-emerald-900 uppercase tracking-wider text-xs">
                         ⑫ BLINDAGEM DE MARGEM
                       </span>
                     </div>
@@ -2174,7 +2176,6 @@ export function MarkupCalculationMemoryModal({
                     </p>
                   </div>
                 </div>
-              </div>
               </QuadroBlocosMemo>
 
               {/* Sub-bloco exclusivo do modo líquido: Cadeia da DRE linha a linha (Item 5) */}
@@ -2182,9 +2183,9 @@ export function MarkupCalculationMemoryModal({
                 <div className="p-4 rounded-xl bg-white border border-emerald-300 space-y-3 font-mono text-xs shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <div className="flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-[#b87c14]" />
-                      <span className="font-bold text-[#261502] uppercase tracking-wide text-[11px]">
-                        Cadeia da DRE Derivada — Modo Receita Líquida (Lucro Real)
+                      <Layers className="w-4 h-4 text-emerald-700" />
+                      <span className="font-bold text-emerald-900 uppercase tracking-wide text-[11px]">
+                        Cadeia da DRE Derivada — Modo Receita Livro (Lucro Real)
                       </span>
                     </div>
                     <Badge className="bg-purple-50 text-purple-800 border-purple-200 text-[10px]">
@@ -2195,7 +2196,7 @@ export function MarkupCalculationMemoryModal({
                   <div className="divide-y divide-slate-100">
                     <div className="py-1.5 flex items-center justify-between font-bold text-slate-900">
                       <span>Receita Bruta de Vendas (RBV Sugerida)</span>
-                      <span className="text-[#b87c14] text-sm">
+                      <span className="text-emerald-800 text-sm">
                         {formatBRL(liquidChainReal.rbv)}
                       </span>
                     </div>
@@ -2216,9 +2217,9 @@ export function MarkupCalculationMemoryModal({
                         − {formatBRL(liquidChainReal.deducoesValor)}
                       </span>
                     </div>
-                    <div className="py-2 flex items-center justify-between bg-amber-50 px-2 rounded font-bold text-[#261502]">
+                    <div className="py-2 flex items-center justify-between bg-emerald-50 px-2 rounded font-bold text-emerald-900">
                       <span>(=) Receita Líquida (≈ âncora)</span>
-                      <span className="text-[#261502] text-sm">
+                      <span className="text-emerald-900 text-sm">
                         {formatBRL(liquidChainReal.netRevenue)}
                       </span>
                     </div>
@@ -2228,7 +2229,7 @@ export function MarkupCalculationMemoryModal({
                           Conciliação de arredondamento: âncora informada{' '}
                           {formatBRL(desiredNetRevenueReal)} · gap (derivada − âncora)
                         </span>
-                        <span className="font-semibold text-[#b87c14]">
+                        <span className="font-semibold text-emerald-700">
                           {formatBRL(liquidChainReal.roundingGap)}
                         </span>
                       </div>
@@ -2243,7 +2244,7 @@ export function MarkupCalculationMemoryModal({
                       <span>(=) Lucro Bruto</span>
                       <span
                         className={
-                          liquidChainReal.grossProfit >= 0 ? 'text-[#b87c14]' : 'text-rose-700'
+                          liquidChainReal.grossProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'
                         }
                       >
                         {formatBRL(liquidChainReal.grossProfit)}
@@ -2258,7 +2259,7 @@ export function MarkupCalculationMemoryModal({
                     <div className="py-1.5 flex items-center justify-between font-semibold text-slate-800">
                       <span>(=) LAIR (Lucro Antes do IR)</span>
                       <span
-                        className={liquidChainReal.lair >= 0 ? 'text-[#b87c14]' : 'text-rose-700'}
+                        className={liquidChainReal.lair >= 0 ? 'text-emerald-700' : 'text-rose-700'}
                       >
                         {formatBRL(liquidChainReal.lair)}
                       </span>
@@ -2270,13 +2271,13 @@ export function MarkupCalculationMemoryModal({
                     <div
                       className={`py-2 px-2.5 rounded-lg flex items-center justify-between font-bold text-sm ${
                         liquidChainReal.lle >= 0
-                          ? 'bg-amber-50 border border-amber-300 text-[#261502]'
+                          ? 'bg-emerald-50 border border-emerald-300 text-emerald-900'
                           : 'bg-rose-50 border border-rose-200 text-rose-800'
                       }`}
                     >
                       <div className="flex items-center gap-1.5">
                         {liquidChainReal.lle >= 0 ? (
-                          <CheckCircle2 className="w-4 h-4 text-[#b87c14]" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                         ) : (
                           <AlertTriangle className="w-4 h-4 text-rose-700" />
                         )}
@@ -2292,8 +2293,8 @@ export function MarkupCalculationMemoryModal({
                   </div>
 
                   {!liquidChainReal.isViable && (
-                    <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>
                         <strong>Atenção:</strong> Faltam{' '}
                         <strong>{formatBRL(liquidChainReal.shortfall)}</strong> para LLE positivo. A
