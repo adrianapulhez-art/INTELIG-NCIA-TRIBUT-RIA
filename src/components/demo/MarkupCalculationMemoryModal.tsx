@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,91 @@ import {
   SimplesScenarioKey,
   useTaxContext,
 } from '@/contexts/TaxContext'
+
+/** Botão singelo que revela (camada interna) o parágrafo explicativo do card de fórmula. */
+function BotaoVerExplicacaoMemo({
+  idExplicacao,
+  texto,
+}: {
+  idExplicacao: string
+  texto: React.ReactNode
+}) {
+  const [aberto, setAberto] = useState(false)
+  return (
+    <div className="mt-0.5">
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        aria-expanded={aberto}
+        aria-controls={idExplicacao}
+        className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 hover:text-emerald-800 underline decoration-emerald-300 underline-offset-2 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400 rounded-sm"
+      >
+        {aberto ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        {aberto ? 'Ocultar explicação' : 'Ver explicação'}
+      </button>
+      {aberto && (
+        <p id={idExplicacao} className="text-[11px] text-slate-600 leading-relaxed mt-1.5">
+          {texto}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** Quadro "Memória de Cálculo em N blocos" recolhido por padrão, aberto só pelo botão singelo. */
+function QuadroBlocosMemo({
+  idQuadro,
+  titulo,
+  legenda,
+  children,
+}: {
+  idQuadro: string
+  titulo: string
+  legenda: string
+  children: React.ReactNode
+}) {
+  const [aberto, setAberto] = useState(false)
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden text-xs font-mono shadow-sm">
+      <div className="bg-gradient-to-r from-[#064e3b] via-[#022c22] to-[#065f46] px-3.5 py-2.5 border-b border-emerald-900 flex items-center justify-between gap-2 text-white">
+        <span className="font-semibold text-white uppercase tracking-wider text-[11px]">
+          {titulo}
+        </span>
+        <span className="text-[10px] text-emerald-200 shrink-0">{legenda}</span>
+      </div>
+      {!aberto ? (
+        <div className="px-3.5 py-2 bg-emerald-50/60 border-b border-emerald-100">
+          <button
+            type="button"
+            onClick={() => setAberto(true)}
+            aria-expanded={false}
+            aria-controls={idQuadro}
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 hover:text-emerald-800 underline decoration-emerald-300 underline-offset-2 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400 rounded-sm"
+          >
+            <ChevronDown className="w-3 h-3" />
+            Ver memória de cálculo (blocos)
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="px-3.5 py-2 bg-emerald-50/60 border-b border-emerald-100">
+            <button
+              type="button"
+              onClick={() => setAberto(false)}
+              aria-expanded={true}
+              aria-controls={idQuadro}
+              className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 hover:text-emerald-800 underline decoration-emerald-300 underline-offset-2 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400 rounded-sm"
+            >
+              <ChevronUp className="w-3 h-3" />
+              Ocultar memória de cálculo (blocos)
+            </button>
+          </div>
+          <div id={idQuadro}>{children}</div>
+        </>
+      )}
+    </div>
+  )
+}
 
 export interface MarkupCalculationMemoryModalProps {
   open: boolean
@@ -438,7 +524,7 @@ export function MarkupCalculationMemoryModal({
         <DialogHeader className="border-b border-slate-200 pb-3.5 space-y-1.5">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-300 flex items-center justify-center text-[#b87c14]">
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-300 flex items-center justify-center text-emerald-700">
                 <Calculator className="w-4 h-4" />
               </div>
               <DialogTitle className="text-base sm:text-lg font-bold text-[#261502] flex items-center gap-2">
@@ -621,23 +707,25 @@ export function MarkupCalculationMemoryModal({
                     )}
                   </code>{' '}
                 </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  No Simples Nacional, os tributos sobre receita (ICMS, PIS, COFINS, IRPJ, CSLL e
-                  CPP) são unificados no DAS pela alíquota efetiva do PGDAS calculada sobre a RBT12.
-                  O motor aditivo deduz os tributos, despesas variáveis e margem sobre a mesma base
-                  do preço de venda bruto (PV).
-                </p>
+                <BotaoVerExplicacaoMemo
+                  idExplicacao="memo-explicacao-simples"
+                  texto={
+                    <>
+                      No Simples Nacional, os tributos sobre receita (ICMS, PIS, COFINS, IRPJ, CSLL
+                      e CPP) são unificados no DAS pela alíquota efetiva do PGDAS calculada sobre a
+                      RBT12. O motor aditivo deduz os tributos, despesas variáveis e margem sobre a
+                      mesma base do preço de venda bruto (PV).
+                    </>
+                  }
+                />
               </div>
 
-              {/* Tabela dos 12 Blocos Numerados */}
-              <div className="rounded-xl border border-slate-200 bg-white overflow-hidden text-xs font-mono shadow-sm">
-                <div className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] px-3.5 py-2.5 border-b border-slate-800 flex items-center justify-between text-white">
-                  <span className="font-semibold text-white uppercase tracking-wider text-[11px]">
-                    Memória de Cálculo em 12 Blocos (Simples Nacional)
-                  </span>
-                  <span className="text-[10px] text-slate-300">LC 123/2006</span>
-                </div>
-
+              {/* Quadro dos 12 Blocos Numerados — recolhido por padrão (botão singelo) */}
+              <QuadroBlocosMemo
+                idQuadro="memo-blocos-simples"
+                titulo="Memória de Cálculo em 12 Blocos (Simples Nacional)"
+                legenda="LC 123/2006"
+              >
                 <div className="divide-y divide-slate-100">
                   {/* ① Perfil */}
                   <div className="px-3.5 py-2.5 flex items-center justify-between">
@@ -987,10 +1075,11 @@ export function MarkupCalculationMemoryModal({
                   </div>
                 </div>
               </div>
+              </QuadroBlocosMemo>
 
               {/* Sub-bloco exclusivo do modo líquido: Cadeia da DRE linha a linha (Item 5) */}
               {isLiquid && liquidChainSimples && (
-                <div className="p-4 rounded-xl bg-white border border-amber-300 space-y-3 font-mono text-xs shadow-sm">
+                <div className="p-4 rounded-xl bg-white border border-emerald-300 space-y-3 font-mono text-xs shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <div className="flex items-center gap-2">
                       <Layers className="w-4 h-4 text-[#b87c14]" />
@@ -1156,25 +1245,30 @@ export function MarkupCalculationMemoryModal({
                     )}
                   </code>
                 </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  No Lucro Presumido cumulativo, o PIS (0,65%) e a COFINS (3,00%) incidem sobre a
-                  base &quot;Receita bruta da venda MENOS o ICMS destacado na nota fiscal de
-                  saída&quot; (
-                  <a
-                    href="https://portal.stf.jus.br/processos/listarProcessos.asp?classe=RE&numeroProcesso=574706"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-amber-800 underline hover:text-amber-900 font-medium"
-                  >
-                    Tema 69/STF, RE 574706
-                  </a>
-                  ). O divisor aditivo utiliza as parcelas efetivas dessas contribuições sobre o
-                  preço bruto ({formatPercentBR(pisPresumidoEfetivoPct, 3)} e{' '}
-                  {formatPercentBR(cofinsPresumidoEfetivoPct, 3)}, totalizando{' '}
-                  {formatPercentBR(totalTaxesPresumidoRate, 2)} de carga tributária aditiva para
-                  ICMS {formatPercentBR(icmsRateClean)}, em vez de 21,65%), somadas às despesas
-                  variáveis de venda e à margem sobre o PV bruto.
-                </p>
+                <BotaoVerExplicacaoMemo
+                  idExplicacao="memo-explicacao-presumido"
+                  texto={
+                    <>
+                      No Lucro Presumido cumulativo, o PIS (0,65%) e a COFINS (3,00%) incidem sobre
+                      a base &quot;Receita bruta da venda MENOS o ICMS destacado na nota fiscal de
+                      saída&quot; (
+                      <a
+                        href="https://portal.stf.jus.br/processos/listarProcessos.asp?classe=RE&numeroProcesso=574706"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-emerald-800 underline hover:text-emerald-900 font-medium"
+                      >
+                        Tema 69/STF, RE 574706
+                      </a>
+                      ). O divisor aditivo utiliza as parcelas efetivas dessas contribuições sobre o
+                      preço bruto ({formatPercentBR(pisPresumidoEfetivoPct, 3)} e{' '}
+                      {formatPercentBR(cofinsPresumidoEfetivoPct, 3)}, totalizando{' '}
+                      {formatPercentBR(totalTaxesPresumidoRate, 2)} de carga tributária aditiva para
+                      ICMS {formatPercentBR(icmsRateClean)}, em vez de 21,65%), somadas às despesas
+                      variáveis de venda e à margem sobre o PV bruto.
+                    </>
+                  }
+                />
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white overflow-hidden text-xs font-mono shadow-sm">
@@ -1527,10 +1621,11 @@ export function MarkupCalculationMemoryModal({
                   </div>
                 </div>
               </div>
+              </QuadroBlocosMemo>
 
               {/* Sub-bloco exclusivo do modo líquido: Cadeia da DRE linha a linha (Item 5) */}
               {isLiquid && liquidChainPresumido && (
-                <div className="p-4 rounded-xl bg-white border border-amber-300 space-y-3 font-mono text-xs shadow-sm">
+                <div className="p-4 rounded-xl bg-white border border-emerald-300 space-y-3 font-mono text-xs shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <div className="flex items-center gap-2">
                       <Layers className="w-4 h-4 text-[#b87c14]" />
@@ -1695,27 +1790,32 @@ export function MarkupCalculationMemoryModal({
                     )}
                   </code>
                 </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  No Lucro Real não cumulativo, o PIS (1,65%) e a COFINS (7,60%) incidem sobre a
-                  base &quot;Receita bruta da venda MENOS o ICMS destacado na nota fiscal de
-                  saída&quot; (
-                  <a
-                    href="https://portal.stf.jus.br/processos/listarProcessos.asp?classe=RE&numeroProcesso=574706"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-amber-800 underline hover:text-amber-900 font-medium"
-                  >
-                    Tema 69/STF, RE 574706
-                  </a>
-                  ). No divisor aditivo sobre o preço bruto, entram os débitos de saída calculados
-                  pelas parcelas efetivas ({formatPercentBR(pisRealEfetivoPct, 3)} e{' '}
-                  {formatPercentBR(cofinsRealEfetivoPct, 3)}), que somadas ao ICMS (
-                  {formatPercentBR(icmsRateClean)}) totalizam{' '}
-                  {formatPercentBR(totalTaxesRealRate, 2)} de carga tributária aditiva de saída (e
-                  não 27,25%). Já os créditos elegíveis sobre compras operam em etapa separada: hoje
-                  reduzem diretamente o CMV líquido apurado na DRE, preservando a identidade entre o
-                  custo unitário de aquisição e a formação do preço.
-                </p>
+                <BotaoVerExplicacaoMemo
+                  idExplicacao="memo-explicacao-real"
+                  texto={
+                    <>
+                      No Lucro Real não cumulativo, o PIS (1,65%) e a COFINS (7,60%) incidem sobre a
+                      base &quot;Receita bruta da venda MENOS o ICMS destacado na nota fiscal de
+                      saída&quot; (
+                      <a
+                        href="https://portal.stf.jus.br/processos/listarProcessos.asp?classe=RE&numeroProcesso=574706"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-emerald-800 underline hover:text-emerald-900 font-medium"
+                      >
+                        Tema 69/STF, RE 574706
+                      </a>
+                      ). No divisor aditivo sobre o preço bruto, entram os débitos de saída
+                      calculados pelas parcelas efetivas ({formatPercentBR(pisRealEfetivoPct, 3)} e{' '}
+                      {formatPercentBR(cofinsRealEfetivoPct, 3)}), que somadas ao ICMS (
+                      {formatPercentBR(icmsRateClean)}) totalizam{' '}
+                      {formatPercentBR(totalTaxesRealRate, 2)} de carga tributária aditiva de saída
+                      (e não 27,25%). Já os créditos elegíveis sobre compras operam em etapa
+                      separada: hoje reduzem diretamente o CMV líquido apurado na DRE, preservando a
+                      identidade entre o custo unitário de aquisição e a formação do preço.
+                    </>
+                  }
+                />
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white overflow-hidden text-xs font-mono shadow-sm">
@@ -2079,10 +2179,11 @@ export function MarkupCalculationMemoryModal({
                   </div>
                 </div>
               </div>
+              </QuadroBlocosMemo>
 
               {/* Sub-bloco exclusivo do modo líquido: Cadeia da DRE linha a linha (Item 5) */}
               {isLiquid && liquidChainReal && (
-                <div className="p-4 rounded-xl bg-white border border-amber-300 space-y-3 font-mono text-xs shadow-sm">
+                <div className="p-4 rounded-xl bg-white border border-emerald-300 space-y-3 font-mono text-xs shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <div className="flex items-center gap-2">
                       <Layers className="w-4 h-4 text-[#b87c14]" />
