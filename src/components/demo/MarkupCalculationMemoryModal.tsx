@@ -527,12 +527,12 @@ export function MarkupCalculationMemoryModal({
               <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-300 flex items-center justify-center text-emerald-700">
                 <Calculator className="w-4 h-4" />
               </div>
-              <DialogTitle className="text-base sm:text-lg font-bold text-[#261502] flex items-center gap-2">
+              <DialogTitle className="text-base sm:text-lg font-bold text-emerald-900 flex items-center gap-2">
                 <span>Memória de Cálculo do Preço Sugerido</span>
               </DialogTitle>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="bg-amber-50 text-[#261502] border border-amber-300 font-mono text-xs">
+              <Badge className="bg-emerald-50 text-emerald-900 border border-emerald-300 font-mono text-xs">
                 {product.name || 'Produto'}
               </Badge>
               <Badge className="bg-slate-100 text-slate-700 border-slate-200 font-mono text-[11px]">
@@ -552,7 +552,7 @@ export function MarkupCalculationMemoryModal({
             <span className="text-[10px] text-slate-500 block uppercase">
               {isLiquid ? 'Receita Líquida' : 'Custo Unitário'}
             </span>
-            <span className="text-sm font-bold text-[#b87c14]">{formatBRL(baseValue)}</span>
+            <span className="text-sm font-bold text-emerald-700">{formatBRL(baseValue)}</span>
             <span
               className="text-[10px] text-slate-500 block mt-0.5 truncate"
               title={costOriginLabel}
@@ -565,7 +565,7 @@ export function MarkupCalculationMemoryModal({
             <span className="text-[10px] text-slate-500 block uppercase">
               {isLiquid ? 'Margem Derivada' : 'Margem Desejada'}
             </span>
-            <span className="text-sm font-bold text-amber-800">
+            <span className="text-sm font-bold text-emerald-800">
               {isLiquid
                 ? activeRegimeChain
                   ? `${formatNumberBR(activeRegimeChain.derivedMarginPct)}%`
@@ -587,11 +587,11 @@ export function MarkupCalculationMemoryModal({
             </span>
           </div>
 
-          <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 font-mono shadow-xs">
+          <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 font-mono shadow-xs">
             <span className="text-[10px] text-[#b87c14] block uppercase font-semibold">
               Preço Sugerido Ativo
             </span>
-            <span className="text-sm font-black text-[#261502]">{formatBRL(activeSalePrice)}</span>
+            <span className="text-sm font-black text-emerald-800">{formatBRL(activeSalePrice)}</span>
             <span className="text-[10px] text-[#b87c14] block mt-0.5">
               Divisor: {formatFactorBR(activeCompleteFactor, 4)}
             </span>
@@ -601,7 +601,7 @@ export function MarkupCalculationMemoryModal({
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-2">
             <span className="text-xs font-mono uppercase tracking-wider text-slate-700 font-semibold flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-[#b87c14]" />
+              <Layers className="w-3.5 h-3.5 text-emerald-700" />
               Selecione o regime para visualizar os 12 blocos:
             </span>
             <span className="text-[11px] font-mono text-slate-500">Cálculo com valores reais</span>
@@ -613,14 +613,14 @@ export function MarkupCalculationMemoryModal({
               onClick={() => setActiveTab('simples')}
               className={`p-2.5 rounded-xl border text-left font-mono transition-all cursor-pointer ${
                 activeTab === 'simples'
-                  ? 'bg-amber-50 border-amber-300 text-slate-900 shadow-sm'
+                  ? 'bg-emerald-50 border-emerald-300 text-slate-900 shadow-sm'
                   : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300'
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-[#261502]">Simples Nacional</span>
+                <span className="text-xs font-bold uppercase text-emerald-900">Simples Nacional</span>
                 {currentRegime === 'simples' && (
-                  <Badge className="bg-amber-100 text-[#261502] border-0 text-[9px] px-1 py-0">
+                  <Badge className="bg-emerald-100 text-emerald-900 border-0 text-[9px] px-1 py-0">
                     Ativo
                   </Badge>
                 )}
@@ -642,7 +642,7 @@ export function MarkupCalculationMemoryModal({
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-[#261502]">Presumido</span>
+                <span className="text-xs font-bold uppercase text-emerald-900">Presumido</span>
                 {currentRegime === 'presumido' && (
                   <Badge className="bg-amber-100 text-[#261502] border-0 text-[9px] px-1 py-0">
                     Ativo
@@ -664,7 +664,7 @@ export function MarkupCalculationMemoryModal({
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-[#261502]">Lucro Real</span>
+                <span className="text-xs font-bold uppercase text-emerald-900">Lucro Real</span>
                 {currentRegime === 'real' && (
                   <Badge className="bg-amber-100 text-[#261502] border-0 text-[9px] px-1 py-0">
                     Ativo
@@ -685,7 +685,7 @@ export function MarkupCalculationMemoryModal({
               {/* Box de fórmula sintética */}
               <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-300 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#b87c14]" />
+                  <Sparkles className="w-4 h-4 text-emerald-700" />
                   <span className="text-xs font-mono font-bold text-[#261502] uppercase">
                     Markup Divisor Aditivo no Simples Nacional
                   </span>
@@ -1271,13 +1271,11 @@ export function MarkupCalculationMemoryModal({
                 />
               </div>
 
-              <div className="rounded-xl border border-slate-200 bg-white overflow-hidden text-xs font-mono shadow-sm">
-                <div className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] px-3.5 py-2.5 border-b border-slate-800 flex items-center justify-between text-white">
-                  <span className="font-semibold text-white uppercase tracking-wider text-[11px]">
-                    Memória de Cálculo em 12 Blocos (Lucro Presumido)
-                  </span>
-                  <span className="text-[10px] text-slate-300">Regime Cumulativo</span>
-                </div>
+              <QuadroBlocosMemo
+                idQuadro="memo-blocos-presumido"
+                titulo="Memória de Cálculo em 12 Blocos (Lucro Presumido)"
+                legenda="Regime Cumulativo"
+              >
 
                 <div className="divide-y divide-slate-100">
                   {/* ① Perfil */}
@@ -1818,13 +1816,11 @@ export function MarkupCalculationMemoryModal({
                 />
               </div>
 
-              <div className="rounded-xl border border-slate-200 bg-white overflow-hidden text-xs font-mono shadow-sm">
-                <div className="bg-gradient-to-r from-[#0d1624] via-[#09111c] to-[#0a1420] px-3.5 py-2.5 border-b border-slate-800 flex items-center justify-between text-white">
-                  <span className="font-semibold text-white uppercase tracking-wider text-[11px]">
-                    Memória de Cálculo em 12 Blocos (Lucro Real)
-                  </span>
-                  <span className="text-[10px] text-slate-300">Regime Não Cumulativo</span>
-                </div>
+              <QuadroBlocosMemo
+                idQuadro="memo-blocos-real"
+                titulo="Memória de Cálculo em 12 Blocos (Lucro Real)"
+                legenda="Regime Não Cumulativo"
+              >
 
                 <div className="divide-y divide-slate-100">
                   {/* ① Perfil */}
