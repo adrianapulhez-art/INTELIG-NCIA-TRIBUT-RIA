@@ -138,7 +138,7 @@ export default function ClientsPage() {
         snapshot: scenario.data,
       })
       showFeedback('success', `Cenário "${scenario.name}" restaurado com sucesso!`)
-      navigate(rotaDoEscopoCenario(scenario.data?.scope))
+      navigate(rotaDoEscopoCenario(scenario.scope))
     } catch (err: unknown) {
       console.error('Erro ao restaurar cenário:', err)
       showFeedback('error', 'Não foi possível restaurar os dados deste cenário.')
