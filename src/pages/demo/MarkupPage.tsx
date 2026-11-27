@@ -44,7 +44,7 @@ import { MarkupCalculationMemoryModal } from '@/components/demo/MarkupCalculatio
 import { MarkupModeComparisonModal } from '@/components/demo/MarkupModeComparisonModal'
 import { SaveScenarioModal } from '@/components/demo/SaveScenarioModal'
 import { PageHero } from '@/components/demo/PageHero'
-import { RegimeComparisonBarChart } from '@/components/demo/RegimeComparisonBarChart'
+
 import {
   Dialog,
   DialogContent,
@@ -377,7 +377,7 @@ export default function MarkupPage() {
   const [isImportPurchasesDialogOpen, setIsImportPurchasesDialogOpen] = useState(false)
   const [compositionModalProductId, setCompositionModalProductId] = useState<string | null>(null)
   const [isProductRevenueDetailsOpen, setIsProductRevenueDetailsOpen] = useState(false)
-  const [isRegimeComparisonDetailsOpen, setIsRegimeComparisonDetailsOpen] = useState(false)
+
   const [calculationMemoryProductId, setCalculationMemoryProductId] = useState<string | null>(null)
   const [comparisonModeProductId, setComparisonModeProductId] = useState<string | null>(null)
 
@@ -2906,27 +2906,11 @@ export default function MarkupPage() {
                     <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-900">
                       Preço de venda simulado por regime
                     </h3>
-                    <Badge className="bg-emerald-50 text-[#064e3b] border border-emerald-300 text-[10px] font-mono font-semibold">
-                      Comparativo simulado
-                    </Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-mono text-slate-500 hidden sm:inline">
                       Totais consolidados por regime
                     </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsRegimeComparisonDetailsOpen(true)}
-                      className="h-7 text-xs bg-emerald-50 border-emerald-300 text-[#064e3b] hover:bg-emerald-100 hover:border-emerald-400 font-mono flex items-center gap-1.5 cursor-pointer shadow-sm"
-                    >
-                      <Layers className="w-3.5 h-3.5 text-[#059669]" />
-                      <span>Ver comparativo por produto</span>
-                      <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] px-1.5 py-0 font-mono font-semibold">
-                        {regimeComparison.prodsPresumido.length}
-                      </Badge>
-                    </Button>
                   </div>
                 </div>
 
@@ -2993,241 +2977,6 @@ export default function MarkupPage() {
                   </div>
                 )}
               </div>
-            )}
-
-            {/* Subcamada Modal: Comparativo de Preço por Produto nos 3 Regimes */}
-            {regimeComparison && (
-              <Dialog
-                open={isRegimeComparisonDetailsOpen}
-                onOpenChange={setIsRegimeComparisonDetailsOpen}
-              >
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-slate-200 p-6 text-slate-900 shadow-xl">
-                  <DialogHeader className="border-b border-slate-200 pb-3">
-                    <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                      <Scale className="w-4 h-4 text-emerald-700" />
-                      <span>Comparativo de Preço de Venda Simulado por Regime — Linha a Linha</span>
-                      <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-semibold">
-                        {regimeComparison.prodsPresumido.length} itens
-                      </Badge>
-                    </DialogTitle>
-                    <DialogDescription className="text-xs text-slate-500 font-mono">
-                      Comparação detalhada do preço unitário e faturamento total por produto em cada
-                      regime tributário.
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  {/* Mini-gráfico de barras horizontais: Receita Consolidada × Menor Preço */}
-                  <RegimeComparisonBarChart
-                    items={[
-                      {
-                        key: 'presumido',
-                        label: 'Lucro Presumido',
-                        revenue: regimeComparison.totalRevPresumido,
-                        products: regimeComparison.prodsPresumido,
-                      },
-                      {
-                        key: 'real',
-                        label: 'Lucro Real',
-                        revenue: regimeComparison.totalRevReal,
-                        products: regimeComparison.prodsReal,
-                      },
-                      {
-                        key: 'simples',
-                        label: 'Simples Nacional',
-                        revenue: regimeComparison.totalRevSimples,
-                        products: regimeComparison.prodsSimples || [],
-                      },
-                    ]}
-                  />
-
-                  <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white my-2 shadow-sm">
-                    <table className="w-full text-xs font-mono">
-                      <thead>
-                        <tr className="border-b border-emerald-950/50 bg-gradient-to-r from-[#022c22] via-[#064e3b] to-[#022c22] text-[#d1fae5] text-right">
-                          <th className="py-2.5 px-3 text-left font-semibold text-[#d1fae5] rounded-tl-xl">
-                            Produto
-                          </th>
-                          <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">Qtd.</th>
-                          <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">
-                            Lucro Presumido
-                          </th>
-                          <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">Lucro Real</th>
-                          <th className="py-2.5 px-3 font-semibold text-[#d1fae5]">
-                            Simples Nacional
-                          </th>
-                          <th className="py-2.5 px-3 text-center font-semibold text-[#d1fae5]">
-                            Menor Preço
-                          </th>
-                          <th className="py-2.5 px-3 text-center font-semibold text-[#d1fae5] rounded-tr-xl">
-                            Memória
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {regimeComparison.prodsPresumido.map((pPres, idx) => {
-                          const pReal = regimeComparison.prodsReal.find((x) => x.id === pPres.id)
-                          const pSimp = regimeComparison.prodsSimples?.find(
-                            (x) => x.id === pPres.id,
-                          )
-                          const origProd = markupProducts.find((mp) => mp.id === pPres.id)
-                          const qtyPres =
-                            origProd?.quantityByRegime?.presumido ??
-                            (origProd?.quantityByRegime ? 0 : origProd?.quantity || 0)
-                          const qtyReal =
-                            origProd?.quantityByRegime?.real ??
-                            (origProd?.quantityByRegime ? 0 : origProd?.quantity || 0)
-                          const qtySimp =
-                            origProd?.quantityByRegime?.simples ??
-                            (origProd?.quantityByRegime ? 0 : origProd?.quantity || 0)
-                          const qtyActive =
-                            origProd?.quantityByRegime?.[regime] ??
-                            (origProd?.quantityByRegime ? 0 : origProd?.quantity || 0)
-
-                          // Menor preço unitário individual deste produto
-                          const cand: { regime: string; price: number }[] = [
-                            { regime: 'Presumido', price: pPres.salePrice },
-                            { regime: 'Real', price: pReal?.salePrice || 0 },
-                          ]
-                          if (pSimp && pSimp.salePrice > 0) {
-                            cand.push({ regime: 'Simples', price: pSimp.salePrice })
-                          }
-                          const validCand = cand
-                            .filter((c) => c.price > 0)
-                            .sort((a, b) => a.price - b.price)
-                          const best = validCand[0]
-
-                          return (
-                            <tr key={pPres.id} className="hover:bg-slate-50 transition-colors">
-                              <td className="py-2.5 px-3 text-left font-medium text-slate-900">
-                                <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-gradient-to-r from-[#022c22] via-[#064e3b] to-[#022c22] border border-emerald-500/40 text-emerald-200 font-bold text-[10px] mr-1.5 shadow-sm">
-                                  #{idx + 1}
-                                </span>
-                                {origProd?.name || pPres.name || `Produto ${idx + 1}`}
-                              </td>
-                              <td className="py-2.5 px-3 text-right text-[#0f172a] font-bold">
-                                <span
-                                  data-product-id={pPres.id}
-                                  title={`P: ${qtyPres} un. | R: ${qtyReal} un. | S: ${qtySimp} un.`}
-                                >
-                                  {qtyActive} un.
-                                </span>
-                              </td>
-                              <td className="py-2.5 px-3 text-right">
-                                <span className="font-bold text-slate-900">
-                                  {formatBRL(pPres.salePrice)}
-                                </span>
-                                <span className="text-[10px] text-slate-500 block">
-                                  {qtyPres > 0
-                                    ? `Tot: ${formatBRL(pPres.totalRevenue)} (${qtyPres} un.)`
-                                    : 'Sem qtd informada'}
-                                </span>
-                              </td>
-                              <td className="py-2.5 px-3 text-right">
-                                <span className="font-bold text-slate-900">
-                                  {pReal ? formatBRL(pReal.salePrice) : '—'}
-                                </span>
-                                {pReal && (
-                                  <span className="text-[10px] text-slate-500 block">
-                                    {qtyReal > 0
-                                      ? `Tot: ${formatBRL(pReal.totalRevenue)} (${qtyReal} un.)`
-                                      : 'Sem qtd informada'}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-2.5 px-3 text-right">
-                                {pSimp ? (
-                                  <>
-                                    <div className="flex items-center justify-end gap-1">
-                                      <span className="font-bold text-slate-900">
-                                        {formatBRL(pSimp.salePrice)}
-                                      </span>
-                                      {regimeComparison.isFallbackRbt12 && (
-                                        <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[8px] px-1 py-0 font-medium">
-                                          1ª faixa
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <span className="text-[10px] text-slate-500 block">
-                                      {qtySimp > 0
-                                        ? `Tot: ${formatBRL(pSimp.totalRevenue)} (${qtySimp} un.)`
-                                        : 'Sem qtd informada'}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <span className="text-slate-400">—</span>
-                                )}
-                              </td>
-                              <td className="py-2.5 px-3 text-center">
-                                {best ? (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-300">
-                                    <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
-                                    {best.regime} ({formatBRL(best.price)})
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-400">—</span>
-                                )}
-                              </td>
-                              <td className="py-2.5 px-3 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setCalculationMemoryProductId(pPres.id)
-                                    setIsRegimeComparisonDetailsOpen(false)
-                                  }}
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 cursor-pointer transition-colors"
-                                  title="Ver memória de cálculo deste produto nos 3 regimes"
-                                >
-                                  <Calculator className="w-2.5 h-2.5" />
-                                  <span>Memória ›</span>
-                                </button>
-                              </td>
-                            </tr>
-                          )
-                        })}{' '}
-                      </tbody>
-                      <tfoot className="border-t-2 border-emerald-300 bg-emerald-50 font-bold">
-                        <tr>
-                          <td className="py-3 px-3 text-left text-emerald-950 font-extrabold uppercase tracking-wide border-l-2 border-emerald-600">
-                            <div className="flex items-center gap-2">
-                              <span className="inline-block w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                              <span>Receita Consolidada (Σ)</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-3 text-right text-emerald-900 font-bold text-sm">
-                            {totalConsolidatedQuantity} un.
-                          </td>
-                          <td className="py-3 px-3 text-right text-emerald-800 font-black text-sm">
-                            {formatBRL(regimeComparison.totalRevPresumido)}
-                          </td>
-                          <td className="py-3 px-3 text-right text-emerald-800 font-black text-sm">
-                            {formatBRL(regimeComparison.totalRevReal)}
-                          </td>
-                          <td className="py-3 px-3 text-right text-emerald-800 font-black text-sm">
-                            {regimeComparison.totalRevSimples !== null
-                              ? formatBRL(regimeComparison.totalRevSimples)
-                              : '—'}
-                          </td>
-                          <td className="py-3 px-3 text-center text-emerald-800 font-semibold text-[11px] border-r-2 border-emerald-400">
-                            Soma por regime
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsRegimeComparisonDetailsOpen(false)}
-                      className="text-xs font-mono bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50"
-                    >
-                      Fechar
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
             )}
 
             {/* Modal / Camada Discreta do Fluxo A: Comparação por Preço de Mercado */}
