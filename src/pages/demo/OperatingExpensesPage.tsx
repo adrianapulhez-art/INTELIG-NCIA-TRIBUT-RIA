@@ -35,6 +35,7 @@ import { PayrollSection } from '@/components/demo/PayrollSection'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MoneyInput } from '@/components/demo/MoneyInput'
+import { OperatingPresetCard } from '@/components/demo/OperatingPresetCard'
 import { PageHero } from '@/components/demo/PageHero'
 import { SaveScenarioModal } from '@/components/demo/SaveScenarioModal'
 import {
@@ -136,19 +137,24 @@ export default function OperatingExpensesPage() {
     setExpenseValueStr('')
   }
 
-  // Preencher campos da camada com um exemplo de despesa (com opção de adicionar direto ou pré-carregar)
-  const handleSelectExpensePreset = (preset: ExpensePreset, addDirectly = false) => {
-    if (addDirectly) {
-      addOperatingExpense(preset.description, preset.suggestedValue, preset.category)
-      setExpenseSuccessFeedback(
-        `Adicionado: "${preset.label}" (${formatBRL(preset.suggestedValue)})`,
-      )
-      setTimeout(() => setExpenseSuccessFeedback(null), 2500)
+  // "+ Inserir" do card: comportamento original preservado (1 clique na tabela)
+  const handleInsertExpensePreset = (preset: ExpensePreset) => {
+    addOperatingExpense(preset.description, preset.suggestedValue, preset.category)
+    setExpenseSuccessFeedback(`Adicionado: "${preset.label}" (${formatBRL(preset.suggestedValue)})`)
+  }
+
+  // "Preencher" do card: confirma o valor digitado na caixinha e alimenta a lista
+  // (cria o item na discriminação/categoria do preset ou atualiza o existente)
+  const commitExpensePresetValue = (preset: ExpensePreset, value: number) => {
+    const existing = operatingExpenses.find((it) => it.description === preset.description)
+    if (existing) {
+      updateOperatingExpense(existing.id, 'value', value)
     } else {
-      setExpenseDescription(preset.description)
-      setExpenseCategory(preset.category)
-      setExpenseValueStr(preset.suggestedValue === 0 ? '' : formatNumberBR(preset.suggestedValue))
+      addOperatingExpense(preset.description, value, preset.category)
     }
+    setExpenseSuccessFeedback(
+      `Valor lançado em "${preset.label}": ${formatBRL(value)} — confira na tabela de Despesas Operacionais.`,
+    )
   }
 
   // Abrir camada de adição de Receita
@@ -171,19 +177,23 @@ export default function OperatingExpensesPage() {
     setRevenueValueStr('')
   }
 
-  // Preencher campos da camada com um exemplo de receita
-  const handleSelectRevenuePreset = (preset: RevenuePreset, addDirectly = false) => {
-    if (addDirectly) {
-      addOperatingRevenue(preset.description, preset.suggestedValue, preset.category)
-      setRevenueSuccessFeedback(
-        `Adicionado: "${preset.label}" (${formatBRL(preset.suggestedValue)})`,
-      )
-      setTimeout(() => setRevenueSuccessFeedback(null), 2500)
+  // "+ Inserir" do card de receita: comportamento original preservado
+  const handleInsertRevenuePreset = (preset: RevenuePreset) => {
+    addOperatingRevenue(preset.description, preset.suggestedValue, preset.category)
+    setRevenueSuccessFeedback(`Adicionado: "${preset.label}" (${formatBRL(preset.suggestedValue)})`)
+  }
+
+  // "Preencher" do card de receita: confirma o valor digitado na caixinha e alimenta a lista
+  const commitRevenuePresetValue = (preset: RevenuePreset, value: number) => {
+    const existing = operatingRevenues.find((it) => it.description === preset.description)
+    if (existing) {
+      updateOperatingRevenue(existing.id, 'value', value)
     } else {
-      setRevenueDescription(preset.description)
-      setRevenueCategory(preset.category)
-      setRevenueValueStr(preset.suggestedValue === 0 ? '' : formatNumberBR(preset.suggestedValue))
+      addOperatingRevenue(preset.description, value, preset.category)
     }
+    setRevenueSuccessFeedback(
+      `Valor lançado em "${preset.label}": ${formatBRL(value)} — confira na tabela de Receitas Operacionais.`,
+    )
   }
 
   // Filtros de presets por porte selecionado
@@ -825,49 +835,21 @@ export default function OperatingExpensesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 max-h-52 overflow-y-auto pr-1">
                 {filteredExpensePresets.map((preset) => {
                   const cat = EXPENSE_CATEGORY_LABELS[preset.category]
+                  const linked = operatingExpenses.find(
+                    (it) => it.description === preset.description,
+                  )
                   return (
-                    <div
+                    <OperatingPresetCard
                       key={preset.id}
-                      className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-amber-400 transition-all flex flex-col justify-between gap-1.5 group shadow-xs"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-800 group-hover:text-[#261502]">
-                          {preset.label}
-                        </span>
-                        <Badge
-                          className={`text-[9px] font-mono px-1.5 py-0 border ${cat.badgeClass} shrink-0`}
-                        >
-                          {cat.short}
-                        </Badge>
-                      </div>
-
-                      <p className="text-[10px] text-slate-500 line-clamp-1">{preset.hint}</p>
-
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 font-mono text-xs">
-                        <span className="text-rose-700 font-bold">
-                          {formatBRL(preset.suggestedValue)}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleSelectExpensePreset(preset, false)}
-                            className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200"
-                            title="Preencher campos abaixo para personalizar"
-                          >
-                            Preencher
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectExpensePreset(preset, true)}
-                            className="text-[10px] px-2 py-0.5 rounded bg-[#3b2405] hover:bg-[#261502] text-amber-200 font-bold transition-colors cursor-pointer flex items-center gap-0.5"
-                            title="Inserir na tabela com 1 clique"
-                          >
-                            <Plus className="w-2.5 h-2.5" />
-                            Inserir
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                      label={preset.label}
+                      hint={preset.hint}
+                      badgeShort={cat.short}
+                      badgeClass={cat.badgeClass}
+                      linkedValue={linked ? linked.value : null}
+                      variant="expense"
+                      onCommitValue={(val) => commitExpensePresetValue(preset, val)}
+                      onInsert={() => handleInsertExpensePreset(preset)}
+                    />
                   )
                 })}
               </div>
@@ -1094,49 +1076,21 @@ export default function OperatingExpensesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 max-h-52 overflow-y-auto pr-1">
                 {filteredRevenuePresets.map((preset) => {
                   const cat = REVENUE_CATEGORY_LABELS[preset.category]
+                  const linked = operatingRevenues.find(
+                    (it) => it.description === preset.description,
+                  )
                   return (
-                    <div
+                    <OperatingPresetCard
                       key={preset.id}
-                      className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-amber-400 transition-all flex flex-col justify-between gap-1.5 group shadow-xs"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-800 group-hover:text-[#261502]">
-                          {preset.label}
-                        </span>
-                        <Badge
-                          className={`text-[9px] font-mono px-1.5 py-0 border ${cat.badgeClass} shrink-0`}
-                        >
-                          {cat.short}
-                        </Badge>
-                      </div>
-
-                      <p className="text-[10px] text-slate-500 line-clamp-1">{preset.hint}</p>
-
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 font-mono text-xs">
-                        <span className="text-[#b87c14] font-bold">
-                          {formatBRL(preset.suggestedValue)}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleSelectRevenuePreset(preset, false)}
-                            className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200"
-                            title="Preencher campos abaixo para personalizar"
-                          >
-                            Preencher
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectRevenuePreset(preset, true)}
-                            className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-b from-[#f9e596] via-[#e5b742] to-[#b87c14] hover:brightness-105 text-[#261502] font-black transition-colors cursor-pointer flex items-center gap-0.5 border border-amber-200/90"
-                            title="Inserir na tabela com 1 clique"
-                          >
-                            <Plus className="w-2.5 h-2.5" />
-                            Inserir
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                      label={preset.label}
+                      hint={preset.hint}
+                      badgeShort={cat.short}
+                      badgeClass={cat.badgeClass}
+                      linkedValue={linked ? linked.value : null}
+                      variant="revenue"
+                      onCommitValue={(val) => commitRevenuePresetValue(preset, val)}
+                      onInsert={() => handleInsertRevenuePreset(preset)}
+                    />
                   )
                 })}
               </div>
